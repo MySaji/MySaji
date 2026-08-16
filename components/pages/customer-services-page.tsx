@@ -17,7 +17,7 @@ import {
   Grid3X3, List, TrendingUp, ShoppingBag, Zap, CalendarIcon, Phone,
   MessageCircle, Loader2, SlidersHorizontal, ChevronRight, Eye,
   AlertTriangle, Wallet, ShieldCheck, ArrowRight, Check, Info,
-  Flame, Plus, Minus, ArrowUpDown, Package,
+  Flame, Plus, Minus, ArrowUpDown, Package, ChevronDown, ChevronUp,
 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
@@ -79,6 +79,13 @@ export function CustomerServicesPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [showFilters, setShowFilters] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState(() => searchParams.get("category") ?? "all")
+  // Category list grew to 30+ real categories this session (see admin
+  // catalog work) — rendering every tile at once buried the rest of the
+  // page below a wall of icons on mobile. Collapsed to a preview count with
+  // a "Show more" toggle, same pattern as every other "peek" section on
+  // the customer home page.
+  const [showAllCategories, setShowAllCategories] = useState(false)
+  const CATEGORY_PREVIEW_COUNT = 7
   const [selectedService, setSelectedService] = useState<ServiceListItem | null>(null)
   const [showBookingModal, setShowBookingModal] = useState(false)
   const [currentLocation, setCurrentLocation] = useState<string | null>(null)
@@ -568,7 +575,7 @@ export function CustomerServicesPage() {
               </div>
               <p className="text-xs font-semibold leading-tight">{t("customer.services.allServices")}</p>
             </button>
-            {categories.map((cat) => {
+            {(showAllCategories ? categories : categories.slice(0, CATEGORY_PREVIEW_COUNT)).map((cat) => {
               const style = CATEGORY_STYLE[cat.slug] ?? DEFAULT_CATEGORY_STYLE
               const Icon = style.icon
               const isActive = selectedCategory === cat.slug
@@ -587,6 +594,19 @@ export function CustomerServicesPage() {
                 </button>
               )
             })}
+            {categories.length > CATEGORY_PREVIEW_COUNT && (
+              <button
+                onClick={() => setShowAllCategories((v) => !v)}
+                className="rounded-2xl p-3 flex flex-col items-center text-center gap-2 shadow-sm transition-all hover:scale-105 bg-muted/60 text-muted-foreground hover:bg-muted"
+              >
+                <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl bg-white/60 dark:bg-white/10 flex items-center justify-center">
+                  {showAllCategories ? <ChevronUp className="w-5 h-5 lg:w-6 lg:h-6" /> : <ChevronDown className="w-5 h-5 lg:w-6 lg:h-6" />}
+                </div>
+                <p className="text-xs font-semibold leading-tight">
+                  {showAllCategories ? t("customer.services.showLess") : t("customer.services.showMore")}
+                </p>
+              </button>
+            )}
           </div>
         </div>
 

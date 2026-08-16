@@ -183,26 +183,26 @@ function ContinueBookingSection({ jobs, orders }: { jobs: CustomerJob[]; orders:
   return (
     <div>
       <SectionHeader title={t("customer.home.continueWhereLeftOff")} href="/customer/jobs" />
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3">
         {recentJobs.map((job) => {
           const status = JOB_STATUS_STYLE[job.status] ?? JOB_STATUS_STYLE.PENDING
           const StatusIcon = status.icon
           return (
             <Link key={job.id} href="/customer/jobs">
-              <Card className="p-3.5 border border-border hover:shadow-md transition-shadow rounded-2xl h-full">
-                <div className="flex items-center gap-3">
-                  <div className="relative w-11 h-11 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-background bg-muted">
+              <Card className="p-2.5 sm:p-3.5 border border-border hover:shadow-md transition-shadow rounded-2xl h-full">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="relative w-9 h-9 sm:w-11 sm:h-11 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-background bg-muted">
                     <Image src={job.providerAvatar || "/placeholder.svg"} alt={job.providerName} fill className="object-cover" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm text-foreground truncate">{job.title}</p>
-                    <p className="text-xs text-muted-foreground truncate">{job.providerName}</p>
+                    <p className="font-semibold text-xs sm:text-sm text-foreground truncate">{job.title}</p>
+                    <p className="text-[11px] sm:text-xs text-muted-foreground truncate">{job.providerName}</p>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  <ChevronRight className="hidden sm:block w-4 h-4 text-muted-foreground flex-shrink-0" />
                 </div>
-                <div className={`mt-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold ${status.className}`}>
-                  <StatusIcon className="w-3 h-3" />
-                  {status.label}
+                <div className={`mt-2.5 sm:mt-3 inline-flex items-center gap-1 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-[11px] font-semibold ${status.className}`}>
+                  <StatusIcon className="w-3 h-3 flex-shrink-0" />
+                  <span className="truncate">{status.label}</span>
                 </div>
               </Card>
             </Link>
@@ -210,20 +210,20 @@ function ContinueBookingSection({ jobs, orders }: { jobs: CustomerJob[]; orders:
         })}
         {recentOrder && (
           <Link href="/customer/orders">
-            <Card className="p-3.5 border border-border hover:shadow-md transition-shadow rounded-2xl h-full">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <Package className="w-5 h-5 text-primary" />
+            <Card className="p-2.5 sm:p-3.5 border border-border hover:shadow-md transition-shadow rounded-2xl h-full">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Package className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm text-foreground truncate">{recentOrder.itemSummary}</p>
-                  <p className="text-xs text-muted-foreground truncate">{recentOrder.shopName}</p>
+                  <p className="font-semibold text-xs sm:text-sm text-foreground truncate">{recentOrder.itemSummary}</p>
+                  <p className="text-[11px] sm:text-xs text-muted-foreground truncate">{recentOrder.shopName}</p>
                 </div>
-                <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <ChevronRight className="hidden sm:block w-4 h-4 text-muted-foreground flex-shrink-0" />
               </div>
-              <div className={`mt-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold ${ORDER_STATUS_STYLE[recentOrder.status]?.className ?? ORDER_STATUS_STYLE.PENDING.className}`}>
-                <Truck className="w-3 h-3" />
-                {ORDER_STATUS_STYLE[recentOrder.status]?.label ?? ORDER_STATUS_STYLE.PENDING.label}
+              <div className={`mt-2.5 sm:mt-3 inline-flex items-center gap-1 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-[11px] font-semibold ${ORDER_STATUS_STYLE[recentOrder.status]?.className ?? ORDER_STATUS_STYLE.PENDING.className}`}>
+                <Truck className="w-3 h-3 flex-shrink-0" />
+                <span className="truncate">{ORDER_STATUS_STYLE[recentOrder.status]?.label ?? ORDER_STATUS_STYLE.PENDING.label}</span>
               </div>
             </Card>
           </Link>
