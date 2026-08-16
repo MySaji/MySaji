@@ -4,9 +4,22 @@ import crypto from "crypto"
 import { z } from "zod"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
+import { sendEmail } from "@/lib/email"
+import { wrapEmailLayout, emailButton, siteOrigin } from "@/lib/email-templates"
 
 export type HouseholdRole = "OWNER" | "MEMBER" | "PROPERTY_MANAGER" | "PAYMENT_APPROVER"
 export type HouseholdActionResult = { success: true } | { success: false; error: string }
+
+const HOUSEHOLD_ROLE_LABEL: Record<HouseholdRole, string> = {
+  OWNER: "Owner",
+  MEMBER: "Member",
+  PROPERTY_MANAGER: "Property Manager",
+  PAYMENT_APPROVER: "Payment Approver",
+}
+
+function householdInviteUrl(token: string): string {
+  return `${siteOrigin()}/customer/household/invite/${token}`
+}
 
 async function findMyHousehold(userId: string) {
   const owned = await db.household.findUnique({ where: { ownerUserId: userId } })
@@ -91,7 +104,20 @@ const inviteSchema = z.object({
 
 const INVITE_TTL_MS = 7 * 24 * 3600 * 1000
 
-export async function inviteHouseholdMember(input: unknown): Promise<HouseholdActionResult> {
+export type InviteHouseholdResult =
+  | { success: true; emailed: boolean; inviteUrl: string }
+  | { success: false; error: string }
+
+/**
+ * Creates the invite row and, when an email was given, sends it right away
+ * (real SMTP-gated, same as every other transactional email in this app —
+ * see inviteStaffMember for the identical pattern). Previously this only
+ * wrote the HouseholdInvite row and, for an email that already matched an
+ * existing SAJI account, an in-app Notification — nothing was ever actually
+ * emailed to the invitee, so anyone without the app already open (or
+ * without an account at all yet) had no way to know they'd been invited.
+ */
+export async function inviteHouseholdMember(input: unknown): Promise<InviteHouseholdResult> {
   const session = await auth()
   if (!session?.user?.id) return { success: false, error: "You must be signed in." }
 
@@ -105,20 +131,60 @@ export async function inviteHouseholdMember(input: unknown): Promise<HouseholdAc
   await db.householdInvite.create({
     data: { householdId: household.id, email: parsed.data.email || null, phone: parsed.data.phone || null, role: parsed.data.role, token, expiresAt: new Date(Date.now() + INVITE_TTL_MS) },
   })
+  const url = householdInviteUrl(token)
 
+  let emailed = false
   if (parsed.data.email) {
+    const inviter = await db.user.findUnique({ where: { id: session.user.id }, select: { name: true } })
     const existingUser = await db.user.findUnique({ where: { email: parsed.data.email } })
     if (existingUser) {
       await db.notification.create({
-        data: { userId: existingUser.id, title: "Household invite", message: `You've been invited to join a Saji household.`, type: "SYSTEM", actionUrl: "/customer/household" },
+        data: { userId: existingUser.id, title: "Household invite", message: `${inviter?.name ?? "Someone"} invited you to join their household on Saji.`, type: "SYSTEM", actionUrl: "/customer/household" },
       }).catch(() => {})
     }
+
+    const html = wrapEmailLayout({
+      title: "You're invited to a household on SAJI",
+      bodyHtml: `
+        <p>${inviter?.name ?? "A SAJI customer"} has invited you to join <strong>${household.name}</strong> on SAJI as a <strong>${HOUSEHOLD_ROLE_LABEL[parsed.data.role]}</strong> — sharing service bookings and history.</p>
+        <p>Click below to accept. This link expires in 7 days.</p>
+        ${emailButton("Accept invite", url)}
+        ${existingUser ? "" : "<p>Don't have a SAJI account yet? Sign up first, then open this link again to join.</p>"}
+      `,
+    })
+    const result = await sendEmail({ to: parsed.data.email, subject: "You've been invited to a household on SAJI", html })
+    emailed = result.sent
   }
 
-  return { success: true }
+  return { success: true, emailed, inviteUrl: url }
 }
 
 const tokenSchema = z.object({ token: z.string().trim().min(1) })
+
+export type HouseholdInvitePreview =
+  | { valid: true; householdName: string; inviterName: string; role: HouseholdRole; email: string | null; phone: string | null }
+  | { valid: false; error: string }
+
+/** Public (unauthenticated) lookup for the accept-invite page — the
+ * invitee may not have a session yet, same reasoning as
+ * getStaffInviteByToken. */
+export async function getHouseholdInviteByToken(token: string): Promise<HouseholdInvitePreview> {
+  const invite = await db.householdInvite.findUnique({ where: { token }, include: { household: true } })
+  if (!invite) return { valid: false, error: "This invite link is invalid." }
+  if (invite.status === "REVOKED") return { valid: false, error: "This invite has been revoked." }
+  if (invite.status === "ACCEPTED") return { valid: false, error: "This invite has already been used." }
+  if (invite.status === "EXPIRED" || invite.expiresAt < new Date()) return { valid: false, error: "This invite link has expired." }
+
+  const owner = await db.user.findUnique({ where: { id: invite.household.ownerUserId }, select: { name: true } })
+  return {
+    valid: true,
+    householdName: invite.household.name,
+    inviterName: owner?.name ?? "A SAJI user",
+    role: invite.role,
+    email: invite.email,
+    phone: invite.phone,
+  }
+}
 
 export async function acceptHouseholdInvite(input: unknown): Promise<HouseholdActionResult> {
   const session = await auth()

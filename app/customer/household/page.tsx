@@ -29,6 +29,7 @@ export default function HouseholdPage() {
   const [inviteRole, setInviteRole] = useState<"MEMBER" | "PROPERTY_MANAGER" | "PAYMENT_APPROVER">("MEMBER")
   const [isInviting, setIsInviting] = useState(false)
   const [error, setError] = useState("")
+  const [inviteResultMessage, setInviteResultMessage] = useState("")
 
   const refresh = () => Promise.all([getMyHousehold().then(setHousehold), getHouseholdJobs().then(setJobs)])
 
@@ -53,6 +54,11 @@ export default function HouseholdPage() {
     if (!result.success) { setError(result.error); return }
     setShowInvite(false)
     setInviteEmail("")
+    // SMTP isn't configured in every environment (dev/sandbox) — when the
+    // email genuinely couldn't be sent, fall back to the raw link so the
+    // owner can still share it manually instead of the invite silently
+    // going nowhere.
+    setInviteResultMessage(result.emailed ? "Invite sent! We emailed them a link to join." : `Email couldn't be sent — share this link with them instead: ${result.inviteUrl}`)
     await refresh()
   }
 
@@ -93,8 +99,9 @@ export default function HouseholdPage() {
             <Card className="border-0 p-5 shadow-sm">
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="font-semibold text-foreground">{household.name}</h2>
-                {household.isOwner && <Button size="sm" className="gap-1.5 rounded-lg" onClick={() => { setShowInvite(true); setError("") }}><UserPlus className="h-3.5 w-3.5" />Invite</Button>}
+                {household.isOwner && <Button size="sm" className="gap-1.5 rounded-lg" onClick={() => { setShowInvite(true); setError(""); setInviteResultMessage("") }}><UserPlus className="h-3.5 w-3.5" />Invite</Button>}
               </div>
+              {inviteResultMessage && <p className="mb-3 break-all rounded-lg bg-emerald-500/10 p-3 text-xs font-medium text-emerald-700 dark:text-emerald-400">{inviteResultMessage}</p>}
               <div className="space-y-2">
                 {household.members.map((m) => (
                   <div key={m.id} className="flex items-center justify-between gap-3 rounded-xl border border-border/70 p-3">

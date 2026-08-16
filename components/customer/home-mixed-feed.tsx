@@ -15,25 +15,25 @@ function MixedFeedCard({ item, isWishlisted, onToggleWishlist }: { item: MixedFe
 
   if (item.kind === "shop") {
     return (
-      <Card className="h-full w-[30%] flex-shrink-0 overflow-hidden rounded-xl border border-border shadow-sm transition-shadow hover:shadow-md sm:w-64 sm:rounded-2xl">
+      <Card className="h-full w-full overflow-hidden rounded-xl border border-border shadow-sm transition-shadow hover:shadow-md sm:w-64 sm:flex-shrink-0 sm:rounded-2xl">
         <Link href={`/customer/shops/${item.id}`}>
-          <div className="relative h-14 bg-muted sm:h-32">
+          <div className="relative h-20 bg-muted sm:h-32">
             <Image src={item.image || "/placeholder.svg"} alt={item.name} fill className="object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-            <span className={`absolute left-1 top-1 rounded-full px-1 py-0.5 text-[7px] font-bold text-white sm:left-2 sm:top-2 sm:px-2 sm:py-0.5 sm:text-[10px] ${item.isOpen ? "bg-emerald-500" : "bg-black/60"}`}>
+            <span className={`absolute left-1.5 top-1.5 rounded-full px-1.5 py-0.5 text-[8px] font-bold text-white sm:left-2 sm:top-2 sm:px-2 sm:py-0.5 sm:text-[10px] ${item.isOpen ? "bg-emerald-500" : "bg-black/60"}`}>
               {item.isOpen ? "OPEN" : "CLOSED"}
             </span>
-            {item.hasSale && <span className="absolute right-1 top-1 rounded-full bg-amber-500 px-1 py-0.5 text-[7px] font-bold text-white sm:right-2 sm:top-2 sm:px-2 sm:text-[10px]">SALE</span>}
+            {item.hasSale && <span className="absolute right-1.5 top-1.5 rounded-full bg-amber-500 px-1.5 py-0.5 text-[8px] font-bold text-white sm:right-2 sm:top-2 sm:px-2 sm:text-[10px]">SALE</span>}
           </div>
-          <div className="p-1.5 pb-0 sm:p-3">
-            <h3 className="truncate text-[10px] font-semibold text-foreground sm:text-base">{item.name}</h3>
-            <div className="mt-0.5 flex items-center gap-0.5 text-[9px] text-muted-foreground sm:mt-1 sm:gap-1 sm:text-xs">
-              <Star className="h-2.5 w-2.5 flex-shrink-0 fill-amber-400 text-amber-400 sm:h-3.5 sm:w-3.5" /> <span className="truncate">{item.rating.toFixed(1)} ({item.reviews})</span>
+          <div className="p-2 pb-0 sm:p-3">
+            <h3 className="truncate text-xs font-semibold text-foreground sm:text-base">{item.name}</h3>
+            <div className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground sm:mt-1 sm:gap-1 sm:text-xs">
+              <Star className="h-3 w-3 flex-shrink-0 fill-amber-400 text-amber-400 sm:h-3.5 sm:w-3.5" /> <span className="truncate">{item.rating.toFixed(1)} ({item.reviews})</span>
             </div>
             {item.hoursLabel && <p className="mt-0.5 hidden truncate text-[11px] text-muted-foreground sm:block sm:mt-1">{item.hoursLabel}</p>}
           </div>
         </Link>
-        <div className="grid grid-cols-1 gap-1 p-1.5 sm:grid-cols-2 sm:gap-2 sm:p-3">
+        <div className="grid grid-cols-1 gap-1 p-2 sm:grid-cols-2 sm:gap-2 sm:p-3">
           <Link href={`/customer/shops/${item.id}`}><Button size="sm" className="h-8 w-full rounded-md px-1 text-[10px] sm:h-9 sm:rounded-lg sm:px-3 sm:text-sm">Shop Now</Button></Link>
           <Link href={`/customer/shops/${item.id}`} className="hidden sm:block"><Button size="sm" variant="outline" className="w-full rounded-lg bg-transparent">View Shop</Button></Link>
         </div>
@@ -48,18 +48,18 @@ function MixedFeedCard({ item, isWishlisted, onToggleWishlist }: { item: MixedFe
   const viewHref = `/customer/find-specialists?provider=${item.providerId}`
 
   return (
-    <Card className="h-full w-[30%] flex-shrink-0 rounded-xl border border-border p-1.5 shadow-sm transition-shadow hover:shadow-md sm:w-64 sm:rounded-2xl sm:p-3.5">
+    <Card className="h-full w-full rounded-xl border border-border p-2 shadow-sm transition-shadow hover:shadow-md sm:w-64 sm:flex-shrink-0 sm:rounded-2xl sm:p-3.5">
       <div className="flex items-start justify-between gap-1 sm:gap-2">
-        <div className="flex items-center gap-1.5 min-w-0 sm:gap-2.5">
-          <div className="relative h-6 w-6 flex-shrink-0 overflow-hidden rounded-full bg-muted ring-1 ring-background sm:h-11 sm:w-11 sm:ring-2">
-            {item.avatar ? <Image src={item.avatar} alt={item.name} fill className="object-cover" /> : (isBusiness ? <Building2 className="h-3 w-3 m-auto mt-1.5 text-muted-foreground sm:h-5 sm:w-5 sm:mt-3" /> : <Briefcase className="h-3 w-3 m-auto mt-1.5 text-muted-foreground sm:h-5 sm:w-5 sm:mt-3" />)}
+        <div className="flex items-center gap-2 min-w-0 sm:gap-2.5">
+          <div className="relative h-9 w-9 flex-shrink-0 overflow-hidden rounded-full bg-muted ring-1 ring-background sm:h-11 sm:w-11 sm:ring-2">
+            {item.avatar ? <Image src={item.avatar} alt={item.name} fill className="object-cover" /> : (isBusiness ? <Building2 className="h-4 w-4 m-auto mt-2.5 text-muted-foreground sm:h-5 sm:w-5 sm:mt-3" /> : <Briefcase className="h-4 w-4 m-auto mt-2.5 text-muted-foreground sm:h-5 sm:w-5 sm:mt-3" />)}
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-1">
-              <p className="truncate text-[9px] font-semibold text-foreground sm:text-sm">{item.name}</p>
-              {item.verified && <ShieldCheck className="h-2.5 w-2.5 flex-shrink-0 text-emerald-500 sm:h-3.5 sm:w-3.5" />}
+              <p className="truncate text-xs font-semibold text-foreground sm:text-sm">{item.name}</p>
+              {item.verified && <ShieldCheck className="h-3 w-3 flex-shrink-0 text-emerald-500 sm:h-3.5 sm:w-3.5" />}
             </div>
-            <p className="truncate text-[8px] text-muted-foreground sm:text-xs">{item.categoryName ?? (isBusiness ? "Business" : "Specialist")}</p>
+            <p className="truncate text-[10px] text-muted-foreground sm:text-xs">{item.categoryName ?? (isBusiness ? "Business" : "Specialist")}</p>
           </div>
         </div>
         <button onClick={(e) => { e.preventDefault(); onToggleWishlist() }} aria-label="Save" className="hidden flex-shrink-0 rounded-full p-1 hover:bg-muted sm:block">
@@ -67,8 +67,8 @@ function MixedFeedCard({ item, isWishlisted, onToggleWishlist }: { item: MixedFe
         </button>
       </div>
 
-      <div className="mt-1 flex items-center gap-0.5 text-[8px] text-muted-foreground sm:mt-2 sm:gap-1 sm:text-xs">
-        <Star className="h-2.5 w-2.5 flex-shrink-0 fill-amber-400 text-amber-400 sm:h-3.5 sm:w-3.5" />
+      <div className="mt-1.5 flex items-center gap-1 text-[10px] text-muted-foreground sm:mt-2 sm:gap-1 sm:text-xs">
+        <Star className="h-3 w-3 flex-shrink-0 fill-amber-400 text-amber-400 sm:h-3.5 sm:w-3.5" />
         <span className="font-semibold text-foreground">{item.rating.toFixed(1)}</span>
         <span className="hidden sm:inline">({item.reviewCount}) · {item.location}</span>
       </div>
@@ -88,12 +88,13 @@ function MixedFeedCard({ item, isWishlisted, onToggleWishlist }: { item: MixedFe
           <div><p className="font-semibold text-foreground">{item.completedJobs}</p>Jobs done</div>
         </div>
       ) : (
-        item.hourlyRate > 0 && <p className="mt-1 truncate text-[8px] text-muted-foreground sm:mt-3 sm:text-sm">From <span className="font-bold text-foreground">{formatMoney(item.hourlyRate)}</span></p>
+        item.hourlyRate > 0 && <p className="mt-1 truncate text-[10px] text-muted-foreground sm:mt-3 sm:text-sm">From <span className="font-bold text-foreground">{formatMoney(item.hourlyRate)}</span></p>
       )}
 
-      {/* Compact icon row on mobile so Hire / Quote / View still fit at ~30%
-          card width; full labeled buttons return at sm+ where there's room. */}
-      <div className="mt-1.5 grid grid-cols-3 gap-0.5 sm:hidden">
+      {/* Compact icon row on mobile so Hire / Quote / View still fit in the
+          2-column grid card width; full labeled buttons return at sm+ where
+          there's room. */}
+      <div className="mt-2 grid grid-cols-3 gap-1 sm:hidden">
         <Link href={hireHref}><Button size="sm" className="h-8 w-full rounded-md px-0 text-[10px]">Hire</Button></Link>
         <Link href={quoteHref}><Button size="sm" variant="outline" className="h-8 w-full rounded-md px-0 text-[10px] bg-transparent">Quote</Button></Link>
         <Link href={viewHref}><Button size="sm" variant="ghost" className="h-8 w-full rounded-md px-0 text-[10px]">View</Button></Link>
@@ -141,7 +142,16 @@ export function MixedFeedSection({ title, seeAllHref, items }: { title: string; 
           See all <ChevronRight className="h-4 w-4" />
         </Link>
       </div>
-      <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide sm:mx-0 sm:gap-4 sm:px-0">
+      {/* Mobile: a 2-row grid that flows into columns (grid-flow-col), so
+          exactly 2 columns x 2 rows (4 cards) are visible at once and the
+          rest sit off to the right — reachable by the same horizontal
+          swipe/scroll every other carousel on this page already uses,
+          with a deliberate partial peek of the next column (auto-cols
+          under 50%) as the "there's more" affordance. The "See all" link
+          above covers the alternate jump-straight-there path. Reverts to
+          the plain horizontal-scroll row at sm+ where full-size cards fit
+          several at once already. */}
+      <div className="grid grid-flow-col grid-rows-2 auto-cols-[46%] gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide sm:flex sm:auto-cols-auto sm:grid-flow-row sm:mx-0 sm:gap-4 sm:px-0">
         {items.map((item) => {
           const key = item.kind === "shop" ? `shop-${item.id}` : `${item.kind}-${item.providerId}`
           const providerId = item.kind !== "shop" ? item.providerId : null
