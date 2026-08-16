@@ -1,0 +1,203 @@
+"use client"
+
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { X, Heart, Send, ChevronLeft, ChevronRight, Loader2 } from "lucide-react"
+import {
+  toggleStoryLike, replyToStory, type StoryFeedGroup, type StoryFeedItem,
+} from "@/lib/actions/provider-stories"
+
+export function ProviderStoryRing({ groups }: { groups: StoryFeedGroup[] }) {
+  const [openGroupIndex, setOpenGroupIndex] = useState<number | null>(null)
+  const [localGroups, setLocalGroups] = useState(groups)
+
+  // `groups` starts empty while the parent's SWR fetch is still in flight —
+  // useState only reads its initializer once, so without this the ring stays
+  // permanently empty even after real data arrives on a later render.
+  useEffect(() => {
+    setLocalGroups(groups)
+  }, [groups])
+
+  if (localGroups.length === 0) return null
+
+  return (
+    <>
+      <div className="flex gap-4 overflow-x-auto pb-1 scrollbar-hide">
+        {localGroups.map((group, i) => (
+          <button
+            key={group.providerId}
+            onClick={() => setOpenGroupIndex(i)}
+            className="flex flex-col items-center gap-1.5 flex-shrink-0 w-16"
+          >
+            <div className="w-16 h-16 rounded-full p-[2.5px] bg-gradient-to-tr from-primary via-accent to-accent-warm">
+              <div className="w-full h-full rounded-full p-[2px] bg-background">
+                <img
+                  src={group.providerAvatar || "/placeholder.svg"}
+                  alt={group.providerName}
+                  className="w-full h-full rounded-full object-cover"
+                />
+              </div>
+            </div>
+            <span className="text-[11px] text-foreground truncate w-full text-center">{group.providerName.split(" ")[0]}</span>
+          </button>
+        ))}
+      </div>
+
+      {openGroupIndex !== null && (
+        <StoryViewer
+          groups={localGroups}
+          groupIndex={openGroupIndex}
+          onClose={() => setOpenGroupIndex(null)}
+          onGroupIndexChange={setOpenGroupIndex}
+          onStoryUpdate={(providerId, storyId, patch) => {
+            setLocalGroups((prev) => prev.map((g) => g.providerId !== providerId ? g : {
+              ...g,
+              stories: g.stories.map((s) => s.id === storyId ? { ...s, ...patch } : s),
+            }))
+          }}
+        />
+      )}
+    </>
+  )
+}
+
+function StoryViewer({
+  groups, groupIndex, onClose, onGroupIndexChange, onStoryUpdate,
+}: {
+  groups: StoryFeedGroup[]
+  groupIndex: number
+  onClose: () => void
+  onGroupIndexChange: (i: number) => void
+  onStoryUpdate: (providerId: string, storyId: string, patch: Partial<StoryFeedItem>) => void
+}) {
+  const router = useRouter()
+  const [storyIndex, setStoryIndex] = useState(0)
+  const [replyText, setReplyText] = useState("")
+  const [isReplying, setIsReplying] = useState(false)
+  const [replyError, setReplyError] = useState("")
+  const [replySent, setReplySent] = useState(false)
+
+  const group = groups[groupIndex]
+  const story = group?.stories[storyIndex]
+  if (!group || !story) return null
+
+  const goToStory = (nextGroupIndex: number, nextStoryIndex: number) => {
+    setReplyText("")
+    setReplyError("")
+    setReplySent(false)
+    if (nextGroupIndex < 0 || nextGroupIndex >= groups.length) { onClose(); return }
+    onGroupIndexChange(nextGroupIndex)
+    setStoryIndex(nextStoryIndex)
+  }
+
+  const handlePrev = () => {
+    if (storyIndex > 0) setStoryIndex(storyIndex - 1)
+    else goToStory(groupIndex - 1, 0)
+  }
+  const handleNext = () => {
+    if (storyIndex < group.stories.length - 1) setStoryIndex(storyIndex + 1)
+    else goToStory(groupIndex + 1, 0)
+  }
+
+  const handleLike = async () => {
+    const optimisticLiked = !story.likedByMe
+    onStoryUpdate(group.providerId, story.id, {
+      likedByMe: optimisticLiked,
+      likeCount: story.likeCount + (optimisticLiked ? 1 : -1),
+    })
+    const result = await toggleStoryLike({ storyId: story.id })
+    if (result.success) {
+      onStoryUpdate(group.providerId, story.id, { likedByMe: result.likedByMe, likeCount: result.likeCount })
+    }
+  }
+
+  const handleReply = async () => {
+    if (!replyText.trim()) return
+    setIsReplying(true)
+    setReplyError("")
+    const result = await replyToStory({ storyId: story.id, message: replyText.trim() })
+    setIsReplying(false)
+    if (!result.success) { setReplyError(result.error); return }
+    setReplySent(true)
+    setReplyText("")
+    setTimeout(() => router.push(`/customer/messages?conversation=${result.conversationId}`), 900)
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black flex flex-col">
+      {/* Progress bars */}
+      <div className="flex gap-1 px-3 pt-3">
+        {group.stories.map((s, i) => (
+          <div key={s.id} className="h-0.5 flex-1 rounded-full bg-white/30 overflow-hidden">
+            <div className={`h-full bg-white ${i < storyIndex ? "w-full" : i === storyIndex ? "w-full" : "w-0"}`} />
+          </div>
+        ))}
+      </div>
+
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3">
+        <div className="flex items-center gap-2.5">
+          <img src={group.providerAvatar || "/placeholder.svg"} alt={group.providerName} className="w-9 h-9 rounded-full object-cover" />
+          <div>
+            <p className="text-white text-sm font-semibold">{group.providerName}</p>
+            <p className="text-white/60 text-xs">Work in Action</p>
+          </div>
+        </div>
+        <button onClick={onClose} aria-label="Close" className="p-2 text-white/80 hover:text-white">
+          <X className="w-6 h-6" />
+        </button>
+      </div>
+
+      {/* Content */}
+      <div className="relative flex-1 min-h-0 flex items-center justify-center px-3">
+        <button onClick={handlePrev} aria-label="Previous story" className="absolute left-1 top-1/2 -translate-y-1/2 z-10 p-2 text-white/60 hover:text-white">
+          <ChevronLeft className="w-7 h-7" />
+        </button>
+        <button onClick={handleNext} aria-label="Next story" className="absolute right-1 top-1/2 -translate-y-1/2 z-10 p-2 text-white/60 hover:text-white">
+          <ChevronRight className="w-7 h-7" />
+        </button>
+
+        <div className="w-full max-w-md grid grid-cols-2 gap-1.5">
+          <div className="space-y-1">
+            <p className="text-white/70 text-[11px] font-medium text-center">Before</p>
+            <img src={story.beforeImage} alt="Before" className="w-full aspect-[3/4] object-cover rounded-lg" />
+          </div>
+          <div className="space-y-1">
+            <p className="text-white/70 text-[11px] font-medium text-center">After</p>
+            <img src={story.afterImage} alt="After" className="w-full aspect-[3/4] object-cover rounded-lg" />
+          </div>
+        </div>
+      </div>
+
+      {story.caption && (
+        <p className="text-white text-sm text-center px-6 py-2">{story.caption}</p>
+      )}
+
+      {/* Footer: like + reply */}
+      <div className="p-3 pb-4 flex items-center gap-3">
+        <button onClick={handleLike} className="flex items-center gap-1.5 text-white flex-shrink-0">
+          <Heart className={`w-6 h-6 ${story.likedByMe ? "fill-red-500 text-red-500" : "text-white"}`} />
+          {story.likeCount > 0 && <span className="text-sm">{story.likeCount}</span>}
+        </button>
+
+        {replySent ? (
+          <p className="flex-1 text-sm text-emerald-400">Sent! Opening your conversation...</p>
+        ) : (
+          <>
+            <input
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") handleReply() }}
+              placeholder={`Reply to ${group.providerName.split(" ")[0]}...`}
+              className="flex-1 rounded-full bg-white/10 border border-white/20 text-white placeholder:text-white/50 px-4 py-2 text-sm focus:outline-none focus:border-white/40"
+            />
+            <button onClick={handleReply} disabled={!replyText.trim() || isReplying} aria-label="Send reply" className="p-2 text-white flex-shrink-0 disabled:opacity-40">
+              {isReplying ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+            </button>
+          </>
+        )}
+      </div>
+      {replyError && <p className="text-red-400 text-xs text-center pb-2">{replyError}</p>}
+    </div>
+  )
+}

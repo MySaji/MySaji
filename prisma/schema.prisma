@@ -1,0 +1,3658 @@
+// SAJI Platform — Database Schema
+// Reconciles ~15+ duplicate/conflicting mock-data shapes found across the frontend
+// (see conversation history for the per-portal inventory this was derived from)
+// into one canonical, normalized model per entity.
+//
+// Stack: PostgreSQL (hosted on Supabase) + Prisma ORM + Auth.js (NextAuth v5)
+
+generator client {
+  provider = "prisma-client-js"
+  // "native" covers whatever OS runs `prisma generate` (this dev machine is
+  // Windows) — the rest are the common Linux shared-hosting variants, so the
+  // query engine that ships to HostPinnacle actually runs there. Confirm the
+  // exact OS/OpenSSL version with HostPinnacle support and trim this list
+  // once known; shipping a few extra binaries costs generate time/disk, not
+  // correctness.
+  binaryTargets = ["native", "debian-openssl-3.0.x", "debian-openssl-1.1.x", "rhel-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// =========================================================================
+// ENUMS
+// =========================================================================
+
+enum Role {
+  CUSTOMER
+  PROVIDER
+  SHOPKEEPER
+  DISTRIBUTOR
+  AGENT
+  SECRETARY
+  SUB_ADMIN
+  ADMIN
+}
+
+enum KycStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ServiceApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum KycDocumentType {
+  NATIONAL_ID
+  PASSPORT
+  DRIVERS_LICENSE
+  BUSINESS_PERMIT
+}
+
+enum SkillLevel {
+  SKILLED
+  SEMI_SKILLED
+  NON_SKILLED
+}
+
+enum CategoryType {
+  SERVICE
+  PRODUCT
+}
+
+enum JobStatus {
+  PENDING
+  ACCEPTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  DISPUTED
+  PENDING_PAYMENT
+}
+
+enum JobUrgency {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum AddressType {
+  HOME
+  OFFICE
+  OTHER
+}
+
+enum WishlistTargetType {
+  PROVIDER
+  SERVICE
+  PRODUCT
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethodType {
+  MPESA
+  CARD
+  BANK
+  PAYPAL
+}
+
+enum PaymentContextType {
+  JOB
+  ORDER
+  SUBSCRIPTION
+  WALLET_TOPUP
+  WHOLESALE_ORDER
+  RENTAL
+}
+
+enum TransactionType {
+  CREDIT
+  DEBIT
+  REFUND
+  COMMISSION
+  PAYOUT
+  ESCROW_HOLD
+  ESCROW_RELEASE
+}
+
+enum LoyaltyTransactionType {
+  EARN
+  REDEEM
+  ADJUST
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REVERSED
+}
+
+enum WithdrawalStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REJECTED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum QuoteStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  FILE
+  VOICE
+  LOCATION
+}
+
+enum ChatTheme {
+  CLASSIC
+  AURORA
+  MIDNIGHT
+  SUNSET
+}
+
+enum NotificationType {
+  JOB
+  MESSAGE
+  PAYMENT
+  REVIEW
+  SYSTEM
+  PROMO
+  ANNOUNCEMENT
+}
+
+enum DisputeStatus {
+  OPEN
+  IN_REVIEW
+  RESOLVED
+  ESCALATED
+  CLOSED
+}
+
+enum DisputeSeverity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum CommissionRole {
+  PROVIDER
+  SHOPKEEPER
+  AGENT
+  DISTRIBUTOR
+}
+
+enum CommissionStatus {
+  ACTIVE
+  PAUSED
+}
+
+enum AnnouncementAudience {
+  ALL
+  PROVIDERS
+  SHOPKEEPERS
+  DISTRIBUTORS
+  CUSTOMERS
+  AGENTS
+  INTERNAL_TEAM
+}
+
+enum AnnouncementType {
+  MAINTENANCE
+  POLICY
+  PROMO
+  INTERNAL
+  GENERAL
+}
+
+enum AnnouncementStatus {
+  DRAFT
+  SCHEDULED
+  SENT
+}
+
+enum ReportTargetType {
+  POST
+  POST_COMMENT
+  REVIEW
+  MESSAGE
+}
+
+enum ReportSeverity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum ReportStatus {
+  PENDING
+  APPROVED
+  REMOVED
+}
+
+enum ReconciliationStatus {
+  PENDING
+  RECONCILED
+  UNDER_REVIEW
+}
+
+enum TaxReportType {
+  MONTHLY_VAT
+  QUARTERLY
+  ANNUAL
+  PAYE
+}
+
+enum TaxReportStatus {
+  DRAFT
+  FILED
+  PENDING
+  OVERDUE
+}
+
+enum ReferralStatus {
+  PENDING
+  ACTIVATED
+  REWARDED
+  CANCELLED
+}
+
+enum PromotionType {
+  PERCENTAGE
+  FIXED
+  BOGO
+}
+
+enum PromotionStatus {
+  ACTIVE
+  SCHEDULED
+  EXPIRED
+  PAUSED
+}
+
+// =========================================================================
+// AUTH (Auth.js / NextAuth v5 — PrismaAdapter-compatible)
+// =========================================================================
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+/// Real, DB-backed rate limiting for auth-adjacent actions (login,
+/// registerUser, requestPasswordReset, verifyPasswordResetCode). Deliberately
+/// not in-memory: a Vercel-style deployment runs multiple serverless
+/// instances, each with its own memory, so an in-process counter would
+/// silently under-count real attempts. Rows are short-lived — lib/rate-limit.ts
+/// only ever reads a recent window, so this table stays small even with no
+/// separate cleanup job (a bounded cron sweep can be added later if it grows).
+model RateLimitAttempt {
+  id         String   @id @default(cuid())
+  identifier String
+  action     String
+  createdAt  DateTime @default(now())
+
+  @@index([identifier, action, createdAt])
+  @@map("rate_limit_attempts")
+}
+
+// =========================================================================
+// USERS & PROFILES
+// Reconciles: 3 incompatible "user list" mocks (sub-admin/admin/real saji_users),
+// the fully-fake login flow, and the mismatched saji_user/saji-user keys.
+// =========================================================================
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  emailVerified DateTime?
+  phone         String?   @unique
+  password      String? // bcrypt hash; null for OAuth-only accounts
+  image         String?
+  role          Role      @default(CUSTOMER)
+  kycStatus     KycStatus @default(PENDING)
+  isActive      Boolean   @default(true)
+  chatTheme     ChatTheme @default(CLASSIC)
+  language      String    @default("en")
+  currency      String    @default("KES")
+  notificationPreferences Json?
+  lastDigestSentAt DateTime?
+  coinBalance   Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+  deletionReason String?
+
+  accounts Account[]
+  sessions Session[]
+
+  customerProfile    CustomerProfile?
+  providerProfile    ProviderProfile?
+  shopkeeperProfile  ShopkeeperProfile?
+  distributorProfile DistributorProfile?
+  teamProfile        TeamMemberProfile?
+  // Deliberately NOT a switchable top-level `role` (that would mean
+  // touching middleware/session/auth route-protection across the whole
+  // app, a much larger and riskier change than this pass takes on) — a
+  // real, optional capability any existing account can add, same
+  // multi-profile-per-User pattern as the profiles above.
+  driverProfile      DriverProfile?
+
+  kycDocuments   KycDocument[]   @relation("KycOwner")
+  kycReviewed    KycDocument[]   @relation("KycReviewer")
+  servicesReviewed Service[]     @relation("ServiceReviewedBy")
+  addresses      Address[]
+  wallet         Wallet?
+  loyaltyAccount LoyaltyAccount?
+  paymentMethods PaymentMethod[]
+  notifications  Notification[]
+
+  jobsAsCustomer Job[] @relation("CustomerJobs")
+  rentalBookingsAsCustomer RentalBooking[] @relation("CustomerRentalBookings")
+  contractsAsCustomer ServiceContract[] @relation("ContractCustomer")
+
+  reviewsWritten Review[] @relation("ReviewCustomer")
+
+  cartItems CartItem[]
+  wishlist  WishlistItem[]
+  orders    Order[]        @relation("CustomerOrders")
+
+  paymentsAsPayer Payment[]           @relation("PaymentPayer")
+  paymentsAsPayee Payment[]           @relation("PaymentPayee")
+  withdrawals     WithdrawalRequest[]
+  receipts        Receipt[]
+
+  invoicesAsCustomer Invoice[] @relation("InvoiceCustomer")
+  quotesAsCustomer   Quote[]   @relation("QuoteCustomer")
+
+  conversationsA Conversation[] @relation("ConversationParticipantA")
+  conversationsB Conversation[] @relation("ConversationParticipantB")
+  messagesSent   Message[]      @relation("MessageSender")
+
+  disputesAsCustomer Dispute[]        @relation("DisputeCustomer")
+  disputesAssigned   Dispute[]        @relation("DisputeAssignee")
+  disputeMessages    DisputeMessage[]
+
+  liveChatMessages LiveChatMessage[]
+  liveGiftsSent    LiveGift[]        @relation("LiveGiftSender")
+  coinTransactions CoinTransaction[]
+
+  commissionTiersCreated CommissionTier[]
+  platformRevenueEntries PlatformRevenue[]
+  announcementsCreated   Announcement[]
+  auditLogs              AuditLog[]
+  platformSettingsUpdated PlatformSetting[]
+  exchangeRatesUpdated    ExchangeRate[]
+  bannersCreated          Banner[]
+  contentReportsFiled     ContentReport[]   @relation("ContentReportReporter")
+  contentReportsAgainst   ContentReport[]   @relation("ContentReportSubject")
+  contentReportsResolved  ContentReport[]   @relation("ContentReportResolver")
+
+  referralsGiven Referral[] @relation("Referrer")
+  referredByCode Referral?  @relation("ReferredUser")
+
+  customerRequests   CustomerRequest[]
+  requestResponses   RequestResponse[]
+
+  staffInvitesAccepted StaffInvite[] @relation("StaffInviteAcceptedBy")
+
+  endorsementsGiven    Endorsement[] @relation("EndorsementFrom")
+  endorsementsReceived Endorsement[] @relation("EndorsementTo")
+
+  referralCode String? @unique
+
+  posts            Post[]
+  postLikes        PostLike[]
+  postSaves        PostSave[]
+  postComments     PostComment[]
+  providerStatuses     ProviderStatus[]
+  providerStatusLikes  ProviderStatusLike[]
+  following        Follow[]          @relation("FollowFollower")
+  followedBy       Follow[]          @relation("FollowFollowing")
+  blockedByProviders BlockedClient[]
+  blockedByShops     BlockedShopCustomer[]
+  groupsCreated    Group[]
+  groupMemberships GroupMembership[]
+  groupPosts        GroupPost[]
+  groupPostLikes    GroupPostLike[]
+  groupPostComments GroupPostComment[]
+  supportTickets   SupportTicket[]
+  chatbotConversations ChatbotConversation[]
+  chatbotConversationsAssigned ChatbotConversation[] @relation("ChatbotAssignedStaff")
+  chatbotMessagesSent          ChatbotMessage[]      @relation("ChatbotStaffSender")
+
+  recentlyViewed RecentlyViewed[]
+  pushSubscriptions PushSubscription[]
+
+  distributorStockTransfersInitiated StockTransfer[]
+
+  @@index([role])
+  @@index([kycStatus])
+  @@map("users")
+}
+
+/// Customer-specific extension of User (1:1)
+model CustomerProfile {
+  id       String  @id @default(cuid())
+  userId   String  @unique
+  bio      String?
+  location String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("customer_profiles")
+}
+
+/// Provider-specific extension of User (1:1)
+model ProviderProfile {
+  id                  String     @id @default(cuid())
+  userId              String     @unique
+  bio                 String?
+  businessName        String?
+  location            String?
+  categoryId          String?
+  skillLevel          SkillLevel @default(SKILLED)
+  hourlyRate          Decimal?   @db.Decimal(12, 2)
+  responseTimeMinutes Int?
+  rating              Decimal    @default(0) @db.Decimal(3, 2)
+  reviewCount         Int        @default(0)
+  completedJobs       Int        @default(0)
+  verified            Boolean    @default(false)
+  skills              String[]
+  workAreas           String[]
+  affiliatedShopId    String?
+  // Business-onboarding branch (see StaffInvite below): a provider who
+  // chose "Business" instead of "Solo Pro" at onboarding sets these and
+  // becomes the parent of any staff ProviderProfiles they invite. A plain
+  // solo pro leaves all three unset/false.
+  isBusinessOwner     Boolean    @default(false)
+  registrationNumber  String?
+  hqAddress           String?
+  // Business-owner setting: when true, getBusinessDashboard() (see
+  // lib/actions/provider-business.ts) opportunistically reassigns a staff
+  // member's PENDING job to the nearest online, under-cap teammate if the
+  // originally-assigned staffer is offline or already at the concurrent-job
+  // cap — same lazy-reconciliation convention as StaffInvite's expiry.
+  autoAssignEnabled   Boolean    @default(false)
+  // Business-owner setting: whether this business's staff (parentBusinessId
+  // = this profile) may respond to open customer requests on the Request
+  // Board (lib/actions/requests.ts respondToRequest) under their own
+  // account, separate from jobs the business itself dispatches to them.
+  // Off by default — deliberately not a blanket yes, since a staff member
+  // bidding personally opens a 1:1 conversation with the customer outside
+  // the owner's normal dispatch pipeline.
+  allowStaffRequestResponses Boolean @default(false)
+  parentBusinessId    String?
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category       Category?          @relation(fields: [categoryId], references: [id])
+  affiliatedShop ShopkeeperProfile? @relation(fields: [affiliatedShopId], references: [id], onDelete: SetNull)
+  // Staff are full, independent ProviderProfiles (own login, own jobs via
+  // the existing Job.providerId) merely tagged to the business that
+  // invited them — deliberately not a separate "employee" shape, so every
+  // existing provider-side feature (availability, jobs, wallet) works for
+  // staff unchanged.
+  parentBusiness ProviderProfile?  @relation("BusinessStaff", fields: [parentBusinessId], references: [id], onDelete: SetNull)
+  staff          ProviderProfile[] @relation("BusinessStaff")
+  staffInvites   StaffInvite[]
+  branches       BusinessBranch[]
+
+  services           Service[]
+  portfolio          PortfolioItem[]
+  certifications     Certification[]
+  availability       ProviderAvailability?
+  blockedDates       BlockedDate[]
+  jobsAsProvider     Job[]                 @relation("ProviderJobs")
+  reviewsReceived    Review[]              @relation("ReviewProvider")
+  invoicesIssued     Invoice[]             @relation("InvoiceProvider")
+  quotesIssued       Quote[]               @relation("QuoteProvider")
+  disputesAsProvider Dispute[]             @relation("DisputeProvider")
+  wishlistedBy       WishlistItem[]        @relation("WishlistedProvider")
+  liveSessions       LiveSession[]
+  blockedClients     BlockedClient[]
+  subscription       ProviderSubscription?
+  offers             Offer[]
+  rentalBookings     RentalBooking[]        @relation("ProviderRentalBookings")
+  contractsAsProvider ServiceContract[]     @relation("ContractProvider")
+  warranties          Warranty[]
+  opportunitiesPosted   ProviderOpportunity[]  @relation("OpportunityPostedBy")
+  opportunityResponses  OpportunityResponse[]  @relation("OpportunityResponder")
+
+  @@index([categoryId])
+  @@index([affiliatedShopId])
+  @@index([parentBusinessId])
+  @@map("provider_profiles")
+}
+
+enum OfferActionType {
+  BOOK
+  HIRE
+  BUY
+  QUOTE
+  REQUEST
+  // Date-range booking (RentalBooking, below) instead of the single-Job
+  // pipeline the other four action types use — see the Offer model's own
+  // doc comment for why rentals were folded into this one universal
+  // listing type instead of staying a structurally separate model.
+  RENT
+}
+
+enum OfferStatus {
+  DRAFT
+  UNDER_REVIEW
+  LIVE
+}
+
+/// How the provider prices this offer — FIXED/STARTING_FROM/PER_UNIT/BULK
+/// still require `Offer.price` (a real number, checked by publishOffer's
+/// trust/safety pass); QUOTE/INSPECTION deliberately don't, since the whole
+/// point of those two is "no firm price yet." Distinct from `actionType`:
+/// pricingModel is how the number is presented, actionType is what the
+/// customer clicks — a BUY offer can be FIXED or PER_UNIT, a QUOTE offer is
+/// almost always QUOTE/INSPECTION pricing, but nothing enforces that
+/// pairing since real providers occasionally have legitimate exceptions.
+enum OfferPricingModel {
+  FIXED
+  STARTING_FROM
+  PER_UNIT
+  BULK
+  QUOTE
+  INSPECTION
+}
+
+/// Real-time "can a customer actually get this right now" signal — distinct
+/// from ProviderAvailability (that's the provider's whole schedule/travel
+/// radius); this is per-offer. Defaults to IN_STOCK so existing offers
+/// created before this field existed still show as available.
+enum OfferAvailabilityStatus {
+  IN_STOCK
+  ON_REQUEST
+  BY_APPOINTMENT
+  UNAVAILABLE
+}
+
+/// How the customer actually receives this specific offer. Multiple can
+/// apply at once (e.g. a shop offering both delivery and pickup) hence the
+/// array rather than a single enum field.
+enum OfferFulfilmentMethod {
+  DELIVERY
+  PICKUP
+  PROVIDER_SITE_VISIT
+  SHIPPING
+  REMOTE
+}
+
+/// A Saji Pro provider's own listing type — a genuinely separate concept from
+/// Service (see the Phase 2 Saji Pro rollout), not an upgraded Service row.
+/// `actionType` decides which action the customer sees: BOOK/HIRE/BUY route
+/// into the same Job pipeline Service bookings already use (see
+/// createOfferBooking in lib/actions/offers.ts); QUOTE/REQUEST open a real
+/// conversation with the provider instead of a formal Job; RENT opens the
+/// date-range RentalBooking flow (see lib/actions/rentals.ts) — equipment
+/// rental used to be its own structurally separate RentalListing model, but
+/// that was exactly the "duplicate listing architecture per vertical"
+/// anti-pattern this whole Offer model exists to avoid, so it was folded in
+/// here: same DRAFT/UNDER_REVIEW/LIVE lifecycle, same trust/safety check,
+/// same free-tier cap, `depositAmount` below is the only field that's
+/// really rental-specific. `status` moves DRAFT -> UNDER_REVIEW -> LIVE
+/// synchronously inside publishOffer() via an automated trust/safety check,
+/// not a human admin queue — mirrors how Service.approvalStatus already
+/// defaults to auto-approved in this app. Non-Pro providers are capped at
+/// `offerFreeTierCap` (admin setting) live Offers at once; Saji Pro
+/// subscribers are unlimited.
+///
+/// `attributes` is deliberately a loose Json bag, not a normalized
+/// key/value table — category-specific fields (brands, event type, minimum
+/// order, whatever the next 50 categories need) never require a migration;
+/// the wizard's per-category-type field list lives in
+/// lib/offer-attribute-schema.ts and just reads/writes into this bag. If a
+/// category someday needs its answers to be independently queryable
+/// (filterable/sortable in search), that specific field can graduate to a
+/// real column then — not before.
+///
+/// `documents` is a small Json array of `{ name, url }` ad-hoc supporting
+/// files (e.g. a business licence) shown as a trust signal on the offer
+/// itself — deliberately NOT the same thing as `Certification` below, which
+/// stays the one real, admin-reviewed credential record tied to the
+/// provider as a whole (see checkOfferLicenseRequirement in
+/// lib/actions/offers.ts). Duplicating Certification per-offer would mean
+/// re-verifying the same licence over and over for every offer a provider
+/// creates in a licensed category.
+model Offer {
+  id                String                   @id @default(cuid())
+  providerId        String
+  categoryId        String?
+  title             String
+  description       String
+  actionType        OfferActionType
+  price             Decimal?                 @db.Decimal(12, 2)
+  currency          String                   @default("KES")
+  images            String[]
+  status            OfferStatus              @default(DRAFT)
+  reviewNote        String?
+  viewCount         Int                      @default(0)
+  requestCount      Int                      @default(0)
+  bookingCount      Int                      @default(0)
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+
+  pricingModel      OfferPricingModel        @default(FIXED)
+  unitLabel         String?
+  minimumOrder      String?
+  bulkPricingNote   String?
+  availabilityStatus OfferAvailabilityStatus @default(IN_STOCK)
+  fulfilmentMethods OfferFulfilmentMethod[]
+  includedItems     String[]
+  excludedItems     String[]
+  attributes        Json?
+  documents         Json?
+  // Which of the 10 wizard steps the provider last completed — powers the
+  // "Continue creating your offer" resume entry point (see getMyOfferDrafts
+  // in lib/actions/offers.ts). Only meaningful while status is DRAFT.
+  wizardStep        Int                      @default(1)
+  // Per-offer overrides of the provider's own default location/radius
+  // (ProviderProfile.workAreas / ProviderAvailability.travelRadiusKm) — null
+  // means "use the provider's profile default", which is what every offer
+  // gets until the provider explicitly sets a different area for this one
+  // listing (e.g. a photographer who travels further for weddings than
+  // their everyday work). Resolved in getOfferDetail/getLiveOffers.
+  serviceArea       String?
+  radiusKm          Int?
+  // RENT-actionType only — refundable security deposit, charged upfront
+  // alongside the rental fee (no payment gateway here supports a real fund
+  // "hold") and refunded via a real Wallet credit when the provider marks
+  // the item returned — see returnRentalBooking in lib/actions/rentals.ts.
+  // Meaningless for the other five action types, left at its 0 default.
+  depositAmount     Decimal                  @default(0) @db.Decimal(12, 2)
+
+  provider ProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  category Category?       @relation(fields: [categoryId], references: [id])
+  jobs     Job[]
+  rentalBookings RentalBooking[]
+
+  @@index([providerId])
+  @@index([categoryId])
+  @@index([status])
+  @@map("offers")
+}
+
+enum RentalBookingStatus {
+  PENDING_PAYMENT
+  CONFIRMED
+  PICKED_UP
+  RETURNED
+  CANCELLED
+}
+
+/// A booked rental period on one RENT-actionType Offer — the pickup/return
+/// lifecycle (PENDING_PAYMENT -> CONFIRMED -> PICKED_UP -> RETURNED) plus
+/// deposit refund tracking. This stays its own model rather than reusing
+/// Job, because it's genuinely a different shape of booking: a date RANGE
+/// with overlap-conflict checks against other bookings of the same Offer
+/// (see createRentalBooking in lib/actions/rentals.ts), not a single
+/// scheduled point in time — same reasoning as ServiceContract staying
+/// separate from Job for the QUOTE flow. `startDate`/`endDate` conflict-check
+/// against other CONFIRMED/PICKED_UP bookings on the same offer before this
+/// row is even created.
+model RentalBooking {
+  id                  String              @id @default(cuid())
+  offerId             String
+  customerId          String
+  providerId          String
+  startDate           DateTime
+  endDate             DateTime
+  days                Int
+  rentalFee           Decimal             @db.Decimal(12, 2)
+  depositAmount       Decimal             @db.Decimal(12, 2)
+  totalAmount         Decimal             @db.Decimal(12, 2)
+  status              RentalBookingStatus @default(PENDING_PAYMENT)
+  location            String
+  depositRefundAmount Decimal?            @db.Decimal(12, 2)
+  depositRefundNote   String?
+  pickedUpAt          DateTime?
+  returnedAt          DateTime?
+  cancellationReason  String?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  offer         Offer           @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  customer      User            @relation("CustomerRentalBookings", fields: [customerId], references: [id])
+  provider      ProviderProfile @relation("ProviderRentalBookings", fields: [providerId], references: [id])
+  payments      Payment[]
+
+  @@index([offerId])
+  @@index([customerId])
+  @@index([providerId])
+  @@index([status])
+  @@map("rental_bookings")
+}
+
+enum SubscriptionStatus {
+  INACTIVE
+  ACTIVE
+  EXPIRED
+}
+
+/// A provider's "Saji Pro" paid tier — monthly manual renewal (no real
+/// recurring/auto-charge billing exists for M-Pesa here), same one-time
+/// STK-push flow as every other payment in this app. `status` is lazily
+/// reconciled (ACTIVE -> EXPIRED once `currentPeriodEnd` passes, checked at
+/// read time) rather than needing a cron job, same convention as
+/// StaffInvite's expiry elsewhere in this schema.
+model ProviderSubscription {
+  id                String             @id @default(cuid())
+  providerId        String             @unique
+  status            SubscriptionStatus @default(INACTIVE)
+  currentPeriodEnd  DateTime?
+  lastPaymentAmount Decimal?           @db.Decimal(10, 2)
+  lastPaymentAt     DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  provider ProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@map("provider_subscriptions")
+}
+
+enum StaffInviteStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
+}
+
+/// A business-owner ProviderProfile's pending/resolved invite for a field
+/// staff member, identified by email or phone (at least one is set) before
+/// that person has any SAJI account. Accepting creates a brand-new User +
+/// ProviderProfile(parentBusinessId = businessId) — see acceptStaffInvite
+/// in lib/actions/provider-business.ts. Someone who already has a SAJI
+/// account under that email/phone is out of scope for v1 (they'd need a
+/// different contact to join as staff).
+model StaffInvite {
+  id           String            @id @default(cuid())
+  businessId   String
+  email        String?
+  phone        String?
+  token        String            @unique
+  status       StaffInviteStatus @default(PENDING)
+  createdAt    DateTime          @default(now())
+  expiresAt    DateTime
+  acceptedAt   DateTime?
+  acceptedById String?
+
+  business   ProviderProfile @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  acceptedBy User?           @relation("StaffInviteAcceptedBy", fields: [acceptedById], references: [id])
+
+  @@index([businessId])
+  @@index([status])
+  @@map("staff_invites")
+}
+
+/// Adaptive UI Workspaces: the Business Manager dashboard's "Branch
+/// Outlets" tile — a simple, informational directory of a business's
+/// physical locations. Deliberately lightweight (name/address/phone only,
+/// no inventory/deliveryFee like DistributorLocation) — doesn't affect
+/// dispatch, auto-assign, or staff assignment; per the scoping call for
+/// this phase, that would be a separate, deeper feature.
+model BusinessBranch {
+  id         String   @id @default(cuid())
+  businessId String
+  name       String
+  address    String
+  phone      String?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  business ProviderProfile @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@map("business_branches")
+}
+
+/// Shopkeeper-specific extension of User (1:1)
+model ShopkeeperProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  shopName        String
+  shopDescription String?
+  shopCategory    String?
+  shopLogoUrl     String?
+  businessLicense String?
+  kraPin          String?
+  rating          Decimal  @default(0) @db.Decimal(3, 2)
+  reviewCount     Int      @default(0)
+  totalSales      Decimal  @default(0) @db.Decimal(14, 2)
+  isVerified      Boolean  @default(false)
+  isFeatured      Boolean  @default(false)
+  openingTime     String?
+  closingTime     String?
+  // Flat delivery fee this shop charges on retail orders, self-managed by
+  // the shopkeeper (see app/shopkeeper/settings) — replaces what used to be
+  // a single hardcoded platform-wide constant in checkout().
+  deliveryFee     Decimal  @default(500) @db.Decimal(10, 2)
+  isOnVacation    Boolean  @default(false)
+  vacationNote    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  products                   Product[]
+  orders                     Order[]           @relation("ShopkeeperOrders")
+  promotions                 Promotion[]
+  endorsementsReceivedAsShop Endorsement[]     @relation("EndorsementToShop")
+  affiliatedProviders        ProviderProfile[]
+  liveSessions               LiveSession[]
+  wholesaleOrdersAsBuyer     WholesaleOrder[]  @relation("ShopkeeperWholesaleOrders")
+  portfolioItems             ShopPortfolioItem[]
+  shopReviews                Review[]            @relation("ReviewShopkeeper")
+  blockedCustomers           BlockedShopCustomer[]
+
+  @@map("shopkeeper_profiles")
+}
+
+model BlockedShopCustomer {
+  id           String   @id @default(cuid())
+  shopkeeperId String
+  customerId   String
+  reason       String?
+  createdAt    DateTime @default(now())
+
+  shopkeeper ShopkeeperProfile @relation(fields: [shopkeeperId], references: [id], onDelete: Cascade)
+  customer   User              @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([shopkeeperId, customerId])
+  @@index([shopkeeperId])
+  @@map("blocked_shop_customers")
+}
+
+/// Distributor (wholesale supplier / company) — 1:1 with User. Sells to
+/// Shopkeeper accounts (not Customers) across one or more physical
+/// locations, at either a wholesale or retail per-unit price depending on
+/// order quantity vs. each product's minWholesaleQty.
+model DistributorProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  companyName     String
+  description     String?
+  logoUrl         String?
+  businessLicense String?
+  kraPin          String?
+  rating          Decimal  @default(0) @db.Decimal(3, 2)
+  reviewCount     Int      @default(0)
+  isVerified      Boolean  @default(false)
+  isFeatured      Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  locations       DistributorLocation[]
+  products        DistributorProduct[]
+  wholesaleOrders WholesaleOrder[]      @relation("DistributorWholesaleOrders")
+  stockTransfers  StockTransfer[]
+
+  @@map("distributor_profiles")
+}
+
+enum DistributorLocationType {
+  WAREHOUSE
+  RETAIL_STORE
+  WHOLESALER
+  DISTRIBUTOR
+}
+
+/// A distributor's physical branch (warehouse / retail store / wholesaler /
+/// distributor depot). Inventory is tracked per-location via
+/// DistributorInventory, not on the product directly — the same shape as
+/// Product/Inventory, just widened from 1:1 to 1:many.
+model DistributorLocation {
+  id            String                  @id @default(cuid())
+  distributorId String
+  name          String
+  type          DistributorLocationType
+  address       String
+  city          String?
+  latitude      Decimal?                @db.Decimal(9, 6)
+  longitude     Decimal?                @db.Decimal(9, 6)
+  phone         String?
+  isActive      Boolean                 @default(true)
+  isPrimary     Boolean                 @default(false)
+  // Flat delivery fee this specific location charges on wholesale orders it
+  // fulfills, self-managed by the distributor — replaces what used to be a
+  // single hardcoded platform-wide constant in placeWholesaleOrder().
+  deliveryFee   Decimal                 @default(500) @db.Decimal(10, 2)
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+
+  distributor DistributorProfile @relation(fields: [distributorId], references: [id], onDelete: Cascade)
+
+  inventories     DistributorInventory[]
+  transfersFrom   StockTransfer[]        @relation("StockTransferFrom")
+  transfersTo     StockTransfer[]        @relation("StockTransferTo")
+  wholesaleOrders WholesaleOrder[]       @relation("WholesaleOrderFulfillmentLocation")
+
+  @@index([distributorId])
+  @@map("distributor_locations")
+}
+
+/// A distributor's wholesale catalog item — one row per SKU, regardless of
+/// how many locations stock it. Both retailPrice and wholesalePrice are
+/// live: placeWholesaleOrder() charges whichever applies based on ordered
+/// quantity vs. minWholesaleQty.
+model DistributorProduct {
+  id                 String   @id @default(cuid())
+  distributorId      String
+  categoryId         String?
+  name               String
+  description        String
+  sku                String   @unique
+  images             String[]
+  retailPrice        Decimal  @db.Decimal(12, 2)
+  wholesalePrice     Decimal  @db.Decimal(12, 2)
+  minWholesaleQty    Int      @default(1)
+  unit               String?
+  isActive           Boolean  @default(true)
+  totalSoldWholesale Int      @default(0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  distributor DistributorProfile @relation(fields: [distributorId], references: [id], onDelete: Cascade)
+  category    Category?          @relation(fields: [categoryId], references: [id])
+
+  inventories         DistributorInventory[]
+  wholesaleOrderItems WholesaleOrderItem[]
+  stockTransfers      StockTransfer[]
+
+  @@index([distributorId])
+  @@index([categoryId])
+  @@map("distributor_products")
+}
+
+/// Per-location stock for a DistributorProduct. reservedStock exists for
+/// shape-parity with Inventory but is unused in v1 (Inventory.reservedStock
+/// is never actually written anywhere in this codebase either) — stock
+/// checks are a direct read-then-decrement inside the order transaction.
+model DistributorInventory {
+  id                    String    @id @default(cuid())
+  distributorProductId  String
+  locationId            String
+  currentStock          Int       @default(0)
+  reservedStock         Int       @default(0)
+  lowStockThreshold     Int       @default(10)
+  reorderLevel          Int       @default(20)
+  lastRestockedAt       DateTime?
+  updatedAt             DateTime  @updatedAt
+
+  distributorProduct DistributorProduct  @relation(fields: [distributorProductId], references: [id], onDelete: Cascade)
+  location           DistributorLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@unique([distributorProductId, locationId])
+  @@index([locationId])
+  @@map("distributor_inventories")
+}
+
+/// Audit log of stock moved between two of a distributor's own locations.
+/// No status enum — every transfer is synchronous (decrement source +
+/// increment destination in one transaction), matching how Payment rows in
+/// this codebase are already created pre-COMPLETED rather than modeling an
+/// unused intermediate state.
+model StockTransfer {
+  id                   String   @id @default(cuid())
+  distributorId        String
+  distributorProductId String
+  fromLocationId       String
+  toLocationId         String
+  quantity             Int
+  notes                String?
+  initiatedById        String
+  createdAt            DateTime @default(now())
+  completedAt          DateTime @default(now())
+
+  distributor        DistributorProfile  @relation(fields: [distributorId], references: [id], onDelete: Cascade)
+  distributorProduct DistributorProduct  @relation(fields: [distributorProductId], references: [id])
+  fromLocation       DistributorLocation @relation("StockTransferFrom", fields: [fromLocationId], references: [id])
+  toLocation         DistributorLocation @relation("StockTransferTo", fields: [toLocationId], references: [id])
+  initiatedBy        User                @relation(fields: [initiatedById], references: [id])
+
+  @@index([distributorId])
+  @@index([distributorProductId])
+  @@map("stock_transfers")
+}
+
+/// Shopkeeper -> Distributor bulk order. Parallel to Order/OrderItem rather
+/// than reusing them: Order's seller side is hardwired to one
+/// ShopkeeperProfile and joined on by a lot of existing code (disputes,
+/// payments, admin), so it can't represent a Distributor as seller without
+/// touching all of that. Reuses the existing OrderStatus enum directly
+/// since the same PENDING..REFUNDED lifecycle applies unchanged.
+model WholesaleOrder {
+  id                String      @id @default(cuid())
+  orderNumber       String      @unique
+  buyerShopkeeperId String
+  distributorId     String
+  locationId        String
+  status            OrderStatus @default(PENDING)
+  subtotal          Decimal     @db.Decimal(14, 2)
+  discount          Decimal     @default(0) @db.Decimal(14, 2)
+  deliveryFee       Decimal     @default(0) @db.Decimal(14, 2)
+  total             Decimal     @db.Decimal(14, 2)
+  notes             String?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  buyerShopkeeper ShopkeeperProfile   @relation("ShopkeeperWholesaleOrders", fields: [buyerShopkeeperId], references: [id])
+  distributor     DistributorProfile  @relation("DistributorWholesaleOrders", fields: [distributorId], references: [id])
+  location        DistributorLocation @relation("WholesaleOrderFulfillmentLocation", fields: [locationId], references: [id])
+
+  items    WholesaleOrderItem[]
+  payments Payment[]
+
+  @@index([buyerShopkeeperId])
+  @@index([distributorId])
+  @@index([status])
+  @@map("wholesale_orders")
+}
+
+model WholesaleOrderItem {
+  id                   String  @id @default(cuid())
+  wholesaleOrderId     String
+  distributorProductId String
+  quantity             Int
+  unitPrice            Decimal @db.Decimal(12, 2)
+  totalPrice           Decimal @db.Decimal(12, 2)
+  restockProductId     String?
+
+  wholesaleOrder     WholesaleOrder     @relation(fields: [wholesaleOrderId], references: [id], onDelete: Cascade)
+  distributorProduct DistributorProduct @relation(fields: [distributorProductId], references: [id])
+  restockProduct     Product?           @relation("ProductRestockSource", fields: [restockProductId], references: [id])
+
+  @@index([wholesaleOrderId])
+  @@map("wholesale_order_items")
+}
+
+/// Agent / Secretary / Sub-Admin / Admin — internal team members (1:1 with User)
+model TeamMemberProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  jobTitle    String?
+  department  String?
+  managerId   String?
+  permissions String[]
+  createdAt   DateTime @default(now())
+
+  user    User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  manager TeamMemberProfile?  @relation("TeamHierarchy", fields: [managerId], references: [id])
+  reports TeamMemberProfile[] @relation("TeamHierarchy")
+
+  @@map("team_member_profiles")
+}
+
+// =========================================================================
+// KYC / VERIFICATION
+// Reconciles: 2 incompatible writers of saji_kyc_docs, 2 near-duplicate
+// verification review pages (admin + sub-admin) operating on the same data.
+// =========================================================================
+
+model KycDocument {
+  id              String          @id @default(cuid())
+  userId          String
+  documentType    KycDocumentType
+  documentNumber  String?
+  idFileUrl       String
+  idBackFileUrl   String?
+  selfieFileUrl   String?
+  status          KycStatus       @default(PENDING)
+  submittedAt     DateTime        @default(now())
+  reviewedAt      DateTime?
+  reviewedById    String?
+  rejectionReason String?
+
+  // Dedupe fields — computed at submission time (see
+  // lib/kyc-duplicate-check.ts) so a new submission can be checked against
+  // every other account's prior documents via a cheap indexed lookup
+  // instead of pulling every historical (often multi-MB base64) photo into
+  // memory to compare. documentNumberNormalized strips whitespace/dashes and
+  // uppercases so "123-456" and "123456" are recognized as the same ID.
+  // idFileHash/idBackFileHash are a SHA-256 of the exact photo content —
+  // this only catches a literally-reused file, not a re-photographed same
+  // physical document, which is the accepted, pragmatic scope here.
+  documentNumberNormalized String?
+  idFileHash               String?
+  idBackFileHash           String?
+
+  user       User  @relation("KycOwner", fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy User? @relation("KycReviewer", fields: [reviewedById], references: [id])
+
+  @@index([userId])
+  @@index([status])
+  @@index([documentNumberNormalized])
+  @@index([idFileHash])
+  @@index([idBackFileHash])
+  @@map("kyc_documents")
+}
+
+// =========================================================================
+// CATALOG — Categories, Services, Products
+// Reconciles: 3 incompatible category taxonomies (shopkeeper), 5 incompatible
+// Service shapes (customer portal), 4 incompatible Product shapes (shopkeeper).
+// =========================================================================
+
+model Category {
+  id       String       @id @default(cuid())
+  name     String
+  slug     String       @unique
+  type     CategoryType
+  icon     String?
+  /// Customer-facing browse tier shown in the homepage category tabs
+  /// (e.g. "Skilled" vs "Professional") — distinct from a provider's own
+  /// SkillLevel self-classification.
+  tier     String?
+  parentId String?
+  // Admin-managed: hidden from all public selection (registration, browse,
+  // emergency wizard) once false, but the row is kept so existing
+  // services/products/providers that already reference it don't break.
+  isActive Boolean  @default(true)
+  // SERVICE-type only. Admin opts a category into the customer Emergency
+  // booking wizard — previously *every* category with an active service
+  // showed up there unconditionally, which doesn't make sense for e.g.
+  // "Photography" or "Event Planning".
+  isEmergencyEligible Boolean @default(false)
+  // SERVICE-type only. When set, a provider needs an APPROVED, unexpired
+  // Certification whose name matches `licenseName` before they can accept
+  // a job in this category — see lib/actions/provider-licensing.ts.
+  requiresLicense Boolean @default(false)
+  licenseName     String?
+
+  opportunities ProviderOpportunity[]
+
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryTree")
+
+  providers          ProviderProfile[]
+  services           Service[]
+  products           Product[]
+  promotions         Promotion[]
+  distributorProducts DistributorProduct[]
+  customerRequests   CustomerRequest[]
+  offers             Offer[]
+  serviceContracts   ServiceContract[]
+  attributes         CategoryAttribute[]
+
+  @@index([type])
+  @@index([isActive])
+  @@map("categories")
+}
+
+enum CategoryAttributeFieldType {
+  TEXT
+  TEXTAREA
+  NUMBER
+  TAGS
+  SELECT
+}
+
+/// Admin-managed, per-category field definitions for the Offer Creation
+/// Engine's Step 3 ("Offer Details") — this is the real mechanism behind
+/// what lib/offer-attribute-schema.ts used to hardcode. Adding a field for
+/// a brand-new category (e.g. "Event Type" for a future Photography
+/// category) is now an admin action from Admin > Categories, not a code
+/// change or migration. Answers themselves still live in Offer.attributes
+/// (Json), keyed by `key` here — this table only defines what fields exist
+/// and how to render them, never the answers. A category with zero rows
+/// here falls back to a small generic set (still keyed off Category.type)
+/// so a newly created category is never left with no fields at all — see
+/// getOfferAttributeFields in lib/actions/offers.ts.
+model CategoryAttribute {
+  id          String                      @id @default(cuid())
+  categoryId  String
+  key         String
+  label       String
+  type        CategoryAttributeFieldType
+  options     String[]
+  placeholder String?
+  sortOrder   Int                         @default(0)
+  createdAt   DateTime                    @default(now())
+  updatedAt   DateTime                    @updatedAt
+
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([categoryId, key])
+  @@index([categoryId])
+  @@map("category_attributes")
+}
+
+/// Admin-managed list of counties offered as location options during
+/// shopkeeper/distributor registration — replaces what used to be an
+/// identical hardcoded array duplicated in both registration forms.
+model County {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([isActive])
+  @@map("counties")
+}
+
+model Service {
+  id            String     @id @default(cuid())
+  providerId    String
+  categoryId    String?
+  title         String
+  description   String
+  skillLevel    SkillLevel @default(SKILLED)
+  basePrice     Decimal    @db.Decimal(12, 2)
+  currency      String     @default("KES")
+  images        String[]
+  isActive      Boolean    @default(true)
+  rating        Decimal    @default(0) @db.Decimal(3, 2)
+  reviewCount   Int        @default(0)
+  totalBookings Int        @default(0)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  approvalStatus   ServiceApprovalStatus @default(APPROVED)
+  rejectionReason  String?
+  reviewedAt       DateTime?
+  reviewedById     String?
+
+  provider   ProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  category   Category?       @relation(fields: [categoryId], references: [id])
+  reviewedBy User?           @relation("ServiceReviewedBy", fields: [reviewedById], references: [id])
+
+  packages     ServicePackage[]
+  jobs         Job[]
+  reviews      Review[]
+  wishlistedBy WishlistItem[]   @relation("WishlistedService")
+  cartItems    CartItem[]
+
+  @@index([providerId])
+  @@index([categoryId])
+  @@index([isActive, approvalStatus, rating])
+  @@map("services")
+}
+
+model ServicePackage {
+  id          String   @id @default(cuid())
+  serviceId   String
+  name        String
+  description String?
+  price       Decimal  @db.Decimal(12, 2)
+  duration    String?
+  features    String[]
+
+  service   Service    @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  jobs      Job[]
+  cartItems CartItem[]
+
+  @@index([serviceId])
+  @@map("service_packages")
+}
+
+model Product {
+  id            String   @id @default(cuid())
+  shopkeeperId  String
+  categoryId    String?
+  name          String
+  description   String
+  sku           String   @unique
+  price         Decimal  @db.Decimal(12, 2)
+  discountPrice Decimal? @db.Decimal(12, 2)
+  images        String[]
+  isActive      Boolean  @default(true)
+  isFeatured    Boolean  @default(false)
+  rating        Decimal  @default(0) @db.Decimal(3, 2)
+  reviewCount   Int      @default(0)
+  totalSold     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  shopkeeper ShopkeeperProfile @relation(fields: [shopkeeperId], references: [id], onDelete: Cascade)
+  category   Category?         @relation(fields: [categoryId], references: [id])
+
+  inventory       Inventory?
+  reviews         Review[]
+  cartItems       CartItem[]
+  orderItems      OrderItem[]
+  wishlistedBy    WishlistItem[]        @relation("WishlistedProduct")
+  liveSessionFeatures LiveSessionProduct[]
+  restockedByWholesaleItems WholesaleOrderItem[] @relation("ProductRestockSource")
+
+  @@index([shopkeeperId])
+  @@index([categoryId])
+  @@index([isActive, createdAt])
+  @@index([isActive, rating])
+  @@map("products")
+}
+
+model Inventory {
+  id                String    @id @default(cuid())
+  productId         String    @unique
+  currentStock      Int       @default(0)
+  reservedStock     Int       @default(0)
+  lowStockThreshold Int       @default(5)
+  reorderLevel      Int       @default(10)
+  lastRestockedAt   DateTime?
+  updatedAt         DateTime  @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("inventory")
+}
+
+// =========================================================================
+// PROVIDER EXTRAS
+// =========================================================================
+
+model PortfolioItem {
+  id          String    @id @default(cuid())
+  providerId  String
+  title       String
+  description String?
+  imageUrl    String
+  videoUrl    String?
+  category    String?
+  projectDate DateTime?
+  featured    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  provider ProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([providerId])
+  @@map("portfolio_items")
+}
+
+/// Shopkeeper equivalent of PortfolioItem (below) — kept as its own model
+/// rather than a nullable dual-owner field on PortfolioItem, matching this
+/// schema's existing convention of parallel models per actor (see
+/// WholesaleOrder vs Order) rather than one model with optional foreign keys.
+model ShopPortfolioItem {
+  id          String    @id @default(cuid())
+  shopkeeperId String
+  title       String
+  description String?
+  imageUrl    String
+  videoUrl    String?
+  createdAt   DateTime  @default(now())
+
+  shopkeeper ShopkeeperProfile @relation(fields: [shopkeeperId], references: [id], onDelete: Cascade)
+
+  @@index([shopkeeperId])
+  @@map("shop_portfolio_items")
+}
+
+model Certification {
+  id          String    @id @default(cuid())
+  providerId  String
+  name        String
+  issuer      String
+  dateIssued  DateTime
+  expiryDate  DateTime?
+  status      KycStatus @default(PENDING)
+  documentUrl String?
+
+  provider ProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([providerId])
+  @@map("certifications")
+}
+
+model ProviderAvailability {
+  id             String   @id @default(cuid())
+  providerId     String   @unique
+  weeklySchedule Json // { monday: {start,end,enabled}, ... }
+  maxJobsPerDay  Int      @default(5)
+  breakDuration  Int      @default(30) // minutes
+  autoAccept     Boolean  @default(false)
+  travelRadiusKm Int      @default(10)
+  isOnVacation   Boolean  @default(false)
+  vacationNote   String?
+  // "Go Online/Offline" — distinct from the weeklySchedule above (that's a
+  // recurring plan; this is "am I actually working right now"). Going
+  // online captures a one-shot GPS location (not continuous tracking, that
+  // stays scoped to an active job via Job.providerLatitude/Longitude) so
+  // the Business Portal's technician map and nearest-staff auto-assignment
+  // both have something to work with even before any job exists.
+  isOnline              Boolean   @default(false)
+  lastKnownLatitude     Decimal?  @db.Decimal(9, 6)
+  lastKnownLongitude    Decimal?  @db.Decimal(9, 6)
+  lastLocationUpdatedAt DateTime?
+  updatedAt      DateTime @updatedAt
+
+  provider ProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@map("provider_availability")
+}
+
+model BlockedDate {
+  id         String   @id @default(cuid())
+  providerId String
+  date       DateTime
+  reason     String?
+
+  provider ProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([providerId])
+  @@map("blocked_dates")
+}
+
+// =========================================================================
+// JOBS / BOOKINGS
+// Reconciles: 3 incompatible Job shapes (customer/provider/dashboard) that
+// never carried real FKs — booking-content.tsx ignored its own query params.
+// =========================================================================
+
+model Job {
+  id               String     @id @default(cuid())
+  customerId       String
+  providerId       String?
+  serviceId        String?
+  servicePackageId String?
+  offerId          String?
+  title            String
+  description      String
+  status           JobStatus  @default(PENDING)
+  price            Decimal    @db.Decimal(12, 2)
+  currency         String     @default("KES")
+  location         String
+  latitude         Decimal?   @db.Decimal(9, 6)
+  longitude        Decimal?   @db.Decimal(9, 6)
+  // Provider's live position while heading to/working this job — last-known-
+  // position only (no history table), refreshed by the provider's own
+  // browser via navigator.geolocation while status is ACCEPTED/IN_PROGRESS.
+  providerLatitude          Decimal?  @db.Decimal(9, 6)
+  providerLongitude         Decimal?  @db.Decimal(9, 6)
+  providerLocationUpdatedAt DateTime?
+  scheduledDate    DateTime
+  // Real, settable expected-completion estimate — distinct from
+  // scheduledDate (the start time). Set/advanced by approved Change Orders
+  // (see ChangeOrder.additionalTimeDays); null for jobs that never had one
+  // set, rather than a fabricated default.
+  expectedCompletionAt DateTime?
+  urgency          JobUrgency @default(MEDIUM)
+  attachments      String[]
+  // Gap 6 (cancellation/no-show policy): set only when status is CANCELLED,
+  // by lib/job-cancellation.ts — distinguishes a free early cancellation
+  // from the two cases that carry a dispatch fee, for both the customer-
+  // /provider-facing messaging and any future reporting.
+  cancellationReason String?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  completedAt      DateTime?
+
+  customer       User             @relation("CustomerJobs", fields: [customerId], references: [id])
+  provider       ProviderProfile? @relation("ProviderJobs", fields: [providerId], references: [id])
+  service        Service?         @relation(fields: [serviceId], references: [id])
+  servicePackage ServicePackage?  @relation(fields: [servicePackageId], references: [id])
+  offer          Offer?           @relation(fields: [offerId], references: [id])
+
+  review       Review?
+  payments     Payment[]
+  invoices     Invoice[]
+  quotes       Quote[]
+  disputes     Dispute[]
+  conversation Conversation?
+  expenses     JobExpense[]
+  events       JobEvent[]
+  contract     ServiceContract?
+  changeOrders ChangeOrder[]
+  qrHandshakes QrHandshake[]
+  warranty     Warranty?
+  // Set only on a *new* Job created by bookWarrantyFollowUp — a free
+  // follow-up visit under an existing warranty, distinct from the original
+  // job the warranty was issued for (that relation is Warranty.job above).
+  warrantyFollowUpForId String?
+  warrantyFollowUpFor   Warranty? @relation("WarrantyFollowUpJobs", fields: [warrantyFollowUpForId], references: [id])
+  safetyIncidents SafetyIncident[]
+  identityVerifications IdentityVerification[]
+
+  @@index([customerId])
+  @@index([providerId])
+  @@index([status])
+  @@index([scheduledDate])
+  @@map("jobs")
+}
+
+/// A customer's recurring-service schedule (AC servicing, pest control,
+/// generator maintenance, ...) — real interval + due-date tracking, lazily
+/// reconciled at read time (same convention as ProviderSubscription/
+/// StaffInvite) rather than a cron job computing "due" on a schedule
+/// nothing in this app runs. `reminderSentAt` prevents re-notifying on
+/// every single read once a maintenance is overdue. Provider/category/
+/// service/offer references are plain ids (not Prisma relations) — kept
+/// consistent with this schema's actor-id convention rather than growing
+/// four more back-relation arrays on models this feature only reads from.
+model RecurringMaintenance {
+  id              String    @id @default(cuid())
+  customerId      String
+  providerId      String?
+  categoryId      String?
+  serviceId       String?
+  offerId         String?
+  title           String
+  frequencyDays   Int
+  lastCompletedAt DateTime?
+  nextDueAt       DateTime
+  reminderSentAt  DateTime?
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+
+  @@index([customerId])
+  @@index([nextDueAt])
+  @@map("recurring_maintenances")
+}
+
+/// A real, optional delivery-driver capability any existing account can add
+/// (see the note on User.driverProfile) — vehicle/license details plus a
+/// real availability toggle. No route/delivery-job feature set is built on
+/// top of this yet; this is the profile layer only.
+model DriverProfile {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  vehicleType   String?
+  licensePlate  String?
+  licenseNumber String?
+  isAvailable   Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("driver_profiles")
+}
+
+enum SafetyIncidentStatus {
+  ACTIVE
+  ESCALATED
+  EMERGENCY_SERVICES_CONTACTED
+  SAFETY_TEAM_ALERTED
+  RESOLVED
+}
+
+/// A real SOS report tied to an active job — creating one immediately
+/// notifies every active admin (see lib/actions/safety.ts), not just a
+/// queue nobody's watching. `latitude`/`longitude` are a one-time snapshot
+/// captured client-side when the report is filed, not a live/ongoing
+/// tracking feed — this app already has a separate real last-known-position
+/// field on Job (providerLatitude/providerLongitude) for that purpose.
+model SafetyIncident {
+  id               String               @id @default(cuid())
+  jobId            String
+  reportedByUserId String
+  latitude         Decimal?             @db.Decimal(9, 6)
+  longitude        Decimal?             @db.Decimal(9, 6)
+  description      String?
+  status           SafetyIncidentStatus @default(ACTIVE)
+  resolutionNote   String?
+  createdAt        DateTime             @default(now())
+  resolvedAt       DateTime?
+
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+  @@index([status])
+  @@map("safety_incidents")
+}
+
+enum IdentityVerificationStatus {
+  PENDING
+  VERIFIED
+  FAILED
+}
+
+/// Periodic Facial Verification — a real prompt/gate/selfie-capture step
+/// before starting a job, but no actual face-match algorithm runs (no
+/// biometric provider is configured/paid for in this environment). Auto-
+/// resolves to VERIFIED on submission, the same honest "sandbox simulation"
+/// pattern already used for payment gateways here — wire in a real face-
+/// match API later by replacing submitIdentityVerification's one line that
+/// currently always approves. No biometric template is stored, only the
+/// submitted selfie image itself (selfieUrl), same as any other provider-
+/// uploaded photo elsewhere in this schema.
+model IdentityVerification {
+  id         String                     @id @default(cuid())
+  jobId      String
+  providerId String
+  selfieUrl  String
+  status     IdentityVerificationStatus @default(PENDING)
+  createdAt  DateTime                   @default(now())
+  verifiedAt DateTime?
+
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+  @@index([providerId])
+  @@map("identity_verifications")
+}
+
+enum HouseholdRole {
+  OWNER
+  MEMBER
+  PROPERTY_MANAGER
+  PAYMENT_APPROVER
+}
+
+enum HouseholdInviteStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
+}
+
+/// A shared customer account grouping — one real Household per owning
+/// customer, with real per-member permission roles rather than every
+/// member silently getting full access. Booking/job history sharing is
+/// implemented as a real query expansion (see lib/actions/household.ts:
+/// "jobs for any customerId in this household's member user ids"), not a
+/// duplicated/synced copy of the data.
+model Household {
+  id        String   @id @default(cuid())
+  ownerUserId String @unique
+  name      String
+  createdAt DateTime @default(now())
+
+  members HouseholdMember[]
+  invites HouseholdInvite[]
+
+  @@map("households")
+}
+
+model HouseholdMember {
+  id          String        @id @default(cuid())
+  householdId String
+  userId      String        @unique
+  role        HouseholdRole @default(MEMBER)
+  joinedAt    DateTime      @default(now())
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  @@index([householdId])
+  @@map("household_members")
+}
+
+/// Mirrors StaffInvite's shape/lifecycle closely (identified by email/phone
+/// before the invitee has an account, PENDING -> ACCEPTED/EXPIRED/REVOKED)
+/// — same real invite pattern, applied to household membership instead of
+/// business staff.
+model HouseholdInvite {
+  id          String                @id @default(cuid())
+  householdId String
+  email       String?
+  phone       String?
+  role        HouseholdRole         @default(MEMBER)
+  status      HouseholdInviteStatus @default(PENDING)
+  token       String                @unique
+  expiresAt   DateTime
+  createdAt   DateTime              @default(now())
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  @@index([householdId])
+  @@map("household_invites")
+}
+
+enum ProcurementStatus {
+  QUOTES_OPEN
+  PENDING_APPROVAL
+  APPROVED
+  PURCHASE_ORDER_CREATED
+  FULFILLED
+  CANCELLED
+}
+
+/// A business's structured "need X delivered on schedule Y" request —
+/// distinct from ad-hoc wholesale ordering (WholesaleOrder elsewhere in
+/// this schema), this is the multi-supplier-quote RFQ flow. Any non-
+/// customer account can post one; SupplierQuote responses come from real
+/// Distributor accounts, reusing the existing wholesale-supplier concept
+/// rather than inventing a second one.
+model ProcurementRequest {
+  id               String            @id @default(cuid())
+  businessUserId   String
+  productName      String
+  quantity         Int
+  deliveryLocation String
+  // Whole days between repeats; null means a one-off request — real
+  // recurrence, not a fabricated "subscribe" toggle with nothing behind it.
+  recurrenceDays   Int?
+  budgetMax        Decimal?          @db.Decimal(12, 2)
+  requirements     String?
+  status           ProcurementStatus @default(QUOTES_OPEN)
+  // Single real approval gate (creator requests -> business owner
+  // approves) rather than a fabricated, fully configurable N-step chain —
+  // this schema has no formal manager hierarchy to hang a deeper one on.
+  requiresApproval Boolean           @default(false)
+  approverUserId   String?
+  createdAt        DateTime          @default(now())
+
+  supplierQuotes SupplierQuote[]
+  purchaseOrder  PurchaseOrder?
+
+  @@index([businessUserId])
+  @@index([status])
+  @@map("procurement_requests")
+}
+
+enum SupplierQuoteStatus {
+  SUBMITTED
+  SELECTED
+  DECLINED
+}
+
+model SupplierQuote {
+  id                   String              @id @default(cuid())
+  procurementRequestId String
+  supplierUserId       String
+  price                Decimal             @db.Decimal(12, 2)
+  availability         String?
+  deliveryTime         String?
+  terms                String?
+  validUntil           DateTime
+  status               SupplierQuoteStatus @default(SUBMITTED)
+  createdAt            DateTime            @default(now())
+
+  procurementRequest ProcurementRequest @relation(fields: [procurementRequestId], references: [id], onDelete: Cascade)
+
+  @@index([procurementRequestId])
+  @@map("supplier_quotes")
+}
+
+enum PurchaseOrderStatus {
+  PENDING_APPROVAL
+  APPROVED
+  FULFILLED
+  CANCELLED
+}
+
+model PurchaseOrder {
+  id                    String              @id @default(cuid())
+  procurementRequestId  String              @unique
+  supplierQuoteId       String
+  status                PurchaseOrderStatus @default(APPROVED)
+  totalAmount           Decimal             @db.Decimal(12, 2)
+  createdAt             DateTime            @default(now())
+
+  procurementRequest   ProcurementRequest    @relation(fields: [procurementRequestId], references: [id], onDelete: Cascade)
+  deliveryConfirmation DeliveryConfirmation?
+
+  @@map("purchase_orders")
+}
+
+/// Closes the procurement loop for real — quantity actually delivered
+/// (which may differ from what was ordered), who received it, and
+/// evidence, not just a boolean "delivered" flag.
+model DeliveryConfirmation {
+  id                String   @id @default(cuid())
+  purchaseOrderId   String   @unique
+  deliveredQuantity Int
+  recipientName     String
+  evidenceUrl       String?
+  deliveredAt       DateTime @default(now())
+  confirmedByUserId String
+
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+
+  @@map("delivery_confirmations")
+}
+
+enum OpportunityStatus {
+  OPEN
+  CLOSED
+  EXPIRED
+}
+
+/// Provider-to-provider version of the customer Request Board — a Saji Pro
+/// posts a need, other real providers in the same category discover and
+/// respond. Deliberately exposes only what CustomerRequest already exposes
+/// publicly (category, location text, budget) — no extra personal data.
+model ProviderOpportunity {
+  id                 String             @id @default(cuid())
+  postedByProviderId String
+  categoryId         String
+  location           String
+  preferredTime      String?
+  budget             Decimal?           @db.Decimal(12, 2)
+  description        String
+  status             OpportunityStatus  @default(OPEN)
+  createdAt          DateTime           @default(now())
+  expiresAt          DateTime
+
+  postedBy  ProviderProfile        @relation("OpportunityPostedBy", fields: [postedByProviderId], references: [id])
+  category  Category               @relation(fields: [categoryId], references: [id])
+  responses OpportunityResponse[]
+
+  @@index([postedByProviderId])
+  @@index([categoryId])
+  @@index([status])
+  @@map("provider_opportunities")
+}
+
+model OpportunityResponse {
+  id                  String   @id @default(cuid())
+  opportunityId       String
+  responderProviderId String
+  message             String
+  createdAt           DateTime @default(now())
+
+  opportunity ProviderOpportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  responder   ProviderProfile     @relation("OpportunityResponder", fields: [responderProviderId], references: [id])
+
+  @@index([opportunityId])
+  @@map("opportunity_responses")
+}
+
+enum WarrantyStatus {
+  ACTIVE
+  EXPIRED
+  VOID
+}
+
+/// Issued by a provider on a COMPLETED job (see addWarrantyToJob in
+/// lib/actions/warranty.ts) — never auto-created with a fabricated
+/// duration, the provider sets the real terms. `status` is lazily
+/// reconciled ACTIVE -> EXPIRED once `expiresAt` passes, same convention as
+/// ProviderSubscription/StaffInvite elsewhere in this schema.
+model Warranty {
+  id           String         @id @default(cuid())
+  jobId        String         @unique
+  providerId   String
+  durationDays Int
+  startDate    DateTime
+  expiresAt    DateTime
+  terms        String?
+  status       WarrantyStatus @default(ACTIVE)
+  createdAt    DateTime       @default(now())
+
+  job          Job             @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  provider     ProviderProfile @relation(fields: [providerId], references: [id])
+  claims       WarrantyClaim[]
+  followUpJobs Job[]           @relation("WarrantyFollowUpJobs")
+
+  @@index([providerId])
+  @@map("warranties")
+}
+
+enum WarrantyClaimStatus {
+  OPEN
+  IN_REVIEW
+  RESOLVED
+  REJECTED
+}
+
+/// A customer's "Report Issue" against an active Warranty — provider
+/// reviews and resolves it; if an actual visit is needed, a separate real
+/// Job gets booked via bookWarrantyFollowUp (see Warranty.followUpJobs)
+/// rather than this claim silently spawning one on its own.
+model WarrantyClaim {
+  id             String              @id @default(cuid())
+  warrantyId     String
+  description    String
+  photos         String[]            @default([])
+  status         WarrantyClaimStatus @default(OPEN)
+  resolutionNote String?
+  createdAt      DateTime            @default(now())
+  resolvedAt     DateTime?
+
+  warranty Warranty @relation(fields: [warrantyId], references: [id], onDelete: Cascade)
+
+  @@index([warrantyId])
+  @@map("warranty_claims")
+}
+
+/// A short-lived, single-use, opaque token proving "the person in front of
+/// you is really this job's customer/provider" — the QR/code payload is
+/// just `token` (a random string, see lib/actions/qr-handshake.ts), never
+/// the job/customer/provider IDs themselves, so scanning or intercepting it
+/// reveals nothing about the account. Expires quickly (a few minutes) and
+/// can only ever be consumed once.
+model QrHandshake {
+  id               String    @id @default(cuid())
+  jobId            String
+  token            String    @unique
+  customerId       String
+  providerId       String
+  expiresAt        DateTime
+  consumedAt       DateTime?
+  consumedByUserId String?
+  createdAt        DateTime  @default(now())
+
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+  @@index([token])
+  @@map("qr_handshakes")
+}
+
+enum ChangeOrderStatus {
+  PENDING
+  APPROVED
+  DECLINED
+  CANCELLED
+}
+
+/// A provider's request to change the scope/price/timeline of an
+/// already-agreed job. Deliberately never moves money or changes the Job
+/// on its own — createChangeOrder only ever creates a PENDING row; only
+/// respondToChangeOrder's explicit customer approval (see
+/// lib/actions/change-orders.ts) ever updates Job.price /
+/// Job.expectedCompletionAt, and the original Job.description is preserved
+/// (appended to, not overwritten) so the original agreement stays legible.
+model ChangeOrder {
+  id                String            @id @default(cuid())
+  jobId             String
+  requestedById     String
+  description       String
+  additionalWork    String
+  additionalCost    Decimal           @db.Decimal(12, 2)
+  // Whole days, not free text, specifically so an approval can do real
+  // date arithmetic on Job.expectedCompletionAt rather than just
+  // recording an unactionable string.
+  additionalTimeDays Int?
+  photos            String[]          @default([])
+  status            ChangeOrderStatus @default(PENDING)
+  declineReason     String?
+  respondedAt       DateTime?
+  createdAt         DateTime          @default(now())
+
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+  @@index([status])
+  @@map("change_orders")
+}
+
+enum JobEventActor {
+  CUSTOMER
+  PROVIDER
+  SYSTEM
+  ADMIN
+}
+
+/// The "Evidence Timeline" — an append-only, per-job chronological event log.
+/// `type` is deliberately a free-form convention-cased string (e.g.
+/// "JOB_CREATED", "IDENTITY_HANDSHAKE_COMPLETED") rather than a fixed enum,
+/// so future features (Change Orders, QR Handshake, Warranty Claims, Safety
+/// Incidents, ...) can each log their own event kinds here without a schema
+/// migration per feature — this model is the shared backbone all of them
+/// write into. No update/delete action is ever exposed for this model
+/// (see lib/actions/job-events.ts) — it's meant to be trustworthy evidence,
+/// not editable history.
+model JobEvent {
+  id          String            @id @default(cuid())
+  // Both nullable, exactly one set at any time — a Quote & Contract Layer
+  // request/quote/agreement negotiation (see ServiceContract) happens
+  // *before* a real Job exists, so its early events attach via contractId.
+  // The moment a contract is AGREED and a real Job is created, its prior
+  // events are re-parented onto jobId (see respondToContractQuote) so the
+  // rest of the timeline continues on one unified, jobId-keyed history.
+  jobId       String?
+  contractId  String?
+  type        String
+  actor       JobEventActor
+  actorUserId String?
+  description String
+  metadata    Json?
+  attachments String[]          @default([])
+  createdAt   DateTime          @default(now())
+
+  job         Job?              @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  contract    ServiceContract?  @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+  @@index([jobId, createdAt])
+  @@index([contractId])
+  @@map("job_events")
+}
+
+enum ContractStatus {
+  REQUESTED
+  QUOTED
+  AGREED
+  DECLINED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum MilestoneStatus {
+  PENDING
+  COMPLETED
+  APPROVED
+}
+
+/// The "Quote & Contract Layer" — Request -> Quote -> Agreement, ahead of
+/// (and separate from) the existing instant-book Job flow. Once AGREED, a
+/// real Job is created (reusing the existing PENDING_PAYMENT -> payment ->
+/// ACCEPTED -> IN_PROGRESS -> COMPLETED pipeline and payout logic
+/// unchanged) and `jobId` is set — from that point on this contract is
+/// just a record of how the price/scope was negotiated, not a second
+/// parallel status machine. Milestones are a tracking/evidence overlay on
+/// top of that same Job, not a separate payment gate.
+model ServiceContract {
+  id                 String         @id @default(cuid())
+  customerId         String
+  providerId         String
+  categoryId         String?
+  jobId              String?        @unique
+  title              String
+  requestDescription String
+  location           String
+  status             ContractStatus @default(REQUESTED)
+
+  quotedPrice       Decimal?  @db.Decimal(12, 2)
+  scopeOfWork       String?
+  estimatedDuration String?
+  materials         String?
+  labourNotes       String?
+  terms             String?
+  quotedAt          DateTime?
+
+  agreedAt      DateTime?
+  declinedAt    DateTime?
+  declineReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  customer   User                @relation("ContractCustomer", fields: [customerId], references: [id])
+  provider   ProviderProfile     @relation("ContractProvider", fields: [providerId], references: [id])
+  category   Category?           @relation(fields: [categoryId], references: [id])
+  job        Job?                @relation(fields: [jobId], references: [id])
+  milestones ContractMilestone[]
+  events     JobEvent[]
+
+  @@index([customerId])
+  @@index([providerId])
+  @@index([status])
+  @@map("service_contracts")
+}
+
+/// A tracked unit of work within an agreed ServiceContract — provider marks
+/// it COMPLETED, customer marks it APPROVED. Deliberately does not gate the
+/// underlying Job's real payment/payout (that stays the existing explicit
+/// "Complete Job" action) — this is an evidence/progress layer, not a new
+/// money-movement trigger, so approving the last milestone doesn't silently
+/// release funds on its own.
+model ContractMilestone {
+  id          String          @id @default(cuid())
+  contractId  String
+  title       String
+  description String?
+  amount      Decimal?        @db.Decimal(12, 2)
+  order       Int             @default(0)
+  status      MilestoneStatus @default(PENDING)
+  completedAt DateTime?
+  approvedAt  DateTime?
+  createdAt   DateTime        @default(now())
+
+  contract ServiceContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([contractId])
+  @@map("contract_milestones")
+}
+
+enum JobExpenseStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+/// Gap 1 (in-job up-charge): a part/expense a provider adds mid-job (e.g.
+/// "the leak needs a KSh 800 pipe fitting") that needs the customer's
+/// explicit approval — and, once approved, a real additional wallet charge
+/// — before it's added to Job.price. respondToJobExpense() in
+/// lib/actions/job-expenses.ts is what actually moves money; this row is
+/// just the request + its outcome.
+model JobExpense {
+  id              String           @id @default(cuid())
+  jobId           String
+  description     String
+  amount          Decimal          @db.Decimal(12, 2)
+  receiptPhotoUrl String?
+  status          JobExpenseStatus @default(PENDING)
+  createdAt       DateTime         @default(now())
+  respondedAt     DateTime?
+
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+  @@map("job_expenses")
+}
+
+// =========================================================================
+// REQUEST BOARD
+// Reverse-marketplace: a customer posts what they need, providers/
+// shopkeepers (routed by the request's Category.type) respond with an
+// offer. Accepting a response does NOT auto-create a Job/Order — requests
+// can be service- or product-shaped, so forcing one conversion target
+// would be wrong for the other; acceptance just opens a real conversation
+// (getOrCreateConversation) and the deal is finished through the normal
+// booking/ordering flows from there.
+// =========================================================================
+
+model CustomerRequest {
+  id          String                @id @default(cuid())
+  customerId  String
+  title       String
+  description String
+  categoryId  String
+  budgetMin   Decimal?              @db.Decimal(12, 2)
+  budgetMax   Decimal?              @db.Decimal(12, 2)
+  location    String
+  status      CustomerRequestStatus @default(OPEN)
+  createdAt   DateTime              @default(now())
+  expiresAt   DateTime
+  closedAt    DateTime?
+
+  customer  User              @relation(fields: [customerId], references: [id])
+  category  Category          @relation(fields: [categoryId], references: [id])
+  responses RequestResponse[]
+
+  @@index([customerId])
+  @@index([categoryId])
+  @@index([status])
+  @@map("customer_requests")
+}
+
+enum CustomerRequestStatus {
+  OPEN
+  ACCEPTED
+  CLOSED
+  EXPIRED
+  CANCELLED
+}
+
+model RequestResponse {
+  id          String                @id @default(cuid())
+  requestId   String
+  responderId String
+  message     String
+  price       Decimal               @db.Decimal(12, 2)
+  status      RequestResponseStatus @default(PENDING)
+  createdAt   DateTime              @default(now())
+
+  request   CustomerRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  responder User            @relation(fields: [responderId], references: [id])
+
+  @@index([requestId])
+  @@index([responderId])
+  @@map("request_responses")
+}
+
+enum RequestResponseStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+// =========================================================================
+// REVIEWS
+// One canonical Review, tied to either a Job (service review) or a Product
+// (order review) — exactly one of jobId/productId is set.
+// =========================================================================
+
+model Review {
+  id              String    @id @default(cuid())
+  customerId      String
+  jobId           String?   @unique
+  serviceId       String?
+  providerId      String?
+  productId       String?
+  orderId         String?   @unique
+  shopkeeperId    String?
+  rating          Int
+  comment         String
+  photos          String[] @default([])
+  professionalism Int?
+  communication   Int?
+  punctuality     Int?
+  qualityOfWork   Int?
+  response        String?
+  respondedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @default(now()) @updatedAt
+
+  customer   User               @relation("ReviewCustomer", fields: [customerId], references: [id])
+  job        Job?               @relation(fields: [jobId], references: [id])
+  service    Service?           @relation(fields: [serviceId], references: [id])
+  provider   ProviderProfile?   @relation("ReviewProvider", fields: [providerId], references: [id])
+  product    Product?           @relation(fields: [productId], references: [id])
+  order      Order?             @relation(fields: [orderId], references: [id])
+  shopkeeper ShopkeeperProfile? @relation("ReviewShopkeeper", fields: [shopkeeperId], references: [id])
+
+  @@index([providerId])
+  @@index([shopkeeperId])
+  @@index([productId])
+  @@index([customerId])
+  @@map("reviews")
+}
+
+// =========================================================================
+// ADDRESSES
+// Reconciles: 2-3 conflicting Address shapes (profile page vs saved-addresses
+// page used different field names for the same "is default" flag).
+// =========================================================================
+
+model Address {
+  id        String      @id @default(cuid())
+  userId    String
+  label     String
+  type      AddressType @default(HOME)
+  address   String
+  city      String?
+  latitude  Decimal?    @db.Decimal(9, 6)
+  longitude Decimal?    @db.Decimal(9, 6)
+  isDefault Boolean     @default(false)
+  createdAt DateTime    @default(now())
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders Order[]
+
+  @@index([userId])
+  @@map("addresses")
+}
+
+// =========================================================================
+// CART & WISHLIST (Product marketplace)
+// Reconciles: the one real localStorage cart (saji-customer-cart) + the
+// separate ad hoc "favorites" mock (customer-favorites-page.tsx).
+// =========================================================================
+
+/// A cart line is either a Product (existing) or a Service (new — the
+/// "Smart Cart") — exactly one of productId/serviceId is set, enforced at
+/// the application layer (lib/actions/cart.ts) rather than a DB constraint,
+/// matching how Review already does the same one-of-several-FKs pattern.
+/// Service lines carry their own scheduledDate/notes (collected the same
+/// way createBooking's standalone wizard already does) since unrelated
+/// services in one cart can land on different days — checkout() charges
+/// everything in one wallet debit but still creates one Job per service
+/// line, at whatever date each line was given.
+model CartItem {
+  id             String    @id @default(cuid())
+  customerId     String
+  productId      String?
+  serviceId      String?
+  servicePackageId String?
+  scheduledDate  DateTime?
+  notes          String?
+  quantity       Int       @default(1)
+  createdAt      DateTime  @default(now())
+
+  customer       User            @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  product        Product?        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  service        Service?        @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  servicePackage ServicePackage? @relation(fields: [servicePackageId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, productId])
+  @@index([customerId, serviceId])
+  @@map("cart_items")
+}
+
+model WishlistItem {
+  id         String             @id @default(cuid())
+  customerId String
+  targetType WishlistTargetType
+  providerId String?
+  serviceId  String?
+  productId  String?
+  createdAt  DateTime           @default(now())
+
+  customer User             @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  provider ProviderProfile? @relation("WishlistedProvider", fields: [providerId], references: [id], onDelete: Cascade)
+  service  Service?         @relation("WishlistedService", fields: [serviceId], references: [id], onDelete: Cascade)
+  product  Product?         @relation("WishlistedProduct", fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@map("wishlist_items")
+}
+
+// =========================================================================
+// ORDERS (E-commerce — shopkeeper products, separate from service Jobs)
+// Note: no Order entity existed anywhere in the mock frontend despite a
+// full cart/checkout UI — this is a net-new addition, not a reconciliation.
+// =========================================================================
+
+model Order {
+  id           String      @id @default(cuid())
+  orderNumber  String      @unique
+  customerId   String
+  shopkeeperId String
+  addressId    String?
+  status       OrderStatus @default(PENDING)
+  subtotal     Decimal     @db.Decimal(14, 2)
+  discount     Decimal     @default(0) @db.Decimal(14, 2)
+  shippingCost Decimal     @default(0) @db.Decimal(14, 2)
+  tax          Decimal     @default(0) @db.Decimal(14, 2)
+  total        Decimal     @db.Decimal(14, 2)
+  notes        String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  processingAt DateTime?
+  shippedAt    DateTime?
+  deliveredAt  DateTime?
+  cancelledAt  DateTime?
+
+  customer   User              @relation("CustomerOrders", fields: [customerId], references: [id])
+  shopkeeper ShopkeeperProfile @relation("ShopkeeperOrders", fields: [shopkeeperId], references: [id])
+  address    Address?          @relation(fields: [addressId], references: [id])
+
+  items    OrderItem[]
+  payments Payment[]
+  disputes Dispute[]
+  review   Review?
+
+  @@index([customerId])
+  @@index([shopkeeperId])
+  @@index([status])
+  @@map("orders")
+}
+
+model OrderItem {
+  id         String  @id @default(cuid())
+  orderId    String
+  productId  String
+  quantity   Int
+  unitPrice  Decimal @db.Decimal(12, 2)
+  totalPrice Decimal @db.Decimal(12, 2)
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+// =========================================================================
+// WALLET, PAYMENTS & TRANSACTIONS
+// Reconciles: 3-4 independent, unsynced "wallet balance" useState instances
+// found across the customer/provider portals into ONE real ledger.
+// =========================================================================
+
+model Wallet {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  balance        Decimal  @default(0) @db.Decimal(14, 2)
+  currency       String   @default("KES")
+  totalEarned    Decimal  @default(0) @db.Decimal(14, 2)
+  totalWithdrawn Decimal  @default(0) @db.Decimal(14, 2)
+  pendingBalance Decimal  @default(0) @db.Decimal(14, 2)
+  escrowBalance  Decimal  @default(0) @db.Decimal(14, 2)
+  updatedAt      DateTime @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@map("wallets")
+}
+
+model Transaction {
+  id            String            @id @default(cuid())
+  walletId      String
+  type          TransactionType
+  amount        Decimal           @db.Decimal(14, 2)
+  description   String
+  referenceType String?
+  referenceId   String?
+  status        TransactionStatus @default(COMPLETED)
+  balanceBefore Decimal           @db.Decimal(14, 2)
+  balanceAfter  Decimal           @db.Decimal(14, 2)
+  createdAt     DateTime          @default(now())
+
+  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("transactions")
+}
+
+// Mirrors Wallet/Transaction exactly (balance + auditable ledger) — the
+// established shape in this codebase for "a balance plus a history."
+// Points are earned on completed purchases/jobs and redeemed 1:1 for real
+// Wallet credit (1 point = KES 1), never spent directly.
+model LoyaltyAccount {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  points         Int      @default(0)
+  lifetimePoints Int      @default(0)
+  updatedAt      DateTime @updatedAt
+
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions LoyaltyTransaction[]
+
+  @@map("loyalty_accounts")
+}
+
+model LoyaltyTransaction {
+  id            String                 @id @default(cuid())
+  accountId     String
+  type          LoyaltyTransactionType
+  points        Int
+  description   String
+  referenceType String?
+  referenceId   String?
+  balanceBefore Int
+  balanceAfter  Int
+  createdAt     DateTime               @default(now())
+
+  account LoyaltyAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
+  @@map("loyalty_transactions")
+}
+
+model PaymentMethod {
+  id            String            @id @default(cuid())
+  userId        String
+  type          PaymentMethodType
+  provider      String?
+  accountNumber String // masked display value only, e.g. "***1234" — never the real number
+  // AES-256-GCM ciphertext of the real destination (M-Pesa MSISDN today) —
+  // the only place the real number is recoverable from, needed so B2C
+  // payouts have somewhere real to send money to. Null for methods added
+  // before this existed, or when PAYMENT_METHOD_ENCRYPTION_KEY isn't set;
+  // those withdrawals just fall back to the manual payout flow.
+  encryptedAccountNumber String?
+  isDefault     Boolean           @default(false)
+  isVerified    Boolean           @default(false)
+  createdAt     DateTime          @default(now())
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payments Payment[]
+
+  @@index([userId])
+  @@map("payment_methods")
+}
+
+model Payment {
+  id              String             @id @default(cuid())
+  amount          Decimal            @db.Decimal(14, 2)
+  currency        String             @default("KES")
+  status          PaymentStatus      @default(PENDING)
+  contextType     PaymentContextType
+  jobId           String?
+  orderId         String?
+  wholesaleOrderId String?
+  rentalBookingId String?
+  payerId         String
+  payeeId         String?
+  paymentMethodId String?
+  externalRef     String? // M-Pesa receipt number / gateway transaction id
+  // Human-readable reason a FAILED payment failed — e.g. "You cancelled the
+  // M-Pesa payment" vs "Insufficient M-Pesa balance", mapped from Safaricom's
+  // STK push ResultCode (see mpesaFailureReason in lib/actions/payments.ts).
+  // Lets the UI say something more useful than one generic "payment failed".
+  failureReason   String?
+  createdAt       DateTime           @default(now())
+  paidAt          DateTime?
+  refundedAt      DateTime?
+
+  job            Job?            @relation(fields: [jobId], references: [id])
+  order          Order?          @relation(fields: [orderId], references: [id])
+  wholesaleOrder WholesaleOrder? @relation(fields: [wholesaleOrderId], references: [id])
+  rentalBooking  RentalBooking?  @relation(fields: [rentalBookingId], references: [id])
+  payer          User            @relation("PaymentPayer", fields: [payerId], references: [id])
+  payee          User?           @relation("PaymentPayee", fields: [payeeId], references: [id])
+  paymentMethod  PaymentMethod?  @relation(fields: [paymentMethodId], references: [id])
+
+  @@index([payerId])
+  @@index([status])
+  @@index([jobId])
+  @@index([orderId])
+  @@index([wholesaleOrderId])
+  @@map("payments")
+}
+
+model WithdrawalRequest {
+  id               String            @id @default(cuid())
+  userId           String
+  amount           Decimal           @db.Decimal(14, 2)
+  method           PaymentMethodType
+  recipientDetails Json
+  status           WithdrawalStatus  @default(PENDING)
+  rejectionReason  String?
+  processingFee    Decimal           @default(0) @db.Decimal(12, 2)
+  netAmount        Decimal           @db.Decimal(14, 2)
+  externalRef      String?
+  // Safaricom's ConversationID for an in-flight B2C payout — set the moment
+  // the payout is dispatched, used to correlate the async result callback
+  // back to this request. Null for manually-completed withdrawals.
+  b2cConversationId String?          @unique
+  createdAt        DateTime          @default(now())
+  completedAt      DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@map("withdrawal_requests")
+}
+
+enum ReceiptType {
+  PAYMENT
+  DEPOSIT
+  WITHDRAWAL
+}
+
+/// A snapshotted, downloadable/emailable receipt — covers a cart checkout
+/// (possibly spanning several vendors), a standalone job-booking payment, a
+/// wallet top-up, or a wallet withdrawal. `lineItems`/`subtotal`/`platformFee`
+/// are frozen at creation time (a receipt must keep showing what was
+/// actually charged, even if e.g. a product's name changes later) — but
+/// the PDF's logo and contact footer are deliberately NOT stored here and
+/// are re-read live from PlatformSetting at render time, so an admin
+/// changing the support contact/logo updates every past receipt too, not
+/// just future ones. `receiptNumber` is the public lookup key for the
+/// no-login /verify page and QR code — has a random suffix, not a plain
+/// increment, so receipts can't be enumerated by guessing.
+model Receipt {
+  id              String      @id @default(cuid())
+  receiptNumber   String      @unique
+  userId          String
+  type            ReceiptType
+  paymentMethod   String?
+  transactionRef  String?
+  lineItems       Json
+  subtotal        Decimal?    @db.Decimal(14, 2)
+  // Extra summary rows between Subtotal and Total — e.g. shipping,
+  // promo-code discount. Deliberately NOT a "platform fee" line: this
+  // app's checkout never charges the customer a visible fee, commission
+  // is netted out of the vendor's payout instead, so a receipt must not
+  // show a fee that wasn't actually charged. Shape: [{ label, amount }].
+  adjustments     Json?
+  totalAmount     Decimal     @db.Decimal(14, 2)
+  currency        String      @default("KES")
+  balanceAfter    Decimal?    @db.Decimal(14, 2)
+  emailedTo       String?
+  createdAt       DateTime    @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("receipts")
+}
+
+// =========================================================================
+// INVOICES & QUOTES (Provider-issued, secretary-tracked)
+// =========================================================================
+
+model Invoice {
+  id            String        @id @default(cuid())
+  invoiceNumber String        @unique
+  providerId    String
+  customerId    String?
+  jobId         String?
+  dueDate       DateTime
+  subtotal      Decimal       @db.Decimal(14, 2)
+  tax           Decimal       @default(0) @db.Decimal(14, 2)
+  total         Decimal       @db.Decimal(14, 2)
+  status        InvoiceStatus @default(DRAFT)
+  createdAt     DateTime      @default(now())
+  paidAt        DateTime?
+
+  provider ProviderProfile @relation("InvoiceProvider", fields: [providerId], references: [id])
+  customer User?           @relation("InvoiceCustomer", fields: [customerId], references: [id])
+  job      Job?            @relation(fields: [jobId], references: [id])
+  items    InvoiceItem[]
+
+  @@index([providerId])
+  @@index([status])
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id          String  @id @default(cuid())
+  invoiceId   String
+  description String
+  quantity    Int     @default(1)
+  rate        Decimal @db.Decimal(12, 2)
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@map("invoice_items")
+}
+
+model Quote {
+  id          String      @id @default(cuid())
+  providerId  String
+  customerId  String?
+  jobId       String?
+  jobTitle    String
+  description String?
+  amount      Decimal     @db.Decimal(14, 2)
+  validUntil  DateTime
+  status      QuoteStatus @default(DRAFT)
+  notes       String?
+  createdAt   DateTime    @default(now())
+
+  provider ProviderProfile @relation("QuoteProvider", fields: [providerId], references: [id])
+  customer User?           @relation("QuoteCustomer", fields: [customerId], references: [id])
+  job      Job?            @relation(fields: [jobId], references: [id])
+  items    QuoteItem[]
+
+  @@index([providerId])
+  @@index([status])
+  @@map("quotes")
+}
+
+model QuoteItem {
+  id          String  @id @default(cuid())
+  quoteId     String
+  description String
+  quantity    Int     @default(1)
+  rate        Decimal @db.Decimal(12, 2)
+
+  quote Quote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+
+  @@index([quoteId])
+  @@map("quote_items")
+}
+
+// =========================================================================
+// MESSAGING
+// Reconciles: per-portal chat mocks that either discarded messages
+// (secretary/messages), mutated a module-level object instead of React
+// state (admin/messages), or weren't keyed by conversation at all
+// (shopkeeper/messages) — one real Conversation/Message model for everyone.
+// =========================================================================
+
+model Conversation {
+  id             String    @id @default(cuid())
+  participantAId String
+  participantBId String
+  jobId          String?   @unique
+  lastMessageAt  DateTime?
+  isArchived     Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+
+  participantA User      @relation("ConversationParticipantA", fields: [participantAId], references: [id])
+  participantB User      @relation("ConversationParticipantB", fields: [participantBId], references: [id])
+  job          Job?      @relation(fields: [jobId], references: [id])
+  messages     Message[]
+  callSignals  CallSignal[]
+
+  @@unique([participantAId, participantBId, jobId])
+  @@index([participantAId])
+  @@index([participantBId])
+  @@map("conversations")
+}
+
+model Message {
+  id              String      @id @default(cuid())
+  conversationId  String
+  senderId        String
+  type            MessageType @default(TEXT)
+  content         String?
+  attachmentUrl   String?
+  isRead          Boolean     @default(false)
+  readAt          DateTime?
+  relatedStatusId String?
+  createdAt       DateTime    @default(now())
+
+  conversation   Conversation    @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User            @relation("MessageSender", fields: [senderId], references: [id])
+  relatedStatus  ProviderStatus? @relation("MessageRelatedStatus", fields: [relatedStatusId], references: [id], onDelete: SetNull)
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@map("messages")
+}
+
+// Ephemeral WebRTC signaling rows (SDP offers/answers, ICE candidates, ring/
+// hangup/reject events) for real-time voice calls between two conversation
+// participants. Polled (short interval) rather than pushed since this app
+// has no persistent WebSocket server — same reasoning as the 5s message
+// poll, just faster because call setup is latency-sensitive. Rows are
+// short-lived: cleared once a call ends (see clearCallSignals).
+model CallSignal {
+  id             String   @id @default(cuid())
+  conversationId String
+  fromUserId     String
+  toUserId       String
+  type           String
+  payload        Json
+  createdAt      DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@index([toUserId])
+  @@map("call_signals")
+}
+
+// =========================================================================
+// NOTIFICATIONS
+// =========================================================================
+
+model Notification {
+  id          String           @id @default(cuid())
+  userId      String
+  title       String
+  message     String
+  type        NotificationType
+  relatedType String?
+  relatedId   String?
+  actionUrl   String?
+  isRead      Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@map("notifications")
+}
+
+// =========================================================================
+// DISPUTES
+// Reconciles: agent/page.tsx and agent/disputes/page.tsx independently
+// mocked the *same* dispute IDs (DSP-001..003) with different field sets.
+// =========================================================================
+
+model Dispute {
+  id            String          @id @default(cuid())
+  disputeNumber String          @unique
+  jobId         String?
+  orderId       String?
+  customerId    String
+  providerId    String?
+  reason        String
+  description   String
+  status        DisputeStatus   @default(OPEN)
+  severity      DisputeSeverity @default(MEDIUM)
+  assignedToId  String?
+  refundAmount  Decimal?        @db.Decimal(14, 2)
+  resolution    String?
+  photos        String[]        @default([])
+  createdAt     DateTime        @default(now())
+  resolvedAt    DateTime?
+
+  job        Job?             @relation(fields: [jobId], references: [id])
+  order      Order?           @relation(fields: [orderId], references: [id])
+  customer   User             @relation("DisputeCustomer", fields: [customerId], references: [id])
+  provider   ProviderProfile? @relation("DisputeProvider", fields: [providerId], references: [id])
+  assignedTo User?            @relation("DisputeAssignee", fields: [assignedToId], references: [id])
+  messages   DisputeMessage[]
+
+  @@index([customerId])
+  @@index([providerId])
+  @@index([status])
+  @@map("disputes")
+}
+
+model DisputeMessage {
+  id          String   @id @default(cuid())
+  disputeId   String
+  senderId    String
+  message     String
+  attachments String[]
+  createdAt   DateTime @default(now())
+
+  dispute Dispute @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+  sender  User    @relation(fields: [senderId], references: [id])
+
+  @@index([disputeId])
+  @@map("dispute_messages")
+}
+
+// =========================================================================
+// TEAM / ADMIN OPERATIONS
+// Reconciles: commission concept fragmented across admin/commissions,
+// admin/pricing, and admin/settings' paymentRules into one Tier model.
+// =========================================================================
+
+model CommissionTier {
+  id            String           @id @default(cuid())
+  name          String
+  role          CommissionRole
+  rate          Decimal          @db.Decimal(5, 2) // percentage
+  minJobs       Int?
+  minAmount     Decimal?         @db.Decimal(14, 2)
+  maxAmount     Decimal?         @db.Decimal(14, 2)
+  status        CommissionStatus @default(ACTIVE)
+  effectiveFrom DateTime         @default(now())
+  effectiveTo   DateTime?
+  createdById   String
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  createdBy User @relation(fields: [createdById], references: [id])
+
+  @@index([role])
+  @@index([status])
+  @@map("commission_tiers")
+}
+
+// Ledger of record for every commission deduction actually taken at
+// settlement time (completeJob/checkout/placeWholesaleOrder). Kept separate
+// from Payment (which never gets a payeeId for Job contexts and is never
+// revisited by completeJob) so reversal paths can look up the exact
+// commissionAmount/payoutAmount recorded here instead of recomputing a rate
+// that may have changed since the order was placed.
+model PlatformRevenue {
+  id               String         @id @default(cuid())
+  role             CommissionRole
+  sourceType       String // "JOB" | "ORDER" | "WHOLESALE_ORDER"
+  sourceId         String         @unique
+  userId           String // the seller (provider/shopkeeper/distributor) who earned the gross amount
+  grossAmount      Decimal        @db.Decimal(14, 2)
+  rate             Decimal        @db.Decimal(5, 2) // percentage applied at settlement time
+  commissionAmount Decimal        @db.Decimal(14, 2)
+  payoutAmount     Decimal        @db.Decimal(14, 2)
+  reversedAt       DateTime?
+  createdAt        DateTime       @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([role])
+  @@map("platform_revenue")
+}
+
+model Announcement {
+  id          String               @id @default(cuid())
+  title       String
+  message     String
+  audience    AnnouncementAudience @default(ALL)
+  type        AnnouncementType     @default(GENERAL)
+  status      AnnouncementStatus   @default(DRAFT)
+  views       Int                  @default(0)
+  startDate   DateTime             @default(now())
+  endDate     DateTime?
+  publishedAt DateTime?
+  createdById String
+  createdAt   DateTime             @default(now())
+
+  createdBy User @relation(fields: [createdById], references: [id])
+
+  @@index([status])
+  @@map("announcements")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  action     String
+  entityType String
+  entityId   String
+  oldValues  Json?
+  newValues  Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([entityType])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model Subscriber {
+  id               String   @id @default(cuid())
+  email            String   @unique
+  deviceId         String?
+  unsubscribeToken String   @unique @default(cuid())
+  subscribedAt     DateTime @default(now())
+
+  @@map("subscribers")
+}
+
+model PlatformSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       Json
+  updatedAt   DateTime @updatedAt
+  updatedById String?
+
+  updatedBy User? @relation(fields: [updatedById], references: [id])
+
+  @@map("platform_settings")
+}
+
+model ExchangeRate {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  symbol      String
+  rate        Decimal  @db.Decimal(18, 8)
+  isBase      Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  updatedAt   DateTime @updatedAt
+  updatedById String?
+
+  updatedBy User? @relation(fields: [updatedById], references: [id])
+
+  @@map("exchange_rates")
+}
+
+enum BannerPlacement {
+  HOME_HERO
+  SERVICES_TOP
+  PRODUCTS_TOP
+}
+
+/// Admin-curated promotional banners — a real merchandising CMS (image,
+/// headline, link, schedule), not derived from product/order data. Separate
+/// from Promotion (a shopkeeper's discount-code system) — unrelated concepts
+/// that happen to share the word "promo".
+model Banner {
+  id          String          @id @default(cuid())
+  title       String
+  subtitle    String?
+  imageUrl    String
+  linkUrl     String?
+  placement   BannerPlacement @default(HOME_HERO)
+  sortOrder   Int             @default(0)
+  isActive    Boolean         @default(true)
+  startDate   DateTime?
+  endDate     DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  createdById String?
+
+  createdBy User? @relation(fields: [createdById], references: [id])
+
+  @@index([placement, isActive])
+  @@map("banners")
+}
+
+model ContentReport {
+  id              String           @id @default(cuid())
+  targetType      ReportTargetType
+  targetId        String
+  contentSnapshot String
+  reportedUserId  String?
+  reporterId      String?
+  reason          String
+  severity        ReportSeverity   @default(MEDIUM)
+  status          ReportStatus     @default(PENDING)
+  createdAt       DateTime         @default(now())
+  resolvedAt      DateTime?
+  resolvedById    String?
+
+  reportedUser User? @relation("ContentReportSubject", fields: [reportedUserId], references: [id])
+  reporter     User? @relation("ContentReportReporter", fields: [reporterId], references: [id])
+  resolvedBy   User? @relation("ContentReportResolver", fields: [resolvedById], references: [id])
+
+  @@index([targetType, targetId])
+  @@index([status])
+  @@map("content_reports")
+}
+
+// =========================================================================
+// FINANCE OPS (Secretary portal)
+// =========================================================================
+
+model Reconciliation {
+  id            String               @id @default(cuid())
+  account       String
+  date          DateTime
+  systemBalance Decimal              @db.Decimal(14, 2)
+  bankBalance   Decimal              @db.Decimal(14, 2)
+  variance      Decimal              @db.Decimal(14, 2)
+  status        ReconciliationStatus @default(PENDING)
+  createdAt     DateTime             @default(now())
+
+  discrepancies ReconciliationDiscrepancy[]
+
+  @@index([status])
+  @@map("reconciliations")
+}
+
+model ReconciliationDiscrepancy {
+  id               String   @id @default(cuid())
+  reconciliationId String
+  description      String
+  amount           Decimal  @db.Decimal(14, 2)
+  status           String   @default("under_review")
+  resolution       String?
+  createdAt        DateTime @default(now())
+
+  reconciliation Reconciliation @relation(fields: [reconciliationId], references: [id], onDelete: Cascade)
+
+  @@index([reconciliationId])
+  @@map("reconciliation_discrepancies")
+}
+
+model TaxReport {
+  id        String          @id @default(cuid())
+  period    String
+  type      TaxReportType
+  status    TaxReportStatus @default(DRAFT)
+  dueDate   DateTime
+  filedDate DateTime?
+  amount    Decimal         @db.Decimal(14, 2)
+  taxDue    Decimal         @db.Decimal(14, 2)
+  createdAt DateTime        @default(now())
+
+  @@map("tax_reports")
+}
+
+// =========================================================================
+// MARKETING (Referrals, Endorsements, Promotions)
+// =========================================================================
+
+model Referral {
+  id             String         @id @default(cuid())
+  referrerId     String
+  referredUserId String         @unique
+  referralCode   String         @unique
+  status         ReferralStatus @default(PENDING)
+  rewardAmount   Decimal?       @db.Decimal(12, 2)
+  rewardGivenAt  DateTime?
+  createdAt      DateTime       @default(now())
+
+  referrer     User @relation("Referrer", fields: [referrerId], references: [id])
+  referredUser User @relation("ReferredUser", fields: [referredUserId], references: [id])
+
+  @@index([referrerId])
+  @@map("referrals")
+}
+
+model Endorsement {
+  id         String   @id @default(cuid())
+  fromUserId String
+  toUserId   String?
+  toShopId   String?
+  message    String
+  createdAt  DateTime @default(now())
+
+  fromUser User               @relation("EndorsementFrom", fields: [fromUserId], references: [id])
+  toUser   User?              @relation("EndorsementTo", fields: [toUserId], references: [id])
+  toShop   ShopkeeperProfile? @relation("EndorsementToShop", fields: [toShopId], references: [id])
+
+  @@index([toUserId])
+  @@index([toShopId])
+  @@map("endorsements")
+}
+
+model Promotion {
+  id           String          @id @default(cuid())
+  shopkeeperId String
+  name         String
+  code         String          @unique
+  type         PromotionType
+  value        Decimal         @db.Decimal(10, 2)
+  minOrder     Decimal         @default(0) @db.Decimal(12, 2)
+  maxUses      Int?
+  usedCount    Int             @default(0)
+  startDate    DateTime
+  endDate      DateTime?
+  status       PromotionStatus @default(SCHEDULED)
+  categoryId   String?
+  description  String?
+  createdAt    DateTime        @default(now())
+
+  shopkeeper ShopkeeperProfile @relation(fields: [shopkeeperId], references: [id], onDelete: Cascade)
+  category   Category?         @relation(fields: [categoryId], references: [id])
+
+  @@index([shopkeeperId])
+  @@index([status])
+  @@map("promotions")
+}
+
+// =========================================================================
+// COMMUNITY (Social feed — posts, likes, comments, follows, groups)
+// =========================================================================
+
+model Post {
+  id           String   @id @default(cuid())
+  authorId     String
+  content      String
+  images       String[]
+  video        String?
+  location     String?
+  likeCount    Int      @default(0)
+  commentCount Int      @default(0)
+  shareCount   Int      @default(0)
+  isPinned     Boolean  @default(false)
+  isArchived   Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  author   User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  likes    PostLike[]
+  saves    PostSave[]
+  comments PostComment[]
+
+  @@index([authorId])
+  @@index([createdAt])
+  @@map("posts")
+}
+
+model PostLike {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([postId])
+  @@map("post_likes")
+}
+
+model PostSave {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([postId])
+  @@map("post_saves")
+}
+
+model PostComment {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  content   String
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@map("post_comments")
+}
+
+// A provider's "before/after" status — WhatsApp-Status-style: shown in a
+// circular ring on the customer home feed and gone 12 hours after posting.
+// The 12h window is enforced by filtering on `createdAt` at read time (this
+// project's cron infra is once-daily at finest, too coarse for a real-time
+// expiry); a daily cron additionally hard-deletes rows past that window so
+// they don't accumulate indefinitely.
+model ProviderStatus {
+  id          String   @id @default(cuid())
+  providerId  String
+  beforeImage String
+  afterImage  String
+  caption     String?
+  likeCount   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  provider User                 @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  likes    ProviderStatusLike[]
+  replies  Message[]            @relation("MessageRelatedStatus")
+
+  @@index([providerId])
+  @@index([createdAt])
+  @@map("provider_statuses")
+}
+
+model ProviderStatusLike {
+  id        String   @id @default(cuid())
+  statusId  String
+  userId    String
+  createdAt DateTime @default(now())
+
+  status ProviderStatus @relation(fields: [statusId], references: [id], onDelete: Cascade)
+  user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([statusId, userId])
+  @@index([statusId])
+  @@map("provider_status_likes")
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("FollowFollower", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("FollowFollowing", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+  @@map("follows")
+}
+
+model BlockedClient {
+  id         String   @id @default(cuid())
+  providerId String
+  customerId String
+  reason     String?
+  createdAt  DateTime @default(now())
+
+  provider ProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  customer User            @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, customerId])
+  @@index([providerId])
+  @@map("blocked_clients")
+}
+
+model Group {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  image       String?
+  createdById String
+  createdAt   DateTime @default(now())
+
+  createdBy User              @relation(fields: [createdById], references: [id])
+  members   GroupMembership[]
+  posts     GroupPost[]
+
+  @@map("groups")
+}
+
+model GroupMembership {
+  id       String   @id @default(cuid())
+  groupId  String
+  userId   String
+  isAdmin  Boolean  @default(false)
+  joinedAt DateTime @default(now())
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@index([groupId])
+  @@map("group_memberships")
+}
+
+/// A group's own mini-feed — mirrors Post/PostLike/PostComment exactly, just
+/// scoped to a groupId, so members have something real to do inside a group
+/// beyond joining it (the group list previously had no content model at all).
+model GroupPost {
+  id           String   @id @default(cuid())
+  groupId      String
+  authorId     String
+  content      String
+  images       String[]
+  likeCount    Int      @default(0)
+  commentCount Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  group    Group              @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  author   User               @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  likes    GroupPostLike[]
+  comments GroupPostComment[]
+
+  @@index([groupId])
+  @@map("group_posts")
+}
+
+model GroupPostLike {
+  id          String   @id @default(cuid())
+  groupPostId String
+  userId      String
+  createdAt   DateTime @default(now())
+
+  groupPost GroupPost @relation(fields: [groupPostId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupPostId, userId])
+  @@index([groupPostId])
+  @@map("group_post_likes")
+}
+
+model GroupPostComment {
+  id          String   @id @default(cuid())
+  groupPostId String
+  userId      String
+  content     String
+  createdAt   DateTime @default(now())
+
+  groupPost GroupPost @relation(fields: [groupPostId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([groupPostId])
+  @@map("group_post_comments")
+}
+
+// =========================================================================
+// SUPPORT TICKETS (Help & Support "contact us" submissions)
+// =========================================================================
+
+model SupportTicket {
+  id        String              @id @default(cuid())
+  userId    String
+  category  String
+  subject   String
+  message   String
+  status    SupportTicketStatus @default(OPEN)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chatbotConversation ChatbotConversation?
+
+  @@index([userId])
+  @@map("support_tickets")
+}
+
+enum SupportTicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+// =========================================================================
+// CHATBOT (real AI-assisted support chat for Customer/Provider/Shopkeeper.
+// Deliberately separate from Conversation/Message — those are strictly
+// User-to-User with no bot-sender concept, so overloading them would need a
+// fake "bot User" row. Escalating creates a genuine SupportTicket, reviewed
+// by Admin/Sub-Admin/Agent — same reviewer set as Shop Upgrade Requests.)
+// =========================================================================
+
+model ChatbotConversation {
+  id                String                    @id @default(cuid())
+  userId            String
+  status            ChatbotConversationStatus @default(ACTIVE)
+  escalatedTicketId String?                   @unique
+  // Whichever Admin/Sub-Admin/Agent "accepts" the escalation — once set,
+  // only this reviewer can send STAFF replies (first-claim-wins, same as a
+  // real support queue), everyone else can still see the transcript.
+  assignedStaffId   String?
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ticket       SupportTicket?   @relation(fields: [escalatedTicketId], references: [id])
+  assignedStaff User?           @relation("ChatbotAssignedStaff", fields: [assignedStaffId], references: [id])
+  messages     ChatbotMessage[]
+
+  @@index([userId])
+  @@map("chatbot_conversations")
+}
+
+enum ChatbotConversationStatus {
+  ACTIVE
+  ESCALATED
+  CLOSED
+}
+
+model ChatbotMessage {
+  id             String             @id @default(cuid())
+  conversationId String
+  role           ChatbotMessageRole
+  content        String
+  isRead         Boolean            @default(false)
+  // Only set for STAFF-role messages — which real reviewer sent this reply.
+  senderId       String?
+  createdAt      DateTime           @default(now())
+
+  conversation ChatbotConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User?               @relation("ChatbotStaffSender", fields: [senderId], references: [id])
+
+  @@index([conversationId])
+  @@map("chatbot_messages")
+}
+
+enum ChatbotMessageRole {
+  USER
+  ASSISTANT
+  STAFF
+}
+
+// =========================================================================
+// RECENTLY VIEWED (customer home page — a real, per-user view history;
+// title/subtitle/image are a denormalized snapshot taken at view time, same
+// pattern as ContentReport.contentSnapshot, so a later rename/delete of the
+// underlying Service/Product doesn't retroactively corrupt what the customer
+// actually saw)
+// =========================================================================
+
+model RecentlyViewed {
+  id         String             @id @default(cuid())
+  userId     String
+  targetType RecentlyViewedType
+  targetId   String
+  title      String
+  subtitle   String?
+  image      String?
+  href       String
+  viewedAt   DateTime           @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, targetType, targetId])
+  @@index([userId, viewedAt])
+  @@map("recently_viewed")
+}
+
+// =========================================================================
+// WEB PUSH — real browser push subscriptions (Web Push API + VAPID). One
+// row per subscribed browser/device; a user can have several (phone,
+// laptop, etc). Unlike the payment gateways, this needs no third-party
+// account — just a self-generated VAPID keypair (see .env.example).
+// =========================================================================
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_subscriptions")
+}
+
+enum RecentlyViewedType {
+  SERVICE
+  PRODUCT
+}
+
+// =========================================================================
+// LIVE STREAMING (real WebRTC sessions via LiveKit — providers and
+// shopkeepers broadcast, customers watch. Exactly one of providerId /
+// shopkeeperId is set per session, mirroring how Dispute optionally links
+// to either side rather than a generic polymorphic host field — keeps the
+// relation to ProviderProfile/ShopkeeperProfile direct and joinable.)
+// =========================================================================
+
+model LiveSession {
+  id           String            @id @default(cuid())
+  providerId   String?
+  shopkeeperId String?
+  roomName     String            @unique
+  title        String
+  description  String?
+  category     String?
+  status       LiveSessionStatus @default(LIVE)
+  startedAt    DateTime          @default(now())
+  endedAt      DateTime?
+  peakViewers  Int               @default(0)
+  likeCount    Int               @default(0)
+  createdAt    DateTime          @default(now())
+
+  provider   ProviderProfile?      @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  shopkeeper ShopkeeperProfile?    @relation(fields: [shopkeeperId], references: [id], onDelete: Cascade)
+  messages   LiveChatMessage[]
+  products   LiveSessionProduct[]
+  gifts      LiveGift[]
+
+  @@index([providerId])
+  @@index([shopkeeperId])
+  @@index([status])
+  @@map("live_sessions")
+}
+
+model LiveChatMessage {
+  id            String   @id @default(cuid())
+  liveSessionId String
+  senderId      String
+  message       String
+  createdAt     DateTime @default(now())
+
+  liveSession LiveSession @relation(fields: [liveSessionId], references: [id], onDelete: Cascade)
+  sender      User        @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([liveSessionId])
+  @@map("live_chat_messages")
+}
+
+// A shopkeeper's chosen showcase list for one live session — customers see
+// these with real price/stock and can add-to-cart without leaving the
+// stream. Providers don't use this (their sessions never get rows here).
+model LiveSessionProduct {
+  id            String   @id @default(cuid())
+  liveSessionId String
+  productId     String
+  addedAt       DateTime @default(now())
+
+  liveSession LiveSession @relation(fields: [liveSessionId], references: [id], onDelete: Cascade)
+  product     Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([liveSessionId, productId])
+  @@index([liveSessionId])
+  @@map("live_session_products")
+}
+
+// Coin economy: customers buy Coins with real KES from their existing
+// Wallet (COIN_TO_KES rate lives in code, not schema — see live-gifts.ts),
+// then spend Coins sending Gifts during a live session. Each Gift sent
+// credits the host's real Wallet 1:1 with the coin's KES-equivalent value —
+// same real ledger (Transaction) every other payout in this app already
+// uses, not a separate fake economy.
+model Gift {
+  id        String   @id @default(cuid())
+  name      String
+  emoji     String
+  coinCost  Int
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+
+  liveGifts LiveGift[]
+
+  @@map("gifts")
+}
+
+model LiveGift {
+  id            String   @id @default(cuid())
+  liveSessionId String
+  senderId      String
+  giftId        String
+  quantity      Int      @default(1)
+  coinCost      Int
+  createdAt     DateTime @default(now())
+
+  liveSession LiveSession @relation(fields: [liveSessionId], references: [id], onDelete: Cascade)
+  sender      User        @relation("LiveGiftSender", fields: [senderId], references: [id], onDelete: Cascade)
+  gift        Gift        @relation(fields: [giftId], references: [id])
+
+  @@index([liveSessionId])
+  @@index([senderId])
+  @@map("live_gifts")
+}
+
+model CoinTransaction {
+  id          String              @id @default(cuid())
+  userId      String
+  type        CoinTransactionType
+  amount      Int
+  description String
+  createdAt   DateTime            @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("coin_transactions")
+}
+
+enum CoinTransactionType {
+  PURCHASE
+  GIFT_SENT
+}
+
+enum LiveSessionStatus {
+  LIVE
+  ENDED
+}

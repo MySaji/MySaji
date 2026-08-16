@@ -1,0 +1,39 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# logs
+*.log
+.dev-server.log
+build-output.txt
+
+# Claude Code local state — settings.local.json accumulates permission-history
+# strings that can echo real command arguments (including secrets typed
+# during a session), so this must never be committed even though it looks
+# like harmless tooling config. scheduled_tasks.lock is local runtime state.
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
