@@ -1,10 +1,12 @@
 "use client"
 
+import { useEffect, useRef } from "react"
 import useSWR from "swr"
 import {
   getNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead, deleteNotification,
   type NotificationItem,
 } from "@/lib/actions/notifications"
+import { playNotificationSound } from "@/lib/notification-sound"
 
 // Every portal's layout previously duplicated this exact fetch-on-mount +
 // refetch-after-action logic (7 copies). Consolidated into one hook so the
@@ -28,6 +30,21 @@ export function useNotificationBell(limit: number = 10, enabled: boolean = true)
 
   const notifications = notificationsData ?? []
   const unreadCount = unreadCountData ?? 0
+
+  // Foreground sound cue — real OS push notifications already carry the
+  // device's own system sound (see public/sw.js), but only fire while the
+  // tab is backgrounded/closed. This is the missing case: the tab is open
+  // and a poll just found a genuinely new unread notification. Skips the
+  // very first load (nothing "arrived", it was just already there) and
+  // any decrease (marking things read).
+  const previousUnreadRef = useRef<number | null>(null)
+  useEffect(() => {
+    if (unreadCountData === undefined) return
+    if (previousUnreadRef.current !== null && unreadCountData > previousUnreadRef.current) {
+      playNotificationSound()
+    }
+    previousUnreadRef.current = unreadCountData
+  }, [unreadCountData])
 
   const refreshNotifications = () => {
     mutateNotifications()

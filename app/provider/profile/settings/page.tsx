@@ -13,6 +13,7 @@ import {
   getNotificationPreferences, updateNotificationPreferences, changeMyPassword, deleteMyAccount,
   type NotificationPreferences,
 } from "@/lib/actions/provider-account"
+import { NotificationPreferencesCard } from "@/components/settings/notification-preferences-card"
 
 export default function SettingsPage() {
   const { t, language, setLanguage, currency, setCurrency, theme, setTheme } = useLocalization()
@@ -164,7 +165,6 @@ export default function SettingsPage() {
           </div>
           <div className="space-y-3">
             {[
-              { key: "pushNotifications" as const, label: t("provider.settings.pushNotifications"), desc: t("provider.settings.pushNotificationsDesc") },
               { key: "emailAlerts" as const, label: t("provider.settings.emailAlerts"), desc: t("provider.settings.emailAlertsDesc") },
               { key: "jobNotifications" as const, label: t("provider.settings.jobNotifications"), desc: t("provider.settings.jobNotificationsDesc") },
               { key: "smsNotifications" as const, label: t("provider.settings.smsNotifications"), desc: t("provider.settings.smsNotificationsDesc") },
@@ -186,6 +186,8 @@ export default function SettingsPage() {
             ))}
           </div>
         </div>
+
+        <NotificationPreferencesCard />
 
         {/* Security Settings */}
         <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">

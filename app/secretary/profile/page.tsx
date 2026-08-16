@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Settings, Lock, Palette, Bell, Eye, EyeOff, Loader2, CheckCircle2 } from "lucide-react"
 import { useLocalization } from "@/lib/hooks/useLocalization"
+import { NotificationPreferencesCard } from "@/components/settings/notification-preferences-card"
 import {
   getSecretaryAccount, updateSecretaryProfile, changeSecretaryPassword,
   getSecretaryNotificationPreferences, updateSecretaryNotificationPreferences,
@@ -236,7 +237,6 @@ export default function SecretaryProfilePage() {
                 <div className="space-y-3">
                   {([
                     { key: "email" as const, label: t("secretary.profile.notifEmail") },
-                    { key: "push" as const, label: t("secretary.profile.notifPush") },
                     { key: "sms" as const, label: t("secretary.profile.notifSms") },
                   ]).map((n) => (
                     <label key={n.key} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600">
@@ -257,6 +257,8 @@ export default function SecretaryProfilePage() {
                 </Button>
                 {saved && <span className="flex items-center gap-1 text-emerald-600 text-sm font-medium"><CheckCircle2 size={16} />{t("secretary.profile.saved")}</span>}
               </div>
+
+              <NotificationPreferencesCard />
             </div>
           )}
         </Card>

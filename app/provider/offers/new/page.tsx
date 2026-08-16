@@ -178,7 +178,7 @@ function OfferPreviewCard({ data, selectedCategory, formatMoney }: { data: Wizar
  * Step 9 itself, since the main content there already IS the preview. */
 function StepChrome({ step, title, onBack, children, footer, preview }: { step: number; title: string; onBack: () => void; children: React.ReactNode; footer: React.ReactNode; preview?: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-background pb-28">
+    <div className="min-h-screen bg-background pb-36 lg:pb-28">
       <div className="sticky top-0 z-30 bg-card border-b border-border px-4 py-3">
         <div className={`mx-auto flex items-center gap-3 max-w-xl ${preview ? "lg:max-w-4xl" : ""}`}>
           <button onClick={onBack} aria-label="Back" className="rounded-lg p-1.5 hover:bg-muted flex-shrink-0"><ArrowLeft className="h-5 w-5" /></button>
@@ -209,7 +209,14 @@ function StepChrome({ step, title, onBack, children, footer, preview }: { step: 
         <div className="mx-auto max-w-xl px-4 py-5">{children}</div>
       )}
 
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card px-4 py-3">
+      {/* The provider portal's mobile bottom nav (components/provider-sidebar.tsx)
+          is a persistent `fixed bottom-0 ... z-40` bar on every provider page.
+          Docking this footer at bottom-0 too put the Continue button directly
+          underneath it — same screen region, lower z-index, so it was never
+          actually visible on mobile even though it rendered fine. Sits above
+          the nav bar's ~64px height on mobile; reverts to flush bottom-0 on
+          desktop (lg:) where that nav bar is hidden. */}
+      <div className="fixed inset-x-0 bottom-16 z-50 border-t border-border bg-card px-4 py-3 lg:bottom-0">
         <div className={`mx-auto max-w-xl ${preview ? "lg:max-w-4xl" : ""}`}>{footer}</div>
       </div>
     </div>

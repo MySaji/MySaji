@@ -19,6 +19,7 @@ import {
 import { useLocalization } from "@/lib/hooks/useLocalization"
 import type { Language } from "@/lib/i18n"
 import type { CurrencyCode } from "@/lib/currency"
+import { NotificationPreferencesCard } from "@/components/settings/notification-preferences-card"
 
 export default function ShopkeeperSettingsPage() {
   const { t, language, setLanguage, currency, setCurrency } = useLocalization()
@@ -408,7 +409,6 @@ export default function ShopkeeperSettingsPage() {
                   { key: "smsNotifications", label: t("shopkeeper.settings.notifSmsTitle"), description: t("shopkeeper.settings.notifSmsDesc") },
                   { key: "orderNotifications", label: t("shopkeeper.settings.notifOrderTitle"), description: t("shopkeeper.settings.notifOrderDesc") },
                   { key: "reviewNotifications", label: t("shopkeeper.settings.notifReviewTitle"), description: t("shopkeeper.settings.notifReviewDesc") },
-                  { key: "pushNotifications", label: t("shopkeeper.settings.notifPushTitle"), description: t("shopkeeper.settings.notifPushDesc") },
                   { key: "promotionalEmails", label: t("shopkeeper.settings.notifPromoTitle"), description: t("shopkeeper.settings.notifPromoDesc") },
                 ] as { key: keyof ShopNotificationPreferences; label: string; description: string }[]).map((item) => (
                   <div key={item.key} className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
@@ -442,6 +442,8 @@ export default function ShopkeeperSettingsPage() {
                 </Button>
               </div>
             </Card>
+
+            <NotificationPreferencesCard />
           </TabsContent>
 
           {/* Security Tab */}

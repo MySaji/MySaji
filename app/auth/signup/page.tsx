@@ -108,6 +108,20 @@ export default function SignupPage() {
     if (e.key === "Backspace" && !otpDigits[index] && index > 0) otpInputRefs.current[index - 1]?.focus()
   }
 
+  // Pasting the whole code (from a messaging app, password manager, or the
+  // OS's own "copy code from SMS" suggestion) anywhere in the box group
+  // fills every box at once instead of only landing the last digit in
+  // whichever box happened to be focused.
+  const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, OTP_LENGTH)
+    if (!pasted) return
+    e.preventDefault()
+    const next = Array(OTP_LENGTH).fill("")
+    for (let i = 0; i < pasted.length; i++) next[i] = pasted[i]
+    setOtpDigits(next)
+    otpInputRefs.current[Math.min(pasted.length, OTP_LENGTH - 1)]?.focus()
+  }
+
   const handleVerifyOtp = async () => {
     const code = otpDigits.join("")
     if (code.length !== OTP_LENGTH) { setError(t("authPage.login.enterFullCode")); return }
@@ -394,6 +408,7 @@ export default function SignupPage() {
                     value={digit}
                     onChange={(e) => handleOtpChange(i, e.target.value)}
                     onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                    onPaste={handleOtpPaste}
                     disabled={isLoading}
                     className="w-11 h-12 sm:w-12 sm:h-14 rounded-xl border border-border bg-card text-center text-lg font-bold focus:outline-none focus:ring-2 focus:ring-primary"
                   />

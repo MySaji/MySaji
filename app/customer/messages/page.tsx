@@ -1,10 +1,10 @@
 "use client"
 
-import { Suspense, useEffect } from "react"
+import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuthContext } from "@/lib/auth-context"
 import { LoadingScreen } from "@/components/loading-screen"
-import { CustomerMessagesPage } from "@/components/pages/customer-messages-page"
+import { ClassicChat } from "@/components/messages/classic-chat"
 
 export default function MessagesPage() {
   const { isAuthenticated, isLoading, user } = useAuthContext()
@@ -23,9 +23,5 @@ export default function MessagesPage() {
     return <LoadingScreen />
   }
 
-  return (
-    <Suspense fallback={<LoadingScreen />}>
-      <CustomerMessagesPage />
-    </Suspense>
-  )
+  return <ClassicChat />
 }

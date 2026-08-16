@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Search, Loader2, MessageCircle } from "lucide-react"
 import { searchMessageableUsers, getOrCreateConversation, type MessageableUser } from "@/lib/actions/messages"
+import { useLocalization } from "@/lib/hooks/useLocalization"
 import type { UserRole } from "@/lib/types"
 
 const ROLE_FILTER_OPTIONS: { value: UserRole | "all"; label: string }[] = [
@@ -28,6 +29,7 @@ export function NewConversationModal({
   onConversationCreated: (conversationId: string) => void
   showRoleFilter?: boolean
 }) {
+  const { t } = useLocalization()
   const [query, setQuery] = useState("")
   const [roleFilter, setRoleFilter] = useState<UserRole | "all">("all")
   const [results, setResults] = useState<MessageableUser[]>([])
@@ -77,7 +79,7 @@ export function NewConversationModal({
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>New Message</DialogTitle>
+          <DialogTitle>{t("chat.newMessageTitle")}</DialogTitle>
         </DialogHeader>
 
         <div className="relative">
@@ -86,7 +88,7 @@ export function NewConversationModal({
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by name, email, or phone..."
+            placeholder={t("chat.searchPeoplePlaceholder")}
             className="w-full pl-9 pr-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
           />
         </div>
@@ -122,7 +124,7 @@ export function NewConversationModal({
             <div className="flex flex-col items-center justify-center py-10 text-center px-4">
               <MessageCircle className="w-8 h-8 text-muted-foreground mb-2" />
               <p className="text-sm text-muted-foreground">
-                {query ? "No matching users found." : "Start typing to find someone to message."}
+                {query ? t("chat.noMatchingUsers") : t("chat.startTypingToSearch")}
               </p>
             </div>
           ) : (

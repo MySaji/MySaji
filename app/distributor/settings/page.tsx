@@ -18,6 +18,7 @@ import {
 import { useLocalization } from "@/lib/hooks/useLocalization"
 import type { Language } from "@/lib/i18n"
 import type { CurrencyCode } from "@/lib/currency"
+import { NotificationPreferencesCard } from "@/components/settings/notification-preferences-card"
 
 export default function DistributorSettingsPage() {
   const { t, language, setLanguage, currency, setCurrency } = useLocalization()
@@ -245,7 +246,6 @@ export default function DistributorSettingsPage() {
                   { key: "smsNotifications", label: t("distributor.settings.notifSmsTitle"), description: t("distributor.settings.notifSmsDesc") },
                   { key: "orderNotifications", label: t("distributor.settings.notifOrderTitle"), description: t("distributor.settings.notifOrderDesc") },
                   { key: "reviewNotifications", label: t("distributor.settings.notifReviewTitle"), description: t("distributor.settings.notifReviewDesc") },
-                  { key: "pushNotifications", label: t("distributor.settings.notifPushTitle"), description: t("distributor.settings.notifPushDesc") },
                   { key: "promotionalEmails", label: t("distributor.settings.notifPromoTitle"), description: t("distributor.settings.notifPromoDesc") },
                 ] as { key: keyof DistributorNotificationPreferences; label: string; description: string }[]).map((item) => (
                   <div key={item.key} className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
@@ -276,6 +276,8 @@ export default function DistributorSettingsPage() {
                 </Button>
               </div>
             </Card>
+
+            <NotificationPreferencesCard />
           </TabsContent>
 
           <TabsContent value="security" className="space-y-6 mt-6">

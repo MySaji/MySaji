@@ -12,6 +12,7 @@ import {
   changeSubAdminPassword,
   type SubAdminNotificationPreferences,
 } from "@/lib/actions/sub-admin-account"
+import { NotificationPreferencesCard } from "@/components/settings/notification-preferences-card"
 
 export default function SubAdminSettingsPage() {
   const { t, theme, setTheme, language, setLanguage, currency, setCurrency } = useLocalization()
@@ -137,7 +138,6 @@ export default function SubAdminSettingsPage() {
         </div>
         {[
           { key: "email" as const, label: t("subAdmin.settings.notifEmailLabel"), desc: t("subAdmin.settings.notifEmailDesc") },
-          { key: "push" as const, label: t("subAdmin.settings.notifPushLabel"), desc: t("subAdmin.settings.notifPushDesc") },
           { key: "sms" as const, label: t("subAdmin.settings.notifSmsLabel"), desc: t("subAdmin.settings.notifSmsDesc") },
         ].map(n => (
           <div key={n.key} className="flex items-center justify-between py-1">
@@ -149,6 +149,8 @@ export default function SubAdminSettingsPage() {
           {isSaving ? <Loader2 size={14} className="animate-spin" /> : t("common.save")}
         </Button>
       </Card>
+
+      <NotificationPreferencesCard />
 
       <Card className="p-4 border-0 shadow-sm space-y-4">
         <div className="flex items-center gap-3 pb-3 border-b border-gray-200 dark:border-gray-700">

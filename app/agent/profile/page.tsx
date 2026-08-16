@@ -8,6 +8,7 @@ import { Settings, Lock, Palette, Bell, Eye, EyeOff, Loader2, CheckCircle2 } fro
 import { useLocalization } from "@/lib/hooks/useLocalization"
 import type { Language } from "@/lib/i18n"
 import type { CurrencyCode } from "@/lib/currency"
+import { NotificationPreferencesCard } from "@/components/settings/notification-preferences-card"
 import {
   getAgentAccount, updateAgentProfile, changeAgentPassword,
   getAgentNotificationPreferences, updateAgentNotificationPreferences,
@@ -286,7 +287,6 @@ export default function AgentProfilePage() {
                 <div className="space-y-3">
                   {([
                     { key: "email" as const, label: t("agent.profile.notifEmail") },
-                    { key: "push" as const, label: t("agent.profile.notifPush") },
                     { key: "sms" as const, label: t("agent.profile.notifSms") },
                   ]).map((n) => (
                     <label key={n.key} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600">
@@ -307,6 +307,8 @@ export default function AgentProfilePage() {
                 </Button>
                 {saved && <span className="flex items-center gap-1 text-emerald-600 text-sm font-medium"><CheckCircle2 size={16} />{t("agent.profile.saved")}</span>}
               </div>
+
+              <NotificationPreferencesCard />
             </div>
           )}
         </Card>

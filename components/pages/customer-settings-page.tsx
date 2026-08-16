@@ -19,12 +19,12 @@ import type { Language } from "@/lib/i18n"
 import type { CurrencyCode } from "@/lib/currency"
 import { getCustomerProfile, updateCustomerProfile, updateProfileAvatar, type CustomerProfileData } from "@/lib/actions/profile"
 import {
-  getNotificationPreferences, updateNotificationPreferences, changePassword,
+  changePassword,
   getBillingHistory, exportCustomerData, deleteMyAccount,
-  type NotificationPreferences, type BillingHistoryItem,
+  type BillingHistoryItem,
 } from "@/lib/actions/settings"
-import { getVapidPublicKey, savePushSubscription, removePushSubscription } from "@/lib/actions/push"
 import { getWalletSummary, removePaymentMethod, type WalletSummary } from "@/lib/actions/wallet"
+import { NotificationPreferencesCard } from "@/components/settings/notification-preferences-card"
 
 export function CustomerSettingsPage() {
   const router = useRouter()
@@ -38,11 +38,6 @@ export function CustomerSettingsPage() {
   const [profileForm, setProfileForm] = useState({ name: "", phone: "", location: "" })
   const [isSavingProfile, setIsSavingProfile] = useState(false)
   const [profileSaved, setProfileSaved] = useState(false)
-
-  const [notificationSettings, setNotificationSettings] = useState<NotificationPreferences>({
-    jobUpdates: true, messages: true, payments: true, promotions: false, emailDigest: true, pushNotifications: true,
-  })
-  const [pushError, setPushError] = useState("")
 
   const [passwordForm, setPasswordForm] = useState({ current: "", next: "", confirm: "" })
   const [passwordError, setPasswordError] = useState("")
@@ -67,11 +62,10 @@ export function CustomerSettingsPage() {
   const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
-    Promise.all([getCustomerProfile(), getNotificationPreferences(), getWalletSummary(), getBillingHistory()])
-      .then(([profileData, prefs, walletData, billingData]) => {
+    Promise.all([getCustomerProfile(), getWalletSummary(), getBillingHistory()])
+      .then(([profileData, walletData, billingData]) => {
         setProfile(profileData)
         if (profileData) setProfileForm({ name: profileData.name, phone: profileData.phone ?? "", location: profileData.location })
-        setNotificationSettings(prefs)
         setWallet(walletData)
         setBilling(billingData)
       })
@@ -103,83 +97,6 @@ export function CustomerSettingsPage() {
       }
     }
     reader.readAsDataURL(file)
-  }
-
-  const urlBase64ToUint8Array = (base64String: string) => {
-    const padding = "=".repeat((4 - (base64String.length % 4)) % 4)
-    const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/")
-    const rawData = window.atob(base64)
-    return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)))
-  }
-
-  /** Real browser push subscription — registers the actual service worker,
-   * requests real OS notification permission, and subscribes via the
-   * standard Push API. No-ops with an honest error if VAPID isn't
-   * configured or the browser/permission doesn't support it. */
-  const enableBrowserPush = async (): Promise<{ success: true } | { success: false; error: string }> => {
-    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-      return { success: false, error: t("customer.settings.pushNotSupported") }
-    }
-    const publicKey = await getVapidPublicKey()
-    if (!publicKey) {
-      return { success: false, error: t("customer.settings.pushNotConfigured") }
-    }
-
-    const permission = await Notification.requestPermission()
-    if (permission !== "granted") {
-      return { success: false, error: t("customer.settings.pushPermissionDenied") }
-    }
-
-    try {
-      const registration = await navigator.serviceWorker.register("/sw.js")
-      await navigator.serviceWorker.ready
-      let subscription = await registration.pushManager.getSubscription()
-      if (!subscription) {
-        subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(publicKey),
-        })
-      }
-      const json = subscription.toJSON()
-      if (!json.endpoint || !json.keys?.p256dh || !json.keys?.auth) {
-        return { success: false, error: t("customer.settings.pushSubscriptionFailed") }
-      }
-      await savePushSubscription({ endpoint: json.endpoint, keys: { p256dh: json.keys.p256dh, auth: json.keys.auth } })
-      return { success: true }
-    } catch {
-      return { success: false, error: t("customer.settings.pushEnableFailed") }
-    }
-  }
-
-  const disableBrowserPush = async () => {
-    if (!("serviceWorker" in navigator)) return
-    const registration = await navigator.serviceWorker.getRegistration("/sw.js")
-    const subscription = await registration?.pushManager.getSubscription()
-    if (subscription) {
-      await removePushSubscription({ endpoint: subscription.endpoint })
-      await subscription.unsubscribe()
-    }
-  }
-
-  const handleToggleNotification = async (key: keyof NotificationPreferences) => {
-    const turningOn = !notificationSettings[key]
-
-    if (key === "pushNotifications") {
-      setPushError("")
-      if (turningOn) {
-        const result = await enableBrowserPush()
-        if (!result.success) {
-          setPushError(result.error)
-          return
-        }
-      } else {
-        await disableBrowserPush()
-      }
-    }
-
-    const next = { ...notificationSettings, [key]: turningOn }
-    setNotificationSettings(next)
-    await updateNotificationPreferences(next)
   }
 
   const handleChangePassword = async () => {
@@ -261,15 +178,6 @@ export function CustomerSettingsPage() {
     { id: "light", name: t("customer.settings.themeLight"), icon: Sun, desc: t("customer.settings.themeLightDesc") },
     { id: "dark", name: t("customer.settings.themeDark"), icon: Moon, desc: t("customer.settings.themeDarkDesc") },
   ]
-
-  const notificationLabels: Record<string, { title: string; desc: string }> = {
-    jobUpdates: { title: t("customer.settings.notifJobUpdates"), desc: t("customer.settings.notifJobUpdatesDesc") },
-    messages: { title: t("customer.settings.notifMessages"), desc: t("customer.settings.notifMessagesDesc") },
-    payments: { title: t("customer.settings.notifPayments"), desc: t("customer.settings.notifPaymentsDesc") },
-    promotions: { title: t("customer.settings.notifPromotions"), desc: t("customer.settings.notifPromotionsDesc") },
-    emailDigest: { title: t("customer.settings.notifEmailDigest"), desc: t("customer.settings.notifEmailDigestDesc") },
-    pushNotifications: { title: t("customer.settings.notifPushNotifications"), desc: t("customer.settings.notifPushNotificationsDesc") },
-  }
 
   const handleLogout = () => { logout(); router.push("/") }
 
@@ -458,35 +366,7 @@ export function CustomerSettingsPage() {
             )}
 
             {/* Notifications */}
-            {activeSection === "notifications" && (
-              <Card className="p-5 border-0 shadow-sm">
-                <h3 className="font-semibold text-foreground mb-4">{t("customer.settings.notificationPreferences")}</h3>
-                {pushError && (
-                  <div className="mb-3 rounded-lg border border-amber-200 dark:border-amber-900/30 bg-amber-50 dark:bg-amber-900/10 p-3 text-xs text-amber-800 dark:text-amber-400">
-                    {pushError}
-                  </div>
-                )}
-                <div className="space-y-2">
-                  {(Object.keys(notificationSettings) as (keyof NotificationPreferences)[]).map((key) => {
-                    const value = notificationSettings[key]
-                    const labels = notificationLabels[key] ?? { title: key.replace(/([A-Z])/g, " $1"), desc: key.replace(/([A-Z])/g, " $1").toLowerCase() }
-                    return (
-                      <div key={key} className="flex items-center justify-between p-3 rounded-xl border border-border/50 hover:bg-muted/30 transition-colors">
-                        <div>
-                          <p className="font-medium text-sm text-foreground capitalize">{labels.title}</p>
-                          <p className="text-[11px] text-muted-foreground">{t("customer.settings.getNotifiedAbout", { topic: labels.desc })}</p>
-                        </div>
-                        <button onClick={() => handleToggleNotification(key)}
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${value ? "bg-primary" : "bg-muted"}`}
-                        >
-                          <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${value ? "translate-x-6" : "translate-x-1"}`} />
-                        </button>
-                      </div>
-                    )
-                  })}
-                </div>
-              </Card>
-            )}
+            {activeSection === "notifications" && <NotificationPreferencesCard />}
 
             {/* Payment */}
             {activeSection === "payment" && (

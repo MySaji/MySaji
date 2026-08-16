@@ -18,6 +18,13 @@ export type ConversationSummary = {
   lastMessage: string
   lastMessageAt: string | null
   unreadCount: number
+  jobId: string | null
+  // Real presence, not decorative — sourced from ProviderAvailability's
+  // "Go Online/Offline" toggle (see that model's own doc comment). Only
+  // providers have this concept in the schema today, so it's null (not
+  // false) for every other role rather than faking an offline/online state
+  // nothing actually tracks.
+  isOnline: boolean | null
 }
 
 export async function getConversations(): Promise<ConversationSummary[]> {
@@ -28,8 +35,8 @@ export async function getConversations(): Promise<ConversationSummary[]> {
   const conversations = await db.conversation.findMany({
     where: { OR: [{ participantAId: myId }, { participantBId: myId }] },
     include: {
-      participantA: { include: { providerProfile: { include: { category: true } } } },
-      participantB: { include: { providerProfile: { include: { category: true } } } },
+      participantA: { include: { providerProfile: { include: { category: true, availability: { select: { isOnline: true } } } } } },
+      participantB: { include: { providerProfile: { include: { category: true, availability: { select: { isOnline: true } } } } } },
       messages: { orderBy: { createdAt: "desc" }, take: 1 },
     },
     orderBy: { lastMessageAt: "desc" },
@@ -50,6 +57,8 @@ export async function getConversations(): Promise<ConversationSummary[]> {
       lastMessage: lastMessage ? (lastMessage.type === "TEXT" ? lastMessage.content ?? "" : "Sent an attachment") : "No messages yet",
       lastMessageAt: conv.lastMessageAt?.toISOString() ?? null,
       unreadCount,
+      jobId: conv.jobId,
+      isOnline: other.providerProfile?.availability?.isOnline ?? null,
     })
   }
   return result

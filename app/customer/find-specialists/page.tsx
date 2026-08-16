@@ -150,10 +150,10 @@ export default function FindSpecialistsPage() {
             <button onClick={() => router.back()} className="p-2 hover:bg-muted rounded-xl transition-colors lg:hidden">
               <ArrowLeft className="w-5 h-5 text-foreground" />
             </button>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <h1 className="text-lg font-bold text-foreground">{t("customer.layout.navFindSpecialists")}</h1>
-              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                <LocateFixed className="w-3 h-3" /> {selectedLocation || t("customer.findSpecialists.detecting")} -- {tn("customer.findSpecialists.specialistsFound", filtered.length)}
+              <p className="text-xs text-muted-foreground flex items-center gap-1 truncate">
+                <LocateFixed className="w-3 h-3 flex-shrink-0" /> <span className="truncate">{selectedLocation || t("customer.findSpecialists.detecting")} -- {tn("customer.findSpecialists.specialistsFound", filtered.length)}</span>
               </p>
             </div>
             <button onClick={() => setShowFilters(!showFilters)} className="p-2.5 bg-muted rounded-xl hover:bg-muted/80 transition-colors relative">
@@ -258,14 +258,14 @@ export default function FindSpecialistsPage() {
                       {s.verified && <CheckCircle className="w-4 h-4 text-blue-500 fill-blue-500 flex-shrink-0" />}
                     </div>
 
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground mb-1.5">
-                      <span className="flex items-center gap-1">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground mb-1.5">
+                      <span className="flex items-center gap-1 flex-shrink-0">
                         <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                         <span className="font-semibold text-foreground">{s.rating.toFixed(1)}</span>
                         <span>({s.reviewCount})</span>
                       </span>
-                      <span className="flex items-center gap-0.5"><MapPin className="w-3 h-3" />{s.location}</span>
-                      <span className="flex items-center gap-0.5"><Briefcase className="w-3 h-3" />{s.completedJobs}</span>
+                      <span className="flex items-center gap-0.5 min-w-0"><MapPin className="w-3 h-3 flex-shrink-0" /><span className="truncate">{s.location}</span></span>
+                      <span className="flex items-center gap-0.5 flex-shrink-0"><Briefcase className="w-3 h-3" />{s.completedJobs}</span>
                     </div>
 
                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold mb-1.5 ${STATUS_STYLE[s.status].pill}`}>
@@ -300,7 +300,10 @@ export default function FindSpecialistsPage() {
 
       {/* Specialist Profile Modal */}
       <Dialog open={!!selectedSpecialist || isDetailLoading} onOpenChange={(open) => { if (!open) setSelectedSpecialist(null) }}>
-        <DialogContent className="max-w-lg p-0 overflow-hidden h-[92vh] max-h-[850px] flex flex-col">
+        <DialogContent
+          showCloseButton={false}
+          className="p-0 overflow-hidden flex flex-col max-w-full rounded-none border-0 top-0 translate-y-0 h-[100dvh] max-h-[100dvh] sm:max-w-lg sm:rounded-lg sm:border sm:top-[50%] sm:translate-y-[-50%] sm:h-[92vh] sm:max-h-[850px]"
+        >
           {isDetailLoading && (
             <div className="flex-1 flex items-center justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -427,9 +430,9 @@ export default function FindSpecialistsPage() {
                               <div className="relative w-10 h-10 rounded-xl overflow-hidden flex-shrink-0">
                                 <NextImage src={e.avatar || "/placeholder.svg"} alt={e.ownerName} fill className="object-cover" />
                               </div>
-                              <div>
-                                <p className="font-semibold text-foreground text-sm">{e.shopName}</p>
-                                <p className="text-[11px] text-muted-foreground mb-1">{t("customer.findSpecialists.byOwner", { name: e.ownerName })}</p>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-foreground text-sm truncate">{e.shopName}</p>
+                                <p className="text-[11px] text-muted-foreground mb-1 truncate">{t("customer.findSpecialists.byOwner", { name: e.ownerName })}</p>
                                 <p className="text-sm text-foreground italic leading-relaxed">{`"${e.message}"`}</p>
                               </div>
                             </div>

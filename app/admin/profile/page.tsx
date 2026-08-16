@@ -10,6 +10,7 @@ import {
   getAdminNotificationPreferences, updateAdminNotificationPreferences,
   type AdminAccountData, type AdminNotificationPreferences,
 } from "@/lib/actions/admin-account"
+import { NotificationPreferencesCard } from "@/components/settings/notification-preferences-card"
 
 export default function AdminProfilePage() {
   const { t, theme, setTheme } = useLocalization()
@@ -366,6 +367,8 @@ export default function AdminProfilePage() {
                 </div>
               )}
             </div>
+
+            <NotificationPreferencesCard />
           </div>
         )}
       </div>
