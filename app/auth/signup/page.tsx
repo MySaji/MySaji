@@ -20,6 +20,8 @@ import { useOtpAutofill } from "@/lib/hooks/useOtpAutofill"
 import { BrandLogo } from "@/components/brand-logo"
 import { useLocalization } from "@/lib/hooks/useLocalization"
 import type { TranslationKey } from "@/lib/i18n"
+import { AuthMobileHeader } from "@/components/auth/auth-mobile-header"
+import { AuthHeroIllustration } from "@/components/auth/auth-hero-illustration"
 
 const OTP_LENGTH = 6
 const RESEND_COOLDOWN_SECONDS = 25
@@ -277,11 +279,20 @@ export default function SignupPage() {
         <div className="hidden lg:block absolute -top-24 -right-24 w-72 h-72 rounded-full bg-primary/5 blur-3xl" />
         <div className="hidden lg:block absolute -bottom-24 -left-16 w-72 h-72 rounded-full bg-primary/5 blur-3xl" />
         <div className="w-full max-w-[420px] relative z-10">
-          {/* Mobile logo */}
-          <div className="flex items-center gap-2.5 mb-8 lg:hidden">
-            <BrandLogo />
-            <span className="text-lg font-bold text-foreground">SAJI</span>
-          </div>
+          <AuthMobileHeader showBack={step === "role"} />
+
+          {step === "role" && (
+            <>
+              <AuthHeroIllustration />
+              <div className="flex flex-col items-center text-center gap-1 mb-6 lg:hidden">
+                <div className="flex items-center gap-2.5">
+                  <BrandLogo size="large" />
+                  <span className="text-2xl font-bold text-foreground">SAJI</span>
+                </div>
+                <p className="text-xs text-muted-foreground">{t("authPage.tagline")}</p>
+              </div>
+            </>
+          )}
 
           {step !== "success" && step !== "role" && (
             <div className="flex gap-2 mb-5">
@@ -387,13 +398,19 @@ export default function SignupPage() {
                 <div className="flex-1 h-px bg-border" />
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <Button type="button" onClick={handleGoogleSignup} disabled={isLoading} variant="outline" className="h-10 rounded-xl bg-card gap-2 text-sm font-medium">
-                  <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.64-.15-3.21-.43-4.73H24v9.01h12.4c-.54 2.91-2.18 5.38-4.65 7.04l7.2 5.59c4.21-3.88 6.65-9.6 6.65-16.91z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24s.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.9-5.81l-7.2-5.59c-2 1.35-4.56 2.15-8.7 2.15-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-                  Google
+                <Button type="button" onClick={handleGoogleSignup} disabled={isLoading} variant="outline" className="h-10 rounded-xl bg-card gap-2 text-xs sm:text-sm font-medium px-2">
+                  <svg width="16" height="16" viewBox="0 0 48 48" className="flex-shrink-0"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.64-.15-3.21-.43-4.73H24v9.01h12.4c-.54 2.91-2.18 5.38-4.65 7.04l7.2 5.59c4.21-3.88 6.65-9.6 6.65-16.91z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24s.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.9-5.81l-7.2-5.59c-2 1.35-4.56 2.15-8.7 2.15-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+                  <span className="truncate">{t("authPage.continueWithGoogle")}</span>
                 </Button>
-                <Button type="button" onClick={handleAppleSignup} disabled={isLoading} className="h-10 rounded-xl gap-2 text-sm font-medium bg-foreground text-background hover:bg-foreground/90">
-                  <Apple className="w-4 h-4" /> Apple
+                <Button type="button" onClick={handleAppleSignup} disabled={isLoading} className="h-10 rounded-xl gap-2 text-xs sm:text-sm font-medium bg-foreground text-background hover:bg-foreground/90 px-2">
+                  <Apple className="w-4 h-4 flex-shrink-0" /> <span className="truncate">{t("authPage.continueWithApple")}</span>
                 </Button>
+              </div>
+
+              {/* Security note */}
+              <div className="mt-5 p-3 rounded-xl bg-primary/5 border border-primary/10 text-xs text-muted-foreground flex items-start gap-2">
+                <ShieldCheck className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                {t("authPage.securityNote")}
               </div>
             </>
           )}

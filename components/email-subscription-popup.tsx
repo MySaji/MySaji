@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 
 // Signed-in staff/portal users are already deep in their own dashboard —
-// a "subscribe to our newsletter" popup doesn't make sense there, only on
+// a "subscribe to our newsletter" nudge doesn't make sense there, only on
 // the public marketing site and other unauthenticated pages.
 const PORTAL_PREFIXES = ['/customer', '/provider', '/shopkeeper', '/admin', '/sub-admin', '/agent', '/secretary']
 
@@ -35,11 +35,20 @@ function getOrCreateDeviceId(): string {
   return id
 }
 
+/** A small shaking mail icon docked above the floating chat button, instead
+ * of a modal that used to auto-open on a timer on every page. Only the icon
+ * is unsolicited; the actual subscribe form only appears once the visitor
+ * taps it, and the icon itself disappears for good once they've subscribed
+ * (same localStorage flag as before gates that, per-browser). */
 export function EmailSubscriptionPopup() {
   const pathname = usePathname()
   const isPortalRoute = PORTAL_PREFIXES.some((prefix) => pathname?.startsWith(prefix))
 
   const [open, setOpen] = useState(false)
+  // Starts hidden so server/first paint never flashes the icon for visitors
+  // who already subscribed on this browser — flips to false (shown) after
+  // the localStorage check below, only for those who haven't.
+  const [isSubscribed, setIsSubscribed] = useState(true)
   const [email, setEmail] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState('')
@@ -47,14 +56,7 @@ export function EmailSubscriptionPopup() {
 
   useEffect(() => {
     if (isPortalRoute) return
-    // The only reliable "already subscribed on this browser" signal is one
-    // we set ourselves after a real, server-confirmed subscription — not a
-    // fingerprint (userAgent/platform/language collide across almost every
-    // visitor on the same device+browser, and are trivial to spoof).
-    if (localStorage.getItem(SUBSCRIBED_KEY)) return
-
-    const timer = setTimeout(() => setOpen(true), 3000)
-    return () => clearTimeout(timer)
+    setIsSubscribed(Boolean(localStorage.getItem(SUBSCRIBED_KEY)))
   }, [isPortalRoute])
 
   const validateEmail = (email: string) => {
@@ -86,6 +88,7 @@ export function EmailSubscriptionPopup() {
       if (!response.ok) throw new Error(result?.error || 'Failed to subscribe')
 
       localStorage.setItem(SUBSCRIBED_KEY, email)
+      setIsSubscribed(true)
       setMessageType('success')
       setMessage(
         result.alreadySubscribed
@@ -106,72 +109,83 @@ export function EmailSubscriptionPopup() {
     }
   }
 
-  if (isPortalRoute) return null
+  if (isPortalRoute || isSubscribed) return null
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent
-        showCloseButton={false}
-        className="max-h-[85vh] w-[calc(100%-2rem)] max-w-[calc(100%-2rem)] overflow-y-auto rounded-2xl p-0 gap-0 shadow-2xl sm:max-w-sm"
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        aria-label="Subscribe for exclusive deals and updates"
+        title="Subscribe for exclusive deals and updates"
+        className="fixed bottom-24 right-4 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-110 animate-shake-nudge sm:h-12 sm:w-12 lg:bottom-28 lg:right-6"
       >
-        {/* Gradient header — on-brand instead of a plain white modal top */}
-        <div className="relative bg-gradient-to-br from-primary via-primary to-primary/80 px-5 pt-6 pb-7 text-center text-primary-foreground sm:px-6 sm:pt-7 sm:pb-8">
-          <button
-            onClick={() => setOpen(false)}
-            className="absolute top-2.5 right-2.5 rounded-full p-1.5 text-primary-foreground/80 hover:bg-white/15 hover:text-primary-foreground transition-colors"
-            aria-label="Close"
-          >
-            <X className="h-4 w-4" />
-          </button>
-          <div className="mx-auto mb-2.5 flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15 backdrop-blur-sm sm:h-12 sm:w-12">
-            <Mail className="h-5 w-5 sm:h-6 sm:w-6" />
-          </div>
-          <DialogTitle className="text-lg font-bold text-primary-foreground sm:text-xl">Stay in the loop</DialogTitle>
-          <DialogDescription className="mt-1 text-xs text-primary-foreground/80 text-balance sm:text-sm">
-            Weekly product updates, trending picks, and exclusive offers — straight to your inbox
-          </DialogDescription>
-        </div>
+        <Mail className="h-5 w-5" />
+      </button>
 
-        <div className="px-5 pt-4 pb-5 bg-card sm:px-6 sm:pt-5 sm:pb-6">
-          <div className="grid grid-cols-4 gap-1.5 mb-4 sm:gap-2">
-            {BENEFITS.map((b) => (
-              <div key={b.label} className="rounded-lg border border-border bg-background px-1 py-2 text-center shadow-sm">
-                <b.icon className="mx-auto mb-1 h-3.5 w-3.5 text-primary" />
-                <p className="text-[9px] font-medium leading-tight text-foreground">{b.label}</p>
-              </div>
-            ))}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent
+          showCloseButton={false}
+          className="max-h-[85vh] w-[calc(100%-2rem)] max-w-[calc(100%-2rem)] overflow-y-auto rounded-2xl p-0 gap-0 shadow-2xl sm:max-w-sm"
+        >
+          {/* Gradient header — on-brand instead of a plain white modal top */}
+          <div className="relative bg-gradient-to-br from-primary via-primary to-primary/80 px-5 pt-6 pb-7 text-center text-primary-foreground sm:px-6 sm:pt-7 sm:pb-8">
+            <button
+              onClick={() => setOpen(false)}
+              className="absolute top-2.5 right-2.5 rounded-full p-1.5 text-primary-foreground/80 hover:bg-white/15 hover:text-primary-foreground transition-colors"
+              aria-label="Close"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <div className="mx-auto mb-2.5 flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15 backdrop-blur-sm sm:h-12 sm:w-12">
+              <Mail className="h-5 w-5 sm:h-6 sm:w-6" />
+            </div>
+            <DialogTitle className="text-lg font-bold text-primary-foreground sm:text-xl">Stay in the loop</DialogTitle>
+            <DialogDescription className="mt-1 text-xs text-primary-foreground/80 text-balance sm:text-sm">
+              Weekly product updates, trending picks, and exclusive offers — straight to your inbox
+            </DialogDescription>
           </div>
 
-          <form onSubmit={handleSubscribe} className="space-y-2.5">
-            <Input
-              type="email"
-              placeholder="Enter your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={isLoading}
-              className="h-10 rounded-xl text-sm sm:h-11 sm:text-base"
-            />
+          <div className="px-5 pt-4 pb-5 bg-card sm:px-6 sm:pt-5 sm:pb-6">
+            <div className="grid grid-cols-4 gap-1.5 mb-4 sm:gap-2">
+              {BENEFITS.map((b) => (
+                <div key={b.label} className="rounded-lg border border-border bg-background px-1 py-2 text-center shadow-sm">
+                  <b.icon className="mx-auto mb-1 h-3.5 w-3.5 text-primary" />
+                  <p className="text-[9px] font-medium leading-tight text-foreground">{b.label}</p>
+                </div>
+              ))}
+            </div>
 
-            {message && (
-              <div
-                className={`rounded-xl px-3 py-2 text-xs font-medium sm:text-sm ${
-                  messageType === 'success'
-                    ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400'
-                    : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400'
-                }`}
-              >
-                {message}
-              </div>
-            )}
+            <form onSubmit={handleSubscribe} className="space-y-2.5">
+              <Input
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoading}
+                className="h-10 rounded-xl text-sm sm:h-11 sm:text-base"
+              />
 
-            <Button type="submit" disabled={isLoading || !email} className="h-10 w-full rounded-xl font-semibold sm:h-11">
-              {isLoading ? 'Subscribing...' : 'Subscribe Now'}
-            </Button>
+              {message && (
+                <div
+                  className={`rounded-xl px-3 py-2 text-xs font-medium sm:text-sm ${
+                    messageType === 'success'
+                      ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400'
+                      : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400'
+                  }`}
+                >
+                  {message}
+                </div>
+              )}
 
-            <p className="text-center text-[11px] text-muted-foreground sm:text-xs">We respect your privacy. Unsubscribe anytime.</p>
-          </form>
-        </div>
-      </DialogContent>
-    </Dialog>
+              <Button type="submit" disabled={isLoading || !email} className="h-10 w-full rounded-xl font-semibold sm:h-11">
+                {isLoading ? 'Subscribing...' : 'Subscribe Now'}
+              </Button>
+
+              <p className="text-center text-[11px] text-muted-foreground sm:text-xs">We respect your privacy. Unsubscribe anytime.</p>
+            </form>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

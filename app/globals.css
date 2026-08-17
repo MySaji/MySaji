@@ -261,6 +261,41 @@
   animation-delay: 1.5s;
 }
 
+/* Newsletter nudge icon — a brief wiggle every few seconds to catch the eye
+   without shaking nonstop; the still portion is baked into the keyframe so
+   a single infinite animation does the pause for us. */
+@keyframes shake-nudge {
+  0%,
+  100% {
+    transform: translateX(0) rotate(0deg);
+  }
+  2% {
+    transform: translateX(-3px) rotate(-8deg);
+  }
+  4% {
+    transform: translateX(3px) rotate(8deg);
+  }
+  6% {
+    transform: translateX(-3px) rotate(-6deg);
+  }
+  8% {
+    transform: translateX(3px) rotate(6deg);
+  }
+  10% {
+    transform: translateX(-2px) rotate(-3deg);
+  }
+  12% {
+    transform: translateX(2px) rotate(3deg);
+  }
+  14% {
+    transform: translateX(0) rotate(0deg);
+  }
+}
+
+.animate-shake-nudge {
+  animation: shake-nudge 4s ease-in-out infinite;
+}
+
 /* Hide scrollbar for horizontal scrolls */
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
