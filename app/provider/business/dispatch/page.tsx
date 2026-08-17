@@ -66,24 +66,28 @@ export default function BusinessDispatchPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-20 lg:pb-0">
       <div className="bg-blue-600 dark:bg-blue-700 text-white p-4 rounded-b-2xl lg:rounded-none">
-        <div className="flex items-center justify-between max-w-4xl mx-auto">
-          <div className="flex items-center gap-4">
-            <Link href="/provider/business/dashboard" className="lg:hidden">
+        <div className="flex items-center justify-between gap-3 max-w-4xl mx-auto">
+          <div className="flex items-center gap-4 min-w-0">
+            <Link href="/provider/business/dashboard" className="lg:hidden flex-shrink-0">
               <ArrowLeft className="w-6 h-6" />
             </Link>
-            <div>
-              <h1 className="text-xl font-bold">{t("provider.business.dispatch.title")}</h1>
-              <p className="text-blue-100 text-sm">{t("provider.business.dispatch.subtitle")}</p>
+            <div className="min-w-0">
+              <h1 className="text-xl font-bold truncate">{t("provider.business.dispatch.title")}</h1>
+              <p className="text-blue-100 text-sm truncate">{t("provider.business.dispatch.subtitle")}</p>
             </div>
           </div>
-          <div className="flex items-center gap-3 text-sm">
-            <Link href="/provider/business/staff" className="underline text-blue-100 hover:text-white">
+          {/* These three are shortcuts to nav items already reachable from
+              the sidebar/bottom-nav on mobile — kept here only where there's
+              room for them, rather than squeezing three underlined links
+              next to the title on a narrow screen. */}
+          <div className="hidden sm:flex items-center gap-3 text-sm flex-shrink-0">
+            <Link href="/provider/business/staff" className="underline text-blue-100 hover:text-white whitespace-nowrap">
               {t("provider.business.staff.title")}
             </Link>
-            <Link href="/provider/business/branches" className="underline text-blue-100 hover:text-white">
+            <Link href="/provider/business/branches" className="underline text-blue-100 hover:text-white whitespace-nowrap">
               {t("provider.business.dashboard.branchesLink")}
             </Link>
-            <Link href="/provider/business/revenue" className="underline text-blue-100 hover:text-white">
+            <Link href="/provider/business/revenue" className="underline text-blue-100 hover:text-white whitespace-nowrap">
               {t("provider.business.dashboard.revenueLink")}
             </Link>
           </div>
@@ -98,7 +102,7 @@ export default function BusinessDispatchPage() {
         ) : (
           <>
             <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border dark:border-gray-700 flex items-center justify-between gap-3">
-              <div>
+              <div className="min-w-0">
                 <h2 className="font-semibold text-gray-900 dark:text-white">{t("provider.business.dashboard.autoAssignTitle")}</h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">{t("provider.business.dashboard.autoAssignDesc")}</p>
               </div>
@@ -115,7 +119,7 @@ export default function BusinessDispatchPage() {
             </div>
 
             <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border dark:border-gray-700 flex items-center justify-between gap-3">
-              <div>
+              <div className="min-w-0">
                 <h2 className="font-semibold text-gray-900 dark:text-white">{t("provider.business.dashboard.allowStaffRequestsTitle")}</h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">{t("provider.business.dashboard.allowStaffRequestsDesc")}</p>
               </div>
@@ -180,7 +184,7 @@ export default function BusinessDispatchPage() {
                     <div key={job.id} className="flex items-center justify-between gap-3 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
                       <div className="min-w-0 flex-1">
                         <p className="font-medium text-gray-900 dark:text-white truncate">{job.title}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                           {job.customerName} · {t("provider.business.dashboard.assignedTo", { name: job.assignedName })} · {new Date(job.completedAt).toLocaleDateString()}
                         </p>
                       </div>
@@ -199,13 +203,13 @@ export default function BusinessDispatchPage() {
 
 function TechnicianRow({ tech, t }: { tech: BusinessTechnician; t: TFunc }) {
   return (
-    <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
-      <div className="flex items-center gap-2">
-        <span className={`h-2 w-2 rounded-full ${tech.isOnline ? "bg-emerald-500" : "bg-gray-400"}`} />
-        <span className="text-gray-900 dark:text-white font-medium">{tech.name}</span>
-        {tech.isOwner && <span className="text-xs text-gray-500 dark:text-gray-400">({t("provider.business.dashboard.ownerBadge")})</span>}
+    <div className="flex items-center justify-between gap-2 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
+      <div className="flex items-center gap-2 min-w-0">
+        <span className={`h-2 w-2 rounded-full flex-shrink-0 ${tech.isOnline ? "bg-emerald-500" : "bg-gray-400"}`} />
+        <span className="text-gray-900 dark:text-white font-medium truncate">{tech.name}</span>
+        {tech.isOwner && <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">({t("provider.business.dashboard.ownerBadge")})</span>}
       </div>
-      <span className="text-xs text-gray-500 dark:text-gray-400">
+      <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0 text-right">
         {tech.isOnline ? t("provider.business.dashboard.activeJobCount", { count: tech.activeJobCount }) : t("provider.business.dashboard.offlineBadge")}
         {tech.atCapacity && ` · ${t("provider.business.dashboard.atCapacityBadge")}`}
       </span>
@@ -224,15 +228,15 @@ function RequestRow({
   formatMoney: (n: number) => string
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
       <div className="min-w-0 flex-1">
         <p className="font-medium text-gray-900 dark:text-white truncate">{request.title}</p>
-        <p className="text-xs text-gray-500 dark:text-gray-400">
+        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
           {request.customerName} · {t("provider.business.dashboard.assignedTo", { name: request.assignedName })} · {formatMoney(request.price)}
         </p>
       </div>
       <select
-        className="shrink-0 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-2 py-1.5"
+        className="w-full sm:w-auto shrink-0 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-2 py-1.5"
         value={request.assignedProviderId}
         disabled={isReassigning}
         onChange={(e) => onReassign(e.target.value)}

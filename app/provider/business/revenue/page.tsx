@@ -26,13 +26,13 @@ export default function CompanyRevenuePage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-20 lg:pb-0">
       <div className="bg-blue-600 dark:bg-blue-700 text-white p-4 rounded-b-2xl lg:rounded-none">
-        <div className="flex items-center gap-4 max-w-4xl mx-auto">
-          <Link href="/provider/business/dashboard" className="lg:hidden">
+        <div className="flex items-center gap-4 max-w-4xl mx-auto min-w-0">
+          <Link href="/provider/business/dashboard" className="lg:hidden flex-shrink-0">
             <ArrowLeft className="w-6 h-6" />
           </Link>
-          <div>
-            <h1 className="text-xl font-bold">{t("provider.business.revenue.title")}</h1>
-            <p className="text-blue-100 text-sm">{t("provider.business.revenue.subtitle")}</p>
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold truncate">{t("provider.business.revenue.title")}</h1>
+            <p className="text-blue-100 text-sm truncate">{t("provider.business.revenue.subtitle")}</p>
           </div>
         </div>
       </div>
@@ -45,13 +45,13 @@ export default function CompanyRevenuePage() {
         ) : (
           <>
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-5 border dark:border-gray-700">
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-5 border dark:border-gray-700 min-w-0">
                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t("provider.business.revenue.thisMonth")}</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatMoney(data.totalThisMonth)}</p>
+                <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white truncate">{formatMoney(data.totalThisMonth)}</p>
               </div>
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-5 border dark:border-gray-700">
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-5 border dark:border-gray-700 min-w-0">
                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t("provider.business.revenue.allTime")}</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatMoney(data.totalAllTime)}</p>
+                <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white truncate">{formatMoney(data.totalAllTime)}</p>
               </div>
             </div>
 
@@ -62,14 +62,14 @@ export default function CompanyRevenuePage() {
               <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">{t("provider.business.revenue.breakdownNote")}</p>
               <div className="space-y-2">
                 {data.members.map((m) => (
-                  <div key={m.providerId} className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-900 dark:text-white font-medium">{m.name}</span>
-                      {m.isOwner && <span className="text-xs text-gray-500 dark:text-gray-400">({t("provider.business.dashboard.ownerBadge")})</span>}
+                  <div key={m.providerId} className="flex items-center justify-between gap-2 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-gray-900 dark:text-white font-medium truncate">{m.name}</span>
+                      {m.isOwner && <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">({t("provider.business.dashboard.ownerBadge")})</span>}
                     </div>
-                    <div className="text-right">
+                    <div className="text-right flex-shrink-0">
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">{formatMoney(m.totalEarned)}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{formatMoney(m.earnedThisMonth)} {t("provider.business.revenue.thisMonthSuffix")}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">{formatMoney(m.earnedThisMonth)} {t("provider.business.revenue.thisMonthSuffix")}</p>
                     </div>
                   </div>
                 ))}

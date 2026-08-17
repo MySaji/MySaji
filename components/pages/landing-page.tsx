@@ -14,6 +14,7 @@ import {
 } from "lucide-react"
 import { getServiceCategories, getLandingStats, type HomeServiceCategory, type LandingStats } from "@/lib/actions/home"
 import { usePwaInstall } from "@/lib/hooks/usePwaInstall"
+import PublicChatButton from "@/components/public-chat-button"
 
 const CATEGORY_ICON: Record<string, ComponentType<{ className?: string }>> = {
   electricians: Plug,
@@ -320,6 +321,7 @@ export function LandingPage() {
 
   return (
     <div className="min-h-screen bg-background overflow-x-clip">
+      <PublicChatButton />
       <ScrollProgressBar />
 
       {/* Navigation */}

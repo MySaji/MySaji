@@ -16,6 +16,7 @@ import type { UserRole } from "@/lib/types"
 import { ROLE_HOME_PATH } from "@/lib/role-map"
 import { registerUser } from "@/lib/actions/auth"
 import { sendSignupOtp, verifySignupOtp } from "@/lib/actions/otp"
+import { useOtpAutofill } from "@/lib/hooks/useOtpAutofill"
 import { BrandLogo } from "@/components/brand-logo"
 import { useLocalization } from "@/lib/hooks/useLocalization"
 import type { TranslationKey } from "@/lib/i18n"
@@ -108,22 +109,7 @@ export default function SignupPage() {
     if (e.key === "Backspace" && !otpDigits[index] && index > 0) otpInputRefs.current[index - 1]?.focus()
   }
 
-  // Pasting the whole code (from a messaging app, password manager, or the
-  // OS's own "copy code from SMS" suggestion) anywhere in the box group
-  // fills every box at once instead of only landing the last digit in
-  // whichever box happened to be focused.
-  const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
-    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, OTP_LENGTH)
-    if (!pasted) return
-    e.preventDefault()
-    const next = Array(OTP_LENGTH).fill("")
-    for (let i = 0; i < pasted.length; i++) next[i] = pasted[i]
-    setOtpDigits(next)
-    otpInputRefs.current[Math.min(pasted.length, OTP_LENGTH - 1)]?.focus()
-  }
-
-  const handleVerifyOtp = async () => {
-    const code = otpDigits.join("")
+  const submitOtpCode = async (code: string) => {
     if (code.length !== OTP_LENGTH) { setError(t("authPage.login.enterFullCode")); return }
     setError("")
     setIsLoading(true)
@@ -133,6 +119,33 @@ export default function SignupPage() {
     setVerificationProof(result.proof)
     setStep("password")
   }
+
+  // Shared by paste and WebOTP autofill — fills every box at once (rather
+  // than only landing the last digit in whichever box happened to be
+  // focused) and, once a full code has actually arrived, submits it
+  // immediately instead of waiting for a manual tap on Verify.
+  const fillOtpDigits = (raw: string) => {
+    const digits = raw.replace(/\D/g, "").slice(0, OTP_LENGTH)
+    if (!digits) return
+    const next = Array(OTP_LENGTH).fill("")
+    for (let i = 0; i < digits.length; i++) next[i] = digits[i]
+    setOtpDigits(next)
+    if (digits.length === OTP_LENGTH) {
+      otpInputRefs.current[OTP_LENGTH - 1]?.blur()
+      submitOtpCode(digits)
+    } else {
+      otpInputRefs.current[Math.min(digits.length, OTP_LENGTH - 1)]?.focus()
+    }
+  }
+
+  const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault()
+    fillOtpDigits(e.clipboardData.getData("text"))
+  }
+
+  useOtpAutofill(step === "otp", fillOtpDigits)
+
+  const handleVerifyOtp = () => submitOtpCode(otpDigits.join(""))
 
   const handleResendOtp = async () => {
     if (resendCooldown > 0) return
@@ -409,6 +422,7 @@ export default function SignupPage() {
                     onChange={(e) => handleOtpChange(i, e.target.value)}
                     onKeyDown={(e) => handleOtpKeyDown(i, e)}
                     onPaste={handleOtpPaste}
+                    autoComplete="one-time-code"
                     disabled={isLoading}
                     className="w-11 h-12 sm:w-12 sm:h-14 rounded-xl border border-border bg-card text-center text-lg font-bold focus:outline-none focus:ring-2 focus:ring-primary"
                   />

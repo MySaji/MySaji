@@ -8,6 +8,7 @@ import {
   X, Menu, BarChart3, Bell, Warehouse, Search, ChevronDown, MoreHorizontal,
   Lock, Clock, AlertTriangle, Wallet, Handshake,
 } from "lucide-react"
+import Image from "next/image"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useAuthContext } from "@/lib/auth-context"
@@ -68,6 +69,7 @@ export default function DistributorLayout({ children }: { children: React.ReactN
 
   const [messageBadge, setMessageBadge] = useState(0)
   const [companyName, setCompanyName] = useState("SAJI Distributor")
+  const [logoUrl, setLogoUrl] = useState<string | null>(null)
   const [isVerified, setIsVerified] = useState(false)
   const [hasSubmittedRegistration, setHasSubmittedRegistration] = useState(false)
   const [rejectionReason, setRejectionReason] = useState<string | null>(null)
@@ -105,6 +107,7 @@ export default function DistributorLayout({ children }: { children: React.ReactN
     getMyDistributorAccount().then((account) => {
       if (account) {
         setCompanyName(account.companyName)
+        setLogoUrl(account.logoUrl)
         setIsVerified(account.isVerified)
         setHasSubmittedRegistration(account.hasSubmittedRegistration)
         setRejectionReason(account.rejectionReason)
@@ -342,9 +345,15 @@ export default function DistributorLayout({ children }: { children: React.ReactN
               </div>
 
               <Link href="/distributor/profile" className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-500 to-cyan-700 flex items-center justify-center text-white text-sm font-bold">
-                  {companyName.charAt(0).toUpperCase()}
-                </div>
+                {logoUrl ? (
+                  <div className="relative w-8 h-8 rounded-full overflow-hidden flex-shrink-0 ring-1 ring-gray-200 dark:ring-gray-600">
+                    <Image src={logoUrl} alt={companyName} fill className="object-cover" />
+                  </div>
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-500 to-cyan-700 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                    {companyName.charAt(0).toUpperCase()}
+                  </div>
+                )}
                 <div className="hidden md:block">
                   <p className="text-sm font-medium text-gray-800 dark:text-gray-200 leading-tight">{companyName}</p>
                   <p className="text-[10px] text-gray-500 dark:text-gray-400">{isVerified ? t("distributor.common.verifiedDistributor") : t("distributor.layout.companyOwner")}</p>

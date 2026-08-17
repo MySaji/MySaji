@@ -142,6 +142,30 @@ export async function sendChatbotMessage(input: unknown): Promise<SendChatbotMes
 
 const conversationIdSchema = z.object({ conversationId: z.string().trim().min(1) })
 
+export type EndChatbotResult = { success: true } | { success: false; error: string }
+
+/** User-initiated "End conversation" — closes the thread so the next
+ * message (or the next time the widget opens) starts a genuinely fresh
+ * conversation instead of continuing this one. Distinct from staff/system
+ * closing a resolved ticket: this is the user choosing to be done, from
+ * either the ACTIVE (bot-only) or ESCALATED (human-joined) state. */
+export async function endChatbotConversation(input: unknown): Promise<EndChatbotResult> {
+  const session = await requireUser()
+  if (!session?.user?.id) return { success: false, error: "You must be signed in." }
+
+  const parsed = conversationIdSchema.safeParse(input)
+  if (!parsed.success) return { success: false, error: "Invalid input" }
+
+  const conversation = await db.chatbotConversation.findUnique({ where: { id: parsed.data.conversationId } })
+  if (!conversation || conversation.userId !== session.user.id) {
+    return { success: false, error: "Conversation not found." }
+  }
+  if (conversation.status === "CLOSED") return { success: true }
+
+  await db.chatbotConversation.update({ where: { id: conversation.id }, data: { status: "CLOSED" } })
+  return { success: true }
+}
+
 export type EscalateChatbotResult = { success: true } | { success: false; error: string }
 
 const REVIEWER_PORTAL_PATH: Record<string, string> = {

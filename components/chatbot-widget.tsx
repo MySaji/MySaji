@@ -2,12 +2,12 @@
 
 import { useState, useRef, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import { Send, X, AlertCircle, Loader2, Sparkles, PhoneCall, MessageSquare, Headset } from "lucide-react"
+import { Send, X, AlertCircle, Loader2, Sparkles, PhoneCall, MessageSquare, Headset, RotateCcw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useAuthContext } from "@/lib/auth-context"
 import {
-  getMyChatbotConversation, sendChatbotMessage, escalateChatbotConversation,
+  getMyChatbotConversation, sendChatbotMessage, escalateChatbotConversation, endChatbotConversation,
   type ChatbotMessageItem,
 } from "@/lib/actions/chatbot"
 
@@ -33,6 +33,7 @@ export function ChatbotWidget({ onClose }: { onClose: () => void }) {
   const [sendError, setSendError] = useState("")
   const [isEscalating, setIsEscalating] = useState(false)
   const [escalateError, setEscalateError] = useState("")
+  const [isEnding, setIsEnding] = useState(false)
   const [aiUnconfigured, setAiUnconfigured] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const isSendingRef = useRef(false)
@@ -127,6 +128,24 @@ export function ChatbotWidget({ onClose }: { onClose: () => void }) {
     }
   }
 
+  // User-initiated "start over" — closes the current thread (its history
+  // stays in the database, it's just no longer the active one) and
+  // immediately opens a brand new conversation, from either the bot-only
+  // ACTIVE state or a live ESCALATED one.
+  const handleEndConversation = async () => {
+    if (!conversationId || isEnding) return
+    setIsEnding(true)
+    setSendError("")
+    setEscalateError("")
+    try {
+      await endChatbotConversation({ conversationId })
+      const fresh = await getMyChatbotConversation()
+      if (fresh) applyConversation(fresh)
+    } finally {
+      setIsEnding(false)
+    }
+  }
+
   const handleEscalate = async () => {
     if (!conversationId) return
     setIsEscalating(true)
@@ -185,6 +204,18 @@ export function ChatbotWidget({ onClose }: { onClose: () => void }) {
                 className="text-white hover:bg-white/20 rounded-full gap-1.5 text-xs px-2"
               >
                 {isEscalating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <PhoneCall className="w-3.5 h-3.5" />}
+              </Button>
+            )}
+            {messages.length > 0 && (
+              <Button
+                onClick={handleEndConversation}
+                disabled={isEnding || isLoading || !conversationId}
+                size="sm"
+                variant="ghost"
+                title="End conversation & start a new one"
+                className="text-white hover:bg-white/20 rounded-full gap-1.5 text-xs px-2"
+              >
+                {isEnding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
               </Button>
             )}
             <Button onClick={onClose} size="sm" variant="ghost" className="text-white hover:bg-white/20 rounded-full p-2">
