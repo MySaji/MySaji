@@ -73,50 +73,50 @@ export default function ShopkeeperDashboard() {
   ]
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-3 sm:p-4 md:p-8 overflow-x-hidden">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8">
-          <div>
-            <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">{t("shopkeeper.dashboard.title")}</h1>
-            <p className="text-gray-600 dark:text-gray-400">{t("shopkeeper.dashboard.subtitle")}</p>
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 sm:mb-8 gap-3">
+          <div className="min-w-0">
+            <h1 className="text-2xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-2 truncate">{t("shopkeeper.dashboard.title")}</h1>
+            <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base truncate">{t("shopkeeper.dashboard.subtitle")}</p>
           </div>
-          <div className="flex gap-3 mt-4 md:mt-0">
-            <Link href="/shopkeeper/products">
-              <Button className="bg-amber-600 hover:bg-amber-700 gap-2">
-                <Plus className="w-4 h-4" />
-                {t("shopkeeper.dashboard.addProduct")}
+          <div className="flex gap-2 sm:gap-3 w-full md:w-auto">
+            <Link href="/shopkeeper/products" className="flex-1 md:flex-none">
+              <Button className="w-full bg-amber-600 hover:bg-amber-700 gap-2">
+                <Plus className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">{t("shopkeeper.dashboard.addProduct")}</span>
               </Button>
             </Link>
-            <Link href="/shopkeeper/showcase">
-              <Button className="bg-orange-500 hover:bg-orange-600 gap-2">
-                <ImageIcon className="w-4 h-4" />
-                {t("shopkeeper.dashboard.shareWork")}
+            <Link href="/shopkeeper/showcase" className="flex-1 md:flex-none">
+              <Button className="w-full bg-orange-500 hover:bg-orange-600 gap-2">
+                <ImageIcon className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">{t("shopkeeper.dashboard.shareWork")}</span>
               </Button>
             </Link>
           </div>
         </div>
 
         {/* KPI Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-6 mb-6 sm:mb-8">
           {kpis.map((kpi, idx) => {
             const Icon = kpi.icon
             const isPositive = kpi.change !== null && kpi.change >= 0
             return (
-              <Card key={idx} className="p-6 border-0 shadow-lg hover:shadow-xl transition-shadow">
-                <div className="flex items-start justify-between mb-4">
-                  <div className={`p-3 rounded-lg bg-gradient-to-br ${kpi.color}`}>
-                    <Icon className="w-6 h-6 text-white" />
+              <Card key={idx} className="p-2.5 sm:p-6 border-0 shadow-lg hover:shadow-xl transition-shadow min-w-0">
+                <div className="flex items-start justify-between gap-1.5 mb-2 sm:mb-4">
+                  <div className={`p-1.5 sm:p-3 rounded-lg bg-gradient-to-br ${kpi.color} flex-shrink-0`}>
+                    <Icon className="w-3.5 h-3.5 sm:w-6 sm:h-6 text-white" />
                   </div>
                   {kpi.change !== null && (
-                    <div className={`flex items-center gap-1 px-2 py-1 rounded text-sm font-semibold ${isPositive ? "text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30" : "text-red-600 bg-red-100 dark:bg-red-900/30"}`}>
-                      {isPositive ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+                    <div className={`flex items-center gap-0.5 sm:gap-1 px-1 sm:px-2 py-0.5 sm:py-1 rounded text-[10px] sm:text-sm font-semibold flex-shrink-0 ${isPositive ? "text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30" : "text-red-600 bg-red-100 dark:bg-red-900/30"}`}>
+                      {isPositive ? <ArrowUpRight className="w-3 h-3 sm:w-4 sm:h-4" /> : <ArrowDownRight className="w-3 h-3 sm:w-4 sm:h-4" />}
                       {Math.abs(kpi.change)}%
                     </div>
                   )}
                 </div>
-                <p className="text-gray-600 dark:text-gray-400 text-sm font-medium mb-1">{kpi.label}</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white">{kpi.value}</p>
+                <p className="text-gray-600 dark:text-gray-400 text-[11px] sm:text-sm font-medium mb-1 truncate">{kpi.label}</p>
+                <p className="text-base sm:text-3xl font-bold text-gray-900 dark:text-white truncate">{kpi.value}</p>
               </Card>
             )
           })}
@@ -198,48 +198,48 @@ export default function ShopkeeperDashboard() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="p-6 border-0 shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <p className="text-blue-100 text-sm font-medium mb-1">{t("shopkeeper.dashboard.processingOrders")}</p>
-                <p className="text-4xl font-bold">{data.processingOrders}</p>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 sm:gap-6">
+          <Card className="p-2.5 sm:p-6 border-0 shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white min-w-0">
+            <div className="flex items-start justify-between gap-1.5 mb-2 sm:mb-4">
+              <div className="min-w-0">
+                <p className="text-blue-100 text-[11px] sm:text-sm font-medium mb-1 truncate">{t("shopkeeper.dashboard.processingOrders")}</p>
+                <p className="text-xl sm:text-4xl font-bold truncate">{data.processingOrders}</p>
               </div>
-              <Clock className="w-8 h-8 text-blue-200" />
+              <Clock className="w-5 h-5 sm:w-8 sm:h-8 text-blue-200 flex-shrink-0" />
             </div>
             <Link href="/shopkeeper/orders?status=processing">
-              <Button className="w-full bg-white hover:bg-blue-50 text-blue-600 font-semibold mt-4">
-                {t("shopkeeper.dashboard.processOrders")}
+              <Button className="w-full bg-white hover:bg-blue-50 text-blue-600 font-semibold mt-2 sm:mt-4 h-7 sm:h-9 px-2 text-[11px] sm:text-sm">
+                <span className="truncate">{t("shopkeeper.dashboard.processOrders")}</span>
               </Button>
             </Link>
           </Card>
 
-          <Card className="p-6 border-0 shadow-lg bg-gradient-to-br from-amber-500 to-orange-600 text-white">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <p className="text-amber-100 text-sm font-medium mb-1">{t("shopkeeper.dashboard.lowStockItems")}</p>
-                <p className="text-4xl font-bold">{data.lowStockCount}</p>
+          <Card className="p-2.5 sm:p-6 border-0 shadow-lg bg-gradient-to-br from-amber-500 to-orange-600 text-white min-w-0">
+            <div className="flex items-start justify-between gap-1.5 mb-2 sm:mb-4">
+              <div className="min-w-0">
+                <p className="text-amber-100 text-[11px] sm:text-sm font-medium mb-1 truncate">{t("shopkeeper.dashboard.lowStockItems")}</p>
+                <p className="text-xl sm:text-4xl font-bold truncate">{data.lowStockCount}</p>
               </div>
-              <AlertCircle className="w-8 h-8 text-amber-200" />
+              <AlertCircle className="w-5 h-5 sm:w-8 sm:h-8 text-amber-200 flex-shrink-0" />
             </div>
             <Link href="/shopkeeper/products?filter=low-stock">
-              <Button className="w-full bg-white hover:bg-amber-50 text-amber-600 font-semibold mt-4">
-                {t("shopkeeper.dashboard.restockNow")}
+              <Button className="w-full bg-white hover:bg-amber-50 text-amber-600 font-semibold mt-2 sm:mt-4 h-7 sm:h-9 px-2 text-[11px] sm:text-sm">
+                <span className="truncate">{t("shopkeeper.dashboard.restockNow")}</span>
               </Button>
             </Link>
           </Card>
 
-          <Card className="p-6 border-0 shadow-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <p className="text-emerald-100 text-sm font-medium mb-1">{t("shopkeeper.dashboard.todaysRevenue")}</p>
-                <p className="text-3xl font-bold">{formatMoney(data.todaysRevenue)}</p>
+          <Card className="p-2.5 sm:p-6 border-0 shadow-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-white min-w-0 col-span-2 md:col-span-1">
+            <div className="flex items-start justify-between gap-1.5 mb-2 sm:mb-4">
+              <div className="min-w-0">
+                <p className="text-emerald-100 text-[11px] sm:text-sm font-medium mb-1 truncate">{t("shopkeeper.dashboard.todaysRevenue")}</p>
+                <p className="text-xl sm:text-3xl font-bold truncate">{formatMoney(data.todaysRevenue)}</p>
               </div>
-              <TrendingUp className="w-8 h-8 text-emerald-200" />
+              <TrendingUp className="w-5 h-5 sm:w-8 sm:h-8 text-emerald-200 flex-shrink-0" />
             </div>
             <Link href="/shopkeeper/analytics">
-              <Button className="w-full bg-white hover:bg-emerald-50 text-emerald-600 font-semibold mt-4">
-                {t("shopkeeper.dashboard.viewAnalytics")}
+              <Button className="w-full bg-white hover:bg-emerald-50 text-emerald-600 font-semibold mt-2 sm:mt-4 h-7 sm:h-9 px-2 text-[11px] sm:text-sm">
+                <span className="truncate">{t("shopkeeper.dashboard.viewAnalytics")}</span>
               </Button>
             </Link>
           </Card>

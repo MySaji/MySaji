@@ -64,9 +64,28 @@ function mpesaTimestamp() {
   return new Date().toISOString().replace(/[^0-9]/g, "").slice(0, 14)
 }
 
+// Daraja only accepts MSISDNs in the 2547XXXXXXXX / 2541XXXXXXXX shape, but
+// every "enter your M-Pesa number" field across the app (customer, provider,
+// shopkeeper, distributor, secretary, agent) lets people type however they
+// naturally would — 07XXXXXXXX, 7XXXXXXXX, with spaces/dashes, or already in
+// 254 form. Normalizing once here (rather than in every form) means an STK
+// push actually fires no matter which shape the user typed.
+function normalizeMpesaPhone(raw: string): string {
+  const digits = raw.replace(/\D/g, "")
+  if (digits.startsWith("254") && digits.length === 12) return digits
+  if (digits.startsWith("0") && digits.length === 10) return `254${digits.slice(1)}`
+  if ((digits.startsWith("7") || digits.startsWith("1")) && digits.length === 9) return `254${digits}`
+  return digits
+}
+
 export async function initiateMpesaPayment(phone: string, amount: number, description = "SAJI Payment"): Promise<InitiatePaymentResult> {
   if (!mpesaConfigured()) {
     return { success: true, provider: "mpesa", requestId: `mpesa-sandbox-${Date.now()}`, simulated: true, message: "No M-PESA credentials configured — payment auto-completed as a sandbox simulation." }
+  }
+
+  const normalizedPhone = normalizeMpesaPhone(phone)
+  if (!/^254(7|1)\d{8}$/.test(normalizedPhone)) {
+    return { success: false, provider: "mpesa", message: "Enter a valid M-Pesa phone number (e.g. 07XXXXXXXX or 2547XXXXXXXX)." }
   }
 
   try {
@@ -82,9 +101,9 @@ export async function initiateMpesaPayment(phone: string, amount: number, descri
       Timestamp: timestamp,
       TransactionType: "CustomerPayBillOnline",
       Amount: Math.round(amount),
-      PartyA: phone,
+      PartyA: normalizedPhone,
       PartyB: shortcode,
-      PhoneNumber: phone,
+      PhoneNumber: normalizedPhone,
       CallBackURL: `${process.env.CALLBACK_URL || ""}/api/payments/callback/mpesa`,
       AccountReference: "SAJI",
       TransactionDesc: description,

@@ -212,7 +212,7 @@ export function PaymentMethods({ amount, jobId, onSuccess }: { amount: number; j
 
       <div className="space-y-2">
         <label className="text-sm text-muted-foreground">Mobile number (for M-Pesa / Airtel)</label>
-        <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="2547XXXXXXXX" />
+        <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="07XXXXXXXX or 2547XXXXXXXX" />
       </div>
 
       <div className="grid grid-cols-2 gap-3">

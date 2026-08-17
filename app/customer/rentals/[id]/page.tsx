@@ -255,7 +255,7 @@ export default function RentalDetailPage() {
                 <p className="text-xs text-muted-foreground">{new Date(booking.startDate).toLocaleDateString()} – {new Date(booking.endDate).toLocaleDateString()} ({booking.days} day{booking.days > 1 ? "s" : ""})</p>
                 <div className="space-y-2">
                   <label className="text-sm text-muted-foreground">Mobile number (for M-Pesa)</label>
-                  <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="2547XXXXXXXX" />
+                  <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="07XXXXXXXX or 2547XXXXXXXX" />
                 </div>
                 <div className="grid grid-cols-3 gap-3">
                   <Button onClick={() => initiatePayment("mpesa")} disabled={isSubmitting || phone.trim().length < 9} className="bg-yellow-400 text-black hover:bg-yellow-500">M-Pesa</Button>
