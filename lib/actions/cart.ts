@@ -386,6 +386,10 @@ export async function checkout(input: unknown): Promise<CheckoutResult> {
   }
   const discountAmount = promo?.discountAmount ?? 0
   const grandTotal = productsSubtotal + shippingTotal - discountAmount + servicesSubtotal
+  const partsSummary = [
+    byShop.size > 0 ? `${byShop.size} shop${byShop.size > 1 ? "s" : ""}` : null,
+    serviceItems.length > 0 ? `${serviceItems.length} service${serviceItems.length > 1 ? "s" : ""}` : null,
+  ].filter(Boolean).join(", ")
 
   const wallet = await db.wallet.findUnique({ where: { userId: customerId } })
   if (!wallet) return { success: false, error: "Wallet not found." }
@@ -589,11 +593,6 @@ export async function checkout(input: unknown): Promise<CheckoutResult> {
       providerNotifications.push({ providerUserId: service.provider.userId, serviceTitle: service.title, jobId: job.id })
     }
 
-    const partsSummary = [
-      byShop.size > 0 ? `${byShop.size} shop${byShop.size > 1 ? "s" : ""}` : null,
-      serviceItems.length > 0 ? `${serviceItems.length} service${serviceItems.length > 1 ? "s" : ""}` : null,
-    ].filter(Boolean).join(", ")
-
     await tx.transaction.create({
       data: {
         walletId: wallet.id,
@@ -625,6 +624,11 @@ export async function checkout(input: unknown): Promise<CheckoutResult> {
   }
 
   await Promise.all([
+    pushToUser(customerId, {
+      title: "Order placed",
+      body: `Your order (${partsSummary}, KES ${grandTotal.toLocaleString()}) has been placed.`,
+      url: "/customer/cart",
+    }, "payment"),
     ...shopNotifications.map((n) =>
       pushToUser(n.shopkeeperUserId, {
         title: "New order received",

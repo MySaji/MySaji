@@ -3,6 +3,7 @@
 import { z } from "zod"
 import { db } from "@/lib/db"
 import { requireAdmin, logAdminAction } from "@/lib/actions/admin-dashboard"
+import { pushToUser } from "@/lib/actions/push"
 
 export type AdminAnnouncement = {
   id: string
@@ -120,6 +121,10 @@ export async function sendAnnouncement(input: unknown): Promise<AdminAnnouncemen
       })),
     }),
   ])
+
+  await Promise.all(recipients.map((u) =>
+    pushToUser(u.id, { title: announcement.title, body: announcement.message, url: "/notifications" }),
+  ))
 
   await logAdminAction({
     userId: admin.userId,

@@ -3,6 +3,7 @@
 import { z } from "zod"
 import { db } from "@/lib/db"
 import { requireAdmin, logAdminAction } from "@/lib/actions/admin-dashboard"
+import { pushToUser } from "@/lib/actions/push"
 
 export type AdminJobStatus = "Pending" | "Accepted" | "In Progress" | "Completed" | "Cancelled" | "Disputed" | "Awaiting Payment"
 
@@ -76,6 +77,8 @@ export async function cancelJobAsAdmin(input: unknown): Promise<AdminJobActionRe
       },
     }),
   ])
+
+  await pushToUser(job.customerId, { title: "Job cancelled", body: `Your job "${job.title}" was cancelled by platform admin.`, url: "/customer/jobs" }, "job")
 
   await logAdminAction({
     userId: admin.userId,

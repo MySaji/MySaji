@@ -4,6 +4,7 @@ import { z } from "zod"
 import { db } from "@/lib/db"
 import { requireAgent } from "@/lib/actions/agent-dashboard"
 import { logAdminAction } from "@/lib/actions/admin-dashboard"
+import { pushToUser } from "@/lib/actions/push"
 
 export type AgentDisputeStatus = "Open" | "In Review" | "Resolved" | "Escalated" | "Closed"
 
@@ -188,6 +189,14 @@ export async function resolveDisputeAsAgent(input: unknown): Promise<ActionResul
         type: "SYSTEM",
       },
     })
+  })
+
+  await pushToUser(dispute.customerId, {
+    title: "Dispute resolved",
+    body: refundAmount && refundAmount > 0
+      ? `Dispute ${dispute.disputeNumber} resolved — KES ${refundAmount.toLocaleString()} refunded.`
+      : `Dispute ${dispute.disputeNumber} has been resolved.`,
+    url: "/customer/disputes",
   })
 
   await logAdminAction({

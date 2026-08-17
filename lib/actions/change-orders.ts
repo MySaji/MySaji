@@ -4,6 +4,7 @@ import { z } from "zod"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
 import { logJobEvent } from "@/lib/actions/job-events"
+import { notifyUser } from "@/lib/actions/notify"
 
 async function requireProvider(): Promise<{ userId: string; providerId: string } | null> {
   const session = await auth()
@@ -64,12 +65,10 @@ export async function createChangeOrder(input: unknown): Promise<ChangeOrderActi
     attachments: parsed.data.photos,
   })
 
-  await db.notification.create({
-    data: {
-      userId: job.customerId, title: "Change request", message: `Your provider requested a change to "${job.title}": +KES ${parsed.data.additionalCost.toLocaleString()}`,
-      type: "JOB", relatedType: "JOB", relatedId: job.id, actionUrl: "/customer/jobs",
-    },
-  }).catch(() => {})
+  await notifyUser({
+    userId: job.customerId, title: "Change request", message: `Your provider requested a change to "${job.title}": +KES ${parsed.data.additionalCost.toLocaleString()}`,
+    type: "JOB", relatedType: "JOB", relatedId: job.id, actionUrl: "/customer/jobs",
+  })
 
   return { success: true }
 }
@@ -129,9 +128,9 @@ export async function respondToChangeOrder(input: unknown): Promise<ChangeOrderA
     if (changeOrder.job.providerId) {
       const provider = await db.providerProfile.findUnique({ where: { id: changeOrder.job.providerId } })
       if (provider) {
-        await db.notification.create({
-          data: { userId: provider.userId, title: "Change request declined", message: `Your change request for "${changeOrder.job.title}" was declined.`, type: "JOB", relatedType: "JOB", relatedId: changeOrder.jobId, actionUrl: "/provider/jobs" },
-        }).catch(() => {})
+        await notifyUser({
+          userId: provider.userId, title: "Change request declined", message: `Your change request for "${changeOrder.job.title}" was declined.`, type: "JOB", relatedType: "JOB", relatedId: changeOrder.jobId, actionUrl: "/provider/jobs",
+        })
       }
     }
     return { success: true }
@@ -160,9 +159,9 @@ export async function respondToChangeOrder(input: unknown): Promise<ChangeOrderA
   if (changeOrder.job.providerId) {
     const provider = await db.providerProfile.findUnique({ where: { id: changeOrder.job.providerId } })
     if (provider) {
-      await db.notification.create({
-        data: { userId: provider.userId, title: "Change request approved", message: `Your change request for "${changeOrder.job.title}" was approved.`, type: "JOB", relatedType: "JOB", relatedId: changeOrder.jobId, actionUrl: "/provider/jobs" },
-      }).catch(() => {})
+      await notifyUser({
+        userId: provider.userId, title: "Change request approved", message: `Your change request for "${changeOrder.job.title}" was approved.`, type: "JOB", relatedType: "JOB", relatedId: changeOrder.jobId, actionUrl: "/provider/jobs",
+      })
     }
   }
 

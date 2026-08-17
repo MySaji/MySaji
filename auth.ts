@@ -21,6 +21,16 @@ class RateLimitedSignInError extends CredentialsSignin {
   code = "rate-limited"
 }
 
+// Surfaced when a DB call inside authorize() throws (e.g. the pooler killing
+// the connection mid-query) — distinct from RateLimitedSignInError so the
+// client can tell "your account is genuinely rate-limited" apart from "we
+// couldn't even reach the database" instead of showing a misleading
+// "wrong password" message for an infra failure that has nothing to do with
+// the password entered.
+class TransientAuthError extends CredentialsSignin {
+  code = "transient-error"
+}
+
 const hasGoogleCredentials = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET)
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -42,42 +52,55 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const password = credentials?.password as string | undefined
         if (!identifier || !password) return null
 
-        // Rate-limited by the identifier being logged into, not by IP —
-        // this is what actually stops credential-guessing against one
-        // account regardless of how many different source IPs it comes
-        // from. Every attempt counts, not just failures, so a scripted
-        // credential-stuffing run can't hide behind occasional real logins.
-        const rateLimit = await checkRateLimit(`login:${identifier.trim().toLowerCase()}`, "login", 5, 15 * 60 * 1000)
-        if (!rateLimit.allowed) throw new RateLimitedSignInError()
+        try {
+          // Rate-limited by the identifier being logged into, not by IP —
+          // this is what actually stops credential-guessing against one
+          // account regardless of how many different source IPs it comes
+          // from. Every attempt counts, not just failures, so a scripted
+          // credential-stuffing run can't hide behind occasional real logins.
+          const rateLimit = await checkRateLimit(`login:${identifier.trim().toLowerCase()}`, "login", 5, 15 * 60 * 1000)
+          if (!rateLimit.allowed) throw new RateLimitedSignInError()
 
-        const user = await db.user.findFirst({
-          where: {
-            OR: [{ email: identifier }, { phone: identifier }],
-          },
-        })
-        // Soft-deleted accounts can never sign back in (deletedAt is set by
-        // softDeleteUser and is permanent). A merely-suspended account
-        // (isActive: false, deletedAt: null, set by the reversible
-        // toggleSuspendUser action) is deliberately allowed to authenticate
-        // — the portal layouts show a restricted "account suspended" screen
-        // instead of a generic wrong-credentials error, so the user can see
-        // why and reach admin support rather than being locked out blind.
-        if (!user || !user.password || user.deletedAt) return null
+          const user = await db.user.findFirst({
+            where: {
+              OR: [{ email: identifier }, { phone: identifier }],
+            },
+          })
+          // Soft-deleted accounts can never sign back in (deletedAt is set by
+          // softDeleteUser and is permanent). A merely-suspended account
+          // (isActive: false, deletedAt: null, set by the reversible
+          // toggleSuspendUser action) is deliberately allowed to authenticate
+          // — the portal layouts show a restricted "account suspended" screen
+          // instead of a generic wrong-credentials error, so the user can see
+          // why and reach admin support rather than being locked out blind.
+          if (!user || !user.password || user.deletedAt) return null
 
-        const valid = await verifyPassword(password, user.password)
-        if (!valid) return null
+          const valid = await verifyPassword(password, user.password)
+          if (!valid) return null
 
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          image: user.image,
-          role: user.role,
-          phone: user.phone,
-          kycStatus: user.kycStatus,
-          isActive: user.isActive,
-          language: user.language,
-          currency: user.currency,
+          return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            image: user.image,
+            role: user.role,
+            phone: user.phone,
+            kycStatus: user.kycStatus,
+            isActive: user.isActive,
+            language: user.language,
+            currency: user.currency,
+          }
+        } catch (err) {
+          // A deliberate rejection (bad password, rate-limited, etc.) never
+          // reaches here — only a genuine failure to even complete the check
+          // does (e.g. the DB connection getting killed mid-query). Without
+          // this, that exception propagates uncaught out of the route
+          // handler, which breaks the response entirely and surfaces to the
+          // browser as a raw "Failed to fetch" instead of a normal, handled
+          // sign-in rejection.
+          if (err instanceof RateLimitedSignInError || err instanceof TransientAuthError) throw err
+          console.error("[auth] credentials authorize() failed unexpectedly:", err)
+          throw new TransientAuthError()
         }
       },
     }),

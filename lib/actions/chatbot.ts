@@ -4,6 +4,7 @@ import { z } from "zod"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
 import { generateChatbotReply } from "@/lib/ai/chatbot"
+import { pushToUser } from "@/lib/actions/push"
 
 async function requireUser() {
   const session = await auth()
@@ -257,6 +258,7 @@ export async function escalateChatbotConversation(input: unknown): Promise<Escal
       .map((m) => `${m.role === "USER" ? "Customer" : "Assistant"}: ${m.content}`)
       .join("\n")
 
+    let escalationReviewers: { id: string; role: string }[] = []
     await db.$transaction(async (tx) => {
       const ticket = await tx.supportTicket.create({
         data: {
@@ -296,8 +298,17 @@ export async function escalateChatbotConversation(input: unknown): Promise<Escal
             actionUrl: REVIEWER_PORTAL_PATH[r.role] ?? "/admin/chatbot",
           })),
         })
+        escalationReviewers = reviewers
       }
     }, { timeout: 15000 })
+
+    await Promise.all(escalationReviewers.map((r) =>
+      pushToUser(r.id, {
+        title: "Chatbot escalation",
+        body: `${session.user!.name ?? "A user"} asked to speak with a human support agent.`,
+        url: REVIEWER_PORTAL_PATH[r.role] ?? "/admin/chatbot",
+      }),
+    ))
 
     return { success: true }
   } catch {

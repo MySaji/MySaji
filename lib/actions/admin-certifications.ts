@@ -3,6 +3,7 @@
 import { z } from "zod"
 import { db } from "@/lib/db"
 import { requireAdmin, logAdminAction } from "@/lib/actions/admin-dashboard"
+import { notifyUser } from "@/lib/actions/notify"
 
 export type PendingCertification = {
   id: string
@@ -66,17 +67,15 @@ export async function reviewCertification(input: unknown): Promise<ReviewCertifi
 
   await db.certification.update({ where: { id: cert.id }, data: { status: parsed.data.approve ? "APPROVED" : "REJECTED" } })
 
-  await db.notification.create({
-    data: {
-      userId: cert.provider.userId,
-      title: parsed.data.approve ? "Certification approved" : "Certification rejected",
-      message: parsed.data.approve
-        ? `Your certification "${cert.name}" was approved.`
-        : `Your certification "${cert.name}" was rejected.${parsed.data.rejectionReason ? ` ${parsed.data.rejectionReason}` : ""}`,
-      type: "SYSTEM",
-      actionUrl: "/provider/profile/certifications",
-    },
-  }).catch(() => {})
+  await notifyUser({
+    userId: cert.provider.userId,
+    title: parsed.data.approve ? "Certification approved" : "Certification rejected",
+    message: parsed.data.approve
+      ? `Your certification "${cert.name}" was approved.`
+      : `Your certification "${cert.name}" was rejected.${parsed.data.rejectionReason ? ` ${parsed.data.rejectionReason}` : ""}`,
+    type: "SYSTEM",
+    actionUrl: "/provider/profile/certifications",
+  })
 
   await logAdminAction({
     userId: admin.userId, action: parsed.data.approve ? "APPROVE_CERTIFICATION" : "REJECT_CERTIFICATION",

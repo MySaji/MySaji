@@ -62,10 +62,10 @@ export default function FloatingChatButton() {
           <button
             aria-label="Close chat"
             onClick={() => setIsOpen(false)}
-            className="fixed inset-0 z-40 cursor-default"
+            className="fixed inset-0 z-40 sm:z-[90] cursor-default"
           />
           <div
-            className="fixed inset-0 z-50 sm:inset-auto sm:bottom-24 sm:right-6 sm:h-[640px] sm:max-h-[85vh] sm:w-[380px] sm:rounded-2xl sm:shadow-2xl sm:overflow-hidden sm:border sm:border-border"
+            className="fixed inset-0 z-50 sm:z-[100] sm:inset-auto sm:bottom-24 sm:right-6 sm:h-[640px] sm:max-h-[85vh] sm:w-[380px] sm:rounded-2xl sm:shadow-2xl sm:overflow-hidden sm:border sm:border-border"
           >
             <ChatbotWidget onClose={() => setIsOpen(false)} />
           </div>

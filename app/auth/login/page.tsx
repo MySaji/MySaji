@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useAuthContext } from "@/lib/auth-context"
-import { Mail, Lock, ArrowRight, Eye, EyeOff, Apple, Phone, Shield, Users, Zap, Info, Loader2, ShieldCheck, CheckCircle2 } from "lucide-react"
+import { Mail, Lock, Eye, EyeOff, Apple, Phone, Shield, Users, Zap, Info, Loader2, ShieldCheck, CheckCircle2 } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ROLE_HOME_PATH } from "@/lib/role-map"
 import { BrandLogo } from "@/components/brand-logo"
@@ -31,7 +31,7 @@ function LoginContent() {
   const [phone, setPhone] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
-  const [rememberMe, setRememberMe] = useState(false)
+  const [rememberMe, setRememberMe] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [otpDestination, setOtpDestination] = useState("")
@@ -247,16 +247,16 @@ function LoginContent() {
           <AuthMobileHeader showBack={step === "credentials"} />
 
           {step === "credentials" && (
-            <>
-              <AuthHeroIllustration />
-              <div className="flex flex-col items-center text-center gap-1 mb-6 lg:hidden">
+            <div className="flex items-start justify-between gap-3 mb-6 lg:hidden">
+              <div className="flex flex-col items-start gap-1 min-w-0">
                 <div className="flex items-center gap-2.5">
                   <BrandLogo size="large" />
                   <span className="text-2xl font-bold text-foreground">SAJI</span>
                 </div>
                 <p className="text-xs text-muted-foreground">{t("authPage.tagline")}</p>
               </div>
-            </>
+              <AuthHeroIllustration />
+            </div>
           )}
 
           {step === "credentials" ? (
@@ -343,8 +343,8 @@ function LoginContent() {
 
                 {/* Submit */}
                 <Button type="submit" disabled={isLoading} className="w-full h-10 rounded-xl font-semibold gap-2">
+                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
                   {isLoading ? t("authPage.login.signingIn") : t("auth.login")}
-                  {!isLoading && <ArrowRight className="w-4 h-4" />}
                 </Button>
               </form>
 

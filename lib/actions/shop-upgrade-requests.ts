@@ -4,6 +4,7 @@ import { z } from "zod"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
 import { logAdminAction } from "@/lib/actions/admin-dashboard"
+import { pushToUser } from "@/lib/actions/push"
 
 // Providers request this from /provider/shop, which files a real
 // SupportTicket (category "shop_upgrade") rather than a dedicated model —
@@ -88,6 +89,12 @@ export async function approveShopUpgradeRequest(input: unknown): Promise<ShopUpg
         actionUrl: "/provider/shop",
       },
     })
+  })
+
+  await pushToUser(ticket.userId, {
+    title: "Shop owner upgrade approved!",
+    body: "Visit your Shop page whenever you're ready to switch to your new Shopkeeper account.",
+    url: "/provider/shop",
   })
 
   await logAdminAction({
@@ -229,6 +236,12 @@ export async function rejectShopUpgradeRequest(input: unknown): Promise<ShopUpgr
         type: "SYSTEM",
       },
     })
+  })
+
+  await pushToUser(ticket.userId, {
+    title: "Shop owner upgrade request declined",
+    body: reason,
+    url: "/provider/shop",
   })
 
   await logAdminAction({

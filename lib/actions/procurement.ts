@@ -3,6 +3,7 @@
 import { z } from "zod"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
+import { notifyUser } from "@/lib/actions/notify"
 
 const BUSINESS_ROLES = ["provider", "shopkeeper", "distributor"]
 
@@ -143,9 +144,9 @@ export async function submitSupplierQuote(input: unknown): Promise<ProcurementAc
     },
   })
 
-  await db.notification.create({
-    data: { userId: request.businessUserId, title: "Supplier quote received", message: `A supplier quoted KES ${parsed.data.price.toLocaleString()} for "${request.productName}"`, type: "SYSTEM", actionUrl: "/business/procurement" },
-  }).catch(() => {})
+  await notifyUser({
+    userId: request.businessUserId, title: "Supplier quote received", message: `A supplier quoted KES ${parsed.data.price.toLocaleString()} for "${request.productName}"`, type: "SYSTEM", actionUrl: "/business/procurement",
+  })
 
   return { success: true }
 }

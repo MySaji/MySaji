@@ -3,6 +3,7 @@
 import { z } from "zod"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
+import { notifyUser } from "@/lib/actions/notify"
 
 async function requireProvider(): Promise<{ userId: string; providerId: string; categoryId: string | null } | null> {
   const session = await auth()
@@ -49,9 +50,7 @@ export async function postOpportunity(input: unknown): Promise<OpportunityAction
     take: 50,
   })
   await Promise.all(matchingProviders.map((p) =>
-    db.notification.create({
-      data: { userId: p.userId, title: "New opportunity nearby", message: parsed.data.description.slice(0, 100), type: "SYSTEM", actionUrl: "/provider/opportunities" },
-    }).catch(() => {})
+    notifyUser({ userId: p.userId, title: "New opportunity nearby", message: parsed.data.description.slice(0, 100), type: "SYSTEM", actionUrl: "/provider/opportunities" })
   ))
 
   return { success: true }
@@ -124,9 +123,9 @@ export async function respondToOpportunity(input: unknown): Promise<OpportunityA
 
   await db.opportunityResponse.create({ data: { opportunityId: opportunity.id, responderProviderId: provider.providerId, message: parsed.data.message } })
 
-  await db.notification.create({
-    data: { userId: opportunity.postedBy.userId, title: "New response to your opportunity", message: parsed.data.message.slice(0, 100), type: "SYSTEM", actionUrl: "/provider/opportunities" },
-  }).catch(() => {})
+  await notifyUser({
+    userId: opportunity.postedBy.userId, title: "New response to your opportunity", message: parsed.data.message.slice(0, 100), type: "SYSTEM", actionUrl: "/provider/opportunities",
+  })
 
   return { success: true }
 }

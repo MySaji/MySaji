@@ -4,6 +4,7 @@ import { z } from "zod"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
 import { logJobEvent } from "@/lib/actions/job-events"
+import { notifyUser } from "@/lib/actions/notify"
 
 async function requireProvider(): Promise<{ userId: string; providerId: string } | null> {
   const session = await auth()
@@ -132,9 +133,9 @@ export async function reportWarrantyIssue(input: unknown): Promise<WarrantyActio
   })
 
   if (job.provider) {
-    await db.notification.create({
-      data: { userId: job.provider.userId, title: "Warranty issue reported", message: `A warranty issue was reported for "${job.title}".`, type: "JOB", relatedType: "JOB", relatedId: job.id, actionUrl: "/provider/jobs" },
-    }).catch(() => {})
+    await notifyUser({
+      userId: job.provider.userId, title: "Warranty issue reported", message: `A warranty issue was reported for "${job.title}".`, type: "JOB", relatedType: "JOB", relatedId: job.id, actionUrl: "/provider/jobs",
+    })
   }
 
   return { success: true }
@@ -212,9 +213,9 @@ export async function bookWarrantyFollowUp(jobId: string): Promise<BookFollowUpR
 
   const provider = await db.providerProfile.findUnique({ where: { id: job.providerId } })
   if (provider) {
-    await db.notification.create({
-      data: { userId: provider.userId, title: "Warranty follow-up booked", message: `A free follow-up visit was booked for "${job.title}".`, type: "JOB", relatedType: "JOB", relatedId: followUp.id, actionUrl: "/provider/jobs" },
-    }).catch(() => {})
+    await notifyUser({
+      userId: provider.userId, title: "Warranty follow-up booked", message: `A free follow-up visit was booked for "${job.title}".`, type: "JOB", relatedType: "JOB", relatedId: followUp.id, actionUrl: "/provider/jobs",
+    })
   }
 
   return { success: true, jobId: followUp.id }

@@ -4,6 +4,7 @@ import { z } from "zod"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
 import { pushToUser } from "@/lib/actions/push"
+import { notifyUser } from "@/lib/actions/notify"
 import { getActiveEscrowJobs, type ActiveEscrowJob } from "@/lib/actions/jobs"
 import { createAndEmailReceipt } from "@/lib/actions/receipts"
 import { encryptAccountNumber } from "@/lib/payment-method-crypto"
@@ -169,17 +170,10 @@ export async function failWalletTopup(paymentId: string, reason?: string): Promi
   if (!payment || payment.contextType !== "WALLET_TOPUP" || payment.status !== "PENDING") return
 
   await db.payment.update({ where: { id: paymentId }, data: { status: "FAILED", failureReason: reason ?? null } })
-  await db.notification.create({
-    data: {
-      userId: payment.payerId,
-      title: "Top-up failed",
-      message: reason
-        ? `${reason} (KES ${Number(payment.amount).toLocaleString()} top-up)`
-        : `Your wallet top-up of KES ${Number(payment.amount).toLocaleString()} could not be completed.`,
-      type: "PAYMENT",
-      actionUrl: "/customer/wallet",
-    },
-  })
+  const failMessage = reason
+    ? `${reason} (KES ${Number(payment.amount).toLocaleString()} top-up)`
+    : `Your wallet top-up of KES ${Number(payment.amount).toLocaleString()} could not be completed.`
+  await notifyUser({ userId: payment.payerId, title: "Top-up failed", message: failMessage, type: "PAYMENT", actionUrl: "/customer/wallet" })
 }
 
 // ============================= BANK TRANSFER =============================
@@ -358,6 +352,12 @@ export async function requestWithdrawal(input: unknown): Promise<WalletActionRes
       },
     }),
   ])
+
+  await pushToUser(session.user.id, {
+    title: "Withdrawal requested",
+    body: `KES ${amount.toLocaleString()} to ${destinationLabel} is pending review.`,
+    url: "/customer/wallet",
+  }, "payment")
 
   return { success: true }
 }

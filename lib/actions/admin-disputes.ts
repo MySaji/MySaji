@@ -3,6 +3,7 @@
 import { z } from "zod"
 import { db } from "@/lib/db"
 import { requireAdmin, logAdminAction } from "@/lib/actions/admin-dashboard"
+import { pushToUser } from "@/lib/actions/push"
 
 export type AdminDisputeStatus = "Open" | "In Review" | "Resolved" | "Escalated" | "Closed"
 
@@ -111,6 +112,14 @@ export async function resolveDispute(input: unknown): Promise<AdminDisputeAction
         type: "SYSTEM",
       },
     })
+  })
+
+  await pushToUser(dispute.customerId, {
+    title: "Dispute resolved",
+    body: refundAmount && refundAmount > 0
+      ? `Dispute ${dispute.disputeNumber} resolved — KES ${refundAmount.toLocaleString()} refunded.`
+      : `Dispute ${dispute.disputeNumber} has been resolved.`,
+    url: "/customer/disputes",
   })
 
   await logAdminAction({

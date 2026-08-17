@@ -153,6 +153,13 @@ export async function respondToJobExpense(input: unknown): Promise<JobExpenseAct
       if (err === ALREADY_RESOLVED) return { success: false, error: "This expense has already been resolved." }
       return { success: false, error: "Something went wrong. Please try again." }
     }
+    if (expense.job.provider) {
+      await pushToUser(expense.job.provider.userId, {
+        title: "Expense declined",
+        body: `The customer declined "${expense.description}" for ${expense.job.title}.`,
+        url: "/provider/jobs",
+      }, "job")
+    }
     return { success: true }
   }
 

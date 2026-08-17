@@ -2,6 +2,7 @@
 
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
+import { pushToUser } from "@/lib/actions/push"
 
 function generateReferralCode(name: string): string {
   const base = name.replace(/[^a-zA-Z]/g, "").toUpperCase().slice(0, 4) || "USER"
@@ -129,4 +130,10 @@ export async function maybeRewardReferralForProvider(providerUserId: string) {
       },
     }),
   ])
+
+  await pushToUser(referral.referrerId, {
+    title: "Referral reward earned!",
+    body: `KES ${REFERRAL_REWARD_AMOUNT} was added to your wallet for referring a provider.`,
+    url: "/provider/referrals",
+  }, "promo")
 }

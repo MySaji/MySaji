@@ -4,6 +4,7 @@ import { z } from "zod"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
 import { logJobEvent } from "@/lib/actions/job-events"
+import { notifyUser } from "@/lib/actions/notify"
 
 async function requireProviderId(): Promise<string | null> {
   const session = await auth()
@@ -58,12 +59,10 @@ export async function createServiceRequest(input: unknown): Promise<CreateReques
     description: `Customer created service request: "${parsed.data.title}"`,
   })
 
-  await db.notification.create({
-    data: {
-      userId: provider.userId, title: "New service request", message: `New request: "${parsed.data.title}"`,
-      type: "JOB", relatedType: "JOB", relatedId: contract.id, actionUrl: "/provider/requests?tab=quotes",
-    },
-  }).catch(() => {})
+  await notifyUser({
+    userId: provider.userId, title: "New service request", message: `New request: "${parsed.data.title}"`,
+    type: "JOB", relatedType: "JOB", relatedId: contract.id, actionUrl: "/provider/requests?tab=quotes",
+  })
 
   return { success: true, contractId: contract.id }
 }
@@ -113,12 +112,10 @@ export async function submitContractQuote(input: unknown): Promise<ContractActio
     metadata: { price: parsed.data.price, estimatedDuration: parsed.data.estimatedDuration },
   })
 
-  await db.notification.create({
-    data: {
-      userId: contract.customerId, title: "Quote received", message: `You received a quote for "${contract.title}": KES ${parsed.data.price.toLocaleString()}`,
-      type: "JOB", relatedType: "JOB", relatedId: contract.id, actionUrl: "/customer/requests?tab=quotes",
-    },
-  }).catch(() => {})
+  await notifyUser({
+    userId: contract.customerId, title: "Quote received", message: `You received a quote for "${contract.title}": KES ${parsed.data.price.toLocaleString()}`,
+    type: "JOB", relatedType: "JOB", relatedId: contract.id, actionUrl: "/customer/requests?tab=quotes",
+  })
 
   return { success: true }
 }
@@ -160,9 +157,9 @@ export async function respondToContractQuote(input: unknown): Promise<RespondToQ
       contractId: contract.id, type: "QUOTE_DECLINED", actor: "CUSTOMER", actorUserId: session.user.id,
       description: parsed.data.declineReason ? `Customer declined the quote: ${parsed.data.declineReason}` : "Customer declined the quote",
     })
-    await db.notification.create({
-      data: { userId: contract.provider.userId, title: "Quote declined", message: `Your quote for "${contract.title}" was declined.`, type: "JOB", relatedType: "JOB", relatedId: contract.id, actionUrl: "/provider/requests?tab=quotes" },
-    }).catch(() => {})
+    await notifyUser({
+      userId: contract.provider.userId, title: "Quote declined", message: `Your quote for "${contract.title}" was declined.`, type: "JOB", relatedType: "JOB", relatedId: contract.id, actionUrl: "/provider/requests?tab=quotes",
+    })
     return { success: true }
   }
 
@@ -194,9 +191,9 @@ export async function respondToContractQuote(input: unknown): Promise<RespondToQ
     description: "Customer accepted the quote and entered into agreement",
   })
 
-  await db.notification.create({
-    data: { userId: contract.provider.userId, title: "Quote accepted", message: `"${contract.title}" was accepted — awaiting payment.`, type: "JOB", relatedType: "JOB", relatedId: job.id, actionUrl: "/provider/jobs" },
-  }).catch(() => {})
+  await notifyUser({
+    userId: contract.provider.userId, title: "Quote accepted", message: `"${contract.title}" was accepted — awaiting payment.`, type: "JOB", relatedType: "JOB", relatedId: job.id, actionUrl: "/provider/jobs",
+  })
 
   return { success: true, jobId: job.id }
 }
@@ -254,9 +251,9 @@ export async function markMilestoneComplete(input: unknown): Promise<ContractAct
     await logJobEvent({ jobId: milestone.contract.jobId, type: "MILESTONE_COMPLETED", actor: "PROVIDER", description: `Provider marked milestone complete: ${milestone.title}` })
   }
 
-  await db.notification.create({
-    data: { userId: milestone.contract.customerId, title: "Milestone completed", message: `"${milestone.title}" is ready for your approval.`, type: "JOB", relatedType: "JOB", relatedId: milestone.contract.jobId ?? milestone.contractId, actionUrl: "/customer/jobs" },
-  }).catch(() => {})
+  await notifyUser({
+    userId: milestone.contract.customerId, title: "Milestone completed", message: `"${milestone.title}" is ready for your approval.`, type: "JOB", relatedType: "JOB", relatedId: milestone.contract.jobId ?? milestone.contractId, actionUrl: "/customer/jobs",
+  })
 
   return { success: true }
 }

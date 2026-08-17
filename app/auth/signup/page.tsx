@@ -282,16 +282,16 @@ export default function SignupPage() {
           <AuthMobileHeader showBack={step === "role"} />
 
           {step === "role" && (
-            <>
-              <AuthHeroIllustration />
-              <div className="flex flex-col items-center text-center gap-1 mb-6 lg:hidden">
+            <div className="flex items-start justify-between gap-3 mb-6 lg:hidden">
+              <div className="flex flex-col items-start gap-1 min-w-0">
                 <div className="flex items-center gap-2.5">
                   <BrandLogo size="large" />
                   <span className="text-2xl font-bold text-foreground">SAJI</span>
                 </div>
                 <p className="text-xs text-muted-foreground">{t("authPage.tagline")}</p>
               </div>
-            </>
+              <AuthHeroIllustration />
+            </div>
           )}
 
           {step !== "success" && step !== "role" && (

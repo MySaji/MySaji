@@ -8,6 +8,8 @@ import { distanceKm } from "@/lib/google-maps"
 import { resolveJobCancellation } from "@/lib/job-cancellation"
 import { isWithinLateCancellationWindow } from "@/lib/cancellation-policy"
 import { logJobEvent } from "@/lib/actions/job-events"
+import { pushToUser } from "@/lib/actions/push"
+import { notifyUser } from "@/lib/actions/notify"
 
 const createBookingSchema = z.object({
   serviceId: z.string().trim().min(1),
@@ -75,6 +77,12 @@ export async function maybeRewardReferral(customerId: string) {
       },
     }),
   ])
+
+  await pushToUser(referral.referrerId, {
+    title: "Referral reward earned!",
+    body: `KES ${REFERRAL_REWARD_AMOUNT} was added to your wallet for referring a friend.`,
+    url: "/customer/referrals",
+  }, "promo")
 }
 
 /** Creates a Job as PENDING_PAYMENT — the single real booking-creation path
@@ -427,34 +435,32 @@ export async function cancelMyJob(input: unknown): Promise<JobActionResult> {
   const result = await resolveJobCancellation(job.id, { reason })
   if (!result.success) return result
 
-  await db.notification.create({
-    data: {
-      userId: result.customerId,
-      title: "Booking cancelled",
-      message: result.feeAmount > 0
-        ? `Your booking "${result.jobTitle}" was cancelled within 2 hours of the scheduled time, so a KES ${result.feeAmount.toLocaleString()} dispatch fee applies. KES ${result.refundAmount.toLocaleString()} has been refunded to your wallet.`
-        : result.refundAmount > 0
-          ? `Your booking "${result.jobTitle}" was cancelled and KES ${result.refundAmount.toLocaleString()} has been refunded to your wallet.`
-          : `Your booking "${result.jobTitle}" was cancelled.`,
-      type: "PAYMENT",
-      relatedType: "JOB",
-      relatedId: job.id,
-      actionUrl: "/customer/jobs",
-    },
+  const customerCancelMessage = result.feeAmount > 0
+    ? `Your booking "${result.jobTitle}" was cancelled within 2 hours of the scheduled time, so a KES ${result.feeAmount.toLocaleString()} dispatch fee applies. KES ${result.refundAmount.toLocaleString()} has been refunded to your wallet.`
+    : result.refundAmount > 0
+      ? `Your booking "${result.jobTitle}" was cancelled and KES ${result.refundAmount.toLocaleString()} has been refunded to your wallet.`
+      : `Your booking "${result.jobTitle}" was cancelled.`
+  await notifyUser({
+    userId: result.customerId,
+    title: "Booking cancelled",
+    message: customerCancelMessage,
+    type: "PAYMENT",
+    relatedType: "JOB",
+    relatedId: job.id,
+    actionUrl: "/customer/jobs",
   })
 
   if (result.providerUserId) {
-    await db.notification.create({
-      data: {
-        userId: result.providerUserId,
-        title: "Booking cancelled",
-        message: result.feeAmount > 0
-          ? `The customer cancelled "${result.jobTitle}" within 2 hours of the scheduled time. You've been paid a KES ${result.feeAmount.toLocaleString()} dispatch fee.`
-          : `The customer cancelled the booking "${result.jobTitle}".`,
-        type: "JOB",
-        relatedType: "JOB",
-        relatedId: job.id,
-      },
+    const providerCancelMessage = result.feeAmount > 0
+      ? `The customer cancelled "${result.jobTitle}" within 2 hours of the scheduled time. You've been paid a KES ${result.feeAmount.toLocaleString()} dispatch fee.`
+      : `The customer cancelled the booking "${result.jobTitle}".`
+    await notifyUser({
+      userId: result.providerUserId,
+      title: "Booking cancelled",
+      message: providerCancelMessage,
+      type: "JOB",
+      relatedType: "JOB",
+      relatedId: job.id,
     })
   }
 

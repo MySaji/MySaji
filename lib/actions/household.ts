@@ -6,6 +6,7 @@ import { auth } from "@/auth"
 import { db } from "@/lib/db"
 import { sendEmail } from "@/lib/email"
 import { wrapEmailLayout, emailButton, siteOrigin } from "@/lib/email-templates"
+import { notifyUser } from "@/lib/actions/notify"
 
 export type HouseholdRole = "OWNER" | "MEMBER" | "PROPERTY_MANAGER" | "PAYMENT_APPROVER"
 export type HouseholdActionResult = { success: true } | { success: false; error: string }
@@ -138,9 +139,7 @@ export async function inviteHouseholdMember(input: unknown): Promise<InviteHouse
     const inviter = await db.user.findUnique({ where: { id: session.user.id }, select: { name: true } })
     const existingUser = await db.user.findUnique({ where: { email: parsed.data.email } })
     if (existingUser) {
-      await db.notification.create({
-        data: { userId: existingUser.id, title: "Household invite", message: `${inviter?.name ?? "Someone"} invited you to join their household on Saji.`, type: "SYSTEM", actionUrl: "/customer/household" },
-      }).catch(() => {})
+      await notifyUser({ userId: existingUser.id, title: "Household invite", message: `${inviter?.name ?? "Someone"} invited you to join their household on Saji.`, type: "SYSTEM", actionUrl: "/customer/household" })
     }
 
     const html = wrapEmailLayout({

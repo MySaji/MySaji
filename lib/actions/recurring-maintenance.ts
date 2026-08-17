@@ -3,6 +3,7 @@
 import { z } from "zod"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
+import { notifyUser } from "@/lib/actions/notify"
 
 const createSchema = z.object({
   title: z.string().trim().min(1, "Give this schedule a name"),
@@ -85,9 +86,7 @@ export async function getMyRecurringMaintenance(): Promise<RecurringMaintenanceI
   const dueNow = schedules.filter((s) => s.nextDueAt <= now && !s.reminderSentAt)
   if (dueNow.length > 0) {
     await Promise.all(dueNow.map((s) =>
-      db.notification.create({
-        data: { userId: session.user!.id, title: "Maintenance may be due", message: `${s.title} may be due for service.`, type: "SYSTEM", actionUrl: "/customer/recurring-maintenance" },
-      }).catch(() => {})
+      notifyUser({ userId: session.user!.id, title: "Maintenance may be due", message: `${s.title} may be due for service.`, type: "SYSTEM", actionUrl: "/customer/recurring-maintenance" })
     ))
     await db.recurringMaintenance.updateMany({ where: { id: { in: dueNow.map((s) => s.id) } }, data: { reminderSentAt: now } })
   }

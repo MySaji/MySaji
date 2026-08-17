@@ -94,6 +94,9 @@ export async function createCustomerRequest(input: unknown): Promise<CreateReque
           actionUrl: "/provider/requests",
         })),
       })
+      await Promise.all(matchedProviders.map((p) =>
+        pushToUser(p.userId, { title: "New request in your category", body: `A customer needs help with: ${title}`, url: "/provider/requests" }, "job"),
+      ))
     }
   }
 

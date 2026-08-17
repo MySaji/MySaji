@@ -41,9 +41,9 @@ export default function PublicChatButton() {
           <button
             aria-label="Close chat"
             onClick={() => setIsOpen(false)}
-            className="fixed inset-0 z-40 cursor-default"
+            className="fixed inset-0 z-40 sm:z-[90] cursor-default"
           />
-          <div className="fixed inset-0 z-50 sm:inset-auto sm:bottom-24 sm:right-6 sm:h-[640px] sm:max-h-[85vh] sm:w-[380px] sm:overflow-hidden sm:rounded-2xl sm:border sm:border-border sm:shadow-2xl">
+          <div className="fixed inset-0 z-50 sm:z-[100] sm:inset-auto sm:bottom-24 sm:right-6 sm:h-[640px] sm:max-h-[85vh] sm:w-[380px] sm:overflow-hidden sm:rounded-2xl sm:border sm:border-border sm:shadow-2xl">
             <GuestChatbotWidget onClose={() => setIsOpen(false)} />
           </div>
         </>

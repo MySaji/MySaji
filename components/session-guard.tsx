@@ -5,7 +5,7 @@ import { signOut } from "next-auth/react"
 import { useAuthContext } from "@/lib/auth-context"
 import { SESSION_HEARTBEAT_KEY, clearSessionHeartbeat } from "@/lib/session-heartbeat"
 
-const INACTIVITY_TIMEOUT_MS = 10 * 60 * 1000
+const INACTIVITY_TIMEOUT_MS = 60 * 60 * 1000
 const HEARTBEAT_INTERVAL_MS = 15_000
 // A real page refresh re-mounts this component and re-writes the heartbeat
 // within milliseconds, so it never goes stale for that case — only a
@@ -17,7 +17,7 @@ const ACTIVITY_THROTTLE_MS = 2000
 /** Mounted once inside AuthProvider. Enforces two real, independent session
  * policies while a user is signed in — neither is decorative:
  *
- * 1. Inactivity: signs out after 10 minutes with zero real user interaction.
+ * 1. Inactivity: signs out after 1 hour with zero real user interaction.
  * 2. Abandoned-tab detection: browsers give JS no reliable "tab was closed"
  *    event distinct from "page was refreshed" (this is a hard platform
  *    limitation, not an oversight) — so this uses a shared localStorage

@@ -48,6 +48,9 @@ export function useAuth() {
       if (result?.code === "rate-limited") {
         return { success: false, error: "Too many login attempts for this account. Please wait a few minutes and try again." }
       }
+      if (result?.code === "transient-error") {
+        return { success: false, error: "We're having trouble reaching our servers right now. Please try again in a moment." }
+      }
       return { success: false, error: "Invalid email/phone or password" }
     }
     // Credentials sign-in itself just succeeded (the cookie is already set),

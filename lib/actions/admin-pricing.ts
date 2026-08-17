@@ -3,6 +3,7 @@
 import { z } from "zod"
 import { db } from "@/lib/db"
 import { requireAdmin, logAdminAction } from "@/lib/actions/admin-dashboard"
+import { pushToUser } from "@/lib/actions/push"
 
 export type AdminServiceRow = {
   id: string
@@ -159,6 +160,12 @@ export async function approveService(input: unknown): Promise<AdminServiceAction
     }),
   ])
 
+  await pushToUser(service.provider.userId, {
+    title: "Service listing approved",
+    body: `Your listing "${service.title}" is now live and visible to customers.`,
+    url: "/provider/services",
+  })
+
   await logAdminAction({
     userId: admin.userId,
     action: "service.approve",
@@ -201,6 +208,12 @@ export async function rejectService(input: unknown): Promise<AdminServiceActionR
       },
     }),
   ])
+
+  await pushToUser(service.provider.userId, {
+    title: "Service listing rejected",
+    body: `Your listing "${service.title}" was not approved: ${parsed.data.reason}`,
+    url: "/provider/services",
+  })
 
   await logAdminAction({
     userId: admin.userId,

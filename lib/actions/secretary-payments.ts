@@ -8,6 +8,7 @@ import { logAdminAction } from "@/lib/actions/admin-dashboard"
 import { confirmWalletTopup, failWalletTopup } from "@/lib/actions/wallet"
 import { createAndEmailReceipt } from "@/lib/actions/receipts"
 import { initiateB2CPayment } from "@/lib/actions/payments"
+import { pushToUser } from "@/lib/actions/push"
 import { mpesaB2CConfigured } from "@/lib/mpesa-config"
 import { decryptAccountNumber } from "@/lib/payment-method-crypto"
 import type { WithdrawalRequest } from "@prisma/client"
@@ -178,6 +179,12 @@ async function finalizeWithdrawal(withdrawal: WithdrawalRequest, externalRef: st
     }),
   ])
 
+  await pushToUser(withdrawal.userId, {
+    title: "Withdrawal completed",
+    body: `KES ${netAmount.toLocaleString()} has been paid out.`,
+    url: "/customer/wallet",
+  }, "payment")
+
   // Replaces the old plain-text confirmation email — the receipt (PDF
   // attached, verify link included) is a strict superset of it.
   const recipientDetails = withdrawal.recipientDetails as { label?: string } | null
@@ -261,6 +268,12 @@ async function refundWithdrawal(withdrawal: WithdrawalRequest, reason: string, s
       },
     }),
   ])
+
+  await pushToUser(withdrawal.userId, {
+    title: status === "FAILED" ? "Withdrawal failed" : "Withdrawal rejected",
+    body: `KES ${refundAmount.toLocaleString()} was returned to your wallet.`,
+    url: "/customer/wallet",
+  }, "payment")
 
   await db.auditLog.create({
     data: {

@@ -6,6 +6,7 @@ import { db } from "@/lib/db"
 import { requireShopkeeper } from "@/lib/actions/shopkeeper-dashboard"
 import { requireDistributor } from "@/lib/actions/distributor-dashboard"
 import { getEffectiveCommissionRate, splitByCommission } from "@/lib/commission"
+import { pushToUser } from "@/lib/actions/push"
 
 export type BuyerDistributorSummary = {
   id: string
@@ -317,6 +318,17 @@ export async function placeWholesaleOrder(input: unknown): Promise<WholesaleOrde
     return { success: false, error: "Something went wrong placing your order. Please try again." }
   }
 
+  await pushToUser(distributor.userId, {
+    title: "New wholesale order received",
+    body: `Order ${orderNumber} for KES ${total.toLocaleString()} has been placed by ${buyerProfile.shopName}.`,
+    url: "/distributor/orders",
+  }, "payment")
+  await pushToUser(shopkeeper.userId, {
+    title: "Wholesale order placed",
+    body: `Your order ${orderNumber} (KES ${total.toLocaleString()}) has been placed and is being prepared.`,
+    url: "/shopkeeper/wholesale-orders",
+  }, "payment")
+
   return { success: true, orderId: createdOrderId }
 }
 
@@ -466,6 +478,12 @@ export async function cancelMyWholesaleOrder(input: unknown): Promise<WholesaleO
     })
   }, { timeout: 20000, maxWait: 10000 })
 
+  await pushToUser(order.distributor.userId, {
+    title: "Wholesale order cancelled",
+    body: `Order ${order.orderNumber} was cancelled by the buyer.`,
+    url: "/distributor/orders",
+  }, "payment")
+
   return { success: true, orderId: order.id }
 }
 
@@ -588,6 +606,20 @@ export async function advanceWholesaleOrderStatus(input: unknown): Promise<Whole
       },
     })
   }, { timeout: 20000, maxWait: 10000 })
+
+  if (nextStatus === "DELIVERED" && order.items.some((it) => it.restockProductId)) {
+    const restockCount = order.items.filter((it) => it.restockProductId).length
+    await pushToUser(order.buyerShopkeeper.userId, {
+      title: "Stock auto-restocked",
+      body: `${restockCount} product(s) were restocked from wholesale order ${order.orderNumber}.`,
+      url: "/shopkeeper/products",
+    })
+  }
+  await pushToUser(order.buyerShopkeeper.userId, {
+    title: "Wholesale order update",
+    body: `Your order ${order.orderNumber} is now ${parsed.data.status}.`,
+    url: "/shopkeeper/wholesale-orders",
+  }, "payment")
 
   return { success: true, orderId: order.id }
 }

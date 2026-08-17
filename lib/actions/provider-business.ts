@@ -8,6 +8,7 @@ import { hashPassword } from "@/lib/password"
 import { sendEmail } from "@/lib/email"
 import { wrapEmailLayout, emailButton, siteOrigin } from "@/lib/email-templates"
 import { distanceKm } from "@/lib/google-maps"
+import { notifyUser } from "@/lib/actions/notify"
 import { BUSINESS_STAFF_MAX_CONCURRENT_JOBS } from "@/lib/job-limits"
 
 const STAFF_INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
@@ -429,30 +430,26 @@ export async function getBusinessDashboard(): Promise<BusinessDashboardResult> {
         const previousProviderId = job.providerId
         await db.job.update({ where: { id: job.id }, data: { providerId: nearest.providerId } })
         job.providerId = nearest.providerId
-        await db.notification.create({
-          data: {
-            userId: staff.find((s) => s.id === nearest!.providerId)?.userId ?? ownerUser.id,
-            title: "Job assigned to you",
-            message: `${job.title} was auto-assigned to you as the nearest available teammate.`,
+        await notifyUser({
+          userId: staff.find((s) => s.id === nearest!.providerId)?.userId ?? ownerUser.id,
+          title: "Job assigned to you",
+          message: `${job.title} was auto-assigned to you as the nearest available teammate.`,
+          type: "JOB",
+          relatedType: "JOB",
+          relatedId: job.id,
+          actionUrl: "/provider/jobs",
+        })
+        const previousUserId = staff.find((s) => s.id === previousProviderId)?.userId ?? (previousProviderId === business.id ? ownerUser.id : null)
+        if (previousUserId) {
+          await notifyUser({
+            userId: previousUserId,
+            title: "Job reassigned",
+            message: `${job.title} was reassigned to a nearer available teammate.`,
             type: "JOB",
             relatedType: "JOB",
             relatedId: job.id,
             actionUrl: "/provider/jobs",
-          },
-        }).catch(() => {})
-        const previousUserId = staff.find((s) => s.id === previousProviderId)?.userId ?? (previousProviderId === business.id ? ownerUser.id : null)
-        if (previousUserId) {
-          await db.notification.create({
-            data: {
-              userId: previousUserId,
-              title: "Job reassigned",
-              message: `${job.title} was reassigned to a nearer available teammate.`,
-              type: "JOB",
-              relatedType: "JOB",
-              relatedId: job.id,
-              actionUrl: "/provider/jobs",
-            },
-          }).catch(() => {})
+          })
         }
       }
     }
@@ -577,16 +574,14 @@ export async function reassignJob(input: unknown): Promise<ProviderBusinessActio
   }
 
   await db.job.update({ where: { id: jobId }, data: { providerId: target.id } })
-  await db.notification.create({
-    data: {
-      userId: target.userId,
-      title: "Job assigned to you",
-      message: `${job.title} has been assigned to you.`,
-      type: "JOB",
-      relatedType: "JOB",
-      relatedId: job.id,
-      actionUrl: "/provider/jobs",
-    },
+  await notifyUser({
+    userId: target.userId,
+    title: "Job assigned to you",
+    message: `${job.title} has been assigned to you.`,
+    type: "JOB",
+    relatedType: "JOB",
+    relatedId: job.id,
+    actionUrl: "/provider/jobs",
   })
 
   return { success: true }

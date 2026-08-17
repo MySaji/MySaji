@@ -4,6 +4,7 @@ import { z } from "zod"
 import { db } from "@/lib/db"
 import { requireSubAdmin } from "@/lib/actions/sub-admin-dashboard"
 import { logAdminAction } from "@/lib/actions/admin-dashboard"
+import { pushToUser } from "@/lib/actions/push"
 
 export type SubAdminDisputeStatus = "Open" | "In Review" | "Resolved" | "Escalated" | "Closed"
 
@@ -117,6 +118,14 @@ export async function resolveDisputeAsSubAdmin(input: unknown): Promise<SubAdmin
         type: "SYSTEM",
       },
     })
+  })
+
+  await pushToUser(dispute.customerId, {
+    title: "Dispute resolved",
+    body: refundAmount && refundAmount > 0
+      ? `Dispute ${dispute.disputeNumber} resolved — KES ${refundAmount.toLocaleString()} refunded.`
+      : `Dispute ${dispute.disputeNumber} has been resolved.`,
+    url: "/customer/disputes",
   })
 
   await logAdminAction({

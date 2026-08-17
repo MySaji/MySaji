@@ -3,6 +3,8 @@
 import { z } from "zod"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
+import { pushToUser } from "@/lib/actions/push"
+import { notifyUser } from "@/lib/actions/notify"
 import { maybeRewardReferralForProvider } from "@/lib/actions/referrals"
 import { providerHasOpenDispute } from "@/lib/actions/account-status"
 import { getEffectivePlatformPreferences } from "@/lib/actions/admin-settings"
@@ -137,6 +139,8 @@ export async function acceptJob(input: unknown): Promise<ProviderJobActionResult
     }),
   ])
 
+  await pushToUser(job.customerId, { title: "Booking accepted", body: `Your booking for ${job.title} has been accepted by the provider.`, url: "/customer/jobs" }, "job")
+
   await logJobEvent({ jobId: job.id, type: "JOB_ACCEPTED", actor: "PROVIDER", actorUserId: provider.userId, description: "Provider accepted the booking" })
 
   return { success: true }
@@ -167,6 +171,8 @@ export async function declineJob(input: unknown): Promise<ProviderJobActionResul
     }),
   ])
 
+  await pushToUser(job.customerId, { title: "Booking declined", body: `Your booking for ${job.title} was declined by the provider.`, url: "/customer/jobs" }, "job")
+
   await logJobEvent({ jobId: job.id, type: "JOB_DECLINED", actor: "PROVIDER", actorUserId: provider.userId, description: "Provider declined the booking" })
 
   return { success: true }
@@ -196,18 +202,17 @@ export async function reportNoShow(input: unknown): Promise<ProviderJobActionRes
   const result = await resolveJobCancellation(job.id, { reason: "NO_SHOW" })
   if (!result.success) return result
 
-  await db.notification.create({
-    data: {
-      userId: result.customerId,
-      title: "Marked as no-show",
-      message: result.feeAmount > 0
-        ? `Your provider reported you as a no-show for "${result.jobTitle}". A KES ${result.feeAmount.toLocaleString()} dispatch fee applies — KES ${result.refundAmount.toLocaleString()} has been refunded to your wallet.`
-        : `Your provider reported you as a no-show for "${result.jobTitle}".`,
-      type: "JOB",
-      relatedType: "JOB",
-      relatedId: job.id,
-      actionUrl: "/customer/jobs",
-    },
+  const noShowMessage = result.feeAmount > 0
+    ? `Your provider reported you as a no-show for "${result.jobTitle}". A KES ${result.feeAmount.toLocaleString()} dispatch fee applies — KES ${result.refundAmount.toLocaleString()} has been refunded to your wallet.`
+    : `Your provider reported you as a no-show for "${result.jobTitle}".`
+  await notifyUser({
+    userId: result.customerId,
+    title: "Marked as no-show",
+    message: noShowMessage,
+    type: "JOB",
+    relatedType: "JOB",
+    relatedId: job.id,
+    actionUrl: "/customer/jobs",
   })
 
   await logJobEvent({
@@ -300,6 +305,8 @@ export async function completeJob(input: unknown): Promise<ProviderJobActionResu
       },
     }),
   ])
+
+  await pushToUser(job.customerId, { title: "Job completed", body: `${job.title} has been marked complete. Please leave a review!`, url: "/customer/jobs" }, "job")
 
   await maybeRewardReferralForProvider(provider.userId)
   await awardLoyaltyPoints(job.customerId, Number(job.price), { referenceType: "JOB", referenceId: job.id })

@@ -3,6 +3,7 @@
 import { z } from "zod"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
+import { notifyUser } from "@/lib/actions/notify"
 
 async function requireProvider(): Promise<{ userId: string; providerId: string } | null> {
   const session = await auth()
@@ -151,16 +152,14 @@ export async function sendProviderInvoice(input: unknown): Promise<ProviderBilli
   await db.invoice.update({ where: { id: invoice.id }, data: { status: "SENT" } })
 
   if (invoice.customerId) {
-    await db.notification.create({
-      data: {
-        userId: invoice.customerId,
-        title: "New invoice",
-        message: `Invoice ${invoice.invoiceNumber} for KES ${Number(invoice.total).toLocaleString()} is ready.`,
-        type: "PAYMENT",
-        relatedType: "INVOICE",
-        relatedId: invoice.id,
-        actionUrl: "/customer/wallet",
-      },
+    await notifyUser({
+      userId: invoice.customerId,
+      title: "New invoice",
+      message: `Invoice ${invoice.invoiceNumber} for KES ${Number(invoice.total).toLocaleString()} is ready.`,
+      type: "PAYMENT",
+      relatedType: "INVOICE",
+      relatedId: invoice.id,
+      actionUrl: "/customer/wallet",
     })
   }
 
@@ -312,15 +311,13 @@ export async function sendProviderQuote(input: unknown): Promise<ProviderBilling
   await db.quote.update({ where: { id: quote.id }, data: { status: "SENT" } })
 
   if (quote.customerId) {
-    await db.notification.create({
-      data: {
-        userId: quote.customerId,
-        title: "New quote received",
-        message: `${quote.jobTitle}: KES ${Number(quote.amount).toLocaleString()}`,
-        type: "SYSTEM",
-        relatedType: "QUOTE",
-        relatedId: quote.id,
-      },
+    await notifyUser({
+      userId: quote.customerId,
+      title: "New quote received",
+      message: `${quote.jobTitle}: KES ${Number(quote.amount).toLocaleString()}`,
+      type: "SYSTEM",
+      relatedType: "QUOTE",
+      relatedId: quote.id,
     })
   }
 

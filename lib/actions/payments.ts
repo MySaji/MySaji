@@ -286,17 +286,21 @@ export async function confirmJobPayment(jobId: string) {
           url: "/provider/jobs",
         }, "job")
       }
-      await db.notification.create({
-        data: {
-          userId: job.customerId,
-          title: "Emergency request dispatched",
-          message: `${provider?.user.name ?? "A provider"} has been notified and will contact you shortly.`,
-          type: "JOB",
-          relatedType: "JOB",
-          relatedId: job.id,
-          actionUrl: "/customer/jobs",
-        },
-      }).catch(() => {})
+      {
+        const dispatchedMessage = `${provider?.user.name ?? "A provider"} has been notified and will contact you shortly.`
+        await db.notification.create({
+          data: {
+            userId: job.customerId,
+            title: "Emergency request dispatched",
+            message: dispatchedMessage,
+            type: "JOB",
+            relatedType: "JOB",
+            relatedId: job.id,
+            actionUrl: "/customer/jobs",
+          },
+        }).catch(() => {})
+        await pushToUser(job.customerId, { title: "Emergency request dispatched", body: dispatchedMessage, url: "/customer/jobs" }, "job")
+      }
     } else {
       await db.notification.create({
         data: {
@@ -309,6 +313,7 @@ export async function confirmJobPayment(jobId: string) {
           actionUrl: "/customer/jobs",
         },
       }).catch(() => {})
+      await pushToUser(job.customerId, { title: "Emergency request submitted", body: "Your payment was received. We'll notify you as soon as a provider accepts.", url: "/customer/jobs" }, "job")
     }
   } else {
     await db.notification.create({
@@ -322,6 +327,7 @@ export async function confirmJobPayment(jobId: string) {
         actionUrl: "/customer/jobs",
       },
     }).catch(() => {})
+    await pushToUser(job.customerId, { title: "Payment received", body: "Your payment was successful and your booking is confirmed.", url: "/customer/jobs" }, "payment")
 
     // Previously the assigned provider was never told a paid booking existed
     // at all — bell notification or push — until they happened to open the
@@ -382,17 +388,21 @@ export async function confirmJobPayment(jobId: string) {
 export async function failJobPayment(jobId: string, reason?: string) {
   const job = await db.job.findUnique({ where: { id: jobId } })
   if (!job || job.status !== "PENDING_PAYMENT") return
-  await db.notification.create({
-    data: {
-      userId: job.customerId,
-      title: "Payment failed",
-      message: reason ? `${reason} You can try again from your bookings.` : "Your payment could not be completed. You can try again from your bookings.",
-      type: "PAYMENT",
-      relatedType: "JOB",
-      relatedId: job.id,
-      actionUrl: "/customer/jobs",
-    },
-  }).catch(() => {})
+  {
+    const failMessage = reason ? `${reason} You can try again from your bookings.` : "Your payment could not be completed. You can try again from your bookings."
+    await db.notification.create({
+      data: {
+        userId: job.customerId,
+        title: "Payment failed",
+        message: failMessage,
+        type: "PAYMENT",
+        relatedType: "JOB",
+        relatedId: job.id,
+        actionUrl: "/customer/jobs",
+      },
+    }).catch(() => {})
+    await pushToUser(job.customerId, { title: "Payment failed", body: failMessage, url: "/customer/jobs" }, "payment")
+  }
 
   await logJobEvent({
     jobId: job.id, type: "PAYMENT_FAILED", actor: "SYSTEM",

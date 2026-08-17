@@ -3,6 +3,7 @@
 import { db } from "@/lib/db"
 import { requireSecretary } from "@/lib/actions/secretary-dashboard"
 import { logAdminAction } from "@/lib/actions/admin-dashboard"
+import { pushToUser } from "@/lib/actions/push"
 
 export type SecretaryInvoice = {
   id: string
@@ -108,6 +109,12 @@ export async function secretaryMarkInvoicePaid(invoiceId: string): Promise<Actio
       },
     }),
   ])
+
+  await pushToUser(provider.userId, {
+    title: "Invoice marked as paid",
+    body: `Invoice ${invoice.invoiceNumber} for KES ${amount.toLocaleString()} was recorded as paid.`,
+    url: "/provider/wallet",
+  }, "payment")
 
   await logAdminAction({
     userId: secretary.userId,
