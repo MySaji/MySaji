@@ -250,52 +250,52 @@ export default function ShopkeeperProductsPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-amber-600 to-orange-600 dark:from-amber-800 dark:to-orange-800 text-white p-6 lg:rounded-b-3xl">
+      <div className="bg-gradient-to-r from-amber-600 to-orange-600 dark:from-amber-800 dark:to-orange-800 text-white p-4 sm:p-6 lg:rounded-b-3xl overflow-hidden">
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-3xl font-bold">{t("shopkeeper.products.headerTitle")}</h1>
-              <p className="text-amber-100 text-sm">{t("shopkeeper.products.headerSubtitle")}</p>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+            <div className="min-w-0">
+              <h1 className="text-2xl sm:text-3xl font-bold truncate">{t("shopkeeper.products.headerTitle")}</h1>
+              <p className="text-amber-100 text-sm truncate">{t("shopkeeper.products.headerSubtitle")}</p>
             </div>
             <div className="flex gap-2">
-              <Button onClick={openBulkModal} variant="outline" className="bg-white/10 border-white/40 text-white hover:bg-white/20" disabled={categories.length === 0}>
-                <FileSpreadsheet className="w-4 h-4 mr-2" />
-                {t("shopkeeper.products.bulkImport")}
+              <Button onClick={openBulkModal} variant="outline" className="flex-1 sm:flex-none bg-white/10 border-white/40 text-white hover:bg-white/20" disabled={categories.length === 0}>
+                <FileSpreadsheet className="w-4 h-4 mr-2 flex-shrink-0" />
+                <span className="truncate">{t("shopkeeper.products.bulkImport")}</span>
               </Button>
-              <Button onClick={openAddModal} className="bg-white text-amber-700 hover:bg-amber-50" disabled={categories.length === 0}>
-                <Plus className="w-4 h-4 mr-2" />
-                {t("shopkeeper.products.addProduct")}
+              <Button onClick={openAddModal} className="flex-1 sm:flex-none bg-white text-amber-700 hover:bg-amber-50" disabled={categories.length === 0}>
+                <Plus className="w-4 h-4 mr-2 flex-shrink-0" />
+                <span className="truncate">{t("shopkeeper.products.addProduct")}</span>
               </Button>
             </div>
           </div>
 
           {/* Quick Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
-              <p className="text-3xl font-bold">{productsList.length}</p>
-              <p className="text-xs text-amber-100">{t("shopkeeper.products.statTotalProducts")}</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 sm:p-4 min-w-0">
+              <p className="text-2xl sm:text-3xl font-bold truncate">{productsList.length}</p>
+              <p className="text-xs text-amber-100 truncate">{t("shopkeeper.products.statTotalProducts")}</p>
             </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
-              <p className="text-3xl font-bold">{productsList.filter(p => p.status === "active").length}</p>
-              <p className="text-xs text-amber-100">{t("shopkeeper.products.statActive")}</p>
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 sm:p-4 min-w-0">
+              <p className="text-2xl sm:text-3xl font-bold truncate">{productsList.filter(p => p.status === "active").length}</p>
+              <p className="text-xs text-amber-100 truncate">{t("shopkeeper.products.statActive")}</p>
             </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
-              <p className="text-3xl font-bold">{productsList.filter(p => p.status === "low_stock" || p.status === "out_of_stock").length}</p>
-              <p className="text-xs text-amber-100">{t("shopkeeper.products.statLowStock")}</p>
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 sm:p-4 min-w-0">
+              <p className="text-2xl sm:text-3xl font-bold truncate">{productsList.filter(p => p.status === "low_stock" || p.status === "out_of_stock").length}</p>
+              <p className="text-xs text-amber-100 truncate">{t("shopkeeper.products.statLowStock")}</p>
             </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
-              <p className="text-3xl font-bold">{productsList.reduce((acc, p) => acc + p.sold, 0)}</p>
-              <p className="text-xs text-amber-100">{t("shopkeeper.products.statTotalSold")}</p>
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 sm:p-4 min-w-0">
+              <p className="text-2xl sm:text-3xl font-bold truncate">{productsList.reduce((acc, p) => acc + p.sold, 0)}</p>
+              <p className="text-xs text-amber-100 truncate">{t("shopkeeper.products.statTotalSold")}</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 -mt-4">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 -mt-4 overflow-x-hidden">
         {/* Filters */}
-        <Card className="p-4 mb-6 shadow-lg border-0">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1 relative">
+        <Card className="p-3 sm:p-4 mb-4 sm:mb-6 shadow-lg border-0">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+            <div className="flex-1 relative min-w-0">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder={t("shopkeeper.products.searchPlaceholder")}
@@ -308,12 +308,12 @@ export default function ShopkeeperProductsPage() {
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="px-3 py-2 bg-background border border-input rounded-md text-sm"
+                className="flex-1 sm:flex-none min-w-0 px-3 py-2 bg-background border border-input rounded-md text-sm"
               >
                 <option value="all">{t("shopkeeper.products.allCategories")}</option>
                 {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
               </select>
-              <div className="flex border border-input rounded-md overflow-hidden">
+              <div className="flex border border-input rounded-md overflow-hidden flex-shrink-0">
                 <button
                   onClick={() => setViewMode("grid")}
                   aria-label={t("shopkeeper.products.gridViewLabel")}
@@ -341,7 +341,7 @@ export default function ShopkeeperProductsPage() {
             <p className="text-gray-600 dark:text-gray-400">{t("shopkeeper.products.noProductsFound")}</p>
           </div>
         ) : viewMode === "grid" ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
             {filteredProducts.map((product) => (
               <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-all border-0">
                 <div className="relative overflow-hidden bg-gray-200 dark:bg-gray-700 aspect-square">
@@ -397,29 +397,29 @@ export default function ShopkeeperProductsPage() {
         ) : (
           <div className="space-y-3">
             {filteredProducts.map((product) => (
-              <Card key={product.id} className="p-4 hover:shadow-lg transition-all border-0">
-                <div className="flex gap-4">
-                  <div className="relative w-24 h-24 flex-shrink-0 overflow-hidden rounded-lg bg-gray-200">
+              <Card key={product.id} className="p-3 sm:p-4 hover:shadow-lg transition-all border-0 overflow-hidden">
+                <div className="flex gap-3 sm:gap-4">
+                  <div className="relative w-16 h-16 sm:w-24 sm:h-24 flex-shrink-0 overflow-hidden rounded-lg bg-gray-200">
                     <Image src={product.images[0] || "/placeholder.svg"} alt={product.name} fill className="object-cover" />
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <h3 className="font-semibold text-gray-900 dark:text-white">{product.name}</h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">{product.description}</p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="min-w-0">
+                        <h3 className="font-semibold text-gray-900 dark:text-white truncate">{product.name}</h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-1 sm:line-clamp-2">{product.description}</p>
                       </div>
-                      <div className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(product.status)}`}>
+                      <div className={`flex-shrink-0 px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-semibold whitespace-nowrap ${getStatusBadge(product.status)}`}>
                         {getStatusText(product.status)}
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-4 text-sm mb-3">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs sm:text-sm mb-3">
                       <span className="font-bold text-amber-600">{formatMoney(product.price)}</span>
-                      <span className="text-gray-600 dark:text-gray-400">{t("shopkeeper.products.stockLabel", { count: product.stock })}</span>
-                      <span className="text-gray-600 dark:text-gray-400">{t("shopkeeper.products.soldCountLabel", { count: product.sold })}</span>
+                      <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap">{t("shopkeeper.products.stockLabel", { count: product.stock })}</span>
+                      <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap">{t("shopkeeper.products.soldCountLabel", { count: product.sold })}</span>
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <Button size="sm" variant="outline" onClick={() => handleEditProduct(product)} className="bg-transparent">
                         <Edit className="w-3 h-3 mr-1" />
                         {t("shopkeeper.products.editButton")}

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { Send, X, AlertCircle, Loader2, Sparkles, PhoneCall, MessageSquare, Headset, RotateCcw, History as HistoryIcon, ArrowLeft, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { LogoMark } from "@/components/logo"
 import { useAuthContext } from "@/lib/auth-context"
 import {
   getMyChatbotConversation, sendChatbotMessage, escalateChatbotConversation, endChatbotConversation,
@@ -239,8 +240,8 @@ export function ChatbotWidget({ onClose }: { onClose: () => void }) {
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-4 shadow-lg flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
-              {status === "ESCALATED" && assignedStaffName ? <Headset className="h-5 w-5" /> : <Sparkles className="w-5 h-5" />}
+            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+              {status === "ESCALATED" && assignedStaffName ? <Headset className="h-5 w-5" /> : <LogoMark size={40} className="w-full h-full object-cover" />}
             </div>
             <div className="min-w-0">
               <h1 className="text-base font-bold truncate">
@@ -398,8 +399,8 @@ export function ChatbotWidget({ onClose }: { onClose: () => void }) {
               return (
                 <div key={message.id} className={`flex gap-2.5 ${isMine ? "justify-end" : "justify-start"}`}>
                   {!isMine && (
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${isStaff ? "bg-gradient-to-br from-emerald-500 to-emerald-600" : "bg-gradient-to-br from-blue-500 to-blue-600"}`}>
-                      {isStaff ? <Headset className="w-4 h-4 text-white" /> : <Sparkles className="w-4 h-4 text-white" />}
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden ${isStaff ? "bg-gradient-to-br from-emerald-500 to-emerald-600" : ""}`}>
+                      {isStaff ? <Headset className="w-4 h-4 text-white" /> : <LogoMark size={32} className="w-full h-full object-cover" />}
                     </div>
                   )}
                   <div
@@ -430,8 +431,8 @@ export function ChatbotWidget({ onClose }: { onClose: () => void }) {
 
             {isSending && (
               <div className="flex gap-2.5 justify-start">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0">
-                  <Sparkles className="w-4 h-4 text-white" />
+                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                  <LogoMark size={32} className="w-full h-full object-cover" />
                 </div>
                 <div className="bg-gray-100 dark:bg-gray-700 px-4 py-3 rounded-lg rounded-tl-none flex gap-2">
                   <Loader2 className="w-4 h-4 animate-spin text-blue-600" />

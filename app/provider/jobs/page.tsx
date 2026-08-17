@@ -319,33 +319,35 @@ export default function ProviderJobsPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-800 dark:to-blue-900 text-white p-6 lg:rounded-b-3xl">
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-800 dark:to-blue-900 text-white p-4 sm:p-6 lg:rounded-b-3xl overflow-hidden">
         <div className="max-w-4xl mx-auto">
           <div className="flex items-start justify-between gap-3 mb-2">
-            <div>
-              <h1 className="text-2xl font-bold">{t("nav.myJobs")}</h1>
-              <p className="text-blue-100 text-sm">{t("provider.jobs.subtitle")}</p>
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold truncate">{t("nav.myJobs")}</h1>
+              <p className="text-blue-100 text-sm truncate">{t("provider.jobs.subtitle")}</p>
             </div>
-            <ProviderOnlineToggle />
+            <div className="flex-shrink-0">
+              <ProviderOnlineToggle />
+            </div>
           </div>
 
           {/* Stats Row */}
-          <div className="grid grid-cols-4 gap-3 mt-6">
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 text-center">
-              <p className="text-2xl font-bold">{stats.activeCount}</p>
-              <p className="text-xs text-blue-100">{t("provider.jobs.statActive")}</p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mt-4 sm:mt-6">
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-2.5 sm:p-3 text-center min-w-0">
+              <p className="text-lg sm:text-2xl font-bold truncate">{stats.activeCount}</p>
+              <p className="text-xs text-blue-100 truncate">{t("provider.jobs.statActive")}</p>
             </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 text-center">
-              <p className="text-2xl font-bold">{stats.pendingCount}</p>
-              <p className="text-xs text-blue-100">{t("provider.jobs.statPending")}</p>
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-2.5 sm:p-3 text-center min-w-0">
+              <p className="text-lg sm:text-2xl font-bold truncate">{stats.pendingCount}</p>
+              <p className="text-xs text-blue-100 truncate">{t("provider.jobs.statPending")}</p>
             </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 text-center">
-              <p className="text-2xl font-bold">{stats.completedCount}</p>
-              <p className="text-xs text-blue-100">{t("provider.jobs.statDone")}</p>
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-2.5 sm:p-3 text-center min-w-0">
+              <p className="text-lg sm:text-2xl font-bold truncate">{stats.completedCount}</p>
+              <p className="text-xs text-blue-100 truncate">{t("provider.jobs.statDone")}</p>
             </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 text-center">
-              <p className="text-2xl font-bold">{formatMoney(stats.totalEarned)}</p>
-              <p className="text-xs text-blue-100">{t("provider.jobs.statEarned")}</p>
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-2.5 sm:p-3 text-center min-w-0">
+              <p className="text-lg sm:text-2xl font-bold truncate">{formatMoney(stats.totalEarned)}</p>
+              <p className="text-xs text-blue-100 truncate">{t("provider.jobs.statEarned")}</p>
             </div>
           </div>
         </div>
@@ -504,9 +506,9 @@ export default function ProviderJobsPage() {
                       </div>
                     )}
 
-                    <div className="flex items-center justify-between">
-                      <p className="text-lg font-bold text-gray-900 dark:text-white">{formatMoney(job.price)}</p>
-                      <div className="flex items-center gap-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <p className="text-lg font-bold text-gray-900 dark:text-white flex-shrink-0">{formatMoney(job.price)}</p>
+                      <div className="flex items-center flex-wrap gap-2">
                         {activeTab === "active" && (
                           <>
                             <Button size="sm" variant="outline" className="h-8 bg-transparent" onClick={() => handleCallClient(job.clientPhone)} disabled={!job.clientPhone}>

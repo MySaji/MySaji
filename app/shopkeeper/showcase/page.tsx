@@ -120,14 +120,79 @@ export default function ShopShowcasePage() {
       {/* Content */}
       <div className="p-4 max-w-2xl mx-auto lg:max-w-4xl space-y-6 py-6">
         <p className="text-sm text-muted-foreground">{t("shopkeeper.showcase.subtitle")}</p>
-        {items.length === 0 ? (
+
+        {/* Add/Edit form — inline within the page, not a popup */}
+        {showUpload && (
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-orange-200 dark:border-orange-900/40 shadow-sm p-4 sm:p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{editingItem ? t("shopkeeper.showcase.editWorkTitle") : t("shopkeeper.showcase.addNewWorkTitle")}</h2>
+              <button onClick={() => setShowUpload(false)} aria-label={t("common.close")} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full flex-shrink-0">
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {!editingItem && (
+                <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center">
+                  {newImage ? (
+                    <img src={newImage} alt="preview" className="w-full h-40 object-cover rounded-lg mb-3" />
+                  ) : (
+                    <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                  )}
+                  <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">{newImage ? t("shopkeeper.showcase.imageSelected") : t("shopkeeper.showcase.chooseImage")}</p>
+                  {!newImage && <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">{t("shopkeeper.showcase.clickToUpload")}</p>}
+                  <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+                  <Button size="sm" variant="outline" onClick={() => fileInputRef.current?.click()} className="bg-transparent">{newImage ? t("shopkeeper.showcase.chooseDifferentImage") : t("shopkeeper.showcase.chooseFiles")}</Button>
+                </div>
+              )}
+
+              {!editingItem && (
+                <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-2 min-w-0">
+                      <Video className="w-4 h-4 flex-shrink-0" /><span className="truncate">{newVideo ? t("shopkeeper.showcase.videoAttached") : t("shopkeeper.showcase.addVideoOptional")}</span>
+                    </p>
+                    {newVideo ? (
+                      <button onClick={() => setNewVideo("")} aria-label={t("shopkeeper.showcase.removeVideoLabel")} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex-shrink-0"><X className="w-4 h-4 text-gray-500" /></button>
+                    ) : (
+                      <Button size="sm" variant="outline" onClick={() => videoInputRef.current?.click()} className="bg-transparent flex-shrink-0">{t("shopkeeper.showcase.chooseVideo")}</Button>
+                    )}
+                  </div>
+                  <input ref={videoInputRef} type="file" accept="video/*" className="hidden" onChange={handleVideoChange} />
+                  {newVideo && <video src={newVideo} controls className="w-full h-32 object-cover rounded-lg mt-3" />}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("shopkeeper.showcase.projectTitleLabel")}</label>
+                <Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder={t("shopkeeper.showcase.projectTitlePlaceholder")} />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("shopkeeper.showcase.descriptionLabel")}</label>
+                <textarea value={newDescription} onChange={(e) => setNewDescription(e.target.value)} placeholder={t("shopkeeper.showcase.descriptionPlaceholder")} rows={4} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20" />
+              </div>
+
+              {formError && <p className="text-sm text-red-600">{formError}</p>}
+
+              <div className="flex gap-3 pt-2">
+                <Button variant="outline" onClick={() => setShowUpload(false)} className="flex-1 bg-transparent" disabled={isSaving}>{t("common.cancel")}</Button>
+                <Button onClick={handleSaveWork} className="flex-1 bg-orange-600 hover:bg-orange-700" disabled={isSaving || !newTitle.trim() || (!editingItem && !newImage)}>
+                  {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Check className="w-4 h-4 mr-2" />{editingItem ? t("shopkeeper.showcase.updateButton") : t("shopkeeper.showcase.uploadButton")}</>}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {items.length === 0 && !showUpload ? (
           <div className="text-center py-12">
             <Upload className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
             <p className="text-gray-900 dark:text-white font-medium mb-2">{t("shopkeeper.showcase.noWorkTitle")}</p>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">{t("shopkeeper.showcase.noWorkDesc")}</p>
             <Button onClick={handleAddWork} className="bg-orange-600 hover:bg-orange-700"><Upload className="w-4 h-4 mr-2" />{t("shopkeeper.showcase.addFirstWork")}</Button>
           </div>
-        ) : (
+        ) : items.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {items.map((item) => (
               <div key={item.id} className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-gray-200 dark:border-gray-700">
@@ -156,66 +221,8 @@ export default function ShopShowcasePage() {
               </div>
             ))}
           </div>
-        )}
+        ) : null}
       </div>
-
-      {/* Upload/Edit Modal */}
-      <Dialog open={showUpload} onOpenChange={setShowUpload}>
-        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>{editingItem ? t("shopkeeper.showcase.editWorkTitle") : t("shopkeeper.showcase.addNewWorkTitle")}</DialogTitle></DialogHeader>
-          <div className="space-y-4 py-4">
-            {!editingItem && (
-              <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center">
-                {newImage ? (
-                  <img src={newImage} alt="preview" className="w-full h-40 object-cover rounded-lg mb-3" />
-                ) : (
-                  <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                )}
-                <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">{newImage ? t("shopkeeper.showcase.imageSelected") : t("shopkeeper.showcase.chooseImage")}</p>
-                {!newImage && <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">{t("shopkeeper.showcase.clickToUpload")}</p>}
-                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
-                <Button size="sm" variant="outline" onClick={() => fileInputRef.current?.click()} className="bg-transparent">{newImage ? t("shopkeeper.showcase.chooseDifferentImage") : t("shopkeeper.showcase.chooseFiles")}</Button>
-              </div>
-            )}
-
-            {!editingItem && (
-              <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-2">
-                    <Video className="w-4 h-4" />{newVideo ? t("shopkeeper.showcase.videoAttached") : t("shopkeeper.showcase.addVideoOptional")}
-                  </p>
-                  {newVideo ? (
-                    <button onClick={() => setNewVideo("")} aria-label={t("shopkeeper.showcase.removeVideoLabel")} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"><X className="w-4 h-4 text-gray-500" /></button>
-                  ) : (
-                    <Button size="sm" variant="outline" onClick={() => videoInputRef.current?.click()} className="bg-transparent">{t("shopkeeper.showcase.chooseVideo")}</Button>
-                  )}
-                </div>
-                <input ref={videoInputRef} type="file" accept="video/*" className="hidden" onChange={handleVideoChange} />
-                {newVideo && <video src={newVideo} controls className="w-full h-32 object-cover rounded-lg mt-3" />}
-              </div>
-            )}
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("shopkeeper.showcase.projectTitleLabel")}</label>
-              <Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder={t("shopkeeper.showcase.projectTitlePlaceholder")} />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("shopkeeper.showcase.descriptionLabel")}</label>
-              <textarea value={newDescription} onChange={(e) => setNewDescription(e.target.value)} placeholder={t("shopkeeper.showcase.descriptionPlaceholder")} rows={4} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20" />
-            </div>
-
-            {formError && <p className="text-sm text-red-600">{formError}</p>}
-
-            <div className="flex gap-3 pt-4">
-              <Button variant="outline" onClick={() => setShowUpload(false)} className="flex-1 bg-transparent" disabled={isSaving}>{t("common.cancel")}</Button>
-              <Button onClick={handleSaveWork} className="flex-1 bg-orange-600 hover:bg-orange-700" disabled={isSaving || !newTitle.trim() || (!editingItem && !newImage)}>
-                {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Check className="w-4 h-4 mr-2" />{editingItem ? t("shopkeeper.showcase.updateButton") : t("shopkeeper.showcase.uploadButton")}</>}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Preview Modal */}
       <Dialog open={showPreview} onOpenChange={setShowPreview}>

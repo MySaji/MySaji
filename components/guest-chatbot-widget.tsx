@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
-import { Send, X, Loader2, Sparkles, LogIn } from "lucide-react"
+import { Send, X, Loader2, LogIn } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { LogoMark } from "@/components/logo"
 import { sendGuestChatbotMessage } from "@/lib/actions/guest-chatbot"
 
 type GuestMessage = { id: string; role: "user" | "assistant"; content: string }
@@ -61,8 +62,8 @@ export function GuestChatbotWidget({ onClose }: { onClose: () => void }) {
       <div className="flex-shrink-0 bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-4 text-white shadow-lg">
         <div className="flex items-center justify-between">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-white/20">
-              <Sparkles className="h-5 w-5" />
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/20">
+              <LogoMark size={40} className="h-full w-full object-cover" />
             </div>
             <div className="min-w-0">
               <h1 className="truncate text-base font-bold">SAJI Assistant</h1>
@@ -82,8 +83,8 @@ export function GuestChatbotWidget({ onClose }: { onClose: () => void }) {
           return (
             <div key={message.id} className={`flex gap-2.5 ${isMine ? "justify-end" : "justify-start"}`}>
               {!isMine && (
-                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-600">
-                  <Sparkles className="h-4 w-4 text-white" />
+                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-full">
+                  <LogoMark size={32} className="h-full w-full object-cover" />
                 </div>
               )}
               <div className={`max-w-[78%] rounded-lg px-4 py-3 ${isMine ? "rounded-bl-none bg-blue-600 text-white" : "rounded-tl-none bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white"}`}>
@@ -95,8 +96,8 @@ export function GuestChatbotWidget({ onClose }: { onClose: () => void }) {
 
         {isSending && (
           <div className="flex justify-start gap-2.5">
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-600">
-              <Sparkles className="h-4 w-4 text-white" />
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-full">
+              <LogoMark size={32} className="h-full w-full object-cover" />
             </div>
             <div className="flex gap-2 rounded-lg rounded-tl-none bg-gray-100 px-4 py-3 dark:bg-gray-700">
               <Loader2 className="h-4 w-4 animate-spin text-blue-600" />

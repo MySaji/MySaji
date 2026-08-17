@@ -172,21 +172,21 @@ export default function ShopkeeperOrdersPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-amber-600 to-orange-600 dark:from-amber-800 dark:to-orange-800 text-white p-6 lg:rounded-b-3xl">
+      <div className="bg-gradient-to-r from-amber-600 to-orange-600 dark:from-amber-800 dark:to-orange-800 text-white p-4 sm:p-6 lg:rounded-b-3xl overflow-hidden">
         <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl font-bold mb-4">{t("shopkeeper.orders.title")}</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold mb-4 truncate">{t("shopkeeper.orders.title")}</h1>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
             {orderStats.map((stat, idx) => {
               const Icon = stat.icon
               return (
-                <div key={idx} className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-amber-100">{stat.label}</p>
-                      <p className="text-2xl font-bold">{stat.value}</p>
+                <div key={idx} className="bg-white/10 backdrop-blur-sm rounded-xl p-3 sm:p-4 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-xs text-amber-100 truncate">{stat.label}</p>
+                      <p className="text-lg sm:text-2xl font-bold truncate">{stat.value}</p>
                     </div>
-                    <Icon className="w-6 h-6 text-amber-200 opacity-60" />
+                    <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-amber-200 opacity-60 flex-shrink-0" />
                   </div>
                 </div>
               )
@@ -195,9 +195,9 @@ export default function ShopkeeperOrdersPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 -mt-4">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 -mt-4 overflow-x-hidden">
         {/* Search */}
-        <Card className="p-4 mb-6 shadow-lg border-0">
+        <Card className="p-3 sm:p-4 mb-4 sm:mb-6 shadow-lg border-0">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
@@ -253,18 +253,18 @@ export default function ShopkeeperOrdersPage() {
               returnRequests.map((req) => {
                 const isBusy = busyOrderId === req.id
                 return (
-                  <Card key={req.id} className="p-4 border-0 shadow-sm">
+                  <Card key={req.id} className="p-3 sm:p-4 border-0 shadow-sm overflow-hidden">
                     <div className="flex items-start justify-between gap-3 mb-2">
-                      <div>
-                        <p className="font-bold text-gray-900 dark:text-white">{req.orderNumber}</p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">{req.customerName}</p>
+                      <div className="min-w-0">
+                        <p className="font-bold text-gray-900 dark:text-white truncate">{req.orderNumber}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 truncate">{req.customerName}</p>
                       </div>
-                      <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                      <span className="flex-shrink-0 px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
                         {req.status === "OPEN" ? t("shopkeeper.orders.returnStatusOpen") : t("shopkeeper.orders.returnStatusInReview")}
                       </span>
                     </div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">{req.reason}</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{req.description}</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white break-words">{req.reason}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 break-words">{req.description}</p>
                     {req.photos.length > 0 && (
                       <div className="mt-3">
                         <KycDocumentViewer documents={req.photos.map((url, i) => ({ label: `${t("customer.orderDetail.addPhoto")} ${i + 1}`, url })) satisfies KycDocumentItem[]} />
@@ -312,14 +312,14 @@ export default function ShopkeeperOrdersPage() {
               return (
                 <Card
                   key={order.id}
-                  className="p-4 hover:shadow-lg transition-all border-0 cursor-pointer"
+                  className="p-3 sm:p-4 hover:shadow-lg transition-all border-0 cursor-pointer overflow-hidden"
                   onClick={() => {
                     setSelectedOrder(order)
                     setShowOrderDetails(true)
                   }}
                 >
-                  <div className="flex items-start gap-4">
-                    <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0 relative">
+                  <div className="flex items-start gap-3 sm:gap-4">
+                    <div className="w-14 h-14 sm:w-20 sm:h-20 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0 relative">
                       <Image
                         src={firstItem?.image || "/placeholder.svg"}
                         alt={firstItem?.productName ?? t("shopkeeper.orders.orderFallback")}
@@ -328,52 +328,52 @@ export default function ShopkeeperOrdersPage() {
                       />
                     </div>
 
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <p className="font-bold text-gray-900 dark:text-white">{order.orderNumber}</p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="min-w-0">
+                          <p className="font-bold text-gray-900 dark:text-white truncate">{order.orderNumber}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
                             {firstItem?.productName ?? t("shopkeeper.orders.orderFallback")}{extraCount > 0 ? ` ${t("shopkeeper.orders.moreItemsSuffix", { count: extraCount })}` : ""}
                           </p>
                         </div>
-                        <div className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 border ${getStatusColor(order.status)}`}>
+                        <div className={`flex-shrink-0 px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-semibold flex items-center gap-1 border whitespace-nowrap ${getStatusColor(order.status)}`}>
                           {getStatusIcon(order.status)}
                           {getStatusLabel(order.status)}
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-3">
-                        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-x-3 gap-y-1.5 sm:gap-4 text-xs sm:text-sm mb-3">
+                        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 min-w-0">
                           <Image
                             src={order.customerAvatar || "/placeholder.svg"}
                             alt={order.customerName}
                             width={24}
                             height={24}
-                            className="w-6 h-6 rounded-full object-cover"
+                            className="w-6 h-6 rounded-full object-cover flex-shrink-0"
                           />
-                          <span>{order.customerName}</span>
+                          <span className="truncate">{order.customerName}</span>
                         </div>
-                        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                          <Phone className="w-4 h-4" />
-                          <span>{order.customerPhone ?? t("shopkeeper.orders.naText")}</span>
+                        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 min-w-0">
+                          <Phone className="w-4 h-4 flex-shrink-0" />
+                          <span className="truncate">{order.customerPhone ?? t("shopkeeper.orders.naText")}</span>
                         </div>
-                        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                          <MapPin className="w-4 h-4" />
+                        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 min-w-0">
+                          <MapPin className="w-4 h-4 flex-shrink-0" />
                           <span className="truncate">{order.location}</span>
                         </div>
-                        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                          <Calendar className="w-4 h-4" />
-                          <span>{formatDate(order.createdAt)}</span>
+                        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 min-w-0">
+                          <Calendar className="w-4 h-4 flex-shrink-0" />
+                          <span className="truncate">{formatDate(order.createdAt)}</span>
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-gray-700">
-                        <div>
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-gray-200 dark:border-gray-700">
+                        <div className="min-w-0">
                           <p className="text-sm text-gray-600 dark:text-gray-400">{t("shopkeeper.orders.amountLabel")}</p>
-                          <p className="text-2xl font-bold text-amber-600">{formatMoney(order.amount)}</p>
+                          <p className="text-lg sm:text-2xl font-bold text-amber-600 truncate">{formatMoney(order.amount)}</p>
                         </div>
 
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 flex-shrink-0">
                           <Button
                             size="sm"
                             variant="outline"
@@ -459,22 +459,22 @@ export default function ShopkeeperOrdersPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg min-w-0">
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">{t("common.customer")}</p>
-                  <p className="font-semibold text-gray-900 dark:text-white">{selectedOrder.customerName}</p>
+                  <p className="font-semibold text-gray-900 dark:text-white break-words">{selectedOrder.customerName}</p>
                 </div>
-                <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                <div className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg min-w-0">
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">{t("shopkeeper.orders.phoneLabel")}</p>
-                  <p className="font-semibold text-gray-900 dark:text-white">{selectedOrder.customerPhone ?? t("shopkeeper.orders.naText")}</p>
+                  <p className="font-semibold text-gray-900 dark:text-white break-words">{selectedOrder.customerPhone ?? t("shopkeeper.orders.naText")}</p>
                 </div>
-                <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                <div className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg min-w-0">
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">{t("shopkeeper.orders.emailLabel")}</p>
-                  <p className="font-semibold text-gray-900 dark:text-white">{selectedOrder.customerEmail}</p>
+                  <p className="font-semibold text-gray-900 dark:text-white break-all">{selectedOrder.customerEmail}</p>
                 </div>
-                <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                <div className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg min-w-0">
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">{t("shopkeeper.orders.paymentMethodLabel")}</p>
-                  <p className="font-semibold text-gray-900 dark:text-white">{selectedOrder.paymentMethod}</p>
+                  <p className="font-semibold text-gray-900 dark:text-white break-words">{selectedOrder.paymentMethod}</p>
                 </div>
               </div>
 
@@ -489,15 +489,15 @@ export default function ShopkeeperOrdersPage() {
                 <h3 className="font-semibold mb-3 text-gray-900 dark:text-white">{t("shopkeeper.orders.itemsLabel")}</h3>
                 <div className="space-y-3">
                   {selectedOrder.items.map((item) => (
-                    <div key={item.id} className="flex gap-4">
+                    <div key={item.id} className="flex items-center gap-3 sm:gap-4">
                       <div className="relative w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-200">
                         <Image src={item.image || "/placeholder.svg"} alt={item.productName} fill className="object-cover" />
                       </div>
-                      <div className="flex-1">
-                        <p className="font-semibold text-gray-900 dark:text-white">{item.productName}</p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">{t("shopkeeper.orders.quantityAtPrice", { qty: item.quantity, price: formatMoney(item.unitPrice) })}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-gray-900 dark:text-white truncate">{item.productName}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 truncate">{t("shopkeeper.orders.quantityAtPrice", { qty: item.quantity, price: formatMoney(item.unitPrice) })}</p>
                       </div>
-                      <p className="font-bold text-amber-600">{formatMoney(item.totalPrice)}</p>
+                      <p className="font-bold text-amber-600 flex-shrink-0">{formatMoney(item.totalPrice)}</p>
                     </div>
                   ))}
                 </div>
