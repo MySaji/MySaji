@@ -58,24 +58,24 @@ export default function ClientsPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Card className="p-3 border border-border rounded-xl text-center">
+        <Card className="p-3 border border-border rounded-xl text-center min-w-0">
           <Users className="w-4 h-4 text-primary mx-auto mb-1" />
-          <p className="text-xl font-bold text-foreground">{clients.length}</p>
+          <p className="text-lg sm:text-xl font-bold text-foreground truncate">{clients.length}</p>
           <p className="text-[10px] text-muted-foreground">{t("provider.clients.statTotalClients")}</p>
         </Card>
-        <Card className="p-3 border border-border rounded-xl text-center">
+        <Card className="p-3 border border-border rounded-xl text-center min-w-0">
           <RefreshCw className="w-4 h-4 text-accent mx-auto mb-1" />
-          <p className="text-xl font-bold text-foreground">{clients.filter(c => c.totalJobs >= 3).length}</p>
+          <p className="text-lg sm:text-xl font-bold text-foreground truncate">{clients.filter(c => c.totalJobs >= 3).length}</p>
           <p className="text-[10px] text-muted-foreground">{t("provider.clients.statRepeatClients")}</p>
         </Card>
-        <Card className="p-3 border border-border rounded-xl text-center">
+        <Card className="p-3 border border-border rounded-xl text-center min-w-0">
           <DollarSign className="w-4 h-4 text-emerald-500 mx-auto mb-1" />
-          <p className="text-xl font-bold text-foreground">{formatMoney(clients.reduce((a, c) => a + c.totalSpent, 0))}</p>
+          <p className="text-lg sm:text-xl font-bold text-foreground truncate">{formatMoney(clients.reduce((a, c) => a + c.totalSpent, 0))}</p>
           <p className="text-[10px] text-muted-foreground">{t("provider.clients.statTotalRevenue")}</p>
         </Card>
-        <Card className="p-3 border border-border rounded-xl text-center">
+        <Card className="p-3 border border-border rounded-xl text-center min-w-0">
           <Star className="w-4 h-4 text-amber-500 mx-auto mb-1" />
-          <p className="text-xl font-bold text-foreground">{clients.length > 0 ? (clients.reduce((a, c) => a + c.avgRating, 0) / clients.length).toFixed(1) : "0.0"}</p>
+          <p className="text-lg sm:text-xl font-bold text-foreground truncate">{clients.length > 0 ? (clients.reduce((a, c) => a + c.avgRating, 0) / clients.length).toFixed(1) : "0.0"}</p>
           <p className="text-[10px] text-muted-foreground">{t("provider.clients.statAvgRating")}</p>
         </Card>
       </div>

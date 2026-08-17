@@ -94,22 +94,22 @@ export default function BusinessDispatchPage() {
         </div>
       </div>
 
-      <div className="p-4 max-w-4xl mx-auto space-y-6">
+      <div className="p-3 sm:p-4 max-w-4xl mx-auto space-y-4 sm:space-y-6 overflow-x-hidden">
         {!data.isBusinessOwner ? (
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border dark:border-gray-700 text-center text-gray-500 dark:text-gray-400">
             {t("provider.business.staff.notBusinessAccount")}
           </div>
         ) : (
           <>
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border dark:border-gray-700 flex items-center justify-between gap-3">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4 border dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="min-w-0">
-                <h2 className="font-semibold text-gray-900 dark:text-white">{t("provider.business.dashboard.autoAssignTitle")}</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">{t("provider.business.dashboard.autoAssignDesc")}</p>
+                <h2 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">{t("provider.business.dashboard.autoAssignTitle")}</h2>
+                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{t("provider.business.dashboard.autoAssignDesc")}</p>
               </div>
               <button
                 onClick={handleToggleAutoAssign}
                 disabled={isTogglingAutoAssign}
-                className={`shrink-0 flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                className={`self-start sm:self-auto shrink-0 flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
                   data.autoAssignEnabled ? "bg-emerald-500 text-white" : "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
                 }`}
               >
@@ -118,15 +118,15 @@ export default function BusinessDispatchPage() {
               </button>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border dark:border-gray-700 flex items-center justify-between gap-3">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4 border dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="min-w-0">
-                <h2 className="font-semibold text-gray-900 dark:text-white">{t("provider.business.dashboard.allowStaffRequestsTitle")}</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">{t("provider.business.dashboard.allowStaffRequestsDesc")}</p>
+                <h2 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">{t("provider.business.dashboard.allowStaffRequestsTitle")}</h2>
+                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{t("provider.business.dashboard.allowStaffRequestsDesc")}</p>
               </div>
               <button
                 onClick={handleToggleAllowStaffRequests}
                 disabled={isTogglingAllowStaffRequests}
-                className={`shrink-0 flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                className={`self-start sm:self-auto shrink-0 flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
                   data.allowStaffRequestResponses ? "bg-emerald-500 text-white" : "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
                 }`}
               >
@@ -135,15 +135,15 @@ export default function BusinessDispatchPage() {
               </button>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border dark:border-gray-700">
-              <h2 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                <MapPinned className="w-4 h-4" /> {t("provider.business.dashboard.technicianMapTitle")}
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4 border dark:border-gray-700 overflow-hidden">
+              <h2 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2 text-sm sm:text-base">
+                <MapPinned className="w-4 h-4 flex-shrink-0" /> <span className="truncate">{t("provider.business.dashboard.technicianMapTitle")}</span>
               </h2>
               <TechnicianRosterMap
                 technicians={data.technicians
                   .filter((tech) => tech.isOnline && tech.latitude != null && tech.longitude != null)
                   .map((tech) => ({ providerId: tech.providerId, name: tech.name, latitude: tech.latitude!, longitude: tech.longitude!, atCapacity: tech.atCapacity }))}
-                className="h-72 w-full rounded-lg overflow-hidden"
+                className="h-56 sm:h-72 w-full rounded-lg overflow-hidden"
               />
               <div className="mt-3 space-y-2">
                 {data.technicians.map((tech) => (
@@ -152,9 +152,9 @@ export default function BusinessDispatchPage() {
               </div>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border dark:border-gray-700">
-              <h2 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                <Users className="w-4 h-4" /> {t("provider.business.dashboard.requestsTitle")}
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4 border dark:border-gray-700 overflow-hidden">
+              <h2 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2 text-sm sm:text-base">
+                <Users className="w-4 h-4 flex-shrink-0" /> <span className="truncate">{t("provider.business.dashboard.requestsTitle")}</span>
               </h2>
               {data.requests.length === 0 && <p className="text-sm text-gray-500 dark:text-gray-400">{t("provider.business.dashboard.noRequests")}</p>}
               <div className="space-y-2">
@@ -172,9 +172,9 @@ export default function BusinessDispatchPage() {
               </div>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border dark:border-gray-700">
-              <h2 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                <History className="w-4 h-4" /> {t("provider.business.dashboard.completedJobsTitle")}
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4 border dark:border-gray-700 overflow-hidden">
+              <h2 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2 text-sm sm:text-base">
+                <History className="w-4 h-4 flex-shrink-0" /> <span className="truncate">{t("provider.business.dashboard.completedJobsTitle")}</span>
               </h2>
               {completedJobs.length === 0 ? (
                 <p className="text-sm text-gray-500 dark:text-gray-400">{t("provider.business.dashboard.noCompletedJobs")}</p>

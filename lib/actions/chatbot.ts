@@ -166,6 +166,63 @@ export async function endChatbotConversation(input: unknown): Promise<EndChatbot
   return { success: true }
 }
 
+export type ChatbotHistoryItem = {
+  id: string
+  closedAt: string
+  wasEscalated: boolean
+  messageCount: number
+  lastMessagePreview: string | null
+}
+
+/** Past, closed conversations for the "history" screen shown after a user
+ * ends a session — lets them glance back at what was discussed before
+ * starting a fresh one, and choose which old ones to delete. */
+export async function getMyChatbotConversationHistory(): Promise<ChatbotHistoryItem[]> {
+  const session = await requireUser()
+  if (!session?.user?.id) return []
+
+  const conversations = await db.chatbotConversation.findMany({
+    where: { userId: session.user.id, status: "CLOSED" },
+    orderBy: { updatedAt: "desc" },
+    include: {
+      messages: { orderBy: { createdAt: "desc" }, take: 1 },
+      _count: { select: { messages: true } },
+    },
+  })
+
+  return conversations.map((c) => ({
+    id: c.id,
+    closedAt: c.updatedAt.toISOString(),
+    wasEscalated: c.escalatedTicketId != null,
+    messageCount: c._count.messages,
+    lastMessagePreview: c.messages[0]?.content ?? null,
+  }))
+}
+
+export type DeleteChatbotConversationResult = { success: true } | { success: false; error: string }
+
+/** Permanently removes a closed conversation (and its messages, cascaded)
+ * from the user's history. Only closed conversations can be deleted this
+ * way — the active thread doesn't appear in the history list at all. */
+export async function deleteChatbotConversation(input: unknown): Promise<DeleteChatbotConversationResult> {
+  const session = await requireUser()
+  if (!session?.user?.id) return { success: false, error: "You must be signed in." }
+
+  const parsed = conversationIdSchema.safeParse(input)
+  if (!parsed.success) return { success: false, error: "Invalid input" }
+
+  const conversation = await db.chatbotConversation.findUnique({ where: { id: parsed.data.conversationId } })
+  if (!conversation || conversation.userId !== session.user.id) {
+    return { success: false, error: "Conversation not found." }
+  }
+  if (conversation.status !== "CLOSED") {
+    return { success: false, error: "Only closed conversations can be deleted." }
+  }
+
+  await db.chatbotConversation.delete({ where: { id: conversation.id } })
+  return { success: true }
+}
+
 export type EscalateChatbotResult = { success: true } | { success: false; error: string }
 
 const REVIEWER_PORTAL_PATH: Record<string, string> = {

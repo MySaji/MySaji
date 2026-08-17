@@ -2,13 +2,14 @@
 
 import { useState, useRef, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import { Send, X, AlertCircle, Loader2, Sparkles, PhoneCall, MessageSquare, Headset, RotateCcw } from "lucide-react"
+import { Send, X, AlertCircle, Loader2, Sparkles, PhoneCall, MessageSquare, Headset, RotateCcw, History as HistoryIcon, ArrowLeft, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useAuthContext } from "@/lib/auth-context"
 import {
   getMyChatbotConversation, sendChatbotMessage, escalateChatbotConversation, endChatbotConversation,
-  type ChatbotMessageItem,
+  getMyChatbotConversationHistory, deleteChatbotConversation,
+  type ChatbotMessageItem, type ChatbotHistoryItem,
 } from "@/lib/actions/chatbot"
 
 const POLL_INTERVAL_MS = 5000
@@ -35,6 +36,12 @@ export function ChatbotWidget({ onClose }: { onClose: () => void }) {
   const [escalateError, setEscalateError] = useState("")
   const [isEnding, setIsEnding] = useState(false)
   const [aiUnconfigured, setAiUnconfigured] = useState(false)
+  const [view, setView] = useState<"chat" | "history">("chat")
+  const [history, setHistory] = useState<ChatbotHistoryItem[]>([])
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false)
+  const [historyError, setHistoryError] = useState("")
+  const [deletingHistoryId, setDeletingHistoryId] = useState<string | null>(null)
+  const [isStartingNew, setIsStartingNew] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const isSendingRef = useRef(false)
 
@@ -128,10 +135,22 @@ export function ChatbotWidget({ onClose }: { onClose: () => void }) {
     }
   }
 
+  const loadHistory = useCallback(async () => {
+    setIsLoadingHistory(true)
+    setHistoryError("")
+    try {
+      const items = await getMyChatbotConversationHistory()
+      setHistory(items)
+    } finally {
+      setIsLoadingHistory(false)
+    }
+  }, [])
+
   // User-initiated "start over" — closes the current thread (its history
-  // stays in the database, it's just no longer the active one) and
-  // immediately opens a brand new conversation, from either the bot-only
-  // ACTIVE state or a live ESCALATED one.
+  // stays in the database, it's just no longer the active one) and shows
+  // the just-ended session in a history screen instead of silently jumping
+  // straight into a new conversation. The user picks "Start New
+  // Conversation" from there when they're ready.
   const handleEndConversation = async () => {
     if (!conversationId || isEnding) return
     setIsEnding(true)
@@ -139,10 +158,45 @@ export function ChatbotWidget({ onClose }: { onClose: () => void }) {
     setEscalateError("")
     try {
       await endChatbotConversation({ conversationId })
-      const fresh = await getMyChatbotConversation()
-      if (fresh) applyConversation(fresh)
+      await loadHistory()
+      setView("history")
     } finally {
       setIsEnding(false)
+    }
+  }
+
+  // Lets the user peek at past sessions at any time, not just right after
+  // ending one — they'd otherwise have no way back into history once a new
+  // conversation is underway.
+  const handleShowHistory = async () => {
+    await loadHistory()
+    setView("history")
+  }
+
+  const handleStartNewFromHistory = async () => {
+    setIsStartingNew(true)
+    try {
+      const fresh = await getMyChatbotConversation()
+      if (fresh) applyConversation(fresh)
+      setView("chat")
+    } finally {
+      setIsStartingNew(false)
+    }
+  }
+
+  const handleDeleteHistoryItem = async (id: string) => {
+    if (!window.confirm("Delete this conversation? This can't be undone.")) return
+    setDeletingHistoryId(id)
+    setHistoryError("")
+    try {
+      const result = await deleteChatbotConversation({ conversationId: id })
+      if (result.success) {
+        setHistory((prev) => prev.filter((h) => h.id !== id))
+      } else {
+        setHistoryError(result.error)
+      }
+    } finally {
+      setDeletingHistoryId(null)
     }
   }
 
@@ -189,12 +243,16 @@ export function ChatbotWidget({ onClose }: { onClose: () => void }) {
               {status === "ESCALATED" && assignedStaffName ? <Headset className="h-5 w-5" /> : <Sparkles className="w-5 h-5" />}
             </div>
             <div className="min-w-0">
-              <h1 className="text-base font-bold truncate">{status === "ESCALATED" && assignedStaffName ? "SAJI Support" : "SAJI Assistant"}</h1>
-              <p className="text-xs text-blue-100 truncate">{statusSubtitle}</p>
+              <h1 className="text-base font-bold truncate">
+                {view === "history" ? "Past Conversations" : status === "ESCALATED" && assignedStaffName ? "SAJI Support" : "SAJI Assistant"}
+              </h1>
+              <p className="text-xs text-blue-100 truncate">
+                {view === "history" ? `${history.length} closed conversation${history.length === 1 ? "" : "s"}` : statusSubtitle}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">
-            {status === "ACTIVE" && (
+            {view === "chat" && status === "ACTIVE" && (
               <Button
                 onClick={handleEscalate}
                 disabled={isEscalating || isLoading || !conversationId}
@@ -206,7 +264,19 @@ export function ChatbotWidget({ onClose }: { onClose: () => void }) {
                 {isEscalating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <PhoneCall className="w-3.5 h-3.5" />}
               </Button>
             )}
-            {messages.length > 0 && (
+            {view === "chat" && (
+              <Button
+                onClick={handleShowHistory}
+                disabled={isLoading}
+                size="sm"
+                variant="ghost"
+                title="Past conversations"
+                className="text-white hover:bg-white/20 rounded-full gap-1.5 text-xs px-2"
+              >
+                <HistoryIcon className="w-3.5 h-3.5" />
+              </Button>
+            )}
+            {view === "chat" && messages.length > 0 && (
               <Button
                 onClick={handleEndConversation}
                 disabled={isEnding || isLoading || !conversationId}
@@ -218,6 +288,17 @@ export function ChatbotWidget({ onClose }: { onClose: () => void }) {
                 {isEnding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
               </Button>
             )}
+            {view === "history" && (
+              <Button
+                onClick={() => setView("chat")}
+                size="sm"
+                variant="ghost"
+                title="Back to chat"
+                className="text-white hover:bg-white/20 rounded-full gap-1.5 text-xs px-2"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+              </Button>
+            )}
             <Button onClick={onClose} size="sm" variant="ghost" className="text-white hover:bg-white/20 rounded-full p-2">
               <X className="w-5 h-5" />
             </Button>
@@ -225,6 +306,73 @@ export function ChatbotWidget({ onClose }: { onClose: () => void }) {
         </div>
       </div>
 
+      {view === "history" ? (
+        <>
+          {/* History list */}
+          <div className="flex-1 overflow-y-auto px-4 py-5 space-y-3 min-h-0">
+            {isLoadingHistory ? (
+              <div className="flex items-center justify-center h-full">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+              </div>
+            ) : history.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-center gap-2">
+                <HistoryIcon className="w-8 h-8 text-gray-300 dark:text-gray-600" />
+                <p className="text-sm text-gray-500 dark:text-gray-400">No past conversations yet.</p>
+              </div>
+            ) : (
+              history.map((item, idx) => (
+                <div key={item.id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                        {idx === 0 && (
+                          <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded-full flex-shrink-0">
+                            Last session
+                          </span>
+                        )}
+                        {item.wasEscalated && (
+                          <span className="text-[10px] font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-1.5 py-0.5 rounded-full flex-shrink-0">
+                            Support
+                          </span>
+                        )}
+                        <span className="text-[11px] text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                          {new Date(item.closedAt).toLocaleDateString()} · {new Date(item.closedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-700 dark:text-gray-300 truncate">{item.lastMessagePreview ?? "No messages"}</p>
+                      <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">
+                        {item.messageCount} message{item.messageCount === 1 ? "" : "s"}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleDeleteHistoryItem(item.id)}
+                      disabled={deletingHistoryId === item.id}
+                      title="Delete conversation"
+                      className="flex-shrink-0 text-gray-400 hover:text-red-600 dark:hover:text-red-400 p-1.5 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                    >
+                      {deletingHistoryId === item.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+            {historyError && <p className="text-xs text-red-600 text-center">{historyError}</p>}
+          </div>
+
+          {/* Start new */}
+          <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 flex-shrink-0">
+            <Button
+              onClick={handleStartNewFromHistory}
+              disabled={isStartingNew}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg gap-2"
+            >
+              {isStartingNew ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+              Start New Conversation
+            </Button>
+          </div>
+        </>
+      ) : (
+      <>
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-5 space-y-4 min-h-0">
         {isLoading ? (
@@ -332,6 +480,8 @@ export function ChatbotWidget({ onClose }: { onClose: () => void }) {
               : 'Ask me anything about SAJI, or tap "Talk to a human" above to reach our support team.'}
         </p>
       </div>
+      </>
+      )}
     </div>
   )
 }
