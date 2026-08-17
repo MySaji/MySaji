@@ -119,15 +119,26 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     // here never leaves a half-created User/Account row behind.
     async signIn({ account }) {
       if (account?.provider === "google") {
-        const intent = (await cookies()).get(OAUTH_INTENT_COOKIE)?.value
-        const existingAccount = await db.account.findUnique({
-          where: { provider_providerAccountId: { provider: "google", providerAccountId: account.providerAccountId } },
-        })
-        if (intent === "signup" && existingAccount) {
-          return "/auth/login?error=GoogleAccountExists"
-        }
-        if (intent === "login" && !existingAccount) {
-          return "/auth/login?error=GoogleAccountNotFound"
+        try {
+          const intent = (await cookies()).get(OAUTH_INTENT_COOKIE)?.value
+          const existingAccount = await db.account.findUnique({
+            where: { provider_providerAccountId: { provider: "google", providerAccountId: account.providerAccountId } },
+          })
+          if (intent === "signup" && existingAccount) {
+            return "/auth/login?error=GoogleAccountExists"
+          }
+          if (intent === "login" && !existingAccount) {
+            return "/auth/login?error=GoogleAccountNotFound"
+          }
+        } catch (err) {
+          // This lookup is a UX nicety (signup-vs-login intent messaging),
+          // not a security gate — the real account-linking/creation still
+          // goes through the Prisma adapter below either way. A transient
+          // DB hiccup (Supabase pooler drop, cold start) hitting exactly
+          // this query shouldn't fail the whole sign-in with an opaque
+          // "Configuration" error; log it and let the adapter's own flow
+          // decide instead of hard-blocking here.
+          console.error("[auth] signIn intent-check query failed, continuing without it:", err)
         }
       }
       return true

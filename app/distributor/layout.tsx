@@ -59,9 +59,11 @@ export default function DistributorLayout({ children }: { children: React.ReactN
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [moreMenuOpen, setMoreMenuOpen] = useState(false)
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
   const notifRef = useRef<HTMLDivElement>(null)
   const moreRef = useRef<HTMLDivElement>(null)
+  const profileRef = useRef<HTMLDivElement>(null)
   const pathname = usePathname()
   const router = useRouter()
   const { isAuthenticated, isLoading, user, logout } = useAuthContext()
@@ -154,6 +156,9 @@ export default function DistributorLayout({ children }: { children: React.ReactN
       }
       if (moreRef.current && !moreRef.current.contains(event.target as Node)) {
         setMoreMenuOpen(false)
+      }
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setProfileMenuOpen(false)
       }
     }
     document.addEventListener("mousedown", handleClickOutside)
@@ -344,22 +349,63 @@ export default function DistributorLayout({ children }: { children: React.ReactN
                 )}
               </div>
 
-              <Link href="/distributor/profile" className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                {logoUrl ? (
-                  <div className="relative w-8 h-8 rounded-full overflow-hidden flex-shrink-0 ring-1 ring-gray-200 dark:ring-gray-600">
-                    <Image src={logoUrl} alt={companyName} fill className="object-cover" />
+              <div ref={profileRef} className="relative">
+                <button
+                  onClick={() => setProfileMenuOpen(!profileMenuOpen)}
+                  className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  aria-label={t("distributor.nav.profile")}
+                  aria-expanded={profileMenuOpen}
+                >
+                  {logoUrl ? (
+                    <div className="relative w-8 h-8 rounded-full overflow-hidden flex-shrink-0 ring-1 ring-gray-200 dark:ring-gray-600">
+                      <Image src={logoUrl} alt={companyName} fill className="object-cover" />
+                    </div>
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-500 to-cyan-700 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                      {companyName.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="hidden md:block text-left">
+                    <p className="text-sm font-medium text-gray-800 dark:text-gray-200 leading-tight">{companyName}</p>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400">{isVerified ? t("distributor.common.verifiedDistributor") : t("distributor.layout.companyOwner")}</p>
                   </div>
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-500 to-cyan-700 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-                    {companyName.charAt(0).toUpperCase()}
+                  <ChevronDown className={`w-3.5 h-3.5 text-gray-400 hidden md:block transition-transform ${profileMenuOpen ? "rotate-180" : ""}`} />
+                </button>
+
+                {profileMenuOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <div className="px-3.5 py-3 border-b border-gray-100 dark:border-gray-700/50">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{companyName}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{isVerified ? t("distributor.common.verifiedDistributor") : t("distributor.layout.companyOwner")}</p>
+                    </div>
+                    <div className="p-1.5">
+                      <Link
+                        href="/distributor/profile"
+                        onClick={() => setProfileMenuOpen(false)}
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        <User className="w-4 h-4 flex-shrink-0" />
+                        {t("distributor.nav.profile")}
+                      </Link>
+                      <Link
+                        href="/distributor/settings"
+                        onClick={() => setProfileMenuOpen(false)}
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        <Settings className="w-4 h-4 flex-shrink-0" />
+                        {t("settings.title")}
+                      </Link>
+                      <button
+                        onClick={() => { setProfileMenuOpen(false); handleLogout() }}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                      >
+                        <LogOut className="w-4 h-4 flex-shrink-0" />
+                        {t("auth.logout")}
+                      </button>
+                    </div>
                   </div>
                 )}
-                <div className="hidden md:block">
-                  <p className="text-sm font-medium text-gray-800 dark:text-gray-200 leading-tight">{companyName}</p>
-                  <p className="text-[10px] text-gray-500 dark:text-gray-400">{isVerified ? t("distributor.common.verifiedDistributor") : t("distributor.layout.companyOwner")}</p>
-                </div>
-                <ChevronDown className="w-3.5 h-3.5 text-gray-400 hidden md:block" />
-              </Link>
+              </div>
             </div>
           </div>
         </header>
