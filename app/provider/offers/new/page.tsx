@@ -16,10 +16,11 @@ import { Card } from "@/components/ui/card"
 import {
   saveOfferStep, getOfferDraft, extractOfferFromDescription, checkOfferLicenseRequirement,
   getOfferCategoryOptions, getOfferAttributeFields, publishOffer,
-  suggestOfferCopy, getOfferPriceBand, getOfferDemandSignal,
+  suggestOfferCopy, getOfferPriceBand, getOfferDemandSignal, getOfferImageGuidance,
   type OfferCategoryOption, type OfferDraftDetail, type OfferLicenseCheck,
 } from "@/lib/actions/offers"
 import type { PriceBand, DemandSignal } from "@/lib/ai/offer-enhancement"
+import type { ImageGuidance } from "@/lib/offer-image-guidance"
 import { getMyCertifications, getMySkills, type ProviderCertification } from "@/lib/actions/provider-credentials"
 import { getProviderAvailability } from "@/lib/actions/provider-availability"
 import {
@@ -256,6 +257,7 @@ function CreateOfferWizard() {
   const [polishedTitle, setPolishedTitle] = useState<string | null>(null)
   const [priceBand, setPriceBand] = useState<PriceBand | null>(null)
   const [demand, setDemand] = useState<DemandSignal | null>(null)
+  const [shots, setShots] = useState<ImageGuidance | null>(null)
 
   // Step 8 verification state
   const [licenseCheck, setLicenseCheck] = useState<OfferLicenseCheck>({ required: false })
@@ -388,6 +390,9 @@ function CreateOfferWizard() {
     // Market signals are real counts over live rows, so they are cheap and
     // always safe to show — no model involved. Loaded when the pricing step
     // opens rather than up front, since they need a chosen category.
+    if (step === 8 && data.categoryId && shots === null) {
+      getOfferImageGuidance(data.categoryId).then(setShots).catch(() => {})
+    }
     if (step === 4 && data.categoryId && priceBand === null) {
       getOfferPriceBand(data.categoryId).then(setPriceBand).catch(() => {})
       getOfferDemandSignal(data.categoryId).then(setDemand).catch(() => {})
@@ -896,6 +901,20 @@ function CreateOfferWizard() {
             <h2 className="text-lg font-bold text-foreground">Add Proof</h2>
             <p className="mt-0.5 text-sm text-muted-foreground">Build trust by showing your work.</p>
           </div>
+
+          {/* What to photograph for this kind of offer. SAJI never supplies
+              the images — a customer reads every listing photo as the
+              provider's own work. */}
+          {shots && shots.shots.length > 0 && (
+            <div className="rounded-xl border border-border bg-muted/40 p-3">
+              <p className="text-sm font-medium text-foreground">Photos that work well here</p>
+              <ul className="mt-1.5 space-y-1">
+                {shots.shots.map((s) => (
+                  <li key={s} className="flex gap-2 text-xs text-muted-foreground"><span aria-hidden="true">·</span>{s}</li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <div>
             <p className="mb-2 text-sm font-medium text-foreground">Photos</p>

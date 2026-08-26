@@ -22,7 +22,10 @@ export type SpecialistCard = {
   rating: number
   reviewCount: number
   completedJobs: number
-  yearsExperience: number
+  /** Declared by the provider. Null when unset — previously this was
+   *  derived from completedJobs, which showed someone with no jobs at all
+   *  as having a year of experience. The UI omits the line when null. */
+  yearsExperience: number | null
   hourlyRate: number
   skills: string[]
   location: string
@@ -54,7 +57,7 @@ export async function getSpecialists(): Promise<SpecialistCard[]> {
     // heuristic below is the old behaviour, kept only as a fallback so
     // profiles nobody has filled in yet don't suddenly read "0 years" — it is
     // a guess, and should be deleted once declared experience is widespread.
-    yearsExperience: p.yearsExperience > 0 ? p.yearsExperience : Math.max(1, Math.round(p.completedJobs / 25)),
+    yearsExperience: p.yearsExperience > 0 ? p.yearsExperience : null,
     hourlyRate: p.hourlyRate != null ? Number(p.hourlyRate) : 0,
     skills: p.skills.length > 0 ? p.skills : p.category ? [p.category.name] : [],
     // A remote provider has no meaningful travel area, and showing them under
@@ -118,7 +121,7 @@ export async function getSpecialistDetail(providerId: string): Promise<Specialis
     rating: Number(provider.rating),
     reviewCount: provider.reviewCount,
     completedJobs: provider.completedJobs,
-    yearsExperience: provider.yearsExperience > 0 ? provider.yearsExperience : Math.max(1, Math.round(provider.completedJobs / 25)),
+    yearsExperience: provider.yearsExperience > 0 ? provider.yearsExperience : null,
     hourlyRate: provider.hourlyRate != null ? Number(provider.hourlyRate) : 0,
     skills: provider.skills.length > 0 ? provider.skills : provider.category ? [provider.category.name] : [],
     location: provider.workPreference === "REMOTE" ? "Remote" : provider.workAreas[0] ?? "Nairobi",

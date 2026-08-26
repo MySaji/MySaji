@@ -3,6 +3,7 @@
 import { z } from "zod"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
+import { requirePro } from "@/lib/actions/provider-subscription"
 import { logJobEvent } from "@/lib/actions/job-events"
 import { notifyUser } from "@/lib/actions/notify"
 
@@ -84,6 +85,8 @@ export type ContractActionResult = { success: true } | { success: false; error: 
 export async function submitContractQuote(input: unknown): Promise<ContractActionResult> {
   const providerId = await requireProviderId()
   if (!providerId) return { success: false, error: "You must be signed in as a provider." }
+  const denied = await requirePro()
+  if (denied) return denied
 
   const parsed = submitQuoteSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
@@ -210,6 +213,8 @@ const addMilestoneSchema = z.object({
 export async function addContractMilestone(input: unknown): Promise<ContractActionResult> {
   const providerId = await requireProviderId()
   if (!providerId) return { success: false, error: "You must be signed in as a provider." }
+  const denied = await requirePro()
+  if (denied) return denied
 
   const parsed = addMilestoneSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }

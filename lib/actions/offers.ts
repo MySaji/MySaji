@@ -19,6 +19,7 @@ import {
   type PriceBand,
   type DemandSignal,
 } from "@/lib/ai/offer-enhancement"
+import { getImageGuidance, type ImageGuidance } from "@/lib/offer-image-guidance"
 import { GENERIC_SERVICE_ATTRIBUTE_FIELDS, GENERIC_PRODUCT_ATTRIBUTE_FIELDS, type OfferAttributeFieldDef } from "@/lib/offer-attribute-schema"
 import {
   OFFER_ACTION_LABEL, PRICED_OFFER_ACTION_TYPES as PRICED_ACTION_TYPES, PRICELESS_PRICING_MODELS,
@@ -508,6 +509,18 @@ export async function getOfferPriceBand(categoryId: string): Promise<PriceBand> 
 
 /** How many customers are currently asking for this category, against how many
  *  providers already list in it. */
+/** Which photos to take for this category. Guidance only — SAJI never
+ *  supplies or generates listing imagery, because a customer reads every
+ *  photo on a listing as the provider's own work. */
+export async function getOfferImageGuidance(categoryId: string): Promise<ImageGuidance> {
+  const category = await db.category.findUnique({
+    where: { id: categoryId },
+    select: { slug: true, type: true, parent: { select: { slug: true } } },
+  })
+  if (!category) return getImageGuidance(null, null, "SERVICE")
+  return getImageGuidance(category.slug, category.parent?.slug ?? null, category.type)
+}
+
 export async function getOfferDemandSignal(categoryId: string): Promise<DemandSignal> {
   const providerId = await requireProviderId()
   if (!providerId) return { openRequests: 0, liveOffers: 0, requestsPerOffer: null }

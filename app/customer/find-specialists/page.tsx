@@ -364,7 +364,7 @@ export default function FindSpecialistsPage() {
                         <span className="text-xs text-muted-foreground">({selectedSpecialist.reviewCount})</span>
                       </span>
                       <span className="text-xs text-muted-foreground flex items-center gap-1"><Briefcase className="w-3.5 h-3.5" />{tn("customer.favorites.jobsCount", selectedSpecialist.completedJobs)}</span>
-                      <span className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{t("customer.findSpecialists.yearsExperience", { count: selectedSpecialist.yearsExperience })}</span>
+                      {selectedSpecialist.yearsExperience !== null && (<span className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{t("customer.findSpecialists.yearsExperience", { count: selectedSpecialist.yearsExperience })}</span>)}
                       <span className="text-xs text-muted-foreground flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{selectedSpecialist.location}</span>
                     </div>
                     <p className="text-lg font-bold text-primary mt-2.5">

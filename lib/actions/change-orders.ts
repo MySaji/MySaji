@@ -3,6 +3,7 @@
 import { z } from "zod"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
+import { requirePro } from "@/lib/actions/provider-subscription"
 import { logJobEvent } from "@/lib/actions/job-events"
 import { notifyUser } from "@/lib/actions/notify"
 
@@ -35,6 +36,8 @@ const createChangeOrderSchema = z.object({
 export async function createChangeOrder(input: unknown): Promise<ChangeOrderActionResult> {
   const provider = await requireProvider()
   if (!provider) return { success: false, error: "You must be signed in as a provider." }
+  const denied = await requirePro()
+  if (denied) return denied
 
   const parsed = createChangeOrderSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }

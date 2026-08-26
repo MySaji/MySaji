@@ -3,6 +3,7 @@
 import { z } from "zod"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
+import { requirePro } from "@/lib/actions/provider-subscription"
 import { notifyUser } from "@/lib/actions/notify"
 
 async function requireProvider(): Promise<{ userId: string; providerId: string } | null> {
@@ -108,6 +109,8 @@ const createInvoiceSchema = z.object({
 export async function createProviderInvoice(input: unknown): Promise<ProviderBillingActionResult> {
   const provider = await requireProvider()
   if (!provider) return { success: false, error: "You must be signed in as a provider." }
+  const denied = await requirePro()
+  if (denied) return denied
 
   const parsed = createInvoiceSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
@@ -272,6 +275,8 @@ const createQuoteSchema = z.object({
 export async function createProviderQuote(input: unknown): Promise<ProviderBillingActionResult> {
   const provider = await requireProvider()
   if (!provider) return { success: false, error: "You must be signed in as a provider." }
+  const denied = await requirePro()
+  if (denied) return denied
 
   const parsed = createQuoteSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
