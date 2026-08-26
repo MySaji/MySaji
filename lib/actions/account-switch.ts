@@ -2,6 +2,7 @@
 
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
+import { buildProviderSlug } from "@/lib/provider-slug"
 import { ROLE_APP_TO_DB } from "@/lib/role-map"
 
 export type SwitchableRole = "customer" | "provider" | "shopkeeper"
@@ -100,7 +101,11 @@ export async function switchActiveRole(targetRole: SwitchableRole): Promise<Swit
     }
     await db.$transaction(async (tx) => {
       await tx.user.update({ where: { id: user.id }, data: { role: dbRole, kycStatus: "PENDING" } })
-      await tx.providerProfile.create({ data: { userId: user.id } })
+      const providerProfile = await tx.providerProfile.create({ data: { userId: user.id } })
+      await tx.providerProfile.update({
+        where: { id: providerProfile.id },
+        data: { slug: buildProviderSlug(user.name, user.email, providerProfile.id) },
+      })
     })
     return { success: true, isFirstTime: true }
   }

@@ -10,7 +10,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import {
   ArrowLeft, Search, Star, MapPin, CheckCircle, Calendar, Briefcase, Video,
   Filter, X, Phone, MessageCircle, Award, Store, Clock,
-  ImageIcon, Shield, LocateFixed, Loader2, Heart, Share2, FileText
+  ImageIcon, Shield, LocateFixed, Loader2, Heart, Share2, FileText,
+  ChevronRight,
 } from "lucide-react"
 import NextImage from "next/image"
 import Link from "next/link"
@@ -477,6 +478,21 @@ export default function FindSpecialistsPage() {
                         </div>
                       )}
                     </TabsContent>
+
+                    {/* The provider's own public page — everything they offer
+                        in one place, and a link they can share. */}
+                    {selectedSpecialist.slug && (
+                      <Link
+                        href={`/p/${selectedSpecialist.slug}`}
+                        className="mb-3 flex items-center justify-between gap-3 rounded-xl bg-muted/50 p-4 transition-colors hover:bg-muted"
+                      >
+                        <span className="min-w-0">
+                          <span className="block text-sm font-medium">View full profile</span>
+                          <span className="block text-xs text-muted-foreground">Services, products, portfolio and reviews</span>
+                        </span>
+                        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                      </Link>
+                    )}
 
                     <TabsContent value="shop" className="mt-3">
                       {selectedSpecialist.shop ? (

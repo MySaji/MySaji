@@ -16,8 +16,10 @@ import { Card } from "@/components/ui/card"
 import {
   saveOfferStep, getOfferDraft, extractOfferFromDescription, checkOfferLicenseRequirement,
   getOfferCategoryOptions, getOfferAttributeFields, publishOffer,
+  suggestOfferCopy, getOfferPriceBand, getOfferDemandSignal,
   type OfferCategoryOption, type OfferDraftDetail, type OfferLicenseCheck,
 } from "@/lib/actions/offers"
+import type { PriceBand, DemandSignal } from "@/lib/ai/offer-enhancement"
 import { getMyCertifications, getMySkills, type ProviderCertification } from "@/lib/actions/provider-credentials"
 import { getProviderAvailability } from "@/lib/actions/provider-availability"
 import {
@@ -246,6 +248,15 @@ function CreateOfferWizard() {
   const [aiState, setAiState] = useState<"idle" | "loading" | "simulated" | "failed" | "done">("idle")
   const [aiTags, setAiTags] = useState<{ youOffer: string[]; youServe: string[]; location: string | null }>({ youOffer: [], youServe: [], location: null })
 
+  // Copy polish (Step 2) and the market signals shown on the pricing step.
+  // All three are advisory: the provider keeps whatever they typed unless they
+  // explicitly accept a suggestion, and every one of them degrades to hidden
+  // rather than blocking if the call fails or the API key is unset.
+  const [polishState, setPolishState] = useState<"idle" | "loading" | "done" | "unavailable">("idle")
+  const [polishedTitle, setPolishedTitle] = useState<string | null>(null)
+  const [priceBand, setPriceBand] = useState<PriceBand | null>(null)
+  const [demand, setDemand] = useState<DemandSignal | null>(null)
+
   // Step 8 verification state
   const [licenseCheck, setLicenseCheck] = useState<OfferLicenseCheck>({ required: false })
   const [certifications, setCertifications] = useState<ProviderCertification[]>([])
@@ -374,6 +385,13 @@ function CreateOfferWizard() {
 
   useEffect(() => {
     if (step === 2 && aiState === "idle" && data.description) runExtraction()
+    // Market signals are real counts over live rows, so they are cheap and
+    // always safe to show — no model involved. Loaded when the pricing step
+    // opens rather than up front, since they need a chosen category.
+    if (step === 4 && data.categoryId && priceBand === null) {
+      getOfferPriceBand(data.categoryId).then(setPriceBand).catch(() => {})
+      getOfferDemandSignal(data.categoryId).then(setDemand).catch(() => {})
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step])
 
@@ -532,8 +550,58 @@ function CreateOfferWizard() {
 
           <Card className="space-y-4 border-0 p-4 shadow-sm">
             <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">Offer Title</label>
+              <div className="mb-1 flex items-center justify-between gap-2">
+                <label className="block text-xs font-medium text-muted-foreground">Offer Title</label>
+                {data.title.trim() && polishState !== "unavailable" && (
+                  <button
+                    type="button"
+                    disabled={polishState === "loading"}
+                    onClick={async () => {
+                      setPolishState("loading")
+                      const result = await suggestOfferCopy({
+                        title: data.title,
+                        description: data.description,
+                        categoryId: data.categoryId,
+                        youOffer: aiTags.youOffer,
+                      })
+                      // "simulated" means no API key configured; a null payload
+                      // means the call failed. Either way the control retires
+                      // itself rather than showing an error the provider can do
+                      // nothing about.
+                      if (result.simulated || !result.data) { setPolishState("unavailable"); return }
+                      setPolishedTitle(result.data.title)
+                      setPolishState("done")
+                    }}
+                    className="text-xs font-medium text-primary hover:underline disabled:opacity-50"
+                  >
+                    {polishState === "loading" ? "Thinking…" : "Suggest a sharper title"}
+                  </button>
+                )}
+              </div>
               <Input value={data.title} onChange={(e) => setData((p) => ({ ...p, title: e.target.value }))} placeholder="e.g. Cement & Steel Supply" className="rounded-xl" />
+
+              {polishState === "done" && polishedTitle && polishedTitle !== data.title && (
+                <div className="mt-2 rounded-xl border border-primary/30 bg-primary/5 p-3">
+                  <p className="text-xs text-muted-foreground">Suggested</p>
+                  <p className="mt-0.5 text-sm font-medium text-foreground">{polishedTitle}</p>
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => { setData((p) => ({ ...p, title: polishedTitle })); setPolishedTitle(null) }}
+                      className="rounded-lg bg-primary px-3 py-1 text-xs font-medium text-primary-foreground"
+                    >
+                      Use this
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPolishedTitle(null)}
+                      className="rounded-lg border border-border px-3 py-1 text-xs font-medium text-muted-foreground"
+                    >
+                      Keep mine
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-muted-foreground">Category</label>
@@ -635,6 +703,28 @@ function CreateOfferWizard() {
             <h2 className="text-lg font-bold text-foreground">Price & Availability</h2>
             <p className="mt-0.5 text-sm text-muted-foreground">{isRental ? "Set your daily rate and refundable deposit." : "Set how you price and when you are available."}</p>
           </div>
+
+          {/* What comparable providers actually charge, and how much demand
+              there is. Both are counts over real rows — no model is asked to
+              guess a price. The band is withheld entirely when too few
+              comparable offers exist for it to mean anything. */}
+          {priceBand?.available && (
+            <div className="rounded-xl border border-border bg-muted/40 p-3">
+              <p className="text-sm font-medium text-foreground">
+                Similar offers charge {formatMoney(priceBand.low)}–{formatMoney(priceBand.high)}
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Typical is {formatMoney(priceBand.median)}, across {priceBand.comparables} live offers in this category. A guide, not a rule.
+              </p>
+            </div>
+          )}
+
+          {demand && demand.openRequests > 0 && (
+            <p className="text-xs text-muted-foreground">
+              {demand.openRequests} customer{demand.openRequests === 1 ? " is" : "s are"} currently requesting this category
+              {demand.liveOffers > 0 ? `, against ${demand.liveOffers} live offer${demand.liveOffers === 1 ? "" : "s"}.` : "."}
+            </p>
+          )}
 
           {isRental ? (
             <div>

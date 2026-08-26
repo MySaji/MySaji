@@ -4,6 +4,7 @@ import { z } from "zod"
 import crypto from "crypto"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
+import { buildProviderSlug } from "@/lib/provider-slug"
 import { hashPassword } from "@/lib/password"
 import { sendEmail } from "@/lib/email"
 import { wrapEmailLayout, emailButton, siteOrigin } from "@/lib/email-templates"
@@ -324,7 +325,11 @@ export async function acceptStaffInvite(input: unknown): Promise<AcceptStaffInvi
         data: { name, email, phone, password: passwordHash, role: "PROVIDER", kycStatus: "PENDING" },
       })
       await tx.wallet.create({ data: { userId: created.id } })
-      await tx.providerProfile.create({ data: { userId: created.id, parentBusinessId: invite.businessId } })
+      const staffProfile = await tx.providerProfile.create({ data: { userId: created.id, parentBusinessId: invite.businessId } })
+      await tx.providerProfile.update({
+        where: { id: staffProfile.id },
+        data: { slug: buildProviderSlug(created.name, created.email, staffProfile.id) },
+      })
       await tx.staffInvite.update({ where: { id: invite.id }, data: { acceptedById: created.id } })
       return created
     }, { timeout: 60000, maxWait: 10000 })

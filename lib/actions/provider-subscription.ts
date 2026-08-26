@@ -44,6 +44,35 @@ export async function getMySubscriptionStatus(): Promise<ProviderSubscriptionSta
   }
 }
 
+/**
+ * Gate for features reserved to Saji Pro subscribers.
+ *
+ * Deliberately applied to nothing yet. Contracts, milestones, quotes and
+ * invoicing all exist today and every provider can use them; moving any of
+ * them behind this guard takes a working feature away from people who already
+ * rely on it, which is a pricing decision rather than an engineering one. The
+ * mechanism is here so that decision is a one-line change per action:
+ *
+ *   const denied = await requirePro()
+ *   if (denied) return denied
+ *
+ * The only feature currently gated on Pro is the live-offer cap, enforced
+ * inline in publishOffer() (lib/actions/offers.ts) because it needs the
+ * configured cap in its message.
+ */
+export type ProGateResult = { success: false; error: string; requiresPro: true }
+
+export async function requirePro(): Promise<ProGateResult | null> {
+  const status = await getMySubscriptionStatus()
+  if (status?.isPro) return null
+
+  return {
+    success: false,
+    error: "This is a Saji Pro feature. Upgrade from your Pro dashboard to use it.",
+    requiresPro: true,
+  }
+}
+
 export type ProSubscriptionPaymentStatus = { status: "PENDING" | "COMPLETED" | "FAILED"; failureReason?: string | null }
 
 /** The frontend polls this after initiating an M-Pesa/Stripe subscription

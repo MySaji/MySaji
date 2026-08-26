@@ -2,6 +2,7 @@
 
 import { z } from "zod"
 import { db } from "@/lib/db"
+import { buildProviderSlug } from "@/lib/provider-slug"
 import { hashPassword } from "@/lib/password"
 import { ROLE_APP_TO_DB } from "@/lib/role-map"
 import { sendEmail } from "@/lib/email"
@@ -119,7 +120,13 @@ export async function registerUser(input: unknown): Promise<RegisterResult> {
       if (role === "customer") {
         await tx.customerProfile.create({ data: { userId: created.id } })
       } else if (role === "provider") {
-        await tx.providerProfile.create({ data: { userId: created.id } })
+        // Slug needs the profile's own id, so it is a create-then-update
+        // inside the same transaction rather than a single statement.
+        const providerProfile = await tx.providerProfile.create({ data: { userId: created.id } })
+        await tx.providerProfile.update({
+          where: { id: providerProfile.id },
+          data: { slug: buildProviderSlug(created.name, created.email, providerProfile.id) },
+        })
         if (kyc) {
           await tx.kycDocument.create({
             data: {

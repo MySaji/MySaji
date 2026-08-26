@@ -11,6 +11,14 @@ import { logJobEvent } from "@/lib/actions/job-events"
 import { createServiceRequest } from "@/lib/actions/service-contracts"
 import { checkRateLimit } from "@/lib/rate-limit"
 import { extractOfferDetails, type OfferExtractionResult } from "@/lib/ai/offer-extraction"
+import {
+  enhanceOfferCopy,
+  getCategoryPriceBand,
+  getCategoryDemandSignal,
+  type OfferEnhancementResult,
+  type PriceBand,
+  type DemandSignal,
+} from "@/lib/ai/offer-enhancement"
 import { GENERIC_SERVICE_ATTRIBUTE_FIELDS, GENERIC_PRODUCT_ATTRIBUTE_FIELDS, type OfferAttributeFieldDef } from "@/lib/offer-attribute-schema"
 import {
   OFFER_ACTION_LABEL, PRICED_OFFER_ACTION_TYPES as PRICED_ACTION_TYPES, PRICELESS_PRICING_MODELS,
@@ -93,18 +101,45 @@ export async function getOfferCategoryOptions(): Promise<OfferCategoryOption[]> 
  * Category.type, so a category nobody has configured yet still shows
  * something sensible instead of an empty step. See the CategoryAttribute
  * doc comment in schema.prisma for why this is admin data, not a
- * hardcoded map, going forward. */
+ * hardcoded map, going forward.
+ *
+ * A category with no CategoryAttribute rows of its own inherits the field
+ * set of its nearest ancestor that has some, before falling back to that
+ * generic list. This is what lets a parent like "Web & App Development" carry
+ * one authoritative field set that every child under it ("Mobile App
+ * Development", "AI & Machine Learning", ...) uses, instead of the same rows
+ * being duplicated per child and drifting apart the first time an admin edits
+ * only one of them.
+ *
+ * The depth cap is not paranoia: `parentId` has no cycle constraint in the
+ * database and updateCategory only rejects a category being its own direct
+ * parent, so a two-node loop (A parent of B, B parent of A) is reachable
+ * through the admin UI and has existed in production data. Capping the walk
+ * means the worst case is falling through to the generic fields, not hanging
+ * the request. */
 export async function getOfferAttributeFields(categoryId: string): Promise<OfferAttributeFieldDef[]> {
   const category = await db.category.findUnique({ where: { id: categoryId } })
   if (!category) return []
 
-  const rows = await db.categoryAttribute.findMany({ where: { categoryId }, orderBy: { sortOrder: "asc" } })
-  if (rows.length > 0) {
-    return rows.map((r) => ({
-      key: r.key, label: r.label, type: r.type.toLowerCase() as OfferAttributeFieldDef["type"],
-      options: r.options.length > 0 ? r.options : undefined, placeholder: r.placeholder ?? undefined,
-    }))
+  const seen = new Set<string>()
+  let current: { id: string; parentId: string | null } | null = category
+
+  for (let depth = 0; current && depth < 8; depth += 1) {
+    if (seen.has(current.id)) break
+    seen.add(current.id)
+
+    const rows = await db.categoryAttribute.findMany({ where: { categoryId: current.id }, orderBy: { sortOrder: "asc" } })
+    if (rows.length > 0) {
+      return rows.map((r) => ({
+        key: r.key, label: r.label, type: r.type.toLowerCase() as OfferAttributeFieldDef["type"],
+        options: r.options.length > 0 ? r.options : undefined, placeholder: r.placeholder ?? undefined,
+      }))
+    }
+
+    if (!current.parentId) break
+    current = await db.category.findUnique({ where: { id: current.parentId }, select: { id: true, parentId: true } })
   }
+
   return category.type === "PRODUCT" ? GENERIC_PRODUCT_ATTRIBUTE_FIELDS : GENERIC_SERVICE_ATTRIBUTE_FIELDS
 }
 
@@ -436,6 +471,47 @@ export async function extractOfferFromDescription(description: string): Promise<
   if (!providerId) return { simulated: false, data: null }
   const categories = await getOfferCategoryOptions()
   return extractOfferDetails(description, categories.map((c) => c.name))
+}
+
+/** Wizard-facing copy assistance — a sharper title, a first-draft description
+ *  and tags, for the provider to accept or ignore. Never auto-applied: the
+ *  wizard shows the suggestion beside what they wrote. */
+export async function suggestOfferCopy(input: {
+  title?: string
+  description?: string
+  categoryId?: string
+  youOffer?: string[]
+}): Promise<OfferEnhancementResult> {
+  const providerId = await requireProviderId()
+  if (!providerId) return { simulated: false, data: null }
+
+  const category = input.categoryId
+    ? await db.category.findUnique({ where: { id: input.categoryId }, select: { name: true } })
+    : null
+
+  return enhanceOfferCopy({
+    title: String(input.title ?? "").trim(),
+    description: String(input.description ?? "").trim(),
+    categoryName: category?.name ?? null,
+    youOffer: Array.isArray(input.youOffer) ? input.youOffer.filter(Boolean) : [],
+  })
+}
+
+/** What comparable live offers in this category actually charge. Real rows,
+ *  not a model estimate — withheld entirely when there are too few to be
+ *  meaningful. */
+export async function getOfferPriceBand(categoryId: string): Promise<PriceBand> {
+  const providerId = await requireProviderId()
+  if (!providerId) return { available: false, reason: "too_few_comparables", comparables: 0 }
+  return getCategoryPriceBand(categoryId)
+}
+
+/** How many customers are currently asking for this category, against how many
+ *  providers already list in it. */
+export async function getOfferDemandSignal(categoryId: string): Promise<DemandSignal> {
+  const providerId = await requireProviderId()
+  if (!providerId) return { openRequests: 0, liveOffers: 0, requestsPerOffer: null }
+  return getCategoryDemandSignal(categoryId)
 }
 
 // ============================= CUSTOMER-FACING =============================

@@ -128,6 +128,26 @@ export async function updateCategory(input: unknown): Promise<CategoryActionResu
   if (!existing) return { success: false, error: "Category not found." }
   if (id === parentId) return { success: false, error: "A category can't be its own parent." }
 
+  // Self-parenting is only the one-node case. A -> B -> A is just as broken and
+  // was reachable here before: it existed in production data (Carpenters and AC
+  // Repair were each other's parent) and stayed invisible because nothing walked
+  // ancestors. getOfferAttributeFields now does, so walk the proposed chain and
+  // refuse anything that loops back. The depth cap is a backstop in case a cycle
+  // predates this check.
+  if (parentId) {
+    let cursor: string | null = parentId
+    for (let depth = 0; cursor && depth < 16; depth += 1) {
+      if (cursor === id) {
+        return { success: false, error: "That would make the category its own ancestor." }
+      }
+      const next: { parentId: string | null } | null = await db.category.findUnique({
+        where: { id: cursor },
+        select: { parentId: true },
+      })
+      cursor = next?.parentId ?? null
+    }
+  }
+
   await db.category.update({
     where: { id },
     data: {

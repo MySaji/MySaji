@@ -520,6 +520,18 @@ model CustomerProfile {
 }
 
 /// Provider-specific extension of User (1:1)
+/// How a provider works, independent of where. `workAreas` and
+/// ProviderAvailability.travelRadiusKm answer "where do you travel"; this
+/// answers "do you travel at all" — without it, discovery has no way to tell
+/// a translator who works entirely online from a plumber, and ranks both by
+/// distance from the customer. Mirrors OfferFulfilmentMethod.REMOTE, which
+/// already lets an individual *offer* be remote.
+enum WorkPreference {
+  REMOTE
+  ONSITE
+  HYBRID
+}
+
 model ProviderProfile {
   id                  String     @id @default(cuid())
   userId              String     @unique
@@ -559,6 +571,23 @@ model ProviderProfile {
   // the owner's normal dispatch pipeline.
   allowStaffRequestResponses Boolean @default(false)
   parentBusinessId    String?
+
+  // Professional identity — the LinkedIn/Upwork half of a provider profile,
+  // as opposed to the operational fields above. All optional: a plumber who
+  // never fills any of this in is unaffected, and the storefront simply omits
+  // the sections that are empty.
+  headline        String?        // "Full-stack engineer · React and Go"
+  yearsExperience Int            @default(0)
+  languages       String[]       @default([])
+  // Displayed, never queried — same reasoning as Offer.attributes. If either
+  // ever needs filtering, it graduates to a real model then.
+  education       Json?          // [{ institution, qualification, year }]
+  awards          Json?          // [{ title, issuer, year }]
+  resumeUrl       String?        // same upload path as Certification.documentUrl
+  workPreference  WorkPreference @default(ONSITE)
+  // Public storefront address (/p/<slug>). Nullable because every existing
+  // provider predates it; backfilled by scripts/backfill-provider-slugs.js.
+  slug            String?        @unique
   createdAt           DateTime   @default(now())
   updatedAt           DateTime   @updatedAt
 

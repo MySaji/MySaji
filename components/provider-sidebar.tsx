@@ -131,6 +131,7 @@ export default function ProviderSidebar({ isOpen, onClose }: ProviderSidebarProp
   const moreItems = menuItems.slice(primaryCount)
 
   const profileMenuItems = [
+    { label: "Professional Profile", href: "/provider/profile/professional" },
     { label: "My Account", href: "/provider/profile/account" },
     { label: "Work Area & Skills", href: "/provider/profile/skills" },
     { label: "Verification", href: "/provider/profile/verification" },

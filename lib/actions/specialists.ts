@@ -26,6 +26,9 @@ export type SpecialistCard = {
   hourlyRate: number
   skills: string[]
   location: string
+  workPreference: "REMOTE" | "ONSITE" | "HYBRID"
+  /** Public storefront address, when the provider has one. */
+  slug: string | null
   badges: string[]
 }
 
@@ -47,10 +50,19 @@ export async function getSpecialists(): Promise<SpecialistCard[]> {
     rating: Number(p.rating),
     reviewCount: p.reviewCount,
     completedJobs: p.completedJobs,
-    yearsExperience: Math.max(1, Math.round(p.completedJobs / 25)),
+    // Prefer what the provider actually declared. The completedJobs/25
+    // heuristic below is the old behaviour, kept only as a fallback so
+    // profiles nobody has filled in yet don't suddenly read "0 years" — it is
+    // a guess, and should be deleted once declared experience is widespread.
+    yearsExperience: p.yearsExperience > 0 ? p.yearsExperience : Math.max(1, Math.round(p.completedJobs / 25)),
     hourlyRate: p.hourlyRate != null ? Number(p.hourlyRate) : 0,
     skills: p.skills.length > 0 ? p.skills : p.category ? [p.category.name] : [],
-    location: p.workAreas[0] ?? "Nairobi",
+    // A remote provider has no meaningful travel area, and showing them under
+    // a town (or the old hardcoded "Nairobi") is what made every provider look
+    // like they drive to you.
+    location: p.workPreference === "REMOTE" ? "Remote" : p.workAreas[0] ?? "Nairobi",
+    workPreference: p.workPreference,
+    slug: p.slug,
     badges: computeBadges(p.verified, Number(p.rating), p.responseTimeMinutes),
   }))
 }
@@ -106,10 +118,12 @@ export async function getSpecialistDetail(providerId: string): Promise<Specialis
     rating: Number(provider.rating),
     reviewCount: provider.reviewCount,
     completedJobs: provider.completedJobs,
-    yearsExperience: Math.max(1, Math.round(provider.completedJobs / 25)),
+    yearsExperience: provider.yearsExperience > 0 ? provider.yearsExperience : Math.max(1, Math.round(provider.completedJobs / 25)),
     hourlyRate: provider.hourlyRate != null ? Number(provider.hourlyRate) : 0,
     skills: provider.skills.length > 0 ? provider.skills : provider.category ? [provider.category.name] : [],
-    location: provider.workAreas[0] ?? "Nairobi",
+    location: provider.workPreference === "REMOTE" ? "Remote" : provider.workAreas[0] ?? "Nairobi",
+    workPreference: provider.workPreference,
+    slug: provider.slug,
     badges: computeBadges(provider.verified, Number(provider.rating), provider.responseTimeMinutes),
     bio: provider.bio,
     phone: provider.user.phone,
