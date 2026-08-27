@@ -17,10 +17,12 @@ import { db } from "@/lib/db"
  *   - Demand is the count of open CustomerRequests in the category
  *     (getCategoryDemandSignal below) — a real number, not a forecast.
  *
- * Image recommendation is not implemented at all: it would mean either
- * generating pictures of work that was never done, or pulling stock imagery
- * into listings customers read as the provider's own. On a marketplace with
- * escrow and disputes that is a trust problem, not a feature.
+ * Image recommendation is answered in lib/offer-image-guidance.ts, which tells
+ * a provider which shots to take for their category. SAJI supplies no imagery
+ * itself: generating pictures of work that was never done, or pulling in stock,
+ * puts something on a listing that a customer reads as the provider's own work.
+ * On a marketplace with escrow and disputes that is a trust problem, not a
+ * feature.
  *
  * Same env-gated shape as lib/ai/chatbot.ts and offer-extraction.ts — fully
  * real when ANTHROPIC_API_KEY is set, honestly degraded when it isn't. The
