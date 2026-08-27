@@ -23,12 +23,36 @@ export interface LocalizationContextType {
 
 export const LocalizationContext = createContext<LocalizationContextType | undefined>(undefined)
 
-export function LocalizationProvider({ children }: { children: ReactNode }) {
+/**
+ * `initialLanguage` / `initialCurrency` come from the session in the root
+ * layout, which is a server component. Seeding them means the server renders
+ * a signed-in user's real locale and the client hydrates to the same thing.
+ *
+ * This replaces a `{mounted ? children : null}` gate that used to sit around
+ * `children`. That gate avoided a flash of English before a stored preference
+ * loaded, but an effect never runs during SSR, so it also meant every page in
+ * the app server-rendered as an empty shell — no content for crawlers, link
+ * previews or first paint. Seeding the values removes the flash for signed-in
+ * users at the source rather than by rendering nothing.
+ *
+ * Guests still fall back to "en"/"KES" on the server, because localStorage is
+ * not readable there; a guest who has explicitly switched language sees one
+ * brief swap after mount. That is the narrow case the old gate was really for,
+ * and it is a better trade than blanking the entire app.
+ */
+export function LocalizationProvider({
+  children,
+  initialLanguage = "en",
+  initialCurrency = "KES",
+}: {
+  children: ReactNode
+  initialLanguage?: Language
+  initialCurrency?: string
+}) {
   const { data: session, update } = useSession()
-  const [language, setLanguageState] = useState<Language>("en")
-  const [currency, setCurrencyState] = useState<string>("KES")
+  const [language, setLanguageState] = useState<Language>(initialLanguage)
+  const [currency, setCurrencyState] = useState<string>(initialCurrency)
   const [theme, setThemeState] = useState<"light" | "dark">("light")
-  const [mounted, setMounted] = useState(false)
 
   // Signed-in users: DB-backed preference (via the session) is the source of
   // truth. Guests (no session — landing page, auth pages): localStorage only,
@@ -45,7 +69,6 @@ export function LocalizationProvider({ children }: { children: ReactNode }) {
     }
     const savedTheme = (localStorage.getItem("saji-theme") as "light" | "dark") || "light"
     setThemeState(savedTheme)
-    setMounted(true)
     applyTheme(savedTheme)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.user?.language, session?.user?.currency])
@@ -114,7 +137,7 @@ export function LocalizationProvider({ children }: { children: ReactNode }) {
     <LocalizationContext.Provider
       value={{ language, setLanguage, currency, setCurrency, theme, setTheme, t, tn, formatMoney }}
     >
-      {mounted ? children : null}
+      {children}
     </LocalizationContext.Provider>
   )
 }

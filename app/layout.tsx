@@ -6,6 +6,7 @@ import { SessionProvider } from "next-auth/react"
 import { auth } from "@/auth"
 import { ThemeProvider } from "@/components/theme-provider"
 import { LocalizationProvider } from "@/lib/localization-context"
+import type { Language } from "@/lib/i18n"
 import { AuthProvider } from "@/lib/auth-context"
 import { EmailSubscriptionPopup } from "@/components/email-subscription-popup"
 import "./globals.css"
@@ -80,7 +81,12 @@ export default async function RootLayout({
       <body className={`font-sans antialiased ${_geist.className}`}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} themes={["light", "dark"]} disableTransitionOnChange>
           <SessionProvider session={session}>
-            <LocalizationProvider>
+            {/* Seeded from the session so the server renders the signed-in
+                user's real locale and the client hydrates to a match. */}
+            <LocalizationProvider
+              initialLanguage={(session?.user?.language as Language) ?? "en"}
+              initialCurrency={session?.user?.currency ?? "KES"}
+            >
               <AuthProvider>
                 {children}
                 <EmailSubscriptionPopup />
