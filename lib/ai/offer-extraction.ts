@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk"
+import { isConfigured, noteAnthropicFailure } from "@/lib/ai/credentials"
 import { z } from "zod"
 
 const MODEL = "claude-haiku-4-5"
@@ -8,9 +9,7 @@ const MODEL = "claude-haiku-4-5"
 // ANTHROPIC_API_KEY is set, honestly degraded when it isn't. The wizard's
 // Step 2 always shows a real, editable manual form either way; this only
 // decides whether that form starts pre-filled or blank.
-function isConfigured(): boolean {
-  return Boolean(process.env.ANTHROPIC_API_KEY)
-}
+
 
 let cachedClient: Anthropic | null = null
 function getClient(): Anthropic {
@@ -69,7 +68,10 @@ Rules:
     let json: unknown
     try {
       json = JSON.parse(cleaned)
-    } catch {
+    } catch (error) {
+    // A rejected key reports as "not configured" rather than a failed call,
+    // so the wizard shows the same honest state it shows with no key at all.
+    if (noteAnthropicFailure(error)) return { simulated: true }
       return { simulated: false, data: null }
     }
 

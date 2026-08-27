@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk"
+import { isConfigured, noteAnthropicFailure } from "@/lib/ai/credentials"
 
 const MODEL = "claude-haiku-4-5-20251001"
 
@@ -6,9 +7,7 @@ const MODEL = "claude-haiku-4-5-20251001"
 // project (M-Pesa/Stripe/PayPal in lib/actions/payments.ts) — fully real
 // when ANTHROPIC_API_KEY is set, honestly degraded when it isn't, never a
 // silent/fake success.
-function isConfigured(): boolean {
-  return Boolean(process.env.ANTHROPIC_API_KEY)
-}
+
 
 let cachedClient: Anthropic | null = null
 function getClient(): Anthropic {
@@ -78,7 +77,13 @@ export async function generateChatbotReply(history: ChatbotHistoryTurn[]): Promi
     const textBlock = response.content.find((block) => block.type === "text")
     const content = textBlock && "text" in textBlock ? textBlock.text.trim() : ""
     return { content: content || "Sorry, I couldn't generate a response. Please try again.", simulated: false }
-  } catch {
+  } catch (error) {
+    // A rejected key is not a transient blip: telling someone to "try again in
+    // a moment" sends them into a loop that can never succeed. Report it the
+    // same way an absent key is reported instead.
+    if (noteAnthropicFailure(error)) {
+      return { content: SIMULATED_REPLY, simulated: true }
+    }
     return {
       content: "Sorry, I'm having trouble responding right now. Please try again in a moment, or ask me to connect you with a real support agent.",
       simulated: false,

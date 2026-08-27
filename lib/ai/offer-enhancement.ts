@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk"
+import { isConfigured, noteAnthropicFailure } from "@/lib/ai/credentials"
 import { z } from "zod"
 import { db } from "@/lib/db"
 
@@ -36,9 +37,7 @@ import { db } from "@/lib/db"
 // task is short-form generation, not reasoning.
 const MODEL = "claude-opus-5"
 
-function isConfigured(): boolean {
-  return Boolean(process.env.ANTHROPIC_API_KEY)
-}
+
 
 let cachedClient: Anthropic | null = null
 function getClient(): Anthropic {
@@ -148,7 +147,10 @@ Rewrite the provider's draft into a clear listing. Rules:
         tags: parsed.data.tags.map((t) => t.trim().toLowerCase()).filter(Boolean).slice(0, 8),
       },
     }
-  } catch {
+  } catch (error) {
+    // A rejected key reports as "not configured" rather than a failed call,
+    // so the wizard shows the same honest state it shows with no key at all.
+    if (noteAnthropicFailure(error)) return { simulated: true }
     // A failed suggestion must never block the wizard.
     return { simulated: false, data: null }
   }
