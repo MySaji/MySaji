@@ -1,34 +1,35 @@
-"use client"
-
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-import { useAuthContext } from "@/lib/auth-context"
-import { LoadingScreen } from "@/components/loading-screen"
+import { redirect } from "next/navigation"
+import { auth } from "@/auth"
 import { Footer } from "@/components/footer"
 import { LandingPage } from "@/components/pages/landing-page"
 import { ROLE_HOME_PATH } from "@/lib/role-map"
 
-export default function Home() {
-  const { isAuthenticated, isLoading, user } = useAuthContext()
-  const router = useRouter()
-  const [mounted, setMounted] = useState(false)
+/**
+ * The public landing page, and the router for anyone already signed in.
+ *
+ * This used to be a client component that rendered a LoadingScreen until
+ * useAuthContext resolved, then pushed a signed-in user to their portal. Two
+ * things followed from that: a signed-in user watched a spinner before being
+ * redirected, and — because the effects that cleared those gates never run on
+ * the server — the most SEO-critical page in the app served crawlers an empty
+ * body.
+ *
+ * Reading the session here fixes both. A signed-in user is redirected before
+ * any HTML is sent, and a guest gets the full landing page server-rendered.
+ *
+ * Making this a server component costs nothing in caching: the root layout
+ * already awaits auth(), so every route in this app is dynamic already (the
+ * build reports 218 dynamic, 0 static). There is no static prerender to lose.
+ */
+export default async function Home() {
+  const session = await auth()
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  useEffect(() => {
-    if (!isLoading && mounted && isAuthenticated && user) {
-      router.push(ROLE_HOME_PATH[user.role])
-    }
-  }, [isAuthenticated, isLoading, user, router, mounted])
-
-  if (isLoading) {
-    return <LoadingScreen />
-  }
-
-  if (!mounted) {
-    return null
+  // auth.ts normalises the Prisma role enum to the app's lowercase form in the
+  // JWT callback, so this is already a ROLE_HOME_PATH key. The `in` check keeps
+  // an unrecognised role from producing redirect(undefined).
+  const role = session?.user?.role
+  if (role && role in ROLE_HOME_PATH) {
+    redirect(ROLE_HOME_PATH[role as keyof typeof ROLE_HOME_PATH])
   }
 
   return (
