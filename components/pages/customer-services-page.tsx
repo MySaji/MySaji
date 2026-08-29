@@ -789,17 +789,28 @@ export function CustomerServicesPage() {
             )
           ) : (
             <div className={viewMode === "grid"
-              ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+              // Two columns on a phone, four on a desktop, per the card spec.
+              // At 390px this leaves each card 179px wide; inside a 1136px
+              // content column it leaves each one 272px.
+              ? "grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4 lg:gap-4"
               : "space-y-3"
             }>
               {filteredServices.map((service) => (
                 <Card
                   key={service.serviceId}
-                  className={`cursor-pointer overflow-hidden border-0 shadow-sm hover:shadow-lg transition-all group ${viewMode === "list" ? "flex flex-row" : ""}`}
+                  className={`cursor-pointer overflow-hidden border-0 shadow-sm hover:shadow-lg transition-all group rounded-xl lg:rounded-[14px] ${viewMode === "list" ? "flex flex-row" : "flex flex-col"}`}
                   onClick={() => openServiceDetail(service)}
                 >
-                  <div className={`relative ${viewMode === "list" ? "w-28 sm:w-36 flex-shrink-0" : "aspect-[16/10]"}`}>
-                    <Image src={service.image || "/placeholder.svg"} alt={service.title} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
+                  {/* 179x150 on a phone, 272x210 from lg: ratios rather than a
+                      fixed height, so the image tracks the column width. */}
+                  <div className={`relative ${viewMode === "list" ? "w-28 sm:w-36 flex-shrink-0" : "aspect-[179/150] lg:aspect-[272/210]"}`}>
+                    <Image
+                      src={service.image || "/placeholder.svg"}
+                      alt={service.title}
+                      fill
+                      sizes="(min-width: 1024px) 272px, (min-width: 640px) 33vw, 50vw"
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
                     <button
                       onClick={(event) => {
@@ -807,62 +818,70 @@ export function CustomerServicesPage() {
                         toggleFavorite(service.serviceId)
                       }}
                       aria-label={favorites.includes(service.serviceId) ? t("customer.products.removeFromWishlist") : t("customer.products.addToWishlist")}
-                      className="absolute top-2.5 right-2.5 p-1.5 bg-white/90 dark:bg-black/50 rounded-full shadow-sm backdrop-blur-sm hover:scale-110 transition-transform"
+                      className="absolute top-2 right-2 p-1.5 bg-white/90 dark:bg-black/50 rounded-full shadow-sm backdrop-blur-sm hover:scale-110 transition-transform lg:top-2.5 lg:right-2.5 lg:p-2"
                     >
-                      <Heart className={`w-3.5 h-3.5 ${favorites.includes(service.serviceId) ? 'fill-red-500 text-red-500' : 'text-muted-foreground'}`} />
+                      <Heart className={`w-3.5 h-3.5 lg:w-4 lg:h-4 ${favorites.includes(service.serviceId) ? 'fill-red-500 text-red-500' : 'text-muted-foreground'}`} />
                     </button>
-                    <span className={`absolute bottom-2.5 left-2.5 px-2 py-0.5 text-[11px] font-semibold rounded-md backdrop-blur-sm ${STATUS_STYLE[service.status].badge}`}>
+                    <span className={`absolute bottom-2 left-2 px-1.5 py-0.5 text-[10px] font-semibold rounded-md backdrop-blur-sm lg:bottom-2.5 lg:left-2.5 lg:px-2 lg:text-[11px] ${STATUS_STYLE[service.status].badge}`}>
                       {STATUS_STYLE[service.status].label}
                     </span>
                   </div>
 
-                  <div className={`p-4 ${viewMode === "list" ? "flex-1 flex flex-col justify-between" : ""}`}>
+                  {/* 10px padding on a phone, 14px from lg, per the spec. */}
+                  <div className={`p-2.5 lg:p-3.5 ${viewMode === "list" ? "flex-1 flex flex-col justify-between" : "flex flex-1 flex-col"}`}>
                     <div>
-                      <div className="flex items-start gap-2.5 mb-2.5">
-                        <div className="relative w-9 h-9 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-background">
-                          <Image src={service.providerAvatar || "/placeholder.svg"} alt={service.providerName} fill className="object-cover" />
+                      <div className="flex items-start gap-2 mb-1.5 lg:gap-2.5 lg:mb-2.5">
+                        {/* At 179px the avatar costs more width than the
+                            provider's name can spare, so it starts at sm. */}
+                        <div className="relative hidden w-7 h-7 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-background sm:block lg:w-9 lg:h-9">
+                          <Image src={service.providerAvatar || "/placeholder.svg"} alt={service.providerName} fill sizes="36px" className="object-cover" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <p className="font-semibold text-sm text-foreground truncate">{service.providerName}</p>
-                            {service.verified && <CheckCircle className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />}
+                          <div className="flex items-center gap-1 lg:gap-1.5">
+                            <p className="font-semibold text-xs lg:text-sm text-foreground truncate">{service.providerName}</p>
+                            {service.verified && <CheckCircle className="w-3 h-3 lg:w-3.5 lg:h-3.5 text-blue-500 flex-shrink-0" />}
                           </div>
-                          <p className="text-xs text-muted-foreground">{service.title}</p>
+                          <p className="text-[11px] lg:text-xs text-muted-foreground line-clamp-2 lg:line-clamp-1">{service.title}</p>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-3 mb-2.5 text-xs text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                      <div className="flex items-center gap-1.5 mb-1.5 text-[10px] text-muted-foreground lg:gap-3 lg:mb-2.5 lg:text-xs">
+                        <div className="flex items-center gap-0.5 shrink-0 lg:gap-1">
+                          <Star className="w-3 h-3 fill-amber-400 text-amber-400 lg:w-3.5 lg:h-3.5" />
                           <span className="font-semibold text-foreground">{service.rating.toFixed(1)}</span>
                           <span>({service.reviewCount})</span>
                         </div>
-                        <span className="w-px h-3 bg-border" />
-                        <div className="flex items-center gap-1">
-                          <MapPin className="w-3 h-3" />
-                          {service.location}
+                        <span className="w-px h-3 bg-border shrink-0" />
+                        <div className="flex items-center gap-0.5 min-w-0 lg:gap-1">
+                          <MapPin className="w-3 h-3 shrink-0" />
+                          <span className="truncate">{service.location}</span>
                         </div>
-                        <span className="w-px h-3 bg-border" />
-                        <div className="flex items-center gap-1">
+                        {/* Response time is the first thing to go: three meta
+                            items will not fit across a 179px card. */}
+                        <span className="hidden w-px h-3 bg-border lg:block" />
+                        <div className="hidden items-center gap-1 lg:flex">
                           <Clock className="w-3 h-3" />
                           {service.responseTime}
                         </div>
                       </div>
 
                       {service.badges.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mb-3">
+                        // One row only. A second row of chips is what pushes a
+                        // 179px card past its height budget.
+                        <div className="flex gap-1 overflow-hidden mb-2 lg:gap-1.5 lg:mb-3">
                           {service.badges.map((badge, idx) => (
-                            <span key={idx} className="px-2 py-0.5 bg-primary/8 text-primary text-[11px] font-medium rounded-md">{badge}</span>
+                            <span key={idx} className="truncate px-1.5 py-0.5 bg-primary/10 text-primary text-[10px] font-medium rounded-md lg:px-2 lg:text-[11px]">{badge}</span>
                           ))}
                         </div>
                       )}
                     </div>
 
-                    <div className="flex items-center justify-between pt-3 border-t border-border/50">
+                    {/* Stacked on a phone, side by side once there is room. */}
+                    <div className="mt-auto flex flex-col gap-2 pt-2 border-t border-border/50 lg:flex-row lg:items-center lg:justify-between lg:pt-3">
                       <div>
-                        <p className="text-[11px] text-muted-foreground">{t("customer.services.fromLabel")}</p>
-                        <p className="text-base font-bold text-foreground">
-                          {formatMoney(service.price)}<span className="text-xs font-normal text-muted-foreground">{t("customer.favorites.perHour")}</span>
+                        <p className="text-[10px] text-muted-foreground lg:text-[11px]">{t("customer.services.fromLabel")}</p>
+                        <p className="text-sm font-bold text-foreground lg:text-base">
+                          {formatMoney(service.price)}<span className="text-[10px] font-normal text-muted-foreground lg:text-xs">{t("customer.favorites.perHour")}</span>
                         </p>
                       </div>
                       <Button
@@ -872,7 +891,7 @@ export function CustomerServicesPage() {
                         }}
                         disabled={!service.isActive}
                         size="sm"
-                        className="rounded-lg h-9 px-4 text-sm font-medium"
+                        className="w-full rounded-lg h-9 px-2 text-[11px] font-medium lg:w-auto lg:px-4 lg:text-sm"
                       >
                         {t("customer.serviceDetail.bookNow")}
                       </Button>

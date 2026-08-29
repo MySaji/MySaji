@@ -2,15 +2,15 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import Image from "next/image"
-import { useRouter, useSearchParams } from "next/navigation"
-import { ArrowLeft, Search, SlidersHorizontal, MapPin, Clock, Star, Heart, CalendarDays, Loader2, Crown, Package } from "lucide-react"
+import { useSearchParams } from "next/navigation"
+import { ArrowLeft, Search, SlidersHorizontal, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
+import { OfferCard, OfferCardGrid, type OfferCardData } from "@/components/offers/offer-card"
 import { getAllServices, type ServiceListItem } from "@/lib/actions/services"
 import { getLiveOffers, type PublicOfferListItem } from "@/lib/actions/offers"
-import { OFFER_ACTION_LABEL } from "@/lib/offer-constants"
+import type { OfferActionType } from "@/lib/offer-constants"
 import { getWishlistIds, toggleWishlist } from "@/lib/actions/wishlist"
 import { useLocalization } from "@/lib/hooks/useLocalization"
 
@@ -29,15 +29,19 @@ type FeedCard = {
   responseTime: string | null
   location: string
   status: ServiceListItem["status"] | null
+  verified: boolean
   badges: string[]
-  actionLabel: string | null
+  actionType: OfferActionType
 }
 
 function toServiceCard(s: ServiceListItem): FeedCard {
   return {
     id: s.serviceId, kind: "service", title: s.title, image: s.image, providerName: s.providerName, providerAvatar: s.providerAvatar,
     categoryId: s.categoryId, categoryName: s.categoryName, rating: s.rating, reviewCount: s.reviewCount, price: s.price,
-    responseTime: s.responseTime, location: s.location, status: s.status, badges: s.badges, actionLabel: null,
+    responseTime: s.responseTime, location: s.location, status: s.status, verified: s.verified, badges: s.badges,
+    // A plain Service predates the Offer model's action types; booking is the
+    // only thing a customer can do with one, so it maps to BOOK.
+    actionType: "BOOK",
   }
 }
 
@@ -50,20 +54,21 @@ function toOfferCard(o: PublicOfferListItem): FeedCard {
   return {
     id: o.offerId, kind: isRental ? "rental" : "offer", title: o.title, image: o.image, providerName: o.providerName, providerAvatar: o.providerAvatar,
     categoryId: o.categoryId, categoryName: o.categoryName, rating: o.rating, reviewCount: o.reviewCount, price: o.price,
-    responseTime: null, location: o.location, status: null,
-    badges: isRental ? (o.verified ? ["Rental", "Verified"] : ["Rental"]) : (o.verified ? ["Saji Pro Offer", "Verified"] : ["Saji Pro Offer"]),
-    actionLabel: isRental ? "Rent" : OFFER_ACTION_LABEL[o.actionType],
+    responseTime: null, location: o.location, status: null, verified: o.verified,
+    // "Verified" is no longer a chip: the card renders it as a tick beside the
+    // provider name, which leaves the chip row for what the offer actually is.
+    badges: [isRental ? "Rental" : "Saji Pro Offer", o.categoryName].filter((b): b is string => Boolean(b)),
+    actionType: o.actionType,
   }
 }
 
 export default function MoreServicesPage() {
   const { t, formatMoney } = useLocalization()
-  const STATUS_STYLE: Record<ServiceListItem["status"], { label: string; badge: string }> = {
-    available: { label: t("customer.services.statusAvailable"), badge: "bg-emerald-500" },
-    busy: { label: t("customer.services.statusBusy"), badge: "bg-red-500" },
-    booked: { label: t("customer.services.statusBookedToday"), badge: "bg-amber-500" },
+  const STATUS_LABEL: Record<ServiceListItem["status"], string> = {
+    available: t("customer.services.statusAvailable"),
+    busy: t("customer.services.statusBusy"),
+    booked: t("customer.services.statusBookedToday"),
   }
-  const router = useRouter()
   const searchParams = useSearchParams()
   const [query, setQuery] = useState("")
   const [cards, setCards] = useState<FeedCard[]>([])
@@ -109,11 +114,36 @@ export default function MoreServicesPage() {
     }
   }
 
-  const openCardDetail = (card: FeedCard) => {
-    if (card.kind === "offer") router.push(`/customer/offers/${card.id}`)
-    else if (card.kind === "rental") router.push(`/customer/rentals/${card.id}`)
-    else if (card.categoryId) router.push(`/customer/services/${card.categoryId}`)
+  // The card is a real <Link> now rather than an onClick, so this returns the
+  // destination instead of pushing it: middle-click and "open in new tab"
+  // work, and the browser shows the URL on hover.
+  const cardHref = (card: FeedCard): string => {
+    if (card.kind === "offer") return `/customer/offers/${card.id}`
+    if (card.kind === "rental") return `/customer/rentals/${card.id}`
+    return card.categoryId ? `/customer/services/${card.categoryId}` : "/customer/services"
   }
+
+  const toCardData = (card: FeedCard): OfferCardData => ({
+    id: card.id,
+    href: cardHref(card),
+    title: card.title,
+    image: card.image,
+    providerName: card.providerName,
+    providerAvatar: card.providerAvatar,
+    verified: card.verified,
+    rating: card.rating,
+    reviewCount: card.reviewCount,
+    location: card.location,
+    tags: card.badges,
+    price: card.price,
+    // Services quote an hourly rate and rentals a daily one, so both are a
+    // floor rather than the final figure. A fixed-price offer is not.
+    priceIsFrom: card.kind !== "offer",
+    priceSuffix: card.kind === "rental" ? "/day" : card.kind === "service" ? t("customer.favorites.perHour") : null,
+    responseTime: card.responseTime,
+    availabilityLabel: card.status ? STATUS_LABEL[card.status] : null,
+    actionType: card.actionType,
+  })
 
   if (isLoading) {
     return (
@@ -125,7 +155,7 @@ export default function MoreServicesPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-7xl px-4 py-6 lg:px-6">
+      <div className="mx-auto max-w-7xl px-3 py-6 sm:px-4 lg:px-6">
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" asChild className="rounded-full">
@@ -172,91 +202,16 @@ export default function MoreServicesPage() {
             <p className="text-lg font-semibold text-foreground">{t("customer.services.noMatch")}</p>
           </Card>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <OfferCardGrid>
             {filteredCards.map((card) => (
-              <Card key={`${card.kind}-${card.id}`} className="cursor-pointer overflow-hidden border border-border/70 bg-card/80 shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg" onClick={() => openCardDetail(card)}>
-                <div className="relative aspect-[16/10] bg-muted/30">
-                  <Image src={card.kind !== "service" ? (card.image || card.providerAvatar || "/placeholder.svg") : (card.providerAvatar || "/placeholder.svg")} alt={card.title} fill className="object-cover" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                  {card.kind === "service" && (
-                    <button
-                      onClick={(event) => {
-                        event.stopPropagation()
-                        toggleFavorite(card.id)
-                      }}
-                      className="absolute right-3 top-3 rounded-full bg-white/90 p-2 shadow-sm"
-                    >
-                      <Heart className={`h-4 w-4 ${favorites.includes(card.id) ? "fill-red-500 text-red-500" : "text-muted-foreground"}`} />
-                    </button>
-                  )}
-                  <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
-                    {card.status && (
-                      <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold text-white ${STATUS_STYLE[card.status].badge}`}>
-                        {STATUS_STYLE[card.status].label}
-                      </span>
-                    )}
-                    {card.kind === "offer" && (
-                      <span className="ml-auto flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-2.5 py-1 text-[11px] font-semibold text-white">
-                        <Crown className="h-3 w-3" /> Saji Pro
-                      </span>
-                    )}
-                    {card.kind === "rental" && (
-                      <span className="ml-auto flex items-center gap-1 rounded-full bg-gradient-to-r from-sky-600 to-indigo-600 px-2.5 py-1 text-[11px] font-semibold text-white">
-                        <Package className="h-3 w-3" /> Rental
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="p-4">
-                  <div className="mb-3 flex items-start justify-between gap-2">
-                    <div>
-                      <h3 className="font-semibold text-foreground">{card.title}</h3>
-                      <p className="mt-1 text-sm text-muted-foreground">{card.providerName}</p>
-                    </div>
-                    {card.price != null && <div className="rounded-full bg-primary/10 px-2.5 py-1 text-sm font-semibold text-primary">{formatMoney(card.price)}{card.kind === "rental" && <span className="font-normal">/day</span>}</div>}
-                  </div>
-
-                  <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                    <div className="flex items-center gap-1">
-                      <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                      <span className="font-medium text-foreground">{card.rating.toFixed(1)}</span>
-                      <span>({card.reviewCount})</span>
-                    </div>
-                    {card.responseTime && (
-                      <>
-                        <span className="h-1 w-1 rounded-full bg-border" />
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-3.5 w-3.5" />
-                          {card.responseTime}
-                        </div>
-                      </>
-                    )}
-                  </div>
-
-                  <div className="mb-4 flex flex-wrap gap-1.5">
-                    {card.badges.map((badge) => (
-                      <span key={badge} className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">{badge}</span>
-                    ))}
-                  </div>
-
-                  <div className="flex items-center justify-between border-t border-border/50 pt-3 text-sm">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <MapPin className="h-4 w-4" />
-                      {card.location}
-                    </div>
-                    <Button size="sm" className="rounded-full" onClick={(event) => {
-                      event.stopPropagation()
-                      openCardDetail(card)
-                    }}>
-                      <CalendarDays className="mr-1 h-4 w-4" />
-                      {card.actionLabel ?? t("common.viewDetails")}
-                    </Button>
-                  </div>
-                </div>
-              </Card>
+              <OfferCard
+                key={`${card.kind}-${card.id}`}
+                data={toCardData(card)}
+                isFavorite={favorites.includes(card.id)}
+                onToggleFavorite={card.kind === "service" ? toggleFavorite : undefined}
+              />
             ))}
-          </div>
+          </OfferCardGrid>
         )}
       </div>
     </div>

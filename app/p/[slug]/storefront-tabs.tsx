@@ -1,8 +1,8 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import Link from "next/link"
 import { BadgeCheck, GraduationCap, Star, Trophy } from "lucide-react"
+import { OfferCard, OfferCardGrid } from "@/components/offers/offer-card"
 import type { StorefrontData, StorefrontOffer } from "@/lib/actions/storefront"
 
 /**
@@ -79,44 +79,29 @@ export default function StorefrontTabs({ data }: { data: Data }) {
   )
 }
 
-const ACTION_LABEL: Record<StorefrontOffer["actionType"], string> = {
-  BOOK: "Book", HIRE: "Hire", BUY: "Buy", QUOTE: "Get a quote", REQUEST: "Request", RENT: "Rent",
-}
-
-function formatPrice(offer: StorefrontOffer): string {
-  if (offer.price == null) return "Price on request"
-  const amount = new Intl.NumberFormat("en-KE").format(offer.price)
-  const prefix = offer.pricingModel === "STARTING_FROM" ? "From " : ""
-  const suffix = offer.unitLabel ? ` / ${offer.unitLabel}` : ""
-  return `${prefix}${offer.currency} ${amount}${suffix}`
-}
-
 function OfferGrid({ offers }: { offers: StorefrontOffer[] }) {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <OfferCardGrid>
       {offers.map((offer) => (
-        <Link
+        <OfferCard
           key={offer.id}
-          href={`/customer/offers/${offer.id}`}
-          className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 overflow-hidden hover:shadow-md transition"
-        >
-          {offer.image ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={offer.image} alt="" className="w-full h-40 object-cover" />
-          ) : (
-            <div aria-hidden="true" className="w-full h-40 bg-gray-100 dark:bg-gray-700" />
-          )}
-          <div className="p-4">
-            <h3 className="font-semibold line-clamp-1">{offer.title}</h3>
-            <p className="mt-1 text-sm text-gray-500 line-clamp-2">{offer.description}</p>
-            <div className="mt-3 flex items-center justify-between">
-              <span className="font-medium">{formatPrice(offer)}</span>
-              <span className="text-xs font-medium text-blue-600">{ACTION_LABEL[offer.actionType]}</span>
-            </div>
-          </div>
-        </Link>
+          data={{
+            id: offer.id,
+            href: `/customer/offers/${offer.id}`,
+            title: offer.title,
+            subtitle: offer.description,
+            image: offer.image,
+            // No provider line: every card here belongs to the provider whose
+            // name is already in the header above, so the offer title takes
+            // the headline slot instead of repeating it on every card.
+            price: offer.price,
+            priceIsFrom: offer.pricingModel === "STARTING_FROM",
+            priceSuffix: offer.unitLabel ? ` / ${offer.unitLabel}` : null,
+            actionType: offer.actionType,
+          }}
+        />
       ))}
-    </div>
+    </OfferCardGrid>
   )
 }
 

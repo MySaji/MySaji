@@ -307,7 +307,7 @@ export function ProductMarketplace() {
         </div>
 
         {!isFilterDataLoaded || isLoading ? (
-          <div className={viewMode === "grid" ? "grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4" : "space-y-3"}>
+          <div className={viewMode === "grid" ? "grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4 lg:gap-4" : "space-y-3"}>
             {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="space-y-2"><Skeleton className="aspect-square w-full rounded-2xl" /><Skeleton className="h-3.5 w-3/4" /><Skeleton className="h-3.5 w-1/2" /></div>
             ))}
@@ -318,7 +318,7 @@ export function ProductMarketplace() {
             <p className="mt-2 text-sm text-muted-foreground">{t("customer.marketplace.noMatchHint")}</p>
           </Card>
         ) : (
-          <div className={viewMode === "grid" ? "grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4" : "space-y-3"}>
+          <div className={viewMode === "grid" ? "grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4 lg:gap-4" : "space-y-3"}>
             {products.map((product) => {
               const isWishlisted = wishlistIds.includes(product.id)
               const displayPrice = product.discountPrice ?? product.price
