@@ -21,6 +21,7 @@ import {
 } from "@/lib/actions/offers"
 import type { PriceBand, DemandSignal } from "@/lib/ai/offer-enhancement"
 import type { ImageGuidance } from "@/lib/offer-image-guidance"
+import { CategoryPicker } from "@/components/offers/category-picker"
 import { getMyCertifications, getMySkills, type ProviderCertification } from "@/lib/actions/provider-credentials"
 import { getProviderAvailability } from "@/lib/actions/provider-availability"
 import {
@@ -610,10 +611,12 @@ function CreateOfferWizard() {
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-muted-foreground">Category</label>
-              <select value={data.categoryId} onChange={(e) => setData((p) => ({ ...p, categoryId: e.target.value }))} className="h-10 w-full rounded-xl border border-border bg-background px-3 text-sm">
-                <option value="">Select a category</option>
-                {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
+              {/* Type-to-filter rather than a ~90-option dropdown. */}
+              <CategoryPicker
+                categories={categories}
+                value={data.categoryId}
+                onChange={(categoryId) => setData((p) => ({ ...p, categoryId }))}
+              />
             </div>
             {(aiTags.youOffer.length > 0 || aiTags.youServe.length > 0) && (
               <div className="grid grid-cols-2 gap-3 text-sm">

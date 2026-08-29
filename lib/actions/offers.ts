@@ -84,7 +84,16 @@ export async function getMyOffers(): Promise<ProviderOfferItem[]> {
   }))
 }
 
-export type OfferCategoryOption = { id: string; name: string; slug: string; type: "SERVICE" | "PRODUCT" }
+export type OfferCategoryOption = {
+  id: string
+  name: string
+  slug: string
+  type: "SERVICE" | "PRODUCT"
+  /** Parent category name, for disambiguating a long flat list. "Graphic
+   *  Design" and "Web Development" mean different things under Design and
+   *  under Technology, and there are ~90 categories to choose from now. */
+  parentName: string | null
+}
 
 /** Offers were originally SERVICE-only (this app's first Offer categories
  * were all skilled-trade ones), but actionType already supports BUY and the
@@ -93,8 +102,12 @@ export type OfferCategoryOption = { id: string; name: string; slug: string; type
  * not a service. Restricting this to SERVICE would make that flagship
  * example uncreatable, so both types are offered here. */
 export async function getOfferCategoryOptions(): Promise<OfferCategoryOption[]> {
-  const categories = await db.category.findMany({ where: { type: { in: ["SERVICE", "PRODUCT"] }, isActive: true }, orderBy: { name: "asc" } })
-  return categories.map((c) => ({ id: c.id, name: c.name, slug: c.slug, type: c.type }))
+  const categories = await db.category.findMany({
+    where: { type: { in: ["SERVICE", "PRODUCT"] }, isActive: true },
+    orderBy: { name: "asc" },
+    include: { parent: { select: { name: true } } },
+  })
+  return categories.map((c) => ({ id: c.id, name: c.name, slug: c.slug, type: c.type, parentName: c.parent?.name ?? null }))
 }
 
 /** Step 3's field list — real admin-managed CategoryAttribute rows for this
