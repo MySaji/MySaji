@@ -2,13 +2,16 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { HardHat, Building2, ArrowRight, Loader2, Upload } from "lucide-react"
+import { HardHat, Building2, ArrowRight, Loader2, Upload, Globe, MapPin, Shuffle } from "lucide-react"
 import { completeBusinessOnboarding } from "@/lib/actions/provider-business"
 import { submitBusinessPermitDocument } from "@/lib/actions/kyc"
+import { updateMyProfessionalProfile } from "@/lib/actions/provider-professional-profile"
 import { inviteStaffMember } from "@/lib/actions/provider-business"
 import { useLocalization } from "@/lib/hooks/useLocalization"
 
-type OnboardingStep = "choice" | "business-details" | "business-permit" | "invite-staff"
+type OnboardingStep = "choice" | "professional" | "business-details" | "business-permit" | "invite-staff"
+
+type WorkPreference = "REMOTE" | "ONSITE" | "HYBRID"
 
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -36,8 +39,37 @@ export default function ProviderOnboardingPage() {
   const [invitePhone, setInvitePhone] = useState("")
   const [inviteMessage, setInviteMessage] = useState("")
 
+  const [headline, setHeadline] = useState("")
+  const [about, setAbout] = useState("")
+  const [yearsExperience, setYearsExperience] = useState("")
+  const [workPreference, setWorkPreference] = useState<WorkPreference>("ONSITE")
+  // Where to go once the professional step is done or skipped. Solo providers
+  // continue to KYC as before; business owners return to their staff page.
+  const [afterProfessional, setAfterProfessional] = useState("/provider/profile/verification")
+
   function chooseSolo() {
-    router.push("/provider/profile/verification")
+    setAfterProfessional("/provider/profile/verification")
+    setStep("professional")
+  }
+
+  /** Saves whatever was filled in and moves on. Every field is optional: the
+   *  full editor lives at /provider/profile/professional, and blocking signup
+   *  on a bio is a good way to lose providers before they ever list anything. */
+  async function submitProfessional() {
+    setIsLoading(true)
+    setError("")
+    const result = await updateMyProfessionalProfile({
+      headline,
+      bio: about,
+      yearsExperience: Number(yearsExperience) || 0,
+      workPreference,
+    })
+    setIsLoading(false)
+    if (!result.success) {
+      setError(result.error)
+      return
+    }
+    router.push(afterProfessional)
   }
 
   async function submitBusinessDetails() {
@@ -114,6 +146,98 @@ export default function ProviderOnboardingPage() {
                 </div>
                 <div className="font-bold text-gray-900 dark:text-white">{t("provider.onboarding.businessTitle")}</div>
                 <div className="text-sm text-gray-500 dark:text-gray-400">{t("provider.onboarding.businessDesc")}</div>
+              </button>
+            </div>
+          </>
+        )}
+
+        {step === "professional" && (
+          <>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-1">{t("provider.onboarding.professionalTitle")}</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">{t("provider.onboarding.professionalSubtitle")}</p>
+            {error && <p className="text-sm text-red-600 dark:text-red-400 mb-4">{error}</p>}
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="ob-headline" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t("provider.onboarding.headlineLabel")}</label>
+                <input
+                  id="ob-headline"
+                  value={headline}
+                  onChange={(e) => setHeadline(e.target.value)}
+                  maxLength={160}
+                  placeholder={t("provider.onboarding.headlinePlaceholder")}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="ob-about" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t("provider.onboarding.aboutLabel")}</label>
+                <textarea
+                  id="ob-about"
+                  value={about}
+                  onChange={(e) => setAbout(e.target.value)}
+                  rows={4}
+                  maxLength={2000}
+                  placeholder={t("provider.onboarding.aboutPlaceholder")}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="ob-years" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t("provider.onboarding.yearsLabel")}</label>
+                <input
+                  id="ob-years"
+                  type="number"
+                  min={0}
+                  max={70}
+                  value={yearsExperience}
+                  onChange={(e) => setYearsExperience(e.target.value)}
+                  className="w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+              </div>
+
+              {/* The field that stops discovery assuming every provider drives
+                  to the customer. A translator or developer picks Remote and
+                  becomes findable outside their own town. */}
+              <div>
+                <p className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("provider.onboarding.workPreferenceLabel")}</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {([
+                    ["REMOTE", Globe, "provider.onboarding.workRemote", "provider.onboarding.workRemoteDesc"],
+                    ["ONSITE", MapPin, "provider.onboarding.workOnsite", "provider.onboarding.workOnsiteDesc"],
+                    ["HYBRID", Shuffle, "provider.onboarding.workHybrid", "provider.onboarding.workHybridDesc"],
+                  ] as const).map(([value, Icon, labelKey, descKey]) => {
+                    const active = workPreference === value
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => setWorkPreference(value)}
+                        aria-pressed={active}
+                        className={`rounded-lg border-2 p-3 text-left transition-colors ${active ? "border-blue-600 bg-blue-50 dark:bg-blue-900/20" : "border-gray-200 dark:border-gray-700 hover:border-gray-400"}`}
+                      >
+                        <Icon className="w-5 h-5 mb-1.5 text-blue-600 dark:text-blue-400" />
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">{t(labelKey)}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">{t(descKey)}</div>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <button
+                onClick={submitProfessional}
+                disabled={isLoading}
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white py-3 rounded-lg font-medium flex items-center justify-center gap-2"
+              >
+                {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <ArrowRight className="w-5 h-5" />}
+                {t("provider.onboarding.saveAndContinue")}
+              </button>
+
+              <button
+                onClick={() => router.push(afterProfessional)}
+                className="w-full text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+              >
+                {t("provider.onboarding.skipForNow")}
               </button>
             </div>
           </>
@@ -219,11 +343,14 @@ export default function ProviderOnboardingPage() {
                 {t("provider.business.staff.inviteButton")}
               </button>
               <div className="flex gap-3 pt-2">
-                <button onClick={() => router.push("/provider/business/staff")} className="flex-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+                <button
+                  onClick={() => { setAfterProfessional("/provider/business/staff"); setStep("professional") }}
+                  className="flex-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                >
                   {t("provider.onboarding.skipForNow")}
                 </button>
                 <button
-                  onClick={() => router.push("/provider/business/staff")}
+                  onClick={() => { setAfterProfessional("/provider/business/staff"); setStep("professional") }}
                   className="flex-1 bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 text-white py-2 rounded-lg text-sm font-medium"
                 >
                   {t("provider.onboarding.finishSetup")}
