@@ -104,7 +104,7 @@ export default function ProviderSidebar({ isOpen, onClose }: ProviderSidebarProp
       // My Account (completeBusinessOnboarding), this just makes that path
       // directly discoverable from the nav instead of buried in settings.
       // Free-tier solo providers don't get this item at all.
-      ...(isPro ? [{ icon: Users, label: "Team", href: "/provider/team", isNew: true, group: null }] : []),
+      ...(isPro ? [{ icon: Users, label: "Team", href: "/provider/team", group: null }] : []),
       { icon: Megaphone, label: "Requests", href: "/provider/requests", group: null },
       { icon: ClipboardList, label: "Quotes", href: "/provider/quotes", group: null },
       { icon: Handshake, label: "Service Requests", href: "/provider/service-requests", group: null },
