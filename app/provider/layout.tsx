@@ -138,7 +138,9 @@ export default function ProviderLayout({ children }: { children: React.ReactNode
       {/* Main Content */}
       <div className="lg:pl-64">
         <ProviderTopbar onMenuClick={() => setMobileNavOpen(true)} />
-        <main id="main-content" className="min-h-screen pb-20 lg:pb-6">
+        {/* pb-36 / lg:pb-24 reserve the floating chat button's footprint as
+            well as the bottom nav's; see app/customer/layout.tsx. */}
+        <main id="main-content" className="min-h-screen pb-36 lg:pb-24">
           {openDisputes.length > 0 && (
             <div className="px-4 lg:px-6 pt-4">
               <DisputeBanner disputes={openDisputes} messagesBasePath="/provider/messages" />

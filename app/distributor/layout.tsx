@@ -410,7 +410,9 @@ export default function DistributorLayout({ children }: { children: React.ReactN
           </div>
         </header>
 
-        <main className="flex-1 pb-20 lg:pb-0">
+        {/* pb-36 / lg:pb-24 reserve the floating chat button's footprint as
+            well as the bottom nav's; see app/customer/layout.tsx. */}
+        <main className="flex-1 pb-36 lg:pb-24">
           {isCompanyLocked && !pathname?.startsWith("/distributor/register") && (
             <div className="m-4 lg:m-6 mb-0">
               {user?.kycStatus === "rejected" ? (

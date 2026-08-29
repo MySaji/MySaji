@@ -361,7 +361,15 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
         </header>
 
         {/* Page Content */}
-        <main id="main-content" className="pb-20 lg:pb-6">
+        {/* pb-36 reserves the floating chat button's real footprint, not just
+            the bottom nav's. The button is fixed at bottom-20 and is 56px tall,
+            so it covers 80-136px up from the bottom of the viewport; the old
+            pb-20 cleared the 65px nav and nothing else. At the very bottom of a
+            page, where there is nothing left to scroll, it therefore sat on top
+            of whatever ended the page: on the two-column card grid that was the
+            last card's action button, with about a third of it unreachable. On
+            lg the button moves to bottom-6 at 64px tall, hence lg:pb-24. */}
+        <main id="main-content" className="pb-36 lg:pb-24">
           {openDisputes.length > 0 && (
             <div className="px-4 lg:px-6 pt-4">
               <DisputeBanner disputes={openDisputes} messagesBasePath="/customer/messages" />

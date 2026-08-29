@@ -412,7 +412,9 @@ export default function ShopkeeperLayout({ children }: { children: React.ReactNo
         </header>
 
         {/* Page Content */}
-        <main id="main-content" className="flex-1 pb-20 lg:pb-0">
+        {/* pb-36 / lg:pb-24 reserve the floating chat button's footprint as
+            well as the bottom nav's; see app/customer/layout.tsx. */}
+        <main id="main-content" className="flex-1 pb-36 lg:pb-24">
           {isShopLocked && !pathname?.startsWith("/shopkeeper/register") && (
             <div className="m-4 lg:m-6 mb-0">
               {user?.kycStatus === "rejected" ? (
