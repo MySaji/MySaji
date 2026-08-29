@@ -220,7 +220,11 @@ export default function SignupPage() {
     // Which role card they picked. auth.ts validates this against a fixed
     // allowlist before using it, so a hand-edited cookie cannot grant a role.
     document.cookie = `oauth_role=${formData.role}; path=/; max-age=300; samesite=lax`
-    const result = await loginWithGoogle(ROLE_HOME_PATH[formData.role])
+    // ROLE_NEXT_PATH, not ROLE_HOME_PATH: a provider must reach
+    // /provider/onboarding to choose Solo vs Business, a shopkeeper
+    // /shopkeeper/register, and so on. Sending them to the dashboard skips
+    // account setup entirely, which is what this used to do.
+    const result = await loginWithGoogle(ROLE_NEXT_PATH[formData.role])
     setIsLoading(false)
     if (!result.success) {
       setError(result.error)

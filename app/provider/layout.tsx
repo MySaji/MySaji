@@ -52,7 +52,16 @@ export default function ProviderLayout({ children }: { children: React.ReactNode
 
   const isProviderPending = user?.role === "provider" && user?.kycStatus !== "approved"
 
-  if (!isLoading && isProviderPending && !pathname?.startsWith("/provider/profile/verification")) {
+  // Every new provider starts PENDING, so this gate decides what they can do
+  // before an admin approves them. Verification obviously has to be reachable —
+  // and so does onboarding, which is where they choose Solo vs Business and fill
+  // in the professional profile their storefront is built from. Blocking it
+  // meant the Solo/Business choice could never be reached by anyone: signup
+  // routed them to /provider/onboarding and this screen replaced it.
+  const PENDING_ALLOWED_PATHS = ["/provider/profile/verification", "/provider/onboarding"]
+  const isPendingAllowedPath = PENDING_ALLOWED_PATHS.some((allowed) => pathname?.startsWith(allowed))
+
+  if (!isLoading && isProviderPending && !isPendingAllowedPath) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-6">
         {/* Pending KYC otherwise has no way back except signing out entirely
