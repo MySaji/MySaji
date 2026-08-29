@@ -6,7 +6,8 @@ import { PrismaAdapter } from "@auth/prisma-adapter"
 import { cookies } from "next/headers"
 import { db } from "@/lib/db"
 import { verifyPassword } from "@/lib/password"
-import { ROLE_DB_TO_APP } from "@/lib/role-map"
+import { ROLE_DB_TO_APP, ROLE_APP_TO_DB } from "@/lib/role-map"
+import { buildProviderSlug } from "@/lib/provider-slug"
 import { checkRateLimit } from "@/lib/rate-limit"
 
 // Set by the login/signup pages (a plain non-httpOnly cookie, since it only
@@ -16,6 +17,25 @@ import { checkRateLimit } from "@/lib/rate-limit"
 // below can tell which page the attempt started from once Google's callback
 // comes back.
 const OAUTH_INTENT_COOKIE = "oauth_intent"
+
+// Written by the signup page beside OAUTH_INTENT_COOKIE, carrying which role
+// card was chosen before the redirect to Google. Without it a Google signup
+// always produced a CUSTOMER: User.role defaults to CUSTOMER and the adapter
+// has no idea what the person clicked.
+const OAUTH_ROLE_COOKIE = "oauth_role"
+
+// The cookie is client-set and not httpOnly, so this list is the security
+// boundary rather than a convenience. It is exactly the four cards the signup
+// page offers; anything else (admin, agent, secretary, sub-admin) is ignored
+// and falls back to customer, so hand-editing the cookie cannot escalate.
+const SELF_SIGNUP_ROLES = ["customer", "provider", "shopkeeper", "distributor"] as const
+type SelfSignupRole = (typeof SELF_SIGNUP_ROLES)[number]
+
+function readSelfSignupRole(value: string | undefined): SelfSignupRole {
+  return (SELF_SIGNUP_ROLES as readonly string[]).includes(value ?? "")
+    ? (value as SelfSignupRole)
+    : "customer"
+}
 
 class RateLimitedSignInError extends CredentialsSignin {
   code = "rate-limited"
@@ -176,6 +196,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // `user.kycStatus`, applied once here instead of at every assignment.
       const token = rawToken as unknown as JWT
       if (user) {
+        // The `user` handed here is the object the adapter built, which for an
+        // OAuth signup is read *before* events.createUser runs. Re-reading means
+        // the role assigned there lands in the very first token, instead of the
+        // session claiming CUSTOMER until the next sign-in. One query, on
+        // sign-in only.
+        if (user.id) {
+          const fresh = await db.user
+            .findUnique({ where: { id: user.id }, select: { role: true, kycStatus: true } })
+            .catch(() => null)
+          if (fresh) {
+            user.role = fresh.role as unknown as typeof user.role
+            user.kycStatus = fresh.kycStatus as unknown as typeof user.kycStatus
+          }
+        }
         // `user.role` is a raw Prisma enum value ("CUSTOMER", "SUB_ADMIN", ...)
         // whether it came from the Credentials authorize() above or was
         // constructed fresh by the Prisma adapter for an OAuth sign-in.
@@ -243,8 +277,50 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     // provisions these rows itself in the same transaction as the User row.
     async createUser({ user }) {
       if (!user.id) return
+
+      // Mirrors registerUser() in lib/actions/auth.ts, which does the same
+      // provisioning for credentials signups. Before this, every OAuth signup
+      // got role CUSTOMER and a CustomerProfile no matter which card was
+      // picked — so choosing "Service Provider" and continuing with Google
+      // produced a customer account with no ProviderProfile at all.
+      let appRole: SelfSignupRole = "customer"
+      try {
+        appRole = readSelfSignupRole((await cookies()).get(OAUTH_ROLE_COOKIE)?.value)
+      } catch {
+        // No cookie means the intent is unknowable; customer is the safe
+        // default because it is the least privileged of the four.
+      }
+
+      await db.user
+        .update({
+          where: { id: user.id },
+          data: {
+            role: ROLE_APP_TO_DB[appRole],
+            kycStatus: appRole === "customer" ? "APPROVED" : "PENDING",
+          },
+        })
+        .catch(() => {})
+
       await db.wallet.create({ data: { userId: user.id } }).catch(() => {})
-      await db.customerProfile.create({ data: { userId: user.id } }).catch(() => {})
+
+      const displayName = user.name ?? user.email ?? "SAJI user"
+      try {
+        if (appRole === "provider") {
+          const profile = await db.providerProfile.create({ data: { userId: user.id } })
+          await db.providerProfile.update({
+            where: { id: profile.id },
+            data: { slug: buildProviderSlug(user.name, user.email, profile.id) },
+          })
+        } else if (appRole === "shopkeeper") {
+          await db.shopkeeperProfile.create({ data: { userId: user.id, shopName: displayName + "'s Shop" } })
+        } else if (appRole === "distributor") {
+          await db.distributorProfile.create({ data: { userId: user.id, companyName: displayName + "'s Company" } })
+        } else {
+          await db.customerProfile.create({ data: { userId: user.id } })
+        }
+      } catch (err) {
+        console.error("[auth] createUser profile provisioning failed:", err)
+      }
     },
   },
 })

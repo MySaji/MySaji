@@ -217,7 +217,10 @@ export default function SignupPage() {
     // with "sign in instead" rather than silently logging the existing user
     // in from the signup button.
     document.cookie = "oauth_intent=signup; path=/; max-age=300; samesite=lax"
-    const result = await loginWithGoogle(ROLE_HOME_PATH.customer)
+    // Which role card they picked. auth.ts validates this against a fixed
+    // allowlist before using it, so a hand-edited cookie cannot grant a role.
+    document.cookie = `oauth_role=${formData.role}; path=/; max-age=300; samesite=lax`
+    const result = await loginWithGoogle(ROLE_HOME_PATH[formData.role])
     setIsLoading(false)
     if (!result.success) {
       setError(result.error)
