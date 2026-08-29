@@ -194,7 +194,7 @@ export default function CustomerServiceRequestsPage() {
         {requests.length === 0 ? (
           <Card className="border-dashed p-10 text-center">
             <FileText className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">No requests yet — find a provider and tap "Get Quote" to start one.</p>
+            <p className="text-sm text-muted-foreground">No requests yet. Find a provider and tap "Get Quote" to start one.</p>
           </Card>
         ) : (
           <div className="space-y-3">

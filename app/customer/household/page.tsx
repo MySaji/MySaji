@@ -58,7 +58,7 @@ export default function HouseholdPage() {
     // email genuinely couldn't be sent, fall back to the raw link so the
     // owner can still share it manually instead of the invite silently
     // going nowhere.
-    setInviteResultMessage(result.emailed ? "Invite sent! We emailed them a link to join." : `Email couldn't be sent — share this link with them instead: ${result.inviteUrl}`)
+    setInviteResultMessage(result.emailed ? "Invite sent! We emailed them a link to join." : `Email couldn't be sent. Share this link with them instead: ${result.inviteUrl}`)
     await refresh()
   }
 
@@ -125,7 +125,7 @@ export default function HouseholdPage() {
                 ))}
                 {household.invites.map((inv) => (
                   <div key={inv.id} className="flex items-center justify-between gap-3 rounded-xl border border-dashed border-border/70 p-3">
-                    <p className="text-sm text-muted-foreground">{inv.email ?? inv.phone} — invited as {ROLE_LABEL[inv.role]}</p>
+                    <p className="text-sm text-muted-foreground">{inv.email ?? inv.phone}, invited as {ROLE_LABEL[inv.role]}</p>
                     <span className="text-[10px] font-semibold text-amber-600">Pending</span>
                   </div>
                 ))}
@@ -160,9 +160,9 @@ export default function HouseholdPage() {
             <h2 className="text-lg font-bold text-foreground">Invite a Household Member</h2>
             <Input value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="Email address" type="email" />
             <select value={inviteRole} onChange={(e) => setInviteRole(e.target.value as any)} className="w-full h-10 rounded-xl border border-border bg-background px-3 text-sm">
-              <option value="MEMBER">Member — view + book</option>
-              <option value="PROPERTY_MANAGER">Property Manager — manage properties + book</option>
-              <option value="PAYMENT_APPROVER">Payment Approver — view + book + approve payments</option>
+              <option value="MEMBER">Member: view + book</option>
+              <option value="PROPERTY_MANAGER">Property Manager: manage properties + book</option>
+              <option value="PAYMENT_APPROVER">Payment Approver: view + book + approve payments</option>
             </select>
             {error && <p className="text-sm text-red-600">{error}</p>}
             <div className="flex gap-2">

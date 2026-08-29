@@ -110,7 +110,7 @@ export function PaymentMethods({ amount, jobId, onSuccess }: { amount: number; j
     setMessage(null)
     setLoading(true)
     try {
-      if (!jobId) throw new Error("Missing jobId — create booking before initiating payment")
+      if (!jobId) throw new Error("Missing jobId. Create booking before initiating payment")
       const body: any = { provider, jobId }
       if (provider === "mpesa" || provider === "airtel") body.phone = phone
 
@@ -207,7 +207,7 @@ export function PaymentMethods({ amount, jobId, onSuccess }: { amount: number; j
         </Button>
       )}
       {walletBalance != null && !hasEnoughWalletBalance && (
-        <p className="text-xs text-muted-foreground -mt-2">Insufficient wallet balance — top up or choose another method below.</p>
+        <p className="text-xs text-muted-foreground -mt-2">Insufficient wallet balance. Top up or choose another method below.</p>
       )}
 
       <div className="space-y-2">

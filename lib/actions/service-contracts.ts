@@ -195,7 +195,7 @@ export async function respondToContractQuote(input: unknown): Promise<RespondToQ
   })
 
   await notifyUser({
-    userId: contract.provider.userId, title: "Quote accepted", message: `"${contract.title}" was accepted — awaiting payment.`, type: "JOB", relatedType: "JOB", relatedId: job.id, actionUrl: "/provider/jobs",
+    userId: contract.provider.userId, title: "Quote accepted", message: `"${contract.title}" was accepted, awaiting payment.`, type: "JOB", relatedType: "JOB", relatedId: job.id, actionUrl: "/provider/jobs",
   })
 
   return { success: true, jobId: job.id }

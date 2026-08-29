@@ -11,7 +11,7 @@ import { sendGuestChatbotMessage } from "@/lib/actions/guest-chatbot"
 type GuestMessage = { id: string; role: "user" | "assistant"; content: string }
 
 const WELCOME_MESSAGE =
-  "Hi! I'm SAJI Assistant. Ask me anything about how SAJI works — booking services, buying from local shops, becoming a provider, and more. Sign in for full support (order-specific help, live human handoff)."
+  "Hi! I'm SAJI Assistant. Ask me anything about how SAJI works: booking services, buying from local shops, becoming a provider, and more. Sign in for full support (order-specific help, live human handoff)."
 
 /** Public, no-login chat for the marketing landing page — pre-signup
  * visitors asking "how does this work" shouldn't have to create an
@@ -108,7 +108,7 @@ export function GuestChatbotWidget({ onClose }: { onClose: () => void }) {
 
         {aiUnconfigured && (
           <p className="text-center text-xs text-amber-600 dark:text-amber-400">
-            AI replies aren&apos;t fully configured yet — please check back soon, or sign in to reach our support team.
+            AI replies aren&apos;t fully configured yet. Please check back soon, or sign in to reach our support team.
           </p>
         )}
         {error && <p className="text-center text-xs text-red-600">{error}</p>}

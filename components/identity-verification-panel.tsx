@@ -60,7 +60,7 @@ export function IdentityVerificationPanel({ jobId, canVerify }: { jobId: string;
         <ScanFace className="h-4 w-4 text-primary" />
         <p className="text-sm font-medium text-foreground">Identity check required before starting</p>
       </div>
-      <p className="mb-3 text-xs text-muted-foreground">This is a high-risk job category — take a quick selfie to verify it's really you before you start.</p>
+      <p className="mb-3 text-xs text-muted-foreground">This is a high-risk job category. Take a quick selfie to verify it's really you before you start.</p>
       {selfie && <img src={selfie} alt="Selfie preview" className="mb-3 h-32 w-32 rounded-xl object-cover" />}
       <input ref={fileInputRef} type="file" accept="image/*" capture="user" onChange={handleFile} className="hidden" />
       {error && <p className="mb-2 text-sm text-red-600">{error}</p>}

@@ -74,7 +74,7 @@ export default function OffersPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground"><Rocket className="h-6 w-6 text-amber-500" /> My Offers</h1>
-          <p className="text-sm text-muted-foreground mt-1">Provider-controlled listings — Saji structures discovery and applies trust &amp; safety rules before they go live.</p>
+          <p className="text-sm text-muted-foreground mt-1">Provider-controlled listings. Saji structures discovery and applies trust &amp; safety rules before they go live.</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" asChild className="rounded-xl gap-2"><Link href="/provider/pro"><Crown className="w-4 h-4" />Saji Pro</Link></Button>
@@ -122,7 +122,7 @@ export default function OffersPage() {
       <div className="space-y-3">
         {filtered.length === 0 && (
           <Card className="p-10 text-center border-dashed">
-            <p className="text-sm text-muted-foreground">No offers yet — create your first one to start appearing in discovery with a Book/Hire/Buy/Quote/Request action.</p>
+            <p className="text-sm text-muted-foreground">No offers yet. Create your first one to start appearing in discovery with a Book/Hire/Buy/Quote/Request action.</p>
           </Card>
         )}
         {filtered.map((offer) => (

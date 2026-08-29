@@ -122,7 +122,7 @@ export default function RentalDetailPage() {
       if (data.checkoutUrl) { window.location.href = data.checkoutUrl; return }
       if (data.simulated) { setView("success"); setIsSubmitting(false); return }
       if (data.paymentId) { startPolling(bookingId); setIsSubmitting(false); return }
-      setMessage(data.message ?? "Unexpected response — please try again.")
+      setMessage(data.message ?? "Unexpected response. Please try again.")
       setIsSubmitting(false)
     } catch (err: any) {
       setMessage(err?.message ?? "Error initiating payment")

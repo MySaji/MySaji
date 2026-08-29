@@ -112,7 +112,7 @@ function sectionHtml(heading: string, products: DigestProduct[], origin: string)
   return `
     <h2>${heading}</h2>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:4px;">${rows.join("")}</table>
-    ${overflow > 0 ? `<p style="color:#6b7280;font-size:13px;margin:4px 0 8px;">+${overflow} more — <a href="${origin}/customer/products" style="color:${emailBrand.accent};">view all</a></p>` : ""}
+    ${overflow > 0 ? `<p style="color:#6b7280;font-size:13px;margin:4px 0 8px;">+${overflow} more, <a href="${origin}/customer/products" style="color:${emailBrand.accent};">view all</a></p>` : ""}
   `
 }
 

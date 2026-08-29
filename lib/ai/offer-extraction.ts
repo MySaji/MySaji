@@ -54,7 +54,7 @@ Rules:
 - "categoryName": must be EXACTLY one of these existing category names, copied verbatim, or null if none genuinely fit: ${categoryNames.join(", ")}
 - "youOffer": short tags for the specific items/services offered (max 8), e.g. ["Cement","Steel"].
 - "youServe": who the customer is (max 5), e.g. ["Contractors","Businesses"]. Empty array if unclear.
-- "fulfilment": subset of exactly these values: DELIVERY, PICKUP, PROVIDER_SITE_VISIT, SHIPPING, REMOTE — only include ones clearly implied by the text.
+- "fulfilment": subset of exactly these values: DELIVERY, PICKUP, PROVIDER_SITE_VISIT, SHIPPING, REMOTE. Only include ones clearly implied by the text.
 - "location": a place name mentioned in the text, or null if none.
 - Never invent details not implied by the text.`,
       messages: [{ role: "user", content: description }],

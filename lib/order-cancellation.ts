@@ -85,7 +85,7 @@ export async function reverseOrder(orderId: string): Promise<OrderReversalResult
         walletId: shopWallet.id,
         type: "DEBIT",
         amount: -payoutToReverse,
-        description: `Order ${order.orderNumber} cancelled — payout reversed`,
+        description: `Order ${order.orderNumber} cancelled, payout reversed`,
         referenceType: "ORDER",
         referenceId: order.id,
         status: "COMPLETED",

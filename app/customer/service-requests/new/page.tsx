@@ -21,7 +21,7 @@ export default function NewServiceRequestPage() {
   const [error, setError] = useState("")
 
   const handleSubmit = async () => {
-    if (!providerId) { setError("Missing provider — go back and pick a provider first."); return }
+    if (!providerId) { setError("Missing provider. Go back and pick a provider first."); return }
     setIsSubmitting(true)
     setError("")
     const result = await createServiceRequest({ providerId, title, description, location })
@@ -42,7 +42,7 @@ export default function NewServiceRequestPage() {
       <div className="mx-auto max-w-xl space-y-4 px-4 py-6">
         <Card className="border-0 p-5 shadow-sm space-y-4">
           <p className="text-sm text-muted-foreground">
-            Describe what you need — the provider will review it and send back a real quote with price, scope of work, and an estimated timeline for you to accept or decline.
+            Describe what you need. The provider will review it and send back a real quote with price, scope of work, and an estimated timeline for you to accept or decline.
           </p>
           <div>
             <label className="mb-1 block text-sm text-muted-foreground">What do you need?</label>
@@ -50,7 +50,7 @@ export default function NewServiceRequestPage() {
           </div>
           <div>
             <label className="mb-1 block text-sm text-muted-foreground">Details</label>
-            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Describe the job — what's needed, any constraints, preferred timing…" className="min-h-[120px]" />
+            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Describe the job: what's needed, any constraints, preferred timing…" className="min-h-[120px]" />
           </div>
           <div>
             <label className="mb-1 block text-sm text-muted-foreground">Location</label>

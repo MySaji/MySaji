@@ -28,9 +28,9 @@ const CATEGORY_ICON: Record<string, ComponentType<{ className?: string }>> = {
 }
 
 const FEATURES = [
-  { icon: Zap, title: "Instant Booking", description: "Find and book a verified professional in minutes — no phone calls, no waiting around.", color: "from-blue-500 to-blue-600" },
+  { icon: Zap, title: "Instant Booking", description: "Find and book a verified professional in minutes. No phone calls, no waiting around.", color: "from-blue-500 to-blue-600" },
   { icon: ShieldCheck, title: "Verified Professionals", description: "Every provider is vetted and rated by real customers, so you know who's showing up.", color: "from-cyan-500 to-blue-500" },
-  { icon: Smartphone, title: "Secure M-Pesa & Card Payments", description: "Pay safely in-app with M-Pesa or card — funds are only released once the job is done.", color: "from-blue-600 to-indigo-600" },
+  { icon: Smartphone, title: "Secure M-Pesa & Card Payments", description: "Pay safely in-app with M-Pesa or card. Funds are only released once the job is done.", color: "from-blue-600 to-indigo-600" },
   { icon: Lock, title: "Dispute Protection", description: "If something goes wrong, our support team steps in to make it right.", color: "from-indigo-500 to-purple-600" },
   { icon: MessageCircle, title: "In-App Messaging", description: "Chat directly with your provider to coordinate timing, location, and details.", color: "from-purple-500 to-pink-500" },
   { icon: Star, title: "Real Reviews", description: "Ratings and reviews from real completed jobs, not marketing copy.", color: "from-pink-500 to-red-500" },
@@ -48,7 +48,7 @@ const AUDIENCES = [
     name: "For Customers",
     icon: Home,
     image: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=600&h=400&fit=crop&q=80",
-    description: "Book trusted professionals for home repairs, cleaning, and more — pay securely and track every job.",
+    description: "Book trusted professionals for home repairs, cleaning, and more. Pay securely and track every job.",
     items: ["Instant & scheduled booking", "Secure in-app payments", "Real-time job tracking"],
   },
   {
@@ -68,8 +68,8 @@ const AUDIENCES = [
 ]
 
 const HOW_IT_WORKS = [
-  { icon: Search, title: "Search & Compare", description: "Browse verified providers by category, location, and rating — or let our AI search point you to the right match." },
-  { icon: CalendarCheck, title: "Book Instantly", description: "Pick a time that works for you and book in a couple of taps — instantly or scheduled ahead." },
+  { icon: Search, title: "Search & Compare", description: "Browse verified providers by category, location, and rating, or let our AI search point you to the right match." },
+  { icon: CalendarCheck, title: "Book Instantly", description: "Pick a time that works for you and book in a couple of taps, instantly or scheduled ahead." },
   { icon: CreditCard, title: "Pay Securely", description: "Pay with M-Pesa or card in-app. Funds are held safely and only released once the job is done." },
   { icon: ThumbsUp, title: "Done & Reviewed", description: "Your provider completes the job, you confirm it, and leave a real review for the next customer." },
 ]
@@ -77,11 +77,11 @@ const HOW_IT_WORKS = [
 const FAQS = [
   {
     question: "How do you verify providers?",
-    answer: "Every provider goes through an identity and document review before they can accept jobs, and their rating is built entirely from real, completed-job reviews — not self-reported claims.",
+    answer: "Every provider goes through an identity and document review before they can accept jobs, and their rating is built entirely from real, completed-job reviews, not self-reported claims.",
   },
   {
     question: "Is it safe to pay through the app?",
-    answer: "Yes — payments are made securely via M-Pesa or card, and funds are only released to the provider once you've confirmed the job is complete. If something isn't right, our dispute support team steps in.",
+    answer: "Yes. Payments are made securely via M-Pesa or card, and funds are only released to the provider once you've confirmed the job is complete. If something isn't right, our dispute support team steps in.",
   },
   {
     question: "What happens if something goes wrong with a job?",
@@ -89,11 +89,11 @@ const FAQS = [
   },
   {
     question: "Can I book a service for later instead of right now?",
-    answer: "Yes — every service supports both instant booking for urgent needs and scheduled booking for a specific date and time that works for you.",
+    answer: "Yes. Every service supports both instant booking for urgent needs and scheduled booking for a specific date and time that works for you.",
   },
   {
     question: "How do I become a provider or list my shop on SAJI?",
-    answer: "Sign up and choose \"Become a Provider\" or \"List a Shop\" — you'll submit your details for verification, and once approved you can start accepting jobs or listing products right away.",
+    answer: "Sign up and choose \"Become a Provider\" or \"List a Shop\". You'll submit your details for verification, and once approved you can start accepting jobs or listing products right away.",
   },
 ]
 
@@ -489,7 +489,7 @@ export function LandingPage() {
               </motion.h1>
 
               <motion.p variants={fadeUp} className="text-lg text-muted-foreground mb-8 max-w-xl leading-relaxed">
-                SAJI connects you with verified electricians, plumbers, cleaners, and other service professionals — with secure M-Pesa/card payments and dispute protection on every booking.
+                SAJI connects you with verified electricians, plumbers, cleaners, and other service professionals, with secure M-Pesa/card payments and dispute protection on every booking.
               </motion.p>
 
               <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-4">
@@ -658,7 +658,7 @@ export function LandingPage() {
               Booked in four simple steps
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              From searching for help to a job well done — here's the whole loop
+              From searching for help to a job well done, here's the whole loop
             </p>
           </motion.div>
 
@@ -715,7 +715,7 @@ export function LandingPage() {
               Everything you need, in one app
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              From booking to payment to protection — SAJI handles the whole job
+              From booking to payment to protection, SAJI handles the whole job
             </p>
           </motion.div>
 
@@ -760,7 +760,7 @@ export function LandingPage() {
               Built for Everyone
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Whether you need help, offer it, or sell supplies — SAJI has a place for you
+              Whether you need help, offer it, or sell supplies, SAJI has a place for you
             </p>
           </motion.div>
 
@@ -925,7 +925,7 @@ export function LandingPage() {
             Ready to get started?
           </motion.h2>
           <motion.p variants={fadeUp} className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
-            Join SAJI today — book a trusted professional or start growing your service business
+            Join SAJI today, book a trusted professional or start growing your service business
           </motion.p>
           <motion.div variants={fadeUp}>
             <Link href="/auth/signup">

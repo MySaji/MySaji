@@ -83,7 +83,7 @@ export function WalletTopupMethods({ amount, onSuccess, returnPath = "/customer/
         return
       }
 
-      setMessage(data.message ?? "Unexpected response — please try again.")
+      setMessage(data.message ?? "Unexpected response. Please try again.")
       setLoading(false)
     } catch (err: any) {
       setMessage(err?.message ?? "Error initiating payment")
@@ -111,7 +111,7 @@ export function WalletTopupMethods({ amount, onSuccess, returnPath = "/customer/
       return
     }
     setState("success")
-    setMessage("Thanks — we'll confirm your transfer and credit your wallet once it's verified against our bank statement (usually within 24 hours).")
+    setMessage("Thanks. We'll confirm your transfer and credit your wallet once it's verified against our bank statement (usually within 24 hours).")
   }
 
   if (state === "success") {
@@ -142,11 +142,11 @@ export function WalletTopupMethods({ amount, onSuccess, returnPath = "/customer/
   if (state === "bank-form") {
     return (
       <Card className="p-6 space-y-4">
-        <h3 className="text-lg font-semibold">Bank Transfer — KES {amount.toLocaleString()}</h3>
+        <h3 className="text-lg font-semibold">Bank Transfer: KES {amount.toLocaleString()}</h3>
         {bankDetails === undefined ? (
           <Loader2 className="w-5 h-5 animate-spin text-primary" />
         ) : bankDetails === null ? (
-          <p className="text-sm text-muted-foreground">Bank transfer deposits aren&apos;t set up yet — please use M-Pesa, Card, or PayPal for now.</p>
+          <p className="text-sm text-muted-foreground">Bank transfer deposits aren&apos;t set up yet. Please use M-Pesa, Card, or PayPal for now.</p>
         ) : (
           <>
             <div className="rounded-xl bg-muted/40 p-4 text-sm space-y-1">

@@ -254,7 +254,7 @@ export async function acceptShopReturnRequest(input: unknown): Promise<Shopkeepe
 
   await db.$transaction(async (tx) => {
     await tx.order.update({ where: { id: order.id }, data: { status: "REFUNDED" } })
-    await tx.dispute.update({ where: { id: dispute.id }, data: { status: "RESOLVED", resolution: "Return accepted by shop — refunded.", refundAmount: total, resolvedAt: new Date() } })
+    await tx.dispute.update({ where: { id: dispute.id }, data: { status: "RESOLVED", resolution: "Return accepted by shop, refunded.", refundAmount: total, resolvedAt: new Date() } })
 
     if (revenueEntry && !revenueEntry.reversedAt) {
       await tx.platformRevenue.update({ where: { id: revenueEntry.id }, data: { reversedAt: new Date() } })
@@ -285,7 +285,7 @@ export async function acceptShopReturnRequest(input: unknown): Promise<Shopkeepe
     await tx.transaction.create({
       data: {
         walletId: shopWallet.id, type: "DEBIT", amount: -payoutToReverse,
-        description: `Order ${order.orderNumber} returned — payout reversed`,
+        description: `Order ${order.orderNumber} returned, payout reversed`,
         referenceType: "ORDER", referenceId: order.id, status: "COMPLETED",
         balanceBefore: shopBefore, balanceAfter: shopAfter,
       },
@@ -342,7 +342,7 @@ export async function rejectShopReturnRequest(input: unknown): Promise<Shopkeepe
   })
   await pushToUser(dispute.customerId, {
     title: "Return request under review",
-    body: `Your return request needs a closer look — our support team is on it.`,
+    body: `Your return request needs a closer look. Our support team is on it.`,
     url: "/customer/orders",
   }, "payment")
 

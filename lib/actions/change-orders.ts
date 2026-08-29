@@ -155,7 +155,7 @@ export async function respondToChangeOrder(input: unknown): Promise<ChangeOrderA
 
   await logJobEvent({
     jobId: changeOrder.jobId, type: "CHANGE_ORDER_APPROVED", actor: "CUSTOMER", actorUserId: session.user.id,
-    description: `Customer approved the change request — price updated to KES ${newPrice.toLocaleString()}`,
+    description: `Customer approved the change request, price updated to KES ${newPrice.toLocaleString()}`,
     metadata: { newPrice, additionalTimeDays: changeOrder.additionalTimeDays ?? null },
   })
 

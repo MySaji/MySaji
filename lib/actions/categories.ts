@@ -187,7 +187,7 @@ export async function deleteCategory(id: string): Promise<CategoryActionResult> 
 
   const usageCount = counts._count.services + counts._count.products + counts._count.providers + counts._count.distributorProducts + counts._count.promotions
   if (usageCount > 0) {
-    return { success: false, error: `This category is used by ${usageCount} existing record${usageCount === 1 ? "" : "s"} — deactivate it instead of deleting.` }
+    return { success: false, error: `This category is used by ${usageCount} existing record${usageCount === 1 ? "" : "s"}. Deactivate it instead of deleting.` }
   }
 
   await db.category.delete({ where: { id } })

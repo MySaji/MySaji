@@ -84,7 +84,7 @@ export async function createMyService(input: unknown): Promise<ProviderServiceAc
   if (requireVerification) {
     const profile = await db.providerProfile.findUnique({ where: { id: providerId }, select: { verified: true } })
     if (!profile?.verified) {
-      return { success: false, error: "Complete identity verification before listing a service — submit your documents from Profile > Verification." }
+      return { success: false, error: "Complete identity verification before listing a service. Submit your documents from Profile > Verification." }
     }
   }
 
@@ -141,6 +141,6 @@ export async function deleteMyService(input: unknown): Promise<ProviderServiceAc
     await db.service.deleteMany({ where: { id: parsed.data.id, providerId } })
     return { success: true }
   } catch {
-    return { success: false, error: "This service has existing bookings and can't be deleted — deactivate it instead." }
+    return { success: false, error: "This service has existing bookings and can't be deleted. Deactivate it instead." }
   }
 }

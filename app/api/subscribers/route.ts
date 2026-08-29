@@ -7,13 +7,13 @@ function buildWelcomeEmailHtml(unsubscribeToken: string): string {
   const origin = siteOrigin()
   const body = `
     <h2>Welcome to SAJI!</h2>
-    <p>You're subscribed — here's what to expect in your inbox:</p>
+    <p>You're subscribed. Here's what to expect in your inbox:</p>
     <p>
       📦 <strong>New products</strong> as soon as shops list them<br/>
       🔄 <strong>Restocked items</strong> you might have missed<br/>
       🔥 <strong>Trending picks</strong> other customers are loving<br/>
     </p>
-    <p>We send this roughly once a week — no spam, just what's new.</p>
+    <p>We send this roughly once a week. No spam, just what's new.</p>
     <p style="margin-top:24px;">${emailButton("Browse SAJI now", `${origin}/customer/products`)}</p>
   `
   return wrapEmailLayout({

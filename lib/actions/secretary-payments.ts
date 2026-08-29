@@ -322,7 +322,7 @@ export async function completeWithdrawal(input: unknown): Promise<ActionResult &
   // callback resolves it — sending a second one would double-pay the user;
   // finalizing it manually in the meantime would race the real callback.
   if (withdrawal.b2cConversationId) {
-    return { success: false, error: "An M-Pesa payout is already in progress for this withdrawal — waiting for confirmation." }
+    return { success: false, error: "An M-Pesa payout is already in progress for this withdrawal, waiting for confirmation." }
   }
 
   // Auto-payout path: real M-Pesa number on file + B2C configured, and the
@@ -413,7 +413,7 @@ export async function rejectWithdrawal(input: unknown): Promise<ActionResult> {
     return { success: false, error: "Only pending or processing withdrawals can be rejected." }
   }
   if (withdrawal.b2cConversationId) {
-    return { success: false, error: "An M-Pesa payout is already in progress for this withdrawal — it can no longer be rejected." }
+    return { success: false, error: "An M-Pesa payout is already in progress for this withdrawal. It can no longer be rejected." }
   }
 
   return refundWithdrawal(withdrawal, reason, "REJECTED", secretary.userId)

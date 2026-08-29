@@ -12,7 +12,7 @@ import { useLocalization } from "@/lib/hooks/useLocalization"
 type PurchaseState = "idle" | "awaiting-provider" | "success" | "failed"
 
 const BENEFITS = [
-  { icon: Sparkles, title: "Unlimited Offer cards", desc: "Go beyond the standard service listing — create as many discoverable offers as your business needs." },
+  { icon: Sparkles, title: "Unlimited Offer cards", desc: "Go beyond the standard service listing. Create as many discoverable offers as your business needs." },
   { icon: Wrench, title: "Equipment & tool rentals", desc: "List your own equipment for rent alongside your services." },
   { icon: TrendingUp, title: "Priority discovery", desc: "Saji structures how your offers surface to customers so the right ones find you first." },
   { icon: ShieldCheck, title: "Trust & safety badge", desc: "A verified Saji Pro badge customers can rely on across Book, Hire, Buy, Quote, and Request." },
@@ -91,7 +91,7 @@ export default function ProviderProPage() {
         setSubmitting(false)
         return
       }
-      setMessage(data.message ?? "Unexpected response — please try again.")
+      setMessage(data.message ?? "Unexpected response. Please try again.")
       setSubmitting(false)
     } catch (err: any) {
       setMessage(err?.message ?? "Error initiating payment")
@@ -118,7 +118,7 @@ export default function ProviderProPage() {
           <p className="mt-2 max-w-xl text-amber-50">
             {status.isPro
               ? `Your subscription is active${expiryLabel ? ` until ${expiryLabel}` : ""}.`
-              : "Provider controls the offer, Saji structures discovery and applies trust & safety rules — customers choose Book, Hire, Buy, Quote, or Request."}
+              : "Provider controls the offer, Saji structures discovery and applies trust & safety rules. Customers choose Book, Hire, Buy, Quote, or Request."}
           </p>
         </div>
       </div>
@@ -144,13 +144,13 @@ export default function ProviderProPage() {
           <Card className="border-0 p-5 shadow-lg text-center space-y-2 border-emerald-200 bg-emerald-50 dark:bg-emerald-900/20 dark:border-emerald-900/40">
             <CheckCircle2 className="mx-auto h-8 w-8 text-emerald-600" />
             <p className="font-semibold text-emerald-700 dark:text-emerald-400">Active until {expiryLabel}</p>
-            <p className="text-xs text-muted-foreground">Saji Pro renews manually each month — come back here to renew when it's due.</p>
+            <p className="text-xs text-muted-foreground">Saji Pro renews manually each month. Come back here to renew when it's due.</p>
             <Button asChild className="mt-2 rounded-xl"><Link href="/provider/pro/dashboard">Go to your Pro Dashboard</Link></Button>
           </Card>
         ) : purchaseState === "success" ? (
           <Card className="border-0 p-6 text-center space-y-2 shadow-lg border-emerald-200 bg-emerald-50 dark:bg-emerald-900/20 dark:border-emerald-900/40">
             <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-600" />
-            <p className="font-semibold text-emerald-700 dark:text-emerald-400">Payment successful — you're now on Saji Pro</p>
+            <p className="font-semibold text-emerald-700 dark:text-emerald-400">Payment successful. You're now on Saji Pro</p>
             {message && <p className="text-xs text-muted-foreground">{message}</p>}
           </Card>
         ) : purchaseState === "awaiting-provider" ? (

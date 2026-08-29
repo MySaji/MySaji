@@ -103,7 +103,7 @@ export async function resolveJobCancellation(
             walletId: providerWallet.id,
             type: "CREDIT",
             amount: feeAmount,
-            description: opts.reason === "NO_SHOW" ? `Dispatch fee — customer no-show: ${job.title}` : `Dispatch fee — late cancellation: ${job.title}`,
+            description: opts.reason === "NO_SHOW" ? `Dispatch fee, customer no-show: ${job.title}` : `Dispatch fee, late cancellation: ${job.title}`,
             referenceType: "JOB",
             referenceId: job.id,
             status: "COMPLETED",
@@ -121,7 +121,7 @@ export async function resolveJobCancellation(
 
   await logJobEvent({
     jobId: job.id, type: "JOB_CANCELLED", actor: opts.reason === "NO_SHOW" ? "PROVIDER" : "SYSTEM",
-    description: opts.reason === "NO_SHOW" ? "Job cancelled — customer no-show reported" : `Job cancelled (${opts.reason.toLowerCase().replace("_", " ")})`,
+    description: opts.reason === "NO_SHOW" ? "Job cancelled, customer no-show reported" : `Job cancelled (${opts.reason.toLowerCase().replace("_", " ")})`,
     metadata: { reason: opts.reason, refundAmount, feeAmount },
   })
 

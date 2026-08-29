@@ -157,7 +157,7 @@ export default function ProviderServiceRequestsPage() {
                 )}
               </div>
             ))}
-            <p className="text-xs text-muted-foreground">Use the regular "Complete Job" action on your Jobs page once all work is done — milestones here are progress tracking, not a separate payment step.</p>
+            <p className="text-xs text-muted-foreground">Use the regular "Complete Job" action on your Jobs page once all work is done. Milestones here are progress tracking, not a separate payment step.</p>
           </Card>
         )}
 

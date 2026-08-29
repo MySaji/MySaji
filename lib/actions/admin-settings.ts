@@ -133,7 +133,7 @@ export async function getBrandingSettings(): Promise<BrandingSettings> {
 }
 
 const brandingSchema = z.object({
-  logoUrl: z.string().max(2_000_000, "Logo image is too large — please use a smaller file.").nullable(),
+  logoUrl: z.string().max(2_000_000, "Logo image is too large. Please use a smaller file.").nullable(),
 })
 
 export async function updateBrandingSettings(input: unknown): Promise<AdminSettingsActionResult> {

@@ -91,7 +91,7 @@ export async function updateCategoryAttribute(input: unknown): Promise<CategoryA
       },
     })
   } catch {
-    return { success: false, error: "Couldn't update this field — the key may already be in use." }
+    return { success: false, error: "Couldn't update this field. The key may already be in use." }
   }
 
   await logAdminAction({ userId: admin.userId, action: "UPDATE_CATEGORY_ATTRIBUTE", entityType: "CategoryAttribute", entityId: parsed.data.id, newValues: parsed.data })

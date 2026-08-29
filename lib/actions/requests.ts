@@ -396,7 +396,7 @@ export async function acceptRequestResponse(input: unknown): Promise<AcceptRespo
       data: {
         userId: chosen.responderId,
         title: "Your offer was accepted!",
-        message: `Your offer for "${request.title}" was accepted — head to messages to continue.`,
+        message: `Your offer for "${request.title}" was accepted. Head to messages to continue.`,
         type: "JOB",
         relatedType: "CUSTOMER_REQUEST",
         relatedId: request.id,

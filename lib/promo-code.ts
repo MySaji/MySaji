@@ -28,7 +28,7 @@ export async function resolvePromoDiscount(client: QueryClient, customerId: stri
     include: { shopkeeper: { select: { shopName: true } } },
   })
   if (!promotion) return { success: false, error: "That code isn't valid." }
-  if (promotion.type === "BOGO") return { success: false, error: "This code type can't be applied at checkout yet — contact the shop." }
+  if (promotion.type === "BOGO") return { success: false, error: "This code type can't be applied at checkout yet. Contact the shop." }
 
   const now = new Date()
   if (promotion.status !== "ACTIVE") return { success: false, error: "This code isn't active." }

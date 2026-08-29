@@ -89,7 +89,7 @@ export default function HouseholdInviteAcceptPage() {
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10"><Home className="h-6 w-6 text-primary" /></div>
           <h1 className="text-xl font-bold text-foreground">Join {householdName}</h1>
           <p className="text-sm text-muted-foreground">
-            {inviterName} invited you to join their household on SAJI as a <span className="font-semibold text-foreground">{ROLE_LABEL[role]}</span> — sharing bookings and service history.
+            {inviterName} invited you to join their household on SAJI as a <span className="font-semibold text-foreground">{ROLE_LABEL[role]}</span>, sharing bookings and service history.
           </p>
         </div>
 

@@ -112,7 +112,7 @@ export async function maybeRewardReferralForProvider(providerUserId: string) {
         walletId: wallet.id,
         type: "CREDIT",
         amount: REFERRAL_REWARD_AMOUNT,
-        description: "Referral reward — your referred provider completed their first job",
+        description: "Referral reward: your referred provider completed their first job",
         referenceType: "REFERRAL",
         referenceId: referral.id,
         status: "COMPLETED",

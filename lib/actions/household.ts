@@ -145,7 +145,7 @@ export async function inviteHouseholdMember(input: unknown): Promise<InviteHouse
     const html = wrapEmailLayout({
       title: "You're invited to a household on SAJI",
       bodyHtml: `
-        <p>${inviter?.name ?? "A SAJI customer"} has invited you to join <strong>${household.name}</strong> on SAJI as a <strong>${HOUSEHOLD_ROLE_LABEL[parsed.data.role]}</strong> — sharing service bookings and history.</p>
+        <p>${inviter?.name ?? "A SAJI customer"} has invited you to join <strong>${household.name}</strong> on SAJI as a <strong>${HOUSEHOLD_ROLE_LABEL[parsed.data.role]}</strong>, sharing service bookings and history.</p>
         <p>Click below to accept. This link expires in 7 days.</p>
         ${emailButton("Accept invite", url)}
         ${existingUser ? "" : "<p>Don't have a SAJI account yet? Sign up first, then open this link again to join.</p>"}

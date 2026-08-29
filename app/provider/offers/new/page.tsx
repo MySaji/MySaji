@@ -362,8 +362,8 @@ function CreateOfferWizard() {
     e.target.value = ""
     if (!file) return
 
-    if (!ALLOWED_DOCUMENT_TYPES.includes(file.type)) { setError(`Couldn't add ${file.name} — only PDF or image files are supported.`); return }
-    if (file.size > MAX_DOCUMENT_BYTES) { setError(`Couldn't add ${file.name} — files must be under ${formatMB(MAX_DOCUMENT_BYTES)}.`); return }
+    if (!ALLOWED_DOCUMENT_TYPES.includes(file.type)) { setError(`Couldn't add ${file.name}. Only PDF or image files are supported.`); return }
+    if (file.size > MAX_DOCUMENT_BYTES) { setError(`Couldn't add ${file.name}. Files must be under ${formatMB(MAX_DOCUMENT_BYTES)}.`); return }
     setError("")
 
     const url = await fileToDataUri(file)
@@ -545,12 +545,12 @@ function CreateOfferWizard() {
           )}
           {aiState === "simulated" && (
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-900/40 dark:bg-amber-900/10 dark:text-amber-300">
-              AI assistance isn't configured for this account yet — fill these in yourself below.
+              AI assistance isn't configured for this account yet. Fill these in yourself below.
             </div>
           )}
           {aiState === "failed" && (
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-900/40 dark:bg-amber-900/10 dark:text-amber-300">
-              Couldn't analyze that automatically — fill these in yourself below.
+              Couldn't analyze that automatically. Fill these in yourself below.
             </div>
           )}
 
@@ -814,7 +814,7 @@ function CreateOfferWizard() {
               <label className="mb-1.5 block text-sm font-medium text-foreground">Radius</label>
               <Input type="number" value={data.radiusKm} onChange={(e) => setData((p) => ({ ...p, radiusKm: e.target.value }))} placeholder="e.g. 30" className="rounded-xl" />
               <p className="mt-1 text-xs text-muted-foreground">
-                Defaults to your profile ({providerDefaults?.workArea ?? "no area set"}{providerDefaults?.radiusKm != null ? `, +${providerDefaults.radiusKm} km` : ""}) — override just for this offer, or <Link href="/provider/profile" className="font-medium text-primary">edit your profile default</Link>.
+                Defaults to your profile ({providerDefaults?.workArea ?? "no area set"}{providerDefaults?.radiusKm != null ? `, +${providerDefaults.radiusKm} km` : ""}). Override just for this offer, or <Link href="/provider/profile" className="font-medium text-primary">edit your profile default</Link>.
               </p>
             </div>
           </Card>
@@ -1032,7 +1032,7 @@ function CreateOfferWizard() {
         <Card className="space-y-3 border-0 p-4 shadow-sm">
           <div className="flex items-center justify-between"><span className="text-xs text-muted-foreground">Offer Title</span><span className="text-sm font-medium text-foreground">{data.title}</span></div>
           <div className="flex items-center justify-between"><span className="text-xs text-muted-foreground">Category</span><span className="text-sm font-medium text-foreground">{selectedCategory?.name ?? "—"}</span></div>
-          <div className="flex items-center justify-between"><span className="text-xs text-muted-foreground">Pricing</span><span className="text-sm font-medium text-foreground">{OFFER_PRICING_LABEL[data.pricingModel]}{data.price ? ` — ${formatMoney(Number(data.price))}` : ""}</span></div>
+          <div className="flex items-center justify-between"><span className="text-xs text-muted-foreground">Pricing</span><span className="text-sm font-medium text-foreground">{OFFER_PRICING_LABEL[data.pricingModel]}{data.price ? `, ${formatMoney(Number(data.price))}` : ""}</span></div>
           <div className="flex items-center justify-between"><span className="text-xs text-muted-foreground">Availability</span><span className="text-sm font-medium text-foreground">{OFFER_AVAILABILITY_LABEL[data.availabilityStatus]}</span></div>
           <div className="flex items-center justify-between"><span className="text-xs text-muted-foreground">Customer Action</span><span className="text-sm font-medium text-foreground">{OFFER_ACTION_LABEL[data.actionType]}</span></div>
         </Card>
@@ -1044,7 +1044,7 @@ function CreateOfferWizard() {
               <p className={`text-sm font-semibold ${licenseCheck.satisfied ? "text-emerald-800 dark:text-emerald-300" : "text-amber-800 dark:text-amber-300"}`}>Verification Required</p>
               <p className={`mt-0.5 text-xs ${licenseCheck.satisfied ? "text-emerald-700 dark:text-emerald-400" : "text-amber-700 dark:text-amber-400"}`}>
                 {licenseCheck.satisfied
-                  ? `We've verified your ${licenseCheck.licenseName} — you're clear to publish.`
+                  ? `We've verified your ${licenseCheck.licenseName}. You're clear to publish.`
                   : `We need to verify your ${licenseCheck.licenseName} before this offer can go live. Add it from Profile > Certifications and wait for admin approval.`}
               </p>
             </div>

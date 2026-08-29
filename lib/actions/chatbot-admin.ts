@@ -141,7 +141,7 @@ export async function claimChatbotConversation(input: unknown): Promise<ChatbotA
             conversationId: conversation.id,
             role: "STAFF",
             senderId: reviewer.userId,
-            content: `Hi, I'm ${reviewer.name} from the SAJI support team. I've got your conversation — how can I help?`,
+            content: `Hi, I'm ${reviewer.name} from the SAJI support team. I've got your conversation. How can I help?`,
           },
         })
       }

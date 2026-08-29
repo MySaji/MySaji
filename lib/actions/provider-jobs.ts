@@ -203,7 +203,7 @@ export async function reportNoShow(input: unknown): Promise<ProviderJobActionRes
   if (!result.success) return result
 
   const noShowMessage = result.feeAmount > 0
-    ? `Your provider reported you as a no-show for "${result.jobTitle}". A KES ${result.feeAmount.toLocaleString()} dispatch fee applies — KES ${result.refundAmount.toLocaleString()} has been refunded to your wallet.`
+    ? `Your provider reported you as a no-show for "${result.jobTitle}". A KES ${result.feeAmount.toLocaleString()} dispatch fee applies. KES ${result.refundAmount.toLocaleString()} has been refunded to your wallet.`
     : `Your provider reported you as a no-show for "${result.jobTitle}".`
   await notifyUser({
     userId: result.customerId,
@@ -217,7 +217,7 @@ export async function reportNoShow(input: unknown): Promise<ProviderJobActionRes
 
   await logJobEvent({
     jobId: job.id, type: "NO_SHOW_REPORTED", actor: "PROVIDER", actorUserId: provider.userId,
-    description: result.feeAmount > 0 ? `Provider reported a no-show — KES ${result.feeAmount.toLocaleString()} dispatch fee applied` : "Provider reported a no-show",
+    description: result.feeAmount > 0 ? `Provider reported a no-show, KES ${result.feeAmount.toLocaleString()} dispatch fee applied` : "Provider reported a no-show",
   })
 
   return { success: true }

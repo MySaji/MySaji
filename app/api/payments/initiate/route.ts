@@ -173,7 +173,7 @@ export async function POST(req: Request) {
 
       switch (provider) {
         case "mpesa": {
-          const res = await initiateMpesaPayment(phone, amount, `Rental — ${booking.offer.title}`)
+          const res = await initiateMpesaPayment(phone, amount, `Rental: ${booking.offer.title}`)
           if (res.success) {
             const payment = await recordRentalPayment(res.requestId, res.simulated)
             return NextResponse.json({ ...res, paymentId: payment.id })

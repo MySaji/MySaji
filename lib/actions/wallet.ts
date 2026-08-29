@@ -221,7 +221,7 @@ export async function initiateBankTransferTopup(input: unknown): Promise<BankTra
     return {
       success: true,
       configured: false,
-      message: "Bank transfer deposits aren't set up yet — please use M-Pesa, Card, or PayPal for now.",
+      message: "Bank transfer deposits aren't set up yet. Please use M-Pesa, Card, or PayPal for now.",
     }
   }
 

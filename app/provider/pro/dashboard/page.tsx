@@ -210,7 +210,7 @@ export default function ProDashboardPage() {
             <Link href="/provider/jobs" className="text-sm font-medium text-emerald-600 hover:underline">View all</Link>
           </div>
           {overview.recentActivity.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">Nothing yet — activity will show up here as customers interact with your offers.</p>
+            <p className="py-6 text-center text-sm text-muted-foreground">Nothing yet. Activity will show up here as customers interact with your offers.</p>
           ) : (
             <div className="space-y-3">
               {overview.recentActivity.map((item) => {

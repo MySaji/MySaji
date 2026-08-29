@@ -33,7 +33,7 @@ export default function AdminCertificationsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="flex items-center gap-2 text-4xl font-bold text-gray-900 dark:text-white"><Award className="h-8 w-8 text-blue-600" /> Certifications</h1>
-        <p className="mt-1 text-gray-600 dark:text-gray-400">Review provider-submitted licenses and certifications — approving one lets a provider accept jobs in categories that require it.</p>
+        <p className="mt-1 text-gray-600 dark:text-gray-400">Review provider-submitted licenses and certifications. Approving one lets a provider accept jobs in categories that require it.</p>
       </div>
 
       {items.length === 0 ? (

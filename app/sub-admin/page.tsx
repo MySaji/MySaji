@@ -160,7 +160,7 @@ export default function SubAdminDashboard() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 dark:text-white">{a.action}</p>
-                    <p className="text-xs text-gray-500">{a.detail} — {new Date(a.time).toLocaleDateString()}</p>
+                    <p className="text-xs text-gray-500">{a.detail}, {new Date(a.time).toLocaleDateString()}</p>
                   </div>
                 </div>
               ))}

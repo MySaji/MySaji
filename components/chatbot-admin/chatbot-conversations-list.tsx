@@ -158,7 +158,7 @@ export function ChatbotConversationsList() {
         <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
           <Bot className="w-7 h-7" /> Chatbot Conversations
         </h1>
-        <p className="text-muted-foreground mt-1">SAJI Assistant chats across Customer, Provider, and Shopkeeper — accept an escalation to chat with the customer yourself.</p>
+        <p className="text-muted-foreground mt-1">SAJI Assistant chats across Customer, Provider, and Shopkeeper. Accept an escalation to chat with the customer yourself.</p>
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-1">

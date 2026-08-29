@@ -83,7 +83,7 @@ async function buildDigestForUser(
   }
 
   return {
-    subject: `Your SAJI weekly digest — ${notifications.length} update${notifications.length === 1 ? "" : "s"}`,
+    subject: `Your SAJI weekly digest: ${notifications.length} update${notifications.length === 1 ? "" : "s"}`,
     html: buildDigestHtml(user.name, grouped),
   }
 }

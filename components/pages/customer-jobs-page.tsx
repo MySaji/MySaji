@@ -644,7 +644,7 @@ export function CustomerJobsPage() {
             {recurringSaved ? (
               <div className="space-y-3 py-2 text-center">
                 <CheckCircle className="mx-auto h-8 w-8 text-emerald-600" />
-                <p className="text-sm text-foreground">Set up — find it under Recurring Maintenance.</p>
+                <p className="text-sm text-foreground">Set up. Find it under Recurring Maintenance.</p>
                 <Button className="w-full rounded-xl" onClick={() => setShowRecurringDialog(false)}>Done</Button>
               </div>
             ) : (

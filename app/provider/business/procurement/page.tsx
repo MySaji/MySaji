@@ -131,7 +131,7 @@ export default function BusinessProcurementPage() {
                     {quotes.map((q) => (
                       <div key={q.id} className="flex items-center justify-between gap-3 rounded-xl border border-border/70 p-3">
                         <div>
-                          <p className="text-sm font-medium text-foreground">{q.supplierName} — {formatMoney(q.price)}</p>
+                          <p className="text-sm font-medium text-foreground">{q.supplierName}, {formatMoney(q.price)}</p>
                           <p className="text-xs text-muted-foreground">{[q.availability, q.deliveryTime].filter(Boolean).join(" · ")}</p>
                         </div>
                         {q.status === "SUBMITTED" && r.status === "QUOTES_OPEN" && (

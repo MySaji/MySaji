@@ -95,7 +95,7 @@ export async function getSubAdminDashboard(): Promise<SubAdminDashboardData> {
   const pendingActions: SubAdminPendingAction[] = [
     ...pendingDocs.map((d) => ({
       id: d.id,
-      title: `${d.user.name} — ${d.documentType.replace(/_/g, " ")} Verification`,
+      title: `${d.user.name}, ${d.documentType.replace(/_/g, " ")} Verification`,
       type: "verification" as const,
       urgency: (Date.now() - d.submittedAt.getTime() > 3 * 86400000 ? "high" : "medium") as "high" | "medium",
       time: d.submittedAt.toISOString(),

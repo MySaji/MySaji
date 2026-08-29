@@ -266,7 +266,7 @@ export async function submitProductReview(input: unknown): Promise<ProductAction
   if (!product) return { success: false, error: "Product not found." }
 
   const existing = await db.review.findFirst({ where: { productId, customerId: session.user.id } })
-  if (existing) return { success: false, error: "You've already reviewed this product — edit your existing review instead." }
+  if (existing) return { success: false, error: "You've already reviewed this product. Edit your existing review instead." }
 
   await db.$transaction(async (tx) => {
     await tx.review.create({ data: { customerId: session.user!.id, productId, rating, comment, photos } })

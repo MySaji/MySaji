@@ -236,7 +236,7 @@ export async function publishOffer(input: unknown): Promise<OfferActionResult> {
 
   const licenseCheck = await resolveOfferLicenseRequirement(offer.categoryId, providerId)
   if (licenseCheck.required && !licenseCheck.satisfied) {
-    issues.push(`This category requires a verified ${licenseCheck.licenseName} — add it from Profile > Certifications and wait for admin approval before this offer can go live.`)
+    issues.push(`This category requires a verified ${licenseCheck.licenseName}. Add it from Profile > Certifications and wait for admin approval before this offer can go live.`)
   }
 
   if (issues.length > 0) {
@@ -250,7 +250,7 @@ export async function publishOffer(input: unknown): Promise<OfferActionResult> {
       const { offerFreeTierCap } = await getEffectivePlatformPreferences()
       const liveCount = await db.offer.count({ where: { providerId, status: "LIVE", NOT: { id: offer.id } } })
       if (liveCount >= offerFreeTierCap) {
-        await db.offer.update({ where: { id: offer.id }, data: { status: "DRAFT", reviewNote: `Free plan is limited to ${offerFreeTierCap} live offers — upgrade to Saji Pro for unlimited offers.` } })
+        await db.offer.update({ where: { id: offer.id }, data: { status: "DRAFT", reviewNote: `Free plan is limited to ${offerFreeTierCap} live offers. Upgrade to Saji Pro for unlimited offers.` } })
         return { success: false, error: `You've reached the free plan's limit of ${offerFreeTierCap} live offers. Upgrade to Saji Pro for unlimited offers.` }
       }
     }
@@ -283,7 +283,7 @@ export async function deleteOffer(input: unknown): Promise<OfferActionResult> {
     await db.offer.deleteMany({ where: { id: parsed.data.id, providerId } })
     return { success: true }
   } catch {
-    return { success: false, error: "This offer has existing bookings and can't be deleted — unpublish it instead." }
+    return { success: false, error: "This offer has existing bookings and can't be deleted. Unpublish it instead." }
   }
 }
 
@@ -306,7 +306,7 @@ const MAX_DOCUMENT_DATA_URI_LENGTH = 14_000_000 // ~10MB original file
 
 const offerDocumentSchema = z.object({
   name: z.string().trim().min(1).max(200),
-  url: z.string().trim().min(1).max(MAX_DOCUMENT_DATA_URI_LENGTH, "That document is too large — please keep files under 10MB."),
+  url: z.string().trim().min(1).max(MAX_DOCUMENT_DATA_URI_LENGTH, "That document is too large. Please keep files under 10MB."),
 })
 
 const offerStepSchema = z.object({
@@ -314,7 +314,7 @@ const offerStepSchema = z.object({
   step: z.number().int().min(1).max(10),
   title: z.string().trim().max(150).optional(),
   description: z.string().trim().max(2000).optional(),
-  images: z.array(z.string().max(MAX_IMAGE_DATA_URI_LENGTH, "That photo is too large — please keep images under 5MB.")).max(10).optional(),
+  images: z.array(z.string().max(MAX_IMAGE_DATA_URI_LENGTH, "That photo is too large. Please keep images under 5MB.")).max(10).optional(),
   categoryId: z.string().trim().optional(),
   actionType: z.enum(["BOOK", "HIRE", "BUY", "QUOTE", "REQUEST", "RENT"]).optional(),
   attributes: z.record(z.string(), z.union([z.string(), z.number(), z.array(z.string())])).optional(),
@@ -343,7 +343,7 @@ export async function saveOfferStep(input: unknown): Promise<SaveOfferStepResult
   // editing) all 10 steps never comes close — this is here to stop a script
   // hammering the endpoint, same rate-limit utility login already uses.
   const rateLimit = await checkRateLimit(`offer-step-save:${providerId}`, "offer-step-save", 60, 5 * 60 * 1000)
-  if (!rateLimit.allowed) return { success: false, error: "Too many changes too quickly — please wait a moment and try again." }
+  if (!rateLimit.allowed) return { success: false, error: "Too many changes too quickly. Please wait a moment and try again." }
 
   const parsed = offerStepSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
@@ -798,7 +798,7 @@ export async function requestOfferQuote(input: unknown): Promise<RequestOfferRes
   const sent = await sendMessage({
     conversationId: conversation.conversationId,
     type: "TEXT",
-    content: `Regarding your offer "${offer.title}" — ${parsed.data.message}`,
+    content: `Regarding your offer "${offer.title}": ${parsed.data.message}`,
   })
   if (!sent.success) return { success: false, error: `Couldn't send your ${label}. Please try again.` }
 

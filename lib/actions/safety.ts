@@ -43,7 +43,7 @@ export async function reportSafetyIncident(input: unknown): Promise<ReportIncide
 
   await logJobEvent({
     jobId: job.id, type: "SAFETY_INCIDENT", actor: isCustomer ? "CUSTOMER" : "PROVIDER", actorUserId: session.user.id,
-    description: "Safety incident reported — Saji safety team alerted", metadata: { incidentId: incident.id },
+    description: "Safety incident reported, Saji safety team alerted", metadata: { incidentId: incident.id },
   })
 
   const admins = await db.user.findMany({ where: { role: "ADMIN", isActive: true }, select: { id: true } })

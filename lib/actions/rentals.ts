@@ -177,7 +177,7 @@ export async function cancelRentalBooking(input: unknown): Promise<RentalActionR
       await tx.wallet.update({ where: { userId: booking.customerId }, data: { balance: balanceAfter } })
       await tx.transaction.create({
         data: {
-          walletId: wallet.id, type: "CREDIT", amount: refund, description: "Rental booking cancelled — full refund",
+          walletId: wallet.id, type: "CREDIT", amount: refund, description: "Rental booking cancelled, full refund",
           referenceType: "RENTAL", referenceId: booking.id, status: "COMPLETED", balanceBefore, balanceAfter,
         },
       })
@@ -289,7 +289,7 @@ export async function createRentalBooking(input: unknown): Promise<CreateRentalB
       endDate: { gt: start },
     },
   })
-  if (conflict) return { success: false, error: "Those dates were just booked by someone else — pick a different range." }
+  if (conflict) return { success: false, error: "Those dates were just booked by someone else. Pick a different range." }
 
   const rentalFee = Number(offer.price) * days
   const depositAmount = Number(offer.depositAmount)

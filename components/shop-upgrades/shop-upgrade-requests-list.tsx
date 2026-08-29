@@ -98,7 +98,7 @@ export function ShopUpgradeRequestsList() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-foreground">Shop Upgrade Requests</h1>
-        <p className="text-muted-foreground mt-1">Providers requesting to become shop owners — approving lets them switch to a shopkeeper account whenever they're ready, from their own Shop page.</p>
+        <p className="text-muted-foreground mt-1">Providers requesting to become shop owners. Approving lets them switch to a shopkeeper account whenever they're ready, from their own Shop page.</p>
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-1">

@@ -26,7 +26,7 @@ export default async function MaintenancePage() {
         <div className="space-y-2">
           <h1 className="text-2xl font-bold text-foreground">We&apos;ll be right back</h1>
           <p className="text-muted-foreground leading-relaxed">
-            SAJI is currently undergoing scheduled maintenance. We&apos;re working to get things back up and running — please check back shortly.
+            SAJI is currently undergoing scheduled maintenance. We&apos;re working to get things back up and running. Please check back shortly.
           </p>
         </div>
         {supportEmail && (

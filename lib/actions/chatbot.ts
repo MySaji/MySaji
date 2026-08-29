@@ -13,7 +13,7 @@ async function requireUser() {
 }
 
 const WELCOME_MESSAGE =
-  "Hi! I'm SAJI Assistant. I can help with questions about bookings, orders, payments, and how SAJI works. If you need a real person, just ask — I can connect you with our support team. How can I help today?"
+  "Hi! I'm SAJI Assistant. I can help with questions about bookings, orders, payments, and how SAJI works. If you need a real person, just ask. I can connect you with our support team. How can I help today?"
 
 export type ChatbotMessageItem = {
   id: string
@@ -264,7 +264,7 @@ export async function escalateChatbotConversation(input: unknown): Promise<Escal
         data: {
           userId: session.user!.id,
           category: "chatbot_escalation",
-          subject: "Chatbot escalation — requested human support",
+          subject: "Chatbot escalation: requested human support",
           message: transcript,
         },
       })
@@ -278,7 +278,7 @@ export async function escalateChatbotConversation(input: unknown): Promise<Escal
         data: {
           conversationId: conversation.id,
           role: "ASSISTANT",
-          content: "I've connected you with our support team — someone will pick this up shortly and reply here directly.",
+          content: "I've connected you with our support team. Someone will pick this up shortly and reply here directly.",
         },
       })
 

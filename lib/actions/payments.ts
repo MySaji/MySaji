@@ -80,7 +80,7 @@ function normalizeMpesaPhone(raw: string): string {
 
 export async function initiateMpesaPayment(phone: string, amount: number, description = "SAJI Payment"): Promise<InitiatePaymentResult> {
   if (!mpesaConfigured()) {
-    return { success: true, provider: "mpesa", requestId: `mpesa-sandbox-${Date.now()}`, simulated: true, message: "No M-PESA credentials configured — payment auto-completed as a sandbox simulation." }
+    return { success: true, provider: "mpesa", requestId: `mpesa-sandbox-${Date.now()}`, simulated: true, message: "No M-PESA credentials configured. Payment auto-completed as a sandbox simulation." }
   }
 
   const normalizedPhone = normalizeMpesaPhone(phone)
@@ -135,7 +135,7 @@ export async function initiateMpesaPayment(phone: string, amount: number, descri
 // generic message rather than guessing.
 const MPESA_RESULT_REASONS: Record<number, string> = {
   1032: "You cancelled the M-Pesa payment.",
-  1037: "The M-Pesa prompt timed out — you didn't enter your PIN in time.",
+  1037: "The M-Pesa prompt timed out. You didn't enter your PIN in time.",
   1: "Insufficient M-Pesa balance.",
   2001: "Incorrect M-Pesa PIN was entered.",
   1001: "You already have a similar M-Pesa transaction in progress.",
@@ -360,7 +360,7 @@ export async function confirmJobPayment(jobId: string) {
 
   await logJobEvent({
     jobId: job.id, type: "PAYMENT_CONFIRMED", actor: "CUSTOMER", actorUserId: job.customerId,
-    description: "Payment received — booking confirmed", metadata: { amount: Number(job.price) },
+    description: "Payment received, booking confirmed", metadata: { amount: Number(job.price) },
   })
   if (newStatus === "ACCEPTED") {
     await logJobEvent({ jobId: job.id, type: "JOB_ACCEPTED", actor: "SYSTEM", description: "Automatically assigned and accepted" })
@@ -487,7 +487,7 @@ export async function handleMpesaCallback(payload: any) {
 export async function createStripeCheckout(amount: number, successUrl?: string, cancelUrl?: string): Promise<InitiatePaymentResult> {
   const key = process.env.STRIPE_SECRET_KEY
   if (!key) {
-    return { success: true, provider: "stripe", requestId: `stripe-sandbox-${Date.now()}`, simulated: true, message: "No Stripe credentials configured — payment auto-completed as a sandbox simulation." }
+    return { success: true, provider: "stripe", requestId: `stripe-sandbox-${Date.now()}`, simulated: true, message: "No Stripe credentials configured. Payment auto-completed as a sandbox simulation." }
   }
 
   try {
@@ -583,7 +583,7 @@ async function getPaypalToken(): Promise<string> {
 
 export async function initiatePaypalPayment(amount: number, returnUrl?: string, cancelUrl?: string): Promise<InitiatePaymentResult> {
   if (!paypalConfigured()) {
-    return { success: true, provider: "paypal", requestId: `paypal-sandbox-${Date.now()}`, simulated: true, message: "No PayPal credentials configured — payment auto-completed as a sandbox simulation." }
+    return { success: true, provider: "paypal", requestId: `paypal-sandbox-${Date.now()}`, simulated: true, message: "No PayPal credentials configured. Payment auto-completed as a sandbox simulation." }
   }
 
   try {
@@ -668,7 +668,7 @@ function airtelConfigured() {
 
 export async function initiateAirtelPayment(phone: string, amount: number, description = "SAJI Payment"): Promise<InitiatePaymentResult> {
   if (!airtelConfigured()) {
-    return { success: true, provider: "airtel", requestId: `airtel-sandbox-${Date.now()}`, simulated: true, message: "No Airtel Money credentials configured — payment auto-completed as a sandbox simulation." }
+    return { success: true, provider: "airtel", requestId: `airtel-sandbox-${Date.now()}`, simulated: true, message: "No Airtel Money credentials configured. Payment auto-completed as a sandbox simulation." }
   }
   // Real Airtel Money integration requires Airtel's merchant API docs/credentials, not available here.
   return { success: false, provider: "airtel", message: "Airtel Money is configured but the real integration isn't implemented yet." }

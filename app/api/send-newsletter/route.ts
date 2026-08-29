@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
 
     if (unconfigured > 0 && sent === 0 && failed === 0) {
       return NextResponse.json(
-        { error: 'SMTP is not configured — no emails were sent. Set SMTP_HOST/PORT/USER/PASS to enable real sending.' },
+        { error: 'SMTP is not configured. No emails were sent. Set SMTP_HOST/PORT/USER/PASS to enable real sending.' },
         { status: 503 }
       )
     }

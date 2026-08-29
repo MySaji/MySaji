@@ -50,7 +50,7 @@ export default function RecurringMaintenancePage() {
         {items.length === 0 ? (
           <Card className="border-dashed p-10 text-center">
             <RefreshCw className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">No recurring schedules yet — set one up from a completed job.</p>
+            <p className="text-sm text-muted-foreground">No recurring schedules yet. Set one up from a completed job.</p>
           </Card>
         ) : (
           <div className="space-y-3">

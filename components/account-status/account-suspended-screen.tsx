@@ -41,7 +41,7 @@ export function AccountSuspendedScreen({ messagesBasePath, onLogout }: { message
             ongoing investigation. Most features are unavailable while your account is in this state.
           </p>
           <p className="text-sm text-slate-600 dark:text-slate-400">
-            If you believe this is a mistake or would like to appeal, message our admin support team directly — this
+            If you believe this is a mistake or would like to appeal, message our admin support team directly. This
             is the fastest way to get your account reviewed and restored.
           </p>
           {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}

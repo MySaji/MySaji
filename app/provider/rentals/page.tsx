@@ -105,7 +105,7 @@ export default function RentalsPage() {
       <div className="space-y-3">
         {bookings.length === 0 && (
           <Card className="p-10 text-center border-dashed">
-            <p className="text-sm text-muted-foreground">No rental bookings yet — create a rental listing from My Listings to start taking bookings.</p>
+            <p className="text-sm text-muted-foreground">No rental bookings yet. Create a rental listing from My Listings to start taking bookings.</p>
           </Card>
         )}
         {bookings.map((booking) => (
@@ -142,7 +142,7 @@ export default function RentalsPage() {
           {returningBooking && (
             <div className="space-y-4">
               <h2 className="text-lg font-bold text-foreground">Mark as Returned</h2>
-              <p className="text-sm text-muted-foreground">{returningBooking.listingTitle} — deposit paid: {formatMoney(returningBooking.depositAmount)}</p>
+              <p className="text-sm text-muted-foreground">{returningBooking.listingTitle}, deposit paid: {formatMoney(returningBooking.depositAmount)}</p>
               <div>
                 <label className="text-sm text-muted-foreground mb-1 block">Deposit to refund (KES)</label>
                 <Input type="number" max={returningBooking.depositAmount} value={refundAmount} onChange={(e) => setRefundAmount(e.target.value)} className="rounded-lg bg-card border-border" />

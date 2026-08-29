@@ -52,7 +52,7 @@ export default function DistributorProcurementPage() {
     <div className="space-y-6">
       <div>
         <h1 className="flex items-center gap-2 text-3xl font-bold text-foreground"><Handshake className="h-7 w-7" /> Procurement Requests</h1>
-        <p className="mt-1 text-muted-foreground">Businesses looking for suppliers — quote to be considered.</p>
+        <p className="mt-1 text-muted-foreground">Businesses looking for suppliers. Quote to be considered.</p>
       </div>
 
       {requests.length === 0 ? (
@@ -80,7 +80,7 @@ export default function DistributorProcurementPage() {
         <DialogContent className="max-w-sm rounded-xl" showCloseButton={false}>
           {quoting && (
             <div className="space-y-4">
-              <h2 className="text-lg font-bold text-foreground">Quote — {quoting.productName}</h2>
+              <h2 className="text-lg font-bold text-foreground">Quote: {quoting.productName}</h2>
               <div><label className="mb-1 block text-sm text-muted-foreground">Price per unit (KES)</label><Input type="number" value={form.price} onChange={(e) => setForm((p) => ({ ...p, price: e.target.value }))} /></div>
               <div><label className="mb-1 block text-sm text-muted-foreground">Availability</label><Input value={form.availability} onChange={(e) => setForm((p) => ({ ...p, availability: e.target.value }))} placeholder="e.g. In stock" /></div>
               <div><label className="mb-1 block text-sm text-muted-foreground">Delivery time</label><Input value={form.deliveryTime} onChange={(e) => setForm((p) => ({ ...p, deliveryTime: e.target.value }))} placeholder="e.g. 2 business days" /></div>

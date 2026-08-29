@@ -63,11 +63,11 @@ async function issueAndSendCode(identifierKey: string, destination: string): Pro
       bodyHtml: `
         <p>Use the code below to continue on SAJI. It expires in 10 minutes.</p>
         ${otpCodeBlock(code)}
-        <p style="font-size:13px;color:#6b7280;">Didn't request this? You can safely ignore this email — no changes will be made to your account.</p>
+        <p style="font-size:13px;color:#6b7280;">Didn't request this? You can safely ignore this email. No changes will be made to your account.</p>
       `,
     })
     const result = await sendEmail({ to: destination, subject: "Your SAJI verification code", html })
-    if (!result.sent) return { sent: false, error: "Email service is not configured — could not send a code." }
+    if (!result.sent) return { sent: false, error: "Email service is not configured. Could not send a code." }
     return { sent: true }
   }
 

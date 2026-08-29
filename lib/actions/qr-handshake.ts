@@ -65,7 +65,7 @@ export async function verifyJobQrHandshake(input: unknown): Promise<VerifyHandsh
   if (!handshake || handshake.jobId !== parsed.data.jobId) return { success: false, error: "Code doesn't match this job." }
   if (handshake.providerId !== provider.providerId) return { success: false, error: "This code wasn't issued for you." }
   if (handshake.consumedAt) return { success: false, error: "This code has already been used." }
-  if (handshake.expiresAt < new Date()) return { success: false, error: "This code has expired — ask the customer to generate a new one." }
+  if (handshake.expiresAt < new Date()) return { success: false, error: "This code has expired. Ask the customer to generate a new one." }
 
   await db.qrHandshake.update({ where: { id: handshake.id }, data: { consumedAt: new Date(), consumedByUserId: provider.userId } })
 

@@ -324,7 +324,7 @@ export default function AdminCategoriesPage() {
       <Dialog open={!!attrCategory} onOpenChange={(open) => !open && setAttrCategory(null)}>
         <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Offer Fields — {attrCategory?.name}</DialogTitle>
+            <DialogTitle>Offer Fields: {attrCategory?.name}</DialogTitle>
           </DialogHeader>
           <p className="text-xs text-muted-foreground -mt-2">
             These are the "Offer Details" fields providers see in Step 3 of Create Offer for this category. No rows means providers get a small generic fallback instead.
@@ -334,7 +334,7 @@ export default function AdminCategoriesPage() {
               <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
             ) : (
               <div className="space-y-2">
-                {attrFields.length === 0 && <p className="text-sm text-muted-foreground">No custom fields yet — using the generic fallback.</p>}
+                {attrFields.length === 0 && <p className="text-sm text-muted-foreground">No custom fields yet, using the generic fallback.</p>}
                 {attrFields.map((f, i) => (
                   <div key={f.id} className="flex items-center justify-between gap-2 rounded-lg border border-border p-2.5">
                     <div className="min-w-0">

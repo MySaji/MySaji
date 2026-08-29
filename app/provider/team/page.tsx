@@ -75,7 +75,7 @@ export default function TeamEntryPage() {
       <div>
         <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground"><Users className="h-6 w-6 text-primary" /> Build Your Team</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          As a Saji Pro subscriber, you can convert to a Business account to invite staff, dispatch jobs across your team, and track company-wide revenue — your existing services, jobs, and reviews carry over unchanged.
+          As a Saji Pro subscriber, you can convert to a Business account to invite staff, dispatch jobs across your team, and track company-wide revenue. Your existing services, jobs, and reviews carry over unchanged.
         </p>
       </div>
 

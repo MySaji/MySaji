@@ -84,5 +84,5 @@ export async function requireVerifiedIdentityForJob(jobId: string): Promise<{ ok
 
   const verified = await db.identityVerification.findFirst({ where: { jobId, status: "VERIFIED" } })
   if (verified) return { ok: true }
-  return { ok: false, reason: "This is a high-risk job category — verify your identity before starting." }
+  return { ok: false, reason: "This is a high-risk job category. Verify your identity before starting." }
 }

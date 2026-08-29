@@ -80,7 +80,7 @@ export async function getSecretaryDashboard(): Promise<SecretaryDashboardData> {
 
   const recentTransactions: SecretaryRecentTransaction[] = recentTxns.map((t) => ({
     id: t.id,
-    description: `${t.description} — ${t.wallet.user.name}`,
+    description: `${t.description}, ${t.wallet.user.name}`,
     amount: Number(t.amount),
     type: t.type,
     status: t.status,

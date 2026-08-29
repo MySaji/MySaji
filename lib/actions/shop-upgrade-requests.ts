@@ -76,7 +76,7 @@ export async function approveShopUpgradeRequest(input: unknown): Promise<ShopUpg
   const ticket = await db.supportTicket.findUnique({ where: { id: parsed.data.ticketId }, include: { user: true } })
   if (!ticket || ticket.category !== SHOP_UPGRADE_CATEGORY) return { success: false, error: "Request not found." }
   if (ticket.status === "RESOLVED" || ticket.status === "CLOSED") return { success: false, error: "This request has already been reviewed." }
-  if (ticket.user.role !== "PROVIDER") return { success: false, error: "This account is no longer a provider — it may have already been converted." }
+  if (ticket.user.role !== "PROVIDER") return { success: false, error: "This account is no longer a provider. It may have already been converted." }
 
   await db.$transaction(async (tx) => {
     await tx.supportTicket.update({ where: { id: ticket.id }, data: { status: "RESOLVED" } })

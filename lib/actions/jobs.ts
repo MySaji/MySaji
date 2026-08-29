@@ -59,7 +59,7 @@ export async function maybeRewardReferral(customerId: string) {
         walletId: wallet.id,
         type: "CREDIT",
         amount: REFERRAL_REWARD_AMOUNT,
-        description: "Referral reward — your friend completed their first booking",
+        description: "Referral reward: your friend completed their first booking",
         referenceType: "REFERRAL",
         referenceId: referral.id,
         status: "COMPLETED",
@@ -428,7 +428,7 @@ export async function cancelMyJob(input: unknown): Promise<JobActionResult> {
   const job = await db.job.findUnique({ where: { id: parsed.data.jobId } })
   if (!job || job.customerId !== session.user.id) return { success: false, error: "Booking not found." }
   if (!CUSTOMER_CANCELLABLE_STATUSES.includes(job.status as (typeof CUSTOMER_CANCELLABLE_STATUSES)[number])) {
-    return { success: false, error: "This booking can no longer be cancelled — please use the dispute option instead." }
+    return { success: false, error: "This booking can no longer be cancelled. Please use the dispute option instead." }
   }
 
   const reason = isWithinLateCancellationWindow(job.scheduledDate) ? "LATE_CANCELLATION" : "EARLY_CANCELLATION"

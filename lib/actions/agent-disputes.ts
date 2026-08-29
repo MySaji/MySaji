@@ -194,7 +194,7 @@ export async function resolveDisputeAsAgent(input: unknown): Promise<ActionResul
   await pushToUser(dispute.customerId, {
     title: "Dispute resolved",
     body: refundAmount && refundAmount > 0
-      ? `Dispute ${dispute.disputeNumber} resolved — KES ${refundAmount.toLocaleString()} refunded.`
+      ? `Dispute ${dispute.disputeNumber} resolved. KES ${refundAmount.toLocaleString()} refunded.`
       : `Dispute ${dispute.disputeNumber} has been resolved.`,
     url: "/customer/disputes",
   })

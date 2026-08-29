@@ -50,6 +50,6 @@ export async function checkProviderLicenseForJob(jobId: string, providerId: stri
 
   return {
     blocked: true,
-    reason: `This job requires a verified ${category.licenseName ?? "license"} before you can accept it — submit it from Profile > Certifications and wait for admin approval.`,
+    reason: `This job requires a verified ${category.licenseName ?? "license"} before you can accept it. Submit it from Profile > Certifications and wait for admin approval.`,
   }
 }

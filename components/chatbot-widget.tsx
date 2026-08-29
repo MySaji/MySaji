@@ -387,8 +387,8 @@ export function ChatbotWidget({ onClose }: { onClose: () => void }) {
                 <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
                 <p>
                   {assignedStaffName
-                    ? `You're connected with ${assignedStaffName} from our support team — they can see this whole conversation.`
-                    : "We've let our support team know — someone will join this conversation shortly."}
+                    ? `You're connected with ${assignedStaffName} from our support team. They can see this whole conversation.`
+                    : "We've let our support team know. Someone will join this conversation shortly."}
                 </p>
               </div>
             )}
@@ -443,7 +443,7 @@ export function ChatbotWidget({ onClose }: { onClose: () => void }) {
 
             {aiUnconfigured && (
               <p className="text-xs text-amber-600 dark:text-amber-400 text-center">
-                AI replies aren&apos;t fully configured yet — you can still ask to talk to a human.
+                AI replies aren&apos;t fully configured yet. You can still ask to talk to a human.
               </p>
             )}
             {sendError && <p className="text-xs text-red-600 text-center">{sendError}</p>}

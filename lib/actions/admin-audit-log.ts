@@ -32,8 +32,8 @@ function deriveSeverity(action: string): AuditSeverity {
 
 function describeTarget(entityType: string, entityId: string, newValues: unknown): string {
   const nv = newValues as Record<string, unknown> | null
-  if (nv && typeof nv.title === "string") return `${entityType} — ${nv.title}`
-  if (nv && typeof nv.name === "string") return `${entityType} — ${nv.name}`
+  if (nv && typeof nv.title === "string") return `${entityType}: ${nv.title}`
+  if (nv && typeof nv.name === "string") return `${entityType}: ${nv.name}`
   return `${entityType} #${entityId.slice(0, 8)}`
 }
 

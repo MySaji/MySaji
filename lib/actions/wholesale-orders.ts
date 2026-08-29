@@ -456,7 +456,7 @@ export async function cancelMyWholesaleOrder(input: unknown): Promise<WholesaleO
         walletId: distributorWallet.id,
         type: "DEBIT",
         amount: -payoutToReverse,
-        description: `Wholesale order ${order.orderNumber} cancelled — payout reversed`,
+        description: `Wholesale order ${order.orderNumber} cancelled, payout reversed`,
         referenceType: "WHOLESALE_ORDER",
         referenceId: order.id,
         status: "COMPLETED",

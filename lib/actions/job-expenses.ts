@@ -93,7 +93,7 @@ export async function addJobExpense(input: unknown): Promise<JobExpenseActionRes
   })
   await pushToUser(job.customerId, {
     title: "Approval needed: extra cost",
-    body: `${description} — KES ${amount.toLocaleString()}`,
+    body: `${description}: KES ${amount.toLocaleString()}`,
     url: "/customer/jobs",
   }, "job")
 
@@ -227,7 +227,7 @@ export async function respondToJobExpense(input: unknown): Promise<JobExpenseAct
   if (expense.job.provider) {
     await pushToUser(expense.job.provider.userId, {
       title: "Expense approved",
-      body: `${expense.description} was approved — you can continue.`,
+      body: `${expense.description} was approved. You can continue.`,
       url: "/provider/jobs",
     }, "job")
   }

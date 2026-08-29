@@ -92,7 +92,7 @@ export function EmailSubscriptionPopup() {
       setMessageType('success')
       setMessage(
         result.alreadySubscribed
-          ? "You're already subscribed — thanks for being with us!"
+          ? "You're already subscribed, thanks for being with us!"
           : "You're subscribed! Check your inbox for a welcome email, then look out for weekly product updates and trending picks.",
       )
       setEmail('')
@@ -141,7 +141,7 @@ export function EmailSubscriptionPopup() {
             </div>
             <DialogTitle className="text-lg font-bold text-primary-foreground sm:text-xl">Stay in the loop</DialogTitle>
             <DialogDescription className="mt-1 text-xs text-primary-foreground/80 text-balance sm:text-sm">
-              Weekly product updates, trending picks, and exclusive offers — straight to your inbox
+              Weekly product updates, trending picks, and exclusive offers, straight to your inbox
             </DialogDescription>
           </div>
 

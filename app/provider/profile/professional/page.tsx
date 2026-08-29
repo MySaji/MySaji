@@ -378,7 +378,7 @@ export default function ProfessionalProfilePage() {
           <h2 className="font-semibold flex items-center gap-2 mb-1">
             <FileText className="w-4 h-4" /> Resume / CV
           </h2>
-          <p className="text-sm text-gray-500 mb-3">A link to your CV — Drive, Dropbox, or your own site.</p>
+          <p className="text-sm text-gray-500 mb-3">A link to your CV on Drive, Dropbox, or your own site.</p>
           <input
             value={resumeUrl}
             onChange={(e) => setResumeUrl(e.target.value)}

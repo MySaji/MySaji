@@ -29,7 +29,7 @@ export default async function TermsPage() {
           <div className="bg-amber-50 dark:bg-amber-900/20 border-x border-amber-200 dark:border-amber-900/40 px-6 py-4 flex items-start gap-3">
             <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
             <p className="text-sm text-amber-800 dark:text-amber-300">
-              <strong>Draft — pending legal review.</strong> This is a template Terms of Service covering the platform's
+              <strong>Draft: pending legal review.</strong> This is a template Terms of Service covering the platform's
               actual features and policies. It has not been reviewed by a lawyer and should not be treated as final
               before launch.
             </p>
@@ -55,7 +55,7 @@ export default async function TermsPage() {
                 <p className="text-muted-foreground leading-relaxed">
                   SAJI is a marketplace that connects customers with independent service providers (electricians,
                   plumbers, cleaners, and similar trades) and shopkeepers selling related products. SAJI is not the
-                  provider of the underlying services or products — providers and shopkeepers are independent third
+                  provider of the underlying services or products. Providers and shopkeepers are independent third
                   parties, not SAJI employees or agents.
                 </p>
               </section>
