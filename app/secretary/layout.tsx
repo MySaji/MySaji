@@ -176,7 +176,7 @@ export default function SecretaryLayout({ children }: { children: React.ReactNod
                 {unreadCount > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />}
               </button>
               {showNotifications && (
-                <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden">
+                <div className="fixed left-4 right-4 top-16 sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-80 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden">
                   <div className="p-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
                     <h3 className="text-xs font-semibold text-gray-900 dark:text-white">{t("settings.notifications")}</h3>
                     {unreadCount > 0 && (

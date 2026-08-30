@@ -220,7 +220,7 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
                 {unreadCount > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />}
               </button>
               {notifOpen && (
-                <div className="absolute right-0 top-12 w-72 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50">
+                <div className="fixed left-4 right-4 top-16 sm:absolute sm:left-auto sm:right-0 sm:top-12 sm:w-72 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50">
                   <div className="p-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                     <h3 className="font-semibold text-xs text-gray-900 dark:text-white">
                       {t("agent.layout.notifications")}

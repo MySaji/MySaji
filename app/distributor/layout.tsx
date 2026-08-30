@@ -309,7 +309,7 @@ export default function DistributorLayout({ children }: { children: React.ReactN
                 </button>
 
                 {notificationsOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+                  <div className="fixed left-4 right-4 top-14 sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
                     <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                       <h3 className="font-semibold text-gray-900 dark:text-white">{t("settings.notifications")}</h3>
                       {unreadCount > 0 && (

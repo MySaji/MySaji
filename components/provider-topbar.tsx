@@ -135,7 +135,7 @@ export default function ProviderTopbar({ onMenuClick }: { onMenuClick: () => voi
             {showNotifications && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)} />
-                <div className="absolute right-0 top-12 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden">
+                <div className="fixed left-4 right-4 top-16 sm:absolute sm:left-auto sm:right-0 sm:top-12 sm:w-80 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden">
                   <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                     <h3 className="font-semibold text-gray-900 dark:text-white">{t("provider.layout.notificationsTitle")}</h3>
                     {unreadCount > 0 && (
