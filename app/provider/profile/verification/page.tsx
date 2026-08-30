@@ -135,14 +135,14 @@ export default function VerificationPage() {
           of the header's empty padding/rounded-corner area it was meant to
           overlap. */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 -mt-4">
-        <div className="grid gap-6 lg:grid-cols-[1.4fr_0.9fr]">
-          <Card className="p-6 shadow-lg border-0">
+        <div className="grid gap-6 lg:grid-cols-[1.4fr_0.9fr] min-w-0">
+          <Card className="p-6 shadow-lg border-0 min-w-0">
             <div className="flex items-center justify-between gap-4">
-              <div>
+              <div className="min-w-0">
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{t("provider.verification.kycEyebrow")}</p>
                 <h2 className="mt-3 text-xl font-semibold text-slate-900 dark:text-white">{t("provider.verification.completeIdentityTitle")}</h2>
               </div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+              <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200 flex-shrink-0">
                 <BadgeCheck className="w-4 h-4 text-emerald-600" />
                 {status === "approved" ? t("provider.verification.badgeVerified") : status === "rejected" ? t("provider.verification.badgeResubmit") : t("provider.verification.badgePending")}
               </div>
@@ -219,10 +219,10 @@ export default function VerificationPage() {
             )}
           </Card>
 
-          <Card className="p-6 shadow-lg border-0 bg-white/95 dark:bg-slate-900/95">
+          <Card className="p-6 shadow-lg border-0 bg-white/95 dark:bg-slate-900/95 min-w-0">
             <div className="flex items-center gap-3 rounded-3xl bg-slate-50 p-4 dark:bg-slate-800">
-              <ShieldCheck className="w-5 h-5 text-blue-600" />
-              <div>
+              <ShieldCheck className="w-5 h-5 text-blue-600 flex-shrink-0" />
+              <div className="min-w-0">
                 <p className="text-xs font-semibold text-slate-900 dark:text-white">{t("provider.verification.whyMattersTitle")}</p>
                 <p className="text-xs text-slate-500 dark:text-slate-400">{t("provider.verification.whyMattersDesc")}</p>
               </div>
