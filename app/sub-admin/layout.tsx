@@ -21,6 +21,8 @@ import {
   MessageCircle,
   BarChart3,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Settings,
   Users2,
   TrendingUp,
@@ -34,6 +36,7 @@ import { useNotificationBell } from "@/lib/hooks/useNotificationBell"
 import { getSubAdminAccount, type SubAdminAccountData } from "@/lib/actions/sub-admin-account"
 import { formatRelativeTime } from "@/lib/format"
 import { useLocalization } from "@/lib/hooks/useLocalization"
+import { useSidebarCollapsed } from "@/lib/hooks/useSidebarCollapsed"
 
 export default function SubAdminLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, user, logout } = useAuthContext()
@@ -42,6 +45,7 @@ export default function SubAdminLayout({ children }: { children: React.ReactNode
   const pathname = usePathname()
   const [mounted, setMounted] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const { isCollapsed, toggle: toggleCollapsed } = useSidebarCollapsed()
   const [notifOpen, setNotifOpen] = useState(false)
   const [showMore, setShowMore] = useState(false)
   const [showProfileMenu, setShowProfileMenu] = useState(false)
@@ -130,15 +134,24 @@ export default function SubAdminLayout({ children }: { children: React.ReactNode
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
       {/* Sidebar -- desktop */}
       <aside
-        className={`fixed top-0 left-0 h-dvh w-64 bg-gradient-to-b from-blue-700 to-blue-800 text-white transform transition-transform z-40 ${
+        className={`fixed top-0 left-0 h-dvh ${isCollapsed ? "lg:w-20" : "lg:w-64"} w-64 bg-gradient-to-b from-blue-700 to-blue-800 text-white transform transition-[transform,width] z-40 ${
           menuOpen ? "translate-x-0" : "-translate-x-full"
         } lg:translate-x-0 lg:relative flex flex-col`}
       >
-        <div className="p-5 border-b border-blue-600 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-white/20 flex items-center justify-center">
+        <button
+          onClick={toggleCollapsed}
+          aria-label={isCollapsed ? t("common.sidebar.expand") : t("common.sidebar.collapse")}
+          title={isCollapsed ? t("common.sidebar.expand") : t("common.sidebar.collapse")}
+          className="hidden lg:flex absolute -right-3 top-20 z-10 w-6 h-6 items-center justify-center rounded-full border border-blue-600 bg-blue-700 text-white shadow-md hover:bg-blue-600 transition-colors"
+        >
+          {isCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
+        </button>
+
+        <div className={`p-5 border-b border-blue-600 flex items-center gap-3 ${isCollapsed ? "lg:justify-center" : ""}`}>
+          <div className="w-9 h-9 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
             <Shield className="w-5 h-5 text-white" />
           </div>
-          <div className="flex-1 min-w-0">
+          <div className={`flex-1 min-w-0 ${isCollapsed ? "lg:hidden" : ""}`}>
             <h1 className="text-base font-bold leading-tight">{t("subAdmin.layout.title")}</h1>
             <p className="text-[10px] text-blue-200">{t("subAdmin.layout.subtitle")}</p>
           </div>
@@ -157,21 +170,22 @@ export default function SubAdminLayout({ children }: { children: React.ReactNode
             return (
               <div key={item.href}>
                 {showGroupLabel && (
-                  <p className="px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-blue-200/70">
+                  <p className={`px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-blue-200/70 ${isCollapsed ? "lg:hidden" : ""}`}>
                     {GROUP_LABEL[item.group as string]}
                   </p>
                 )}
                 <Link
                   href={item.href}
                   onClick={() => setMenuOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-colors ${
+                  title={isCollapsed ? item.label : undefined}
+                  className={`flex items-center gap-3 py-2.5 rounded-lg text-xs font-medium transition-colors ${isCollapsed ? "lg:justify-center px-2" : "px-3"} ${
                     isActive(item.href)
                       ? "bg-white text-blue-700 shadow-sm"
                       : "text-blue-100 hover:bg-blue-600/50"
                   }`}
                 >
-                  <item.icon size={18} />
-                  {item.label}
+                  <item.icon size={18} className="flex-shrink-0" />
+                  <span className={isCollapsed ? "lg:hidden" : ""}>{item.label}</span>
                 </Link>
               </div>
             )
@@ -184,10 +198,11 @@ export default function SubAdminLayout({ children }: { children: React.ReactNode
               logout()
               setMenuOpen(false)
             }}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium text-blue-100 hover:bg-blue-600/50 transition-colors"
+            title={isCollapsed ? t("auth.logout") : undefined}
+            className={`w-full flex items-center gap-3 py-2.5 rounded-lg text-xs font-medium text-blue-100 hover:bg-blue-600/50 transition-colors ${isCollapsed ? "lg:justify-center px-2" : "px-3"}`}
           >
-            <LogOut size={18} />
-            {t("auth.logout")}
+            <LogOut size={18} className="flex-shrink-0" />
+            <span className={isCollapsed ? "lg:hidden" : ""}>{t("auth.logout")}</span>
           </button>
         </div>
       </aside>
