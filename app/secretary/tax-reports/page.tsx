@@ -117,7 +117,7 @@ export default function SecretaryRevenueReports() {
     <div className="space-y-8 pb-8">
       <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
         <div>
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white">{t("secretary.taxReports.title")}</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t("secretary.taxReports.title")}</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">{t("secretary.taxReports.subtitle")}</p>
         </div>
         <Button onClick={handleExportCsv} disabled={!report} className="bg-blue-600 hover:bg-blue-700 gap-2">
@@ -156,14 +156,14 @@ export default function SecretaryRevenueReports() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {summaryCards.map((stat, idx) => (
               <Card key={idx} className="p-6">
-                <p className="text-sm text-muted-foreground mb-2">{stat.label}</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stat.value}</p>
+                <p className="text-xs text-muted-foreground mb-2">{stat.label}</p>
+                <p className="text-xl font-bold text-gray-900 dark:text-white">{stat.value}</p>
               </Card>
             ))}
           </div>
 
           <Card className="p-6">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
               <TrendingUp className="w-6 h-6" />
               {t("secretary.taxReports.breakdownBy", {
                 unit: period === "monthly" ? t("secretary.taxReports.unitMonth") : period === "quarterly" ? t("secretary.taxReports.unitQuarter") : t("secretary.taxReports.unitYear"),
@@ -173,21 +173,21 @@ export default function SecretaryRevenueReports() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-gray-700">
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("secretary.taxReports.colPeriod")}</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("secretary.taxReports.colGrossVolume")}</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("secretary.taxReports.colPayments")}</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("secretary.taxReports.colWithdrawalsPaidOut")}</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("secretary.taxReports.colNetRetained")}</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("secretary.taxReports.colPeriod")}</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("secretary.taxReports.colGrossVolume")}</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("secretary.taxReports.colPayments")}</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("secretary.taxReports.colWithdrawalsPaidOut")}</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("secretary.taxReports.colNetRetained")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                   {report.rows.map((row) => (
                     <tr key={row.label} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                      <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">{row.label}</td>
-                      <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{formatMoney(row.grossVolume)}</td>
-                      <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{row.paymentCount}</td>
-                      <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{formatMoney(row.withdrawalsPaidOut)}</td>
-                      <td className="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white">{formatMoney(row.netRetained)}</td>
+                      <td className="px-6 py-4 text-xs font-medium text-gray-900 dark:text-white">{row.label}</td>
+                      <td className="px-6 py-4 text-xs text-gray-700 dark:text-gray-300">{formatMoney(row.grossVolume)}</td>
+                      <td className="px-6 py-4 text-xs text-gray-700 dark:text-gray-300">{row.paymentCount}</td>
+                      <td className="px-6 py-4 text-xs text-gray-700 dark:text-gray-300">{formatMoney(row.withdrawalsPaidOut)}</td>
+                      <td className="px-6 py-4 text-xs font-semibold text-gray-900 dark:text-white">{formatMoney(row.netRetained)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -197,43 +197,43 @@ export default function SecretaryRevenueReports() {
 
           <Card className="p-6 flex items-start gap-3">
             <FileSpreadsheet className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" />
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-xs text-gray-600 dark:text-gray-400">
               {t("secretary.taxReports.footerNote")}
             </p>
           </Card>
 
           <Card className="p-6">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t("secretary.taxReports.filedReportsTitle")}</h2>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t("secretary.taxReports.filedReportsTitle")}</h2>
               <Button onClick={openCreateModal} className="gap-2">
                 <Plus size={16} />
                 {t("secretary.taxReports.newReportButton")}
               </Button>
             </div>
-            <p className="text-sm text-muted-foreground mb-6">{t("secretary.taxReports.filedReportsHint")}</p>
+            <p className="text-xs text-muted-foreground mb-6">{t("secretary.taxReports.filedReportsHint")}</p>
 
             {taxReports.length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">{t("secretary.taxReports.noReportsFound")}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-8">{t("secretary.taxReports.noReportsFound")}</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-gray-200 dark:border-gray-700">
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("secretary.taxReports.colPeriodLabel")}</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("secretary.taxReports.colType")}</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("secretary.taxReports.colDueDate")}</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("secretary.taxReports.colTaxDue")}</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("common.status")}</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("secretary.reconciliation.colActions")}</th>
+                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-700 dark:text-gray-300">{t("secretary.taxReports.colPeriodLabel")}</th>
+                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-700 dark:text-gray-300">{t("secretary.taxReports.colType")}</th>
+                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-700 dark:text-gray-300">{t("secretary.taxReports.colDueDate")}</th>
+                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-700 dark:text-gray-300">{t("secretary.taxReports.colTaxDue")}</th>
+                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-700 dark:text-gray-300">{t("common.status")}</th>
+                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-700 dark:text-gray-300">{t("secretary.reconciliation.colActions")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                     {taxReports.map((r) => (
                       <tr key={r.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                        <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">{r.period}</td>
-                        <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{t(`secretary.taxReports.type${r.type === "MONTHLY_VAT" ? "MonthlyVat" : r.type === "QUARTERLY" ? "Quarterly" : r.type === "ANNUAL" ? "Annual" : "Paye"}`)}</td>
-                        <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{new Date(r.dueDate).toLocaleDateString()}</td>
-                        <td className="px-4 py-3 text-sm font-semibold text-gray-900 dark:text-white">{formatMoney(r.taxDue)}</td>
+                        <td className="px-4 py-3 text-xs font-medium text-gray-900 dark:text-white">{r.period}</td>
+                        <td className="px-4 py-3 text-xs text-gray-700 dark:text-gray-300">{t(`secretary.taxReports.type${r.type === "MONTHLY_VAT" ? "MonthlyVat" : r.type === "QUARTERLY" ? "Quarterly" : r.type === "ANNUAL" ? "Annual" : "Paye"}`)}</td>
+                        <td className="px-4 py-3 text-xs text-gray-700 dark:text-gray-300">{new Date(r.dueDate).toLocaleDateString()}</td>
+                        <td className="px-4 py-3 text-xs font-semibold text-gray-900 dark:text-white">{formatMoney(r.taxDue)}</td>
                         <td className="px-4 py-3">
                           <span className={`px-2.5 py-1 rounded-full text-[10px] font-semibold ${
                             r.status === "FILED" ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400" :
@@ -245,7 +245,7 @@ export default function SecretaryRevenueReports() {
                         </td>
                         <td className="px-4 py-3">
                           {r.status !== "FILED" && (
-                            <Button size="sm" variant="outline" className="gap-1 text-xs bg-transparent" disabled={busyId === r.id} onClick={() => handleMarkFiled(r.id)}>
+                            <Button size="sm" variant="outline" className="gap-1 text-[11px] bg-transparent" disabled={busyId === r.id} onClick={() => handleMarkFiled(r.id)}>
                               {busyId === r.id ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
                               {t("secretary.taxReports.markFiledButton")}
                             </Button>
@@ -266,15 +266,15 @@ export default function SecretaryRevenueReports() {
           <DialogHeader><DialogTitle>{t("secretary.taxReports.createModalTitle")}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <div>
-              <label className="block text-sm font-medium mb-1.5">{t("secretary.taxReports.periodLabel")}</label>
+              <label className="block text-xs font-medium mb-1.5">{t("secretary.taxReports.periodLabel")}</label>
               <Input value={newPeriod} onChange={(e) => setNewPeriod(e.target.value)} placeholder={t("secretary.taxReports.periodPlaceholder")} />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1.5">{t("secretary.taxReports.typeLabel")}</label>
+              <label className="block text-xs font-medium mb-1.5">{t("secretary.taxReports.typeLabel")}</label>
               <select
                 value={newType}
                 onChange={(e) => setNewType(e.target.value as typeof newType)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 dark:text-white text-sm"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 dark:text-white text-xs"
               >
                 <option value="MONTHLY_VAT">{t("secretary.taxReports.typeMonthlyVat")}</option>
                 <option value="QUARTERLY">{t("secretary.taxReports.typeQuarterly")}</option>
@@ -283,20 +283,20 @@ export default function SecretaryRevenueReports() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1.5">{t("secretary.taxReports.dueDateLabel")}</label>
+              <label className="block text-xs font-medium mb-1.5">{t("secretary.taxReports.dueDateLabel")}</label>
               <Input type="date" value={newDueDate} onChange={(e) => setNewDueDate(e.target.value)} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium mb-1.5">{t("secretary.taxReports.reportedAmountLabel")}</label>
+                <label className="block text-xs font-medium mb-1.5">{t("secretary.taxReports.reportedAmountLabel")}</label>
                 <Input type="number" value={newAmount} onChange={(e) => setNewAmount(e.target.value)} placeholder="0" />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1.5">{t("secretary.taxReports.taxDueLabel")}</label>
+                <label className="block text-xs font-medium mb-1.5">{t("secretary.taxReports.taxDueLabel")}</label>
                 <Input type="number" value={newTaxDue} onChange={(e) => setNewTaxDue(e.target.value)} placeholder="0" />
               </div>
             </div>
-            {createError && <p className="text-sm text-red-600">{createError}</p>}
+            {createError && <p className="text-xs text-red-600">{createError}</p>}
             <div className="flex gap-3 pt-2">
               <Button variant="outline" className="flex-1 bg-transparent" onClick={() => setShowCreateModal(false)} disabled={isCreating}>{t("common.cancel")}</Button>
               <Button className="flex-1" onClick={submitCreateTaxReport} disabled={!newPeriod.trim() || !newDueDate || isCreating}>

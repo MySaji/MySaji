@@ -120,7 +120,7 @@ export default function SecretaryReconciliation() {
   return (
     <div className="space-y-8 pb-8">
       <div>
-        <h1 className="text-4xl font-bold text-gray-900 dark:text-white">{t("secretary.reconciliation.title")}</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t("secretary.reconciliation.title")}</h1>
         <p className="text-gray-600 dark:text-gray-400 mt-2">
           {t("secretary.reconciliation.subtitle")}
         </p>
@@ -129,8 +129,8 @@ export default function SecretaryReconciliation() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {summaryCards.map((stat, idx) => (
           <Card key={idx} className="p-6">
-            <p className="text-sm text-muted-foreground mb-2">{stat.label}</p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{stat.value}</p>
+            <p className="text-xs text-muted-foreground mb-2">{stat.label}</p>
+            <p className="text-xl font-bold text-gray-900 dark:text-white">{stat.value}</p>
           </Card>
         ))}
       </div>
@@ -157,39 +157,39 @@ export default function SecretaryReconciliation() {
       </div>
 
       <Card className="p-6">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
           <ScaleIcon className="w-6 h-6" />
           {t("secretary.reconciliation.ledgerIntegrityTitle")}
         </h2>
         {filtered.length === 0 ? (
-          <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">{t("secretary.reconciliation.noWalletsFound")}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-8">{t("secretary.reconciliation.noWalletsFound")}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700">
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("secretary.reconciliation.colUser")}</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("secretary.reconciliation.colStoredBalance")}</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("secretary.reconciliation.colLedgerBalance")}</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("secretary.reconciliation.colDiscrepancy")}</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("common.status")}</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("secretary.reconciliation.colActions")}</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("secretary.reconciliation.colUser")}</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("secretary.reconciliation.colStoredBalance")}</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("secretary.reconciliation.colLedgerBalance")}</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("secretary.reconciliation.colDiscrepancy")}</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("common.status")}</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("secretary.reconciliation.colActions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {filtered.map(row => (
                   <tr key={row.walletId} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                    <td className="px-6 py-4 text-sm">
+                    <td className="px-6 py-4 text-xs">
                       <div className="font-medium text-gray-900 dark:text-white">{row.userName}</div>
-                      <div className="text-gray-500 dark:text-gray-400 text-xs">{row.userEmail} · {row.role}</div>
+                      <div className="text-gray-500 dark:text-gray-400 text-[11px]">{row.userEmail} · {row.role}</div>
                     </td>
-                    <td className="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white">{formatMoney(row.currentBalance)}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{formatMoney(row.expectedBalance)}</td>
-                    <td className={`px-6 py-4 text-sm font-medium ${row.discrepancy !== 0 ? "text-red-600 dark:text-red-400" : "text-gray-500 dark:text-gray-400"}`}>
+                    <td className="px-6 py-4 text-xs font-semibold text-gray-900 dark:text-white">{formatMoney(row.currentBalance)}</td>
+                    <td className="px-6 py-4 text-xs text-gray-700 dark:text-gray-300">{formatMoney(row.expectedBalance)}</td>
+                    <td className={`px-6 py-4 text-xs font-medium ${row.discrepancy !== 0 ? "text-red-600 dark:text-red-400" : "text-gray-500 dark:text-gray-400"}`}>
                       {row.discrepancy > 0 ? "+" : ""}{formatMoney(row.discrepancy)}
                     </td>
-                    <td className="px-6 py-4 text-sm">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    <td className="px-6 py-4 text-xs">
+                      <span className={`px-3 py-1 rounded-full text-[11px] font-medium ${
                         row.status === "reconciled" ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400" :
                         "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
                       }`}>
@@ -218,7 +218,7 @@ export default function SecretaryReconciliation() {
 
       <Card className="p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <Landmark className="w-6 h-6" />
             {t("secretary.reconciliation.bankReconciliationTitle")}
           </h2>
@@ -227,10 +227,10 @@ export default function SecretaryReconciliation() {
             {t("secretary.reconciliation.addEntryButton")}
           </Button>
         </div>
-        <p className="text-sm text-muted-foreground mb-6">{t("secretary.reconciliation.bankReconciliationHint")}</p>
+        <p className="text-xs text-muted-foreground mb-6">{t("secretary.reconciliation.bankReconciliationHint")}</p>
 
         {bankReconciliations.length === 0 ? (
-          <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">{t("secretary.reconciliation.noEntriesFound")}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-8">{t("secretary.reconciliation.noEntriesFound")}</p>
         ) : (
           <div className="space-y-3">
             {bankReconciliations.map((r) => (
@@ -238,9 +238,9 @@ export default function SecretaryReconciliation() {
                 <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                   <div>
                     <p className="font-semibold text-gray-900 dark:text-white">{r.account}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{new Date(r.date).toLocaleDateString()}</p>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400">{new Date(r.date).toLocaleDateString()}</p>
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                  <span className={`px-3 py-1 rounded-full text-[11px] font-medium ${
                     r.status === "RECONCILED" ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400" :
                     r.status === "UNDER_REVIEW" ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400" :
                     "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400"
@@ -248,23 +248,23 @@ export default function SecretaryReconciliation() {
                     {r.status === "RECONCILED" ? t("secretary.reconciliation.statusReconciled") : r.status === "UNDER_REVIEW" ? t("secretary.reconciliation.statusUnderReview") : t("secretary.reconciliation.statusPending")}
                   </span>
                 </div>
-                <div className="grid grid-cols-3 gap-3 text-sm mb-2">
-                  <div><p className="text-xs text-gray-500">{t("secretary.reconciliation.systemBalanceLabel")}</p><p className="font-medium text-gray-900 dark:text-white">{formatMoney(r.systemBalance)}</p></div>
-                  <div><p className="text-xs text-gray-500">{t("secretary.reconciliation.bankBalanceLabel")}</p><p className="font-medium text-gray-900 dark:text-white">{formatMoney(r.bankBalance)}</p></div>
-                  <div><p className="text-xs text-gray-500">{t("secretary.reconciliation.varianceLabel")}</p><p className={`font-medium ${r.variance !== 0 ? "text-red-600 dark:text-red-400" : "text-gray-900 dark:text-white"}`}>{r.variance > 0 ? "+" : ""}{formatMoney(r.variance)}</p></div>
+                <div className="grid grid-cols-3 gap-3 text-xs mb-2">
+                  <div><p className="text-[11px] text-gray-500">{t("secretary.reconciliation.systemBalanceLabel")}</p><p className="font-medium text-gray-900 dark:text-white">{formatMoney(r.systemBalance)}</p></div>
+                  <div><p className="text-[11px] text-gray-500">{t("secretary.reconciliation.bankBalanceLabel")}</p><p className="font-medium text-gray-900 dark:text-white">{formatMoney(r.bankBalance)}</p></div>
+                  <div><p className="text-[11px] text-gray-500">{t("secretary.reconciliation.varianceLabel")}</p><p className={`font-medium ${r.variance !== 0 ? "text-red-600 dark:text-red-400" : "text-gray-900 dark:text-white"}`}>{r.variance > 0 ? "+" : ""}{formatMoney(r.variance)}</p></div>
                 </div>
                 {r.discrepancies.length > 0 && (
                   <div className="mt-3 space-y-2 border-t border-gray-200 dark:border-gray-700 pt-3">
                     {r.discrepancies.map((d) => (
                       <div key={d.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
                         <div className="min-w-0">
-                          <p className="text-sm text-gray-700 dark:text-gray-300">{d.description}</p>
-                          {d.resolution && <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">{t("secretary.reconciliation.resolutionPrefix")} {d.resolution}</p>}
+                          <p className="text-xs text-gray-700 dark:text-gray-300">{d.description}</p>
+                          {d.resolution && <p className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1">{t("secretary.reconciliation.resolutionPrefix")} {d.resolution}</p>}
                         </div>
                         {d.status !== "resolved" ? (
                           <Button size="sm" variant="outline" className="bg-transparent flex-shrink-0" onClick={() => openResolve(d.id)}>{t("secretary.reconciliation.resolveButton")}</Button>
                         ) : (
-                          <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 flex-shrink-0">{t("secretary.reconciliation.resolvedBadge")}</span>
+                          <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 flex-shrink-0">{t("secretary.reconciliation.resolvedBadge")}</span>
                         )}
                       </div>
                     ))}
@@ -281,24 +281,24 @@ export default function SecretaryReconciliation() {
           <DialogHeader><DialogTitle>{t("secretary.reconciliation.addModalTitle")}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <div>
-              <label className="block text-sm font-medium mb-1.5">{t("secretary.reconciliation.accountLabel")}</label>
+              <label className="block text-xs font-medium mb-1.5">{t("secretary.reconciliation.accountLabel")}</label>
               <Input value={newAccount} onChange={(e) => setNewAccount(e.target.value)} placeholder={t("secretary.reconciliation.accountPlaceholder")} />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1.5">{t("secretary.reconciliation.dateLabel")}</label>
+              <label className="block text-xs font-medium mb-1.5">{t("secretary.reconciliation.dateLabel")}</label>
               <Input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium mb-1.5">{t("secretary.reconciliation.systemBalanceLabel")}</label>
+                <label className="block text-xs font-medium mb-1.5">{t("secretary.reconciliation.systemBalanceLabel")}</label>
                 <Input type="number" value={newSystemBalance} onChange={(e) => setNewSystemBalance(e.target.value)} placeholder="0" />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1.5">{t("secretary.reconciliation.bankBalanceLabel")}</label>
+                <label className="block text-xs font-medium mb-1.5">{t("secretary.reconciliation.bankBalanceLabel")}</label>
                 <Input type="number" value={newBankBalance} onChange={(e) => setNewBankBalance(e.target.value)} placeholder="0" />
               </div>
             </div>
-            {addError && <p className="text-sm text-red-600">{addError}</p>}
+            {addError && <p className="text-xs text-red-600">{addError}</p>}
             <div className="flex gap-3 pt-2">
               <Button variant="outline" className="flex-1 bg-transparent" onClick={() => setShowAddModal(false)} disabled={isSubmittingEntry}>{t("common.cancel")}</Button>
               <Button className="flex-1" onClick={submitNewReconciliation} disabled={!newAccount.trim() || !newDate || isSubmittingEntry}>

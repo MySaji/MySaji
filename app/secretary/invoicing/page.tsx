@@ -86,7 +86,7 @@ export default function SecretaryInvoicing() {
     <div className="space-y-8 pb-8">
       <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
         <div>
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white">{t("secretary.invoicing.title")}</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t("secretary.invoicing.title")}</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">{t("secretary.invoicing.subtitle")}</p>
         </div>
         <Button onClick={handleExport} variant="outline" className="bg-transparent gap-2">
@@ -98,8 +98,8 @@ export default function SecretaryInvoicing() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {summaryData.map((stat, idx) => (
           <Card key={idx} className="p-6">
-            <p className="text-sm text-muted-foreground mb-2">{stat.label}</p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{stat.value}</p>
+            <p className="text-xs text-muted-foreground mb-2">{stat.label}</p>
+            <p className="text-xl font-bold text-gray-900 dark:text-white">{stat.value}</p>
           </Card>
         ))}
       </div>
@@ -129,39 +129,39 @@ export default function SecretaryInvoicing() {
         </select>
       </div>
 
-      {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+      {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
 
       <Card className="p-6">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
           <FileText className="w-6 h-6" />
           {t("secretary.invoicing.invoicesTitle")}
         </h2>
         {filtered.length === 0 ? (
-          <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">{t("secretary.invoicing.noInvoicesFound")}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-8">{t("secretary.invoicing.noInvoicesFound")}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700">
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("secretary.invoicing.colInvoiceNumber")}</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("common.provider")}</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("secretary.invoicing.colClient")}</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("secretary.invoicing.colTotal")}</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("secretary.invoicing.colDueDate")}</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("common.status")}</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("secretary.invoicing.colActions")}</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("secretary.invoicing.colInvoiceNumber")}</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("common.provider")}</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("secretary.invoicing.colClient")}</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("secretary.invoicing.colTotal")}</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("secretary.invoicing.colDueDate")}</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("common.status")}</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("secretary.invoicing.colActions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {filtered.map(inv => (
                   <tr key={inv.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">{inv.invoiceNumber}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{inv.providerName}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{inv.customerName}</td>
-                    <td className="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white">{formatMoney(inv.total)}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{new Date(inv.dueDate).toLocaleDateString()}</td>
-                    <td className="px-6 py-4 text-sm">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium capitalize ${
+                    <td className="px-6 py-4 text-xs font-medium text-gray-900 dark:text-white">{inv.invoiceNumber}</td>
+                    <td className="px-6 py-4 text-xs text-gray-700 dark:text-gray-300">{inv.providerName}</td>
+                    <td className="px-6 py-4 text-xs text-gray-700 dark:text-gray-300">{inv.customerName}</td>
+                    <td className="px-6 py-4 text-xs font-semibold text-gray-900 dark:text-white">{formatMoney(inv.total)}</td>
+                    <td className="px-6 py-4 text-xs text-gray-700 dark:text-gray-300">{new Date(inv.dueDate).toLocaleDateString()}</td>
+                    <td className="px-6 py-4 text-xs">
+                      <span className={`px-3 py-1 rounded-full text-[11px] font-medium capitalize ${
                         inv.status === "paid" ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400" :
                         inv.status === "overdue" ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400" :
                         inv.status === "cancelled" ? "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300" :

@@ -86,19 +86,19 @@ export default function SecretaryProfilePage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{t("secretary.profile.title")}</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{t("secretary.profile.title")}</h1>
           <p className="text-gray-600 dark:text-gray-400">{t("secretary.profile.subtitle")}</p>
         </div>
 
         <Card className="p-6 bg-white dark:bg-gray-800 border-0 rounded-xl shadow-sm mb-8">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-6 mb-8 pb-8 border-b border-gray-200 dark:border-gray-700">
-            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-3xl font-bold flex-shrink-0">
+            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-2xl font-bold flex-shrink-0">
               {account.name.charAt(0).toUpperCase()}
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{account.name}</h2>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">{account.name}</h2>
               <p className="text-gray-600 dark:text-gray-400">{account.email}</p>
-              <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">{t("secretary.profile.roleLabel")}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">{t("secretary.profile.roleLabel")}</p>
             </div>
           </div>
 
@@ -128,7 +128,7 @@ export default function SecretaryProfilePage() {
             <div className="space-y-6">
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("secretary.profile.fullNameLabel")}</label>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t("secretary.profile.fullNameLabel")}</label>
                   <Input
                     type="text"
                     value={profileForm.name}
@@ -137,7 +137,7 @@ export default function SecretaryProfilePage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("auth.email")}</label>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t("auth.email")}</label>
                   <Input
                     type="email"
                     value={account.email}
@@ -146,7 +146,7 @@ export default function SecretaryProfilePage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("secretary.profile.phoneLabel")}</label>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t("secretary.profile.phoneLabel")}</label>
                   <Input
                     type="tel"
                     value={profileForm.phone}
@@ -159,7 +159,7 @@ export default function SecretaryProfilePage() {
                 <Button onClick={handleSaveProfile} disabled={isSavingProfile} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold h-10 rounded-lg">
                   {isSavingProfile ? <Loader2 size={16} className="animate-spin" /> : t("secretary.profile.saveChanges")}
                 </Button>
-                {saved && <span className="flex items-center gap-1 text-emerald-600 text-sm font-medium"><CheckCircle2 size={16} />{t("secretary.profile.saved")}</span>}
+                {saved && <span className="flex items-center gap-1 text-emerald-600 text-xs font-medium"><CheckCircle2 size={16} />{t("secretary.profile.saved")}</span>}
               </div>
             </div>
           )}
@@ -167,10 +167,10 @@ export default function SecretaryProfilePage() {
           {activeTab === "security" && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t("secretary.profile.passwordResetTitle")}</h3>
+                <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">{t("secretary.profile.passwordResetTitle")}</h3>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("secretary.profile.currentPasswordLabel")}</label>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t("secretary.profile.currentPasswordLabel")}</label>
                     <div className="relative">
                       <Input
                         type={showPassword ? "text" : "password"}
@@ -185,7 +185,7 @@ export default function SecretaryProfilePage() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("secretary.profile.newPasswordLabel")}</label>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t("secretary.profile.newPasswordLabel")}</label>
                     <div className="relative">
                       <Input
                         type={showNewPassword ? "text" : "password"}
@@ -201,12 +201,12 @@ export default function SecretaryProfilePage() {
                   </div>
                 </div>
               </div>
-              {passwordError && <p className="text-sm text-red-600">{passwordError}</p>}
+              {passwordError && <p className="text-xs text-red-600">{passwordError}</p>}
               <div className="flex items-center gap-3">
                 <Button onClick={handleChangePassword} disabled={isChangingPassword || !currentPassword || !newPassword} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold h-10 rounded-lg">
                   {isChangingPassword ? <Loader2 size={16} className="animate-spin" /> : t("secretary.profile.updatePassword")}
                 </Button>
-                {saved && <span className="flex items-center gap-1 text-emerald-600 text-sm font-medium"><CheckCircle2 size={16} />{t("secretary.profile.saved")}</span>}
+                {saved && <span className="flex items-center gap-1 text-emerald-600 text-xs font-medium"><CheckCircle2 size={16} />{t("secretary.profile.saved")}</span>}
               </div>
             </div>
           )}
@@ -214,18 +214,18 @@ export default function SecretaryProfilePage() {
           {activeTab === "appearance" && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t("secretary.profile.themePreferencesTitle")}</h3>
+                <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">{t("secretary.profile.themePreferencesTitle")}</h3>
                 <div className="grid md:grid-cols-2 gap-4">
                   <button onClick={() => setTheme("light")} className={`text-left p-4 rounded-lg border-2 transition-colors ${theme === "light" ? "border-blue-500" : "border-gray-200 dark:border-gray-600 hover:border-blue-400"}`}>
                     <p className="font-medium text-gray-900 dark:text-white">{t("settings.lightMode")}</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{t("secretary.profile.lightModeDesc")}{theme === "light" ? ` ${t("secretary.profile.currentTag")}` : ""}</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">{t("secretary.profile.lightModeDesc")}{theme === "light" ? ` ${t("secretary.profile.currentTag")}` : ""}</p>
                   </button>
                   <button onClick={() => setTheme("dark")} className={`text-left p-4 rounded-lg border-2 transition-colors ${theme === "dark" ? "border-blue-500" : "border-gray-200 dark:border-gray-600 hover:border-blue-400"}`}>
                     <p className="font-medium text-gray-900 dark:text-white">{t("settings.darkMode")}</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{t("secretary.profile.darkModeDesc")}{theme === "dark" ? ` ${t("secretary.profile.currentTag")}` : ""}</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">{t("secretary.profile.darkModeDesc")}{theme === "dark" ? ` ${t("secretary.profile.currentTag")}` : ""}</p>
                   </button>
                 </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">{t("secretary.profile.appliesImmediately")}</p>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-3">{t("secretary.profile.appliesImmediately")}</p>
               </div>
             </div>
           )}
@@ -233,7 +233,7 @@ export default function SecretaryProfilePage() {
           {activeTab === "notifications" && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t("secretary.profile.platformNotificationsTitle")}</h3>
+                <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">{t("secretary.profile.platformNotificationsTitle")}</h3>
                 <div className="space-y-3">
                   {([
                     { key: "email" as const, label: t("secretary.profile.notifEmail") },
@@ -255,7 +255,7 @@ export default function SecretaryProfilePage() {
                 <Button onClick={handleSaveNotifications} disabled={isSavingNotifs} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold h-10 rounded-lg">
                   {isSavingNotifs ? <Loader2 size={16} className="animate-spin" /> : t("secretary.profile.savePreferences")}
                 </Button>
-                {saved && <span className="flex items-center gap-1 text-emerald-600 text-sm font-medium"><CheckCircle2 size={16} />{t("secretary.profile.saved")}</span>}
+                {saved && <span className="flex items-center gap-1 text-emerald-600 text-xs font-medium"><CheckCircle2 size={16} />{t("secretary.profile.saved")}</span>}
               </div>
 
               <NotificationPreferencesCard />

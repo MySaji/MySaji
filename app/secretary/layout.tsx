@@ -96,8 +96,8 @@ export default function SecretaryLayout({ children }: { children: React.ReactNod
       <aside className={`fixed top-0 left-0 h-dvh w-64 bg-gradient-to-b from-blue-600 to-blue-700 text-white transform transition-transform z-40 ${menuOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 lg:relative flex flex-col`}>
         <div className="p-5 border-b border-blue-500/40 flex items-center gap-3">
           <div className="flex-1 min-w-0">
-            <h1 className="text-lg font-bold tracking-tight">{t("secretary.layout.portalName")}</h1>
-            <p className="text-blue-200 text-xs mt-0.5 truncate">{user?.name || t("secretary.layout.fallbackName")}</p>
+            <h1 className="text-base font-bold tracking-tight">{t("secretary.layout.portalName")}</h1>
+            <p className="text-blue-200 text-[11px] mt-0.5 truncate">{user?.name || t("secretary.layout.fallbackName")}</p>
           </div>
           <button
             onClick={() => setMenuOpen(false)}
@@ -120,7 +120,7 @@ export default function SecretaryLayout({ children }: { children: React.ReactNod
                 <Link
                   href={item.href}
                   onClick={() => setMenuOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${isActive(item.href) ? "bg-white text-blue-600 font-semibold shadow-sm" : "hover:bg-blue-500/50 text-blue-50"}`}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-colors ${isActive(item.href) ? "bg-white text-blue-600 font-semibold shadow-sm" : "hover:bg-blue-500/50 text-blue-50"}`}
                 >
                   <item.icon size={18} />
                   {item.label}
@@ -130,7 +130,7 @@ export default function SecretaryLayout({ children }: { children: React.ReactNod
           })}
         </nav>
         <div className="p-3 border-t border-blue-500/40">
-          <button onClick={() => { logout(); setMenuOpen(false) }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-blue-500/50 transition-colors text-blue-100 text-sm">
+          <button onClick={() => { logout(); setMenuOpen(false) }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-blue-500/50 transition-colors text-blue-100 text-xs">
             <LogOut size={18} />
             {t("auth.logout")}
           </button>
@@ -147,7 +147,7 @@ export default function SecretaryLayout({ children }: { children: React.ReactNod
             </button>
             <div className="hidden sm:flex items-center gap-2 bg-gray-100 dark:bg-gray-700 rounded-lg px-3 py-2 w-64">
               <Search size={16} className="text-gray-400" />
-              <input type="text" placeholder={t("secretary.layout.searchPlaceholder")} className="bg-transparent text-sm outline-none flex-1 text-gray-700 dark:text-gray-200 placeholder:text-gray-400" />
+              <input type="text" placeholder={t("secretary.layout.searchPlaceholder")} className="bg-transparent text-xs outline-none flex-1 text-gray-700 dark:text-gray-200 placeholder:text-gray-400" />
             </div>
           </div>
 
@@ -161,30 +161,30 @@ export default function SecretaryLayout({ children }: { children: React.ReactNod
               {showNotifications && (
                 <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden">
                   <div className="p-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{t("settings.notifications")}</h3>
+                    <h3 className="text-xs font-semibold text-gray-900 dark:text-white">{t("settings.notifications")}</h3>
                     {unreadCount > 0 && (
-                      <button onClick={handleMarkAllRead} className="text-xs bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 px-2 py-0.5 rounded-full hover:bg-red-200 dark:hover:bg-red-900/50">
+                      <button onClick={handleMarkAllRead} className="text-[11px] bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 px-2 py-0.5 rounded-full hover:bg-red-200 dark:hover:bg-red-900/50">
                         {t("secretary.layout.markAllReadCount", { count: unreadCount })}
                       </button>
                     )}
                   </div>
                   <div className="max-h-64 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700">
                     {notifications.length === 0 ? (
-                      <div className="px-3 py-6 text-center text-xs text-gray-500 dark:text-gray-400">{t("secretary.layout.noNotifications")}</div>
+                      <div className="px-3 py-6 text-center text-[11px] text-gray-500 dark:text-gray-400">{t("secretary.layout.noNotifications")}</div>
                     ) : notifications.map(n => (
                       <button
                         key={n.id}
                         onClick={() => handleNotificationClick(n)}
                         className={`w-full text-left px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer ${!n.isRead ? "bg-blue-50/50 dark:bg-blue-900/10" : ""}`}
                       >
-                        <p className="text-sm text-gray-800 dark:text-gray-200 leading-snug">{n.title}</p>
-                        <p className="text-xs text-gray-400 mt-1">{formatRelativeTime(n.createdAt)}</p>
+                        <p className="text-xs text-gray-800 dark:text-gray-200 leading-snug">{n.title}</p>
+                        <p className="text-[11px] text-gray-400 mt-1">{formatRelativeTime(n.createdAt)}</p>
                       </button>
                     ))}
                   </div>
                   <button
                     onClick={() => { setShowNotifications(false); router.push("/secretary/notifications") }}
-                    className="block w-full px-3 py-2.5 text-center text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 border-t border-gray-100 dark:border-gray-700"
+                    className="block w-full px-3 py-2.5 text-center text-[11px] font-medium text-blue-600 dark:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 border-t border-gray-100 dark:border-gray-700"
                   >
                     {t("secretary.layout.viewAllNotifications")}
                   </button>
@@ -195,7 +195,7 @@ export default function SecretaryLayout({ children }: { children: React.ReactNod
             <div className="relative" ref={profileMenuRef}>
               <button
                 onClick={() => setShowProfileMenu(!showProfileMenu)}
-                className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold cursor-pointer hover:shadow-lg transition-shadow"
+                className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-[11px] font-bold cursor-pointer hover:shadow-lg transition-shadow"
               >
                 {(user?.name || "S")[0]}
               </button>
@@ -204,7 +204,7 @@ export default function SecretaryLayout({ children }: { children: React.ReactNod
                 <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-2 z-50">
                   <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
                     <p className="font-semibold text-gray-900 dark:text-white truncate">{user?.name ?? t("secretary.layout.portalName")}</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 truncate">{user?.email ?? ""}</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 truncate">{user?.email ?? ""}</p>
                   </div>
 
                   <Link
@@ -254,7 +254,7 @@ export default function SecretaryLayout({ children }: { children: React.ReactNod
           {showMore && (
             <div className="absolute bottom-full mb-2 right-0 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden">
               {moreItems.map((item) => (
-                <Link key={item.href} href={item.href} onClick={() => setShowMore(false)} className={`flex items-center gap-3 px-4 py-3 text-sm transition-colors ${isActive(item.href) ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium" : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"}`}>
+                <Link key={item.href} href={item.href} onClick={() => setShowMore(false)} className={`flex items-center gap-3 px-4 py-3 text-xs transition-colors ${isActive(item.href) ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium" : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"}`}>
                   <item.icon size={18} />
                   {item.label}
                 </Link>

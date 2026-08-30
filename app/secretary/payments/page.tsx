@@ -142,7 +142,7 @@ export default function SecretaryPayments() {
     <div className="space-y-8 pb-8">
       <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
         <div>
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white">{t("secretary.payments.title")}</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t("secretary.payments.title")}</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">{t("secretary.payments.subtitle")}</p>
         </div>
         <Button onClick={handleExport} variant="outline" className="bg-transparent gap-2">
@@ -154,8 +154,8 @@ export default function SecretaryPayments() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {paymentStats.map((stat, idx) => (
           <Card key={idx} className="p-6">
-            <p className="text-sm text-muted-foreground mb-2">{stat.label}</p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{stat.value}</p>
+            <p className="text-xs text-muted-foreground mb-2">{stat.label}</p>
+            <p className="text-xl font-bold text-gray-900 dark:text-white">{stat.value}</p>
           </Card>
         ))}
       </div>
@@ -175,14 +175,14 @@ export default function SecretaryPayments() {
 
       {bankTopups.length > 0 && (
         <Card className="p-6">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{t("secretary.payments.pendingBankTransfersTitle")}</h2>
-          <p className="text-sm text-muted-foreground mb-4">{t("secretary.payments.pendingBankTransfersSubtitle")}</p>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{t("secretary.payments.pendingBankTransfersTitle")}</h2>
+          <p className="text-xs text-muted-foreground mb-4">{t("secretary.payments.pendingBankTransfersSubtitle")}</p>
           <div className="space-y-2">
             {bankTopups.map((topup) => (
               <div key={topup.paymentId} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl border border-border">
                 <div>
                   <p className="font-semibold text-gray-900 dark:text-white">{topup.customerName} <span className="font-normal text-muted-foreground">({topup.customerEmail})</span></p>
-                  <p className="text-sm text-muted-foreground">{t("secretary.payments.refLabel")} {topup.reference} &middot; {new Date(topup.createdAt).toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground">{t("secretary.payments.refLabel")} {topup.reference} &middot; {new Date(topup.createdAt).toLocaleString()}</p>
                 </div>
                 <div className="flex items-center gap-3">
                   <p className="font-bold text-gray-900 dark:text-white">{formatMoney(topup.amount)}</p>
@@ -200,33 +200,33 @@ export default function SecretaryPayments() {
       )}
 
       <Card className="p-6">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">{t("secretary.payments.withdrawalRequestsTitle")}</h2>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">{t("secretary.payments.withdrawalRequestsTitle")}</h2>
         {filtered.length === 0 ? (
-          <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">{t("secretary.payments.noWithdrawalRequests")}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-8">{t("secretary.payments.noWithdrawalRequests")}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700">
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("secretary.payments.colUser")}</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("secretary.payments.colAmount")}</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("secretary.payments.colMethod")}</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("common.status")}</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("secretary.payments.colRequested")}</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("secretary.payments.colActions")}</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("secretary.payments.colUser")}</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("secretary.payments.colAmount")}</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("secretary.payments.colMethod")}</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("common.status")}</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("secretary.payments.colRequested")}</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("secretary.payments.colActions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {filtered.map(w => (
                   <tr key={w.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                    <td className="px-6 py-4 text-sm">
+                    <td className="px-6 py-4 text-xs">
                       <div className="font-medium text-gray-900 dark:text-white">{w.userName}</div>
-                      <div className="text-gray-500 dark:text-gray-400 text-xs">{w.userEmail} · {w.userRole}</div>
+                      <div className="text-gray-500 dark:text-gray-400 text-[11px]">{w.userEmail} · {w.userRole}</div>
                     </td>
-                    <td className="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white">
+                    <td className="px-6 py-4 text-xs font-semibold text-gray-900 dark:text-white">
                       {formatMoney(w.netAmount)}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
+                    <td className="px-6 py-4 text-xs text-gray-700 dark:text-gray-300">
                       <div className="flex items-center gap-1.5">
                         {w.recipientLabel}
                         {w.canAutoPay && (w.status === "PENDING" || w.status === "PROCESSING") && (
@@ -236,8 +236,8 @@ export default function SecretaryPayments() {
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    <td className="px-6 py-4 text-xs">
+                      <span className={`px-3 py-1 rounded-full text-[11px] font-medium ${
                         w.status === "COMPLETED" ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400" :
                         w.status === "PROCESSING" ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400" :
                         w.status === "REJECTED" || w.status === "FAILED" ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400" :
@@ -246,7 +246,7 @@ export default function SecretaryPayments() {
                         {withdrawalStatusLabels[w.status] ?? w.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{new Date(w.createdAt).toLocaleDateString()}</td>
+                    <td className="px-6 py-4 text-xs text-gray-700 dark:text-gray-300">{new Date(w.createdAt).toLocaleDateString()}</td>
                     <td className="px-6 py-4">
                       <div className="flex gap-2">
                         <button onClick={() => setViewing(w)} className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors">
@@ -297,12 +297,12 @@ export default function SecretaryPayments() {
           <Card className="w-full max-w-md">
             <div className="p-6 space-y-4">
               <div className="flex items-center justify-between mb-2">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t("secretary.payments.withdrawalDetailsTitle")}</h2>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t("secretary.payments.withdrawalDetailsTitle")}</h2>
                 <button onClick={() => setViewing(null)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
                   <X size={20} className="text-gray-600 dark:text-gray-400" />
                 </button>
               </div>
-              <div className="space-y-2 text-sm">
+              <div className="space-y-2 text-xs">
                 <p><span className="text-gray-500 dark:text-gray-400">{t("secretary.payments.detailUser")}</span> {viewing.userName} ({viewing.userEmail})</p>
                 <p><span className="text-gray-500 dark:text-gray-400">{t("secretary.payments.detailRole")}</span> {viewing.userRole}</p>
                 <p><span className="text-gray-500 dark:text-gray-400">{t("secretary.payments.detailAmount")}</span> {formatMoney(viewing.amount)}</p>
@@ -326,7 +326,7 @@ export default function SecretaryPayments() {
           <Card className="w-full max-w-md">
             <div className="p-6 space-y-4">
               <div className="flex items-center justify-between mb-2">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                   {completing.canAutoPay && !manualOverride ? t("secretary.payments.autoPayoutTitle") : t("secretary.payments.completeWithdrawalTitle")}
                 </h2>
                 <button onClick={() => setCompleting(null)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
@@ -338,11 +338,11 @@ export default function SecretaryPayments() {
                 <>
                   <div className="flex items-start gap-2 rounded-lg bg-green-50 dark:bg-green-900/20 p-3">
                     <Zap className="w-4 h-4 text-green-600 dark:text-green-400 mt-0.5 shrink-0" />
-                    <p className="text-sm text-green-800 dark:text-green-300">
+                    <p className="text-xs text-green-800 dark:text-green-300">
                       {t("secretary.payments.autoPayoutMessage", { amount: formatMoney(completing.netAmount), name: completing.userName })}
                     </p>
                   </div>
-                  {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+                  {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
                   <div className="flex gap-3 pt-2">
                     <Button variant="outline" className="flex-1 bg-transparent" onClick={() => setCompleting(null)}>{t("common.cancel")}</Button>
                     <Button className="flex-1 bg-green-600 hover:bg-green-700" disabled={busyId === completing.id} onClick={submitComplete}>
@@ -352,18 +352,18 @@ export default function SecretaryPayments() {
                   <button
                     type="button"
                     onClick={() => setManualOverride(true)}
-                    className="text-xs text-gray-500 dark:text-gray-400 underline hover:text-gray-700 dark:hover:text-gray-200"
+                    className="text-[11px] text-gray-500 dark:text-gray-400 underline hover:text-gray-700 dark:hover:text-gray-200"
                   >
                     {t("secretary.payments.manualOverrideLink")}
                   </button>
                 </>
               ) : (
                 <>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
                     {t("secretary.payments.confirmPaidOutMessage", { amount: formatMoney(completing.netAmount), name: completing.userName, method: completing.recipientLabel })}
                   </p>
                   <div>
-                    <label className="text-sm text-gray-600 dark:text-gray-400">{t("secretary.payments.externalReferenceLabel")}</label>
+                    <label className="text-xs text-gray-600 dark:text-gray-400">{t("secretary.payments.externalReferenceLabel")}</label>
                     <input
                       type="text"
                       value={externalRef}
@@ -372,7 +372,7 @@ export default function SecretaryPayments() {
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
-                  {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+                  {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
                   <div className="flex gap-3 pt-2">
                     <Button variant="outline" className="flex-1 bg-transparent" onClick={() => setCompleting(null)}>{t("common.cancel")}</Button>
                     <Button className="flex-1 bg-green-600 hover:bg-green-700" disabled={busyId === completing.id} onClick={submitComplete}>
@@ -391,16 +391,16 @@ export default function SecretaryPayments() {
           <Card className="w-full max-w-md">
             <div className="p-6 space-y-4">
               <div className="flex items-center justify-between mb-2">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t("secretary.payments.rejectWithdrawalTitle")}</h2>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t("secretary.payments.rejectWithdrawalTitle")}</h2>
                 <button onClick={() => setRejecting(null)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
                   <X size={20} className="text-gray-600 dark:text-gray-400" />
                 </button>
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-xs text-gray-600 dark:text-gray-400">
                 {t("secretary.payments.rejectMessage", { amount: formatMoney(rejecting.amount), name: rejecting.userName })}
               </p>
               <div>
-                <label className="text-sm text-gray-600 dark:text-gray-400">{t("secretary.payments.reasonLabel")}</label>
+                <label className="text-xs text-gray-600 dark:text-gray-400">{t("secretary.payments.reasonLabel")}</label>
                 <textarea
                   value={rejectReason}
                   onChange={(e) => setRejectReason(e.target.value)}
@@ -408,7 +408,7 @@ export default function SecretaryPayments() {
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-              {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+              {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
               <div className="flex gap-3 pt-2">
                 <Button variant="outline" className="flex-1 bg-transparent" onClick={() => setRejecting(null)}>{t("common.cancel")}</Button>
                 <Button className="flex-1 bg-red-600 hover:bg-red-700" disabled={busyId === rejecting.id} onClick={submitReject}>

@@ -75,10 +75,10 @@ export default function SecretaryAnalyticsPage() {
     <div className="space-y-6 pb-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">{t("secretary.analytics.title")}</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t("secretary.analytics.subtitle")}</p>
+          <h1 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t("secretary.analytics.title")}</h1>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t("secretary.analytics.subtitle")}</p>
         </div>
-        <Button size="sm" onClick={handleExport} className="bg-blue-600 hover:bg-blue-700 gap-1.5 text-xs">
+        <Button size="sm" onClick={handleExport} className="bg-blue-600 hover:bg-blue-700 gap-1.5 text-[11px]">
           <Download size={14} />
           {t("secretary.analytics.export")}
         </Button>
@@ -87,8 +87,8 @@ export default function SecretaryAnalyticsPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {metrics.map((m, i) => (
           <Card key={i} className="p-4">
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{m.label}</p>
-            <p className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{m.value}</p>
+            <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">{m.label}</p>
+            <p className="text-lg lg:text-xl font-bold text-gray-900 dark:text-white">{m.value}</p>
           </Card>
         ))}
       </div>
@@ -96,17 +96,17 @@ export default function SecretaryAnalyticsPage() {
       <Card className="p-4 lg:p-6">
         <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
           <div>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-1">{t("secretary.analytics.revenueTrendTitle")}</h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400">{revenueTrend?.periodLabel ?? ""}</p>
+            <h2 className="text-base font-bold text-gray-900 dark:text-white mb-1">{t("secretary.analytics.revenueTrendTitle")}</h2>
+            <p className="text-[11px] text-gray-500 dark:text-gray-400">{revenueTrend?.periodLabel ?? ""}</p>
           </div>
         </div>
         <div className="flex items-end justify-center gap-2 mb-4 flex-wrap">
           <div>
-            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t("secretary.analytics.yearLabel")}</label>
+            <label className="block text-[11px] text-gray-500 dark:text-gray-400 mb-1">{t("secretary.analytics.yearLabel")}</label>
             <select
               value={draftYear}
               onChange={(e) => setDraftYear(Number(e.target.value))}
-              className="text-sm font-medium text-gray-700 dark:text-gray-300 bg-transparent border border-gray-200 dark:border-gray-700 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="text-xs font-medium text-gray-700 dark:text-gray-300 bg-transparent border border-gray-200 dark:border-gray-700 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               {yearOptions.map((y) => (
                 <option key={y} value={y}>{y}</option>
@@ -114,11 +114,11 @@ export default function SecretaryAnalyticsPage() {
             </select>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t("secretary.analytics.monthLabel")}</label>
+            <label className="block text-[11px] text-gray-500 dark:text-gray-400 mb-1">{t("secretary.analytics.monthLabel")}</label>
             <select
               value={draftMonth}
               onChange={(e) => setDraftMonth(e.target.value === "" ? "" : Number(e.target.value))}
-              className="text-sm font-medium text-gray-700 dark:text-gray-300 bg-transparent border border-gray-200 dark:border-gray-700 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="text-xs font-medium text-gray-700 dark:text-gray-300 bg-transparent border border-gray-200 dark:border-gray-700 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">{t("secretary.analytics.wholeYear")}</option>
               {MONTH_OPTIONS.map((m) => (
@@ -157,9 +157,9 @@ export default function SecretaryAnalyticsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card className="p-4 lg:p-6">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{t("secretary.analytics.paymentChannelsTitle")}</h2>
+          <h2 className="text-base font-bold text-gray-900 dark:text-white mb-4">{t("secretary.analytics.paymentChannelsTitle")}</h2>
           {data.channelBreakdown.length === 0 ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">{t("secretary.analytics.noCompletedPayments")}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-8">{t("secretary.analytics.noCompletedPayments")}</p>
           ) : (
             <>
               <div className="h-56">
@@ -177,7 +177,7 @@ export default function SecretaryAnalyticsPage() {
               </div>
               <div className="space-y-2 mt-2">
                 {data.channelBreakdown.map((c, i) => (
-                  <div key={i} className="flex items-center justify-between text-sm">
+                  <div key={i} className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2">
                       <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
                       <span className="text-gray-700 dark:text-gray-300">{c.name}</span>
@@ -191,7 +191,7 @@ export default function SecretaryAnalyticsPage() {
         </Card>
 
         <Card className="p-4 lg:p-6">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{t("secretary.analytics.weeklyTransactionsTitle")}</h2>
+          <h2 className="text-base font-bold text-gray-900 dark:text-white mb-4">{t("secretary.analytics.weeklyTransactionsTitle")}</h2>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data.weeklyVolume}>
@@ -208,17 +208,17 @@ export default function SecretaryAnalyticsPage() {
       </div>
 
       <Card className="p-4 lg:p-6">
-        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{t("secretary.analytics.topEarningAccountsTitle")}</h2>
+        <h2 className="text-base font-bold text-gray-900 dark:text-white mb-4">{t("secretary.analytics.topEarningAccountsTitle")}</h2>
         {data.topAccounts.length === 0 ? (
-          <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">{t("secretary.analytics.noEarningsRecorded")}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-8">{t("secretary.analytics.noEarningsRecorded")}</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700">
-                  <th className="text-left py-2.5 px-3 font-semibold text-gray-600 dark:text-gray-400 text-xs">{t("secretary.analytics.colAccount")}</th>
-                  <th className="text-left py-2.5 px-3 font-semibold text-gray-600 dark:text-gray-400 text-xs">{t("secretary.analytics.colType")}</th>
-                  <th className="text-right py-2.5 px-3 font-semibold text-gray-600 dark:text-gray-400 text-xs">{t("secretary.analytics.colTotalEarned")}</th>
+                  <th className="text-left py-2.5 px-3 font-semibold text-gray-600 dark:text-gray-400 text-[11px]">{t("secretary.analytics.colAccount")}</th>
+                  <th className="text-left py-2.5 px-3 font-semibold text-gray-600 dark:text-gray-400 text-[11px]">{t("secretary.analytics.colType")}</th>
+                  <th className="text-right py-2.5 px-3 font-semibold text-gray-600 dark:text-gray-400 text-[11px]">{t("secretary.analytics.colTotalEarned")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -226,7 +226,7 @@ export default function SecretaryAnalyticsPage() {
                   <tr key={row.id} className="border-b border-gray-100 dark:border-gray-700/50">
                     <td className="py-2.5 px-3 font-medium text-gray-900 dark:text-white">{row.name}</td>
                     <td className="py-2.5 px-3">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${row.role === "SHOPKEEPER" ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400" : "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"}`}>
+                      <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${row.role === "SHOPKEEPER" ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400" : "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"}`}>
                         {row.role.charAt(0) + row.role.slice(1).toLowerCase()}
                       </span>
                     </td>
