@@ -41,20 +41,20 @@ export default function DriverProfilePage() {
   return (
     <div className="p-4 lg:p-6 max-w-md mx-auto space-y-6">
       <div>
-        <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground"><Truck className="h-6 w-6" /> Driver Profile</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Add delivery-driver details to your account.</p>
+        <h1 className="flex items-center gap-2 text-xl font-bold text-foreground"><Truck className="h-6 w-6" /> Driver Profile</h1>
+        <p className="mt-1 text-xs text-muted-foreground">Add delivery-driver details to your account.</p>
       </div>
 
       {profile ? (
         <Card className="border-0 p-5 shadow-sm space-y-3">
-          <div className="flex items-center gap-2 text-emerald-600"><CheckCircle2 className="h-4 w-4" /><p className="text-sm font-medium">Registered as a driver</p></div>
-          <div className="space-y-1 text-sm text-foreground">
+          <div className="flex items-center gap-2 text-emerald-600"><CheckCircle2 className="h-4 w-4" /><p className="text-xs font-medium">Registered as a driver</p></div>
+          <div className="space-y-1 text-xs text-foreground">
             <p>Vehicle: {profile.vehicleType}</p>
             <p>Plate: {profile.licensePlate}</p>
             <p>License #: {profile.licenseNumber}</p>
           </div>
           <div className="flex items-center justify-between rounded-xl border border-border/70 p-3">
-            <span className="text-sm text-foreground">Available for deliveries</span>
+            <span className="text-xs text-foreground">Available for deliveries</span>
             <Button size="sm" variant={profile.isAvailable ? "default" : "outline"} className={profile.isAvailable ? "" : "bg-transparent"} onClick={() => handleToggleAvailable(!profile.isAvailable)}>
               {profile.isAvailable ? "Available" : "Unavailable"}
             </Button>
@@ -65,7 +65,7 @@ export default function DriverProfilePage() {
           <Input value={form.vehicleType} onChange={(e) => setForm((p) => ({ ...p, vehicleType: e.target.value }))} placeholder="Vehicle type (e.g. Motorbike, Van)" />
           <Input value={form.licensePlate} onChange={(e) => setForm((p) => ({ ...p, licensePlate: e.target.value }))} placeholder="License plate" />
           <Input value={form.licenseNumber} onChange={(e) => setForm((p) => ({ ...p, licenseNumber: e.target.value }))} placeholder="Driving license number" />
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-xs text-red-600">{error}</p>}
           <Button className="w-full rounded-xl" onClick={handleRegister} disabled={isSaving || !form.vehicleType || !form.licensePlate || !form.licenseNumber}>
             {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Register as Driver"}
           </Button>

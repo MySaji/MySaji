@@ -31,8 +31,8 @@ export default function CompanyRevenuePage() {
             <ArrowLeft className="w-6 h-6" />
           </Link>
           <div className="min-w-0">
-            <h1 className="text-xl font-bold truncate">{t("provider.business.revenue.title")}</h1>
-            <p className="text-blue-100 text-sm truncate">{t("provider.business.revenue.subtitle")}</p>
+            <h1 className="text-lg font-bold truncate">{t("provider.business.revenue.title")}</h1>
+            <p className="text-blue-100 text-xs truncate">{t("provider.business.revenue.subtitle")}</p>
           </div>
         </div>
       </div>
@@ -46,12 +46,12 @@ export default function CompanyRevenuePage() {
           <>
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-5 border dark:border-gray-700 min-w-0">
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t("provider.business.revenue.thisMonth")}</p>
-                <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white truncate">{formatMoney(data.totalThisMonth)}</p>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">{t("provider.business.revenue.thisMonth")}</p>
+                <p className="text-base sm:text-xl font-bold text-gray-900 dark:text-white truncate">{formatMoney(data.totalThisMonth)}</p>
               </div>
               <div className="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-5 border dark:border-gray-700 min-w-0">
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t("provider.business.revenue.allTime")}</p>
-                <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white truncate">{formatMoney(data.totalAllTime)}</p>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">{t("provider.business.revenue.allTime")}</p>
+                <p className="text-base sm:text-xl font-bold text-gray-900 dark:text-white truncate">{formatMoney(data.totalAllTime)}</p>
               </div>
             </div>
 
@@ -59,17 +59,17 @@ export default function CompanyRevenuePage() {
               <h2 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
                 <TrendingUp className="w-4 h-4" /> {t("provider.business.revenue.breakdownTitle")}
               </h2>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">{t("provider.business.revenue.breakdownNote")}</p>
+              <p className="text-[11px] text-gray-400 dark:text-gray-500 mb-3">{t("provider.business.revenue.breakdownNote")}</p>
               <div className="space-y-2">
                 {data.members.map((m) => (
                   <div key={m.providerId} className="flex items-center justify-between gap-2 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="text-gray-900 dark:text-white font-medium truncate">{m.name}</span>
-                      {m.isOwner && <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">({t("provider.business.dashboard.ownerBadge")})</span>}
+                      {m.isOwner && <span className="text-[11px] text-gray-500 dark:text-gray-400 flex-shrink-0">({t("provider.business.dashboard.ownerBadge")})</span>}
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{formatMoney(m.totalEarned)}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">{formatMoney(m.earnedThisMonth)} {t("provider.business.revenue.thisMonthSuffix")}</p>
+                      <p className="text-xs font-semibold text-gray-900 dark:text-white">{formatMoney(m.totalEarned)}</p>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400 whitespace-nowrap">{formatMoney(m.earnedThisMonth)} {t("provider.business.revenue.thisMonthSuffix")}</p>
                     </div>
                   </div>
                 ))}

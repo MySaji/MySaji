@@ -323,8 +323,8 @@ export default function ProviderJobsPage() {
         <div className="max-w-4xl mx-auto">
           <div className="flex items-start justify-between gap-3 mb-2">
             <div className="min-w-0">
-              <h1 className="text-xl sm:text-2xl font-bold truncate">{t("nav.myJobs")}</h1>
-              <p className="text-blue-100 text-sm truncate">{t("provider.jobs.subtitle")}</p>
+              <h1 className="text-lg sm:text-xl font-bold truncate">{t("nav.myJobs")}</h1>
+              <p className="text-blue-100 text-xs truncate">{t("provider.jobs.subtitle")}</p>
             </div>
             <div className="flex-shrink-0">
               <ProviderOnlineToggle />
@@ -334,20 +334,20 @@ export default function ProviderJobsPage() {
           {/* Stats Row */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mt-4 sm:mt-6">
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-2.5 sm:p-3 text-center min-w-0">
-              <p className="text-lg sm:text-2xl font-bold truncate">{stats.activeCount}</p>
-              <p className="text-xs text-blue-100 truncate">{t("provider.jobs.statActive")}</p>
+              <p className="text-base sm:text-xl font-bold truncate">{stats.activeCount}</p>
+              <p className="text-[11px] text-blue-100 truncate">{t("provider.jobs.statActive")}</p>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-2.5 sm:p-3 text-center min-w-0">
-              <p className="text-lg sm:text-2xl font-bold truncate">{stats.pendingCount}</p>
-              <p className="text-xs text-blue-100 truncate">{t("provider.jobs.statPending")}</p>
+              <p className="text-base sm:text-xl font-bold truncate">{stats.pendingCount}</p>
+              <p className="text-[11px] text-blue-100 truncate">{t("provider.jobs.statPending")}</p>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-2.5 sm:p-3 text-center min-w-0">
-              <p className="text-lg sm:text-2xl font-bold truncate">{stats.completedCount}</p>
-              <p className="text-xs text-blue-100 truncate">{t("provider.jobs.statDone")}</p>
+              <p className="text-base sm:text-xl font-bold truncate">{stats.completedCount}</p>
+              <p className="text-[11px] text-blue-100 truncate">{t("provider.jobs.statDone")}</p>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-2.5 sm:p-3 text-center min-w-0">
-              <p className="text-lg sm:text-2xl font-bold truncate">{formatMoney(stats.totalEarned)}</p>
-              <p className="text-xs text-blue-100 truncate">{t("provider.jobs.statEarned")}</p>
+              <p className="text-base sm:text-xl font-bold truncate">{formatMoney(stats.totalEarned)}</p>
+              <p className="text-[11px] text-blue-100 truncate">{t("provider.jobs.statEarned")}</p>
             </div>
           </div>
         </div>
@@ -378,7 +378,7 @@ export default function ProviderJobsPage() {
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-full font-medium text-sm whitespace-nowrap transition-all ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-full font-medium text-xs whitespace-nowrap transition-all ${
                 activeTab === tab.key
                   ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30"
                   : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -386,7 +386,7 @@ export default function ProviderJobsPage() {
             >
               {tab.label}
               {tab.count != null && (
-                <span className={`text-xs px-2 py-0.5 rounded-full ${
+                <span className={`text-[11px] px-2 py-0.5 rounded-full ${
                   activeTab === tab.key ? "bg-white/20" : "bg-gray-200 dark:bg-gray-700"
                 }`}>
                   {tab.count}
@@ -405,12 +405,12 @@ export default function ProviderJobsPage() {
                   <Calendar className="w-8 h-8 text-gray-400" />
                 </div>
                 <h3 className="font-semibold text-gray-900 dark:text-white mb-2">{t("provider.jobs.noJobsFoundTitle")}</h3>
-                <p className="text-sm text-muted-foreground">{t(NO_JOBS_KEY.calendar)}</p>
+                <p className="text-xs text-muted-foreground">{t(NO_JOBS_KEY.calendar)}</p>
               </Card>
             ) : (
               calendarDays.map(({ date, dayJobs }) => (
                 <div key={localDateKey(date)}>
-                  <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2">
+                  <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">
                     {date.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}
                   </h3>
                   <div className="space-y-2">
@@ -418,12 +418,12 @@ export default function ProviderJobsPage() {
                       <Card key={job.id} className="p-3 flex items-center justify-between gap-3 border-0 shadow-sm">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
-                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_COLOR[job.status]}`}>
+                            <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${STATUS_COLOR[job.status]}`}>
                               {STATUS_LABEL_KEY[job.status] ? t(STATUS_LABEL_KEY[job.status]) : job.status}
                             </span>
                             <p className="font-medium text-gray-900 dark:text-white truncate">{job.title}</p>
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1 flex items-center gap-3">
+                          <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-3">
                             <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{new Date(job.scheduledDate).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}</span>
                             <span className="truncate">{job.clientName}</span>
                           </p>
@@ -447,7 +447,7 @@ export default function ProviderJobsPage() {
                 <Calendar className="w-8 h-8 text-gray-400" />
               </div>
               <h3 className="font-semibold text-gray-900 dark:text-white mb-2">{t("provider.jobs.noJobsFoundTitle")}</h3>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 {searchQuery ? t("provider.jobs.tryDifferentSearch") : t(NO_JOBS_KEY[activeTab])}
               </p>
             </Card>
@@ -460,7 +460,7 @@ export default function ProviderJobsPage() {
                 }`}
               >
                 {job.urgency === "URGENT" && (
-                  <div className="flex items-center gap-2 text-red-600 dark:text-red-400 text-sm font-medium mb-3">
+                  <div className="flex items-center gap-2 text-red-600 dark:text-red-400 text-xs font-medium mb-3">
                     <AlertTriangle className="w-4 h-4" />
                     {t("provider.jobs.urgentRequest")}
                   </div>
@@ -475,13 +475,13 @@ export default function ProviderJobsPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2 mb-1">
                       <h3 className="font-semibold text-gray-900 dark:text-white truncate">{job.title}</h3>
-                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full flex-shrink-0 ${STATUS_COLOR[job.status]}`}>
+                      <span className={`text-[11px] font-medium px-2.5 py-1 rounded-full flex-shrink-0 ${STATUS_COLOR[job.status]}`}>
                         {STATUS_LABEL_KEY[job.status] ? t(STATUS_LABEL_KEY[job.status]) : job.status}
                       </span>
                     </div>
-                    <p className="text-sm text-muted-foreground mb-2">{job.clientName}</p>
+                    <p className="text-xs text-muted-foreground mb-2">{job.clientName}</p>
 
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mb-3">
+                    <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground mb-3">
                       <span className="flex items-center gap-1">
                         <MapPin className="w-3.5 h-3.5" />
                         {job.location}
@@ -502,12 +502,12 @@ export default function ProviderJobsPage() {
                             />
                           ))}
                         </div>
-                        {job.reviewComment && <span className="text-xs text-muted-foreground">"{job.reviewComment}"</span>}
+                        {job.reviewComment && <span className="text-[11px] text-muted-foreground">"{job.reviewComment}"</span>}
                       </div>
                     )}
 
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <p className="text-lg font-bold text-gray-900 dark:text-white flex-shrink-0">{formatMoney(job.price)}</p>
+                      <p className="text-base font-bold text-gray-900 dark:text-white flex-shrink-0">{formatMoney(job.price)}</p>
                       <div className="flex items-center flex-wrap gap-2">
                         {activeTab === "active" && (
                           <>
@@ -588,24 +588,24 @@ export default function ProviderJobsPage() {
                   className="w-16 h-16 rounded-full object-cover"
                 />
                 <div className="flex-1">
-                  <h2 className="text-lg font-bold text-gray-900 dark:text-white">{selectedJob.title}</h2>
-                  <p className="text-sm text-muted-foreground">{selectedJob.clientName}</p>
-                  <p className="text-lg font-bold text-blue-600 dark:text-blue-400 mt-1">{formatMoney(selectedJob.price)}</p>
+                  <h2 className="text-base font-bold text-gray-900 dark:text-white">{selectedJob.title}</h2>
+                  <p className="text-xs text-muted-foreground">{selectedJob.clientName}</p>
+                  <p className="text-base font-bold text-blue-600 dark:text-blue-400 mt-1">{formatMoney(selectedJob.price)}</p>
                 </div>
               </div>
 
               {/* Job Details */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-xs text-muted-foreground">{t("provider.jobs.locationLabel")}</p>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-2 mt-1">
+                  <p className="text-[11px] text-muted-foreground">{t("provider.jobs.locationLabel")}</p>
+                  <p className="text-xs font-medium text-gray-900 dark:text-white flex items-center gap-2 mt-1">
                     <MapPin className="w-4 h-4" />
                     {selectedJob.location}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">{t("provider.jobs.dateTimeLabel")}</p>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-2 mt-1">
+                  <p className="text-[11px] text-muted-foreground">{t("provider.jobs.dateTimeLabel")}</p>
+                  <p className="text-xs font-medium text-gray-900 dark:text-white flex items-center gap-2 mt-1">
                     <Clock className="w-4 h-4" />
                     {formatDate(selectedJob.scheduledDate)}
                   </p>
@@ -613,8 +613,8 @@ export default function ProviderJobsPage() {
               </div>
 
               <div>
-                <p className="text-xs text-muted-foreground mb-1">{t("provider.jobs.descriptionLabel")}</p>
-                <p className="text-sm text-gray-700 dark:text-gray-300">{selectedJob.description}</p>
+                <p className="text-[11px] text-muted-foreground mb-1">{t("provider.jobs.descriptionLabel")}</p>
+                <p className="text-xs text-gray-700 dark:text-gray-300">{selectedJob.description}</p>
               </div>
 
               <IdentityVerificationPanel jobId={selectedJob.id} canVerify={selectedJob.status === "ACCEPTED"} />
@@ -644,7 +644,7 @@ export default function ProviderJobsPage() {
                   {t("provider.jobs.chat")}
                 </Button>
                 {selectedJob.status === "PENDING" && (
-                  <p className="w-full text-xs text-muted-foreground">Phone number and exact address unlock once you accept this job.</p>
+                  <p className="w-full text-[11px] text-muted-foreground">Phone number and exact address unlock once you accept this job.</p>
                 )}
                 <Button onClick={() => handleNavigate(selectedJob.location)} variant="outline">
                   <Navigation className="w-4 h-4 mr-2" />
@@ -656,7 +656,7 @@ export default function ProviderJobsPage() {
               {toTab(selectedJob.status) === "active" && (
                 <div className="rounded-xl border border-border p-3">
                   <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 text-sm">
+                    <div className="flex items-center gap-2 text-xs">
                       {sharingJobId === selectedJob.id ? (
                         <span className="flex items-center gap-1.5 font-medium text-blue-600 dark:text-blue-400">
                           <Radio className="w-3.5 h-3.5 animate-pulse" /> {t("provider.jobs.sharingLiveLocation")}
@@ -674,14 +674,14 @@ export default function ProviderJobsPage() {
                       {sharingJobId === selectedJob.id ? t("provider.jobs.stopSharing") : t("provider.jobs.shareMyLocation")}
                     </Button>
                   </div>
-                  {shareLocationError && <p className="text-xs text-red-600 mt-2">{shareLocationError}</p>}
+                  {shareLocationError && <p className="text-[11px] text-red-600 mt-2">{shareLocationError}</p>}
                 </div>
               )}
 
               {/* No-show reporting — Gap 6 */}
               {selectedJob.status === "ACCEPTED" && new Date(selectedJob.scheduledDate).getTime() <= Date.now() && (
                 <div className="rounded-xl border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20 p-3 flex items-center justify-between gap-3">
-                  <p className="text-sm text-amber-800 dark:text-amber-400">{t("provider.jobs.noShowPrompt")}</p>
+                  <p className="text-xs text-amber-800 dark:text-amber-400">{t("provider.jobs.noShowPrompt")}</p>
                   <Button size="sm" variant="outline" className="shrink-0 border-amber-400 text-amber-800 dark:text-amber-400 bg-transparent" onClick={() => { setNoShowError(""); setShowNoShowConfirm(true) }}>
                     {t("provider.jobs.reportNoShowButton")}
                   </Button>
@@ -692,19 +692,19 @@ export default function ProviderJobsPage() {
               {toTab(selectedJob.status) === "active" && (
                 <div className="rounded-xl border border-border p-3 space-y-3">
                   <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-medium flex items-center gap-1.5"><Receipt className="w-4 h-4" />{t("provider.jobs.expensesTitle")}</p>
+                    <p className="text-xs font-medium flex items-center gap-1.5"><Receipt className="w-4 h-4" />{t("provider.jobs.expensesTitle")}</p>
                     <Button size="sm" variant="outline" onClick={openAddExpenseDialog}>{t("provider.jobs.addExpenseButton")}</Button>
                   </div>
                   {jobExpenses.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">{t("provider.jobs.noExpensesYet")}</p>
+                    <p className="text-[11px] text-muted-foreground">{t("provider.jobs.noExpensesYet")}</p>
                   ) : (
                     <div className="space-y-2">
                       {jobExpenses.map((expense) => (
-                        <div key={expense.id} className="flex items-center justify-between text-sm bg-muted/50 rounded-lg px-3 py-2">
+                        <div key={expense.id} className="flex items-center justify-between text-xs bg-muted/50 rounded-lg px-3 py-2">
                           <span className="truncate">{expense.description}</span>
                           <span className="flex items-center gap-2 shrink-0">
                             {formatMoney(expense.amount)}
-                            <span className={`text-xs px-2 py-0.5 rounded-full ${
+                            <span className={`text-[11px] px-2 py-0.5 rounded-full ${
                               expense.status === "APPROVED" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
                               : expense.status === "REJECTED" ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
                               : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
@@ -762,7 +762,7 @@ export default function ProviderJobsPage() {
               placeholder={t("provider.jobs.reportPlaceholder")}
               className="min-h-[100px]"
             />
-            {reportError && <p className="text-sm text-red-600">{reportError}</p>}
+            {reportError && <p className="text-xs text-red-600">{reportError}</p>}
             <div className="flex gap-3">
               <Button variant="outline" className="flex-1 bg-transparent" onClick={() => setShowReportDialog(false)}>{t("common.cancel")}</Button>
               <Button className="flex-1" onClick={handleSubmitReport} disabled={!reportReason.trim() || isSubmittingReport}>
@@ -782,13 +782,13 @@ export default function ProviderJobsPage() {
           <div className="space-y-3">
             <Input placeholder={t("provider.jobs.expenseDescriptionPlaceholder")} value={expenseDescription} onChange={(e) => setExpenseDescription(e.target.value)} />
             <Input type="number" min="1" placeholder={t("provider.jobs.expenseAmountPlaceholder")} value={expenseAmount} onChange={(e) => setExpenseAmount(e.target.value)} />
-            <label className="flex items-center justify-center gap-2 border-2 border-dashed border-border rounded-lg py-6 cursor-pointer text-muted-foreground hover:border-primary text-sm">
+            <label className="flex items-center justify-center gap-2 border-2 border-dashed border-border rounded-lg py-6 cursor-pointer text-muted-foreground hover:border-primary text-xs">
               <Upload className="w-4 h-4" />
               {expensePhoto ? "✓" : t("provider.jobs.uploadReceiptLabel")}
               <input type="file" accept="image/*" className="hidden" onChange={handleExpensePhoto} />
             </label>
-            {expenseError && <p className="text-sm text-red-600">{expenseError}</p>}
-            <p className="text-xs text-muted-foreground">{t("provider.jobs.expenseApprovalNotice")}</p>
+            {expenseError && <p className="text-xs text-red-600">{expenseError}</p>}
+            <p className="text-[11px] text-muted-foreground">{t("provider.jobs.expenseApprovalNotice")}</p>
             <div className="flex gap-3">
               <Button variant="outline" className="flex-1 bg-transparent" onClick={() => setShowAddExpenseDialog(false)}>{t("common.cancel")}</Button>
               <Button className="flex-1" onClick={handleSubmitExpense} disabled={isSubmittingExpense}>
@@ -805,8 +805,8 @@ export default function ProviderJobsPage() {
           <DialogHeader>
             <DialogTitle>{t("provider.jobs.reportNoShowTitle")}</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground">{t("provider.jobs.reportNoShowConfirmBody")}</p>
-          {noShowError && <p className="text-sm text-red-600">{noShowError}</p>}
+          <p className="text-xs text-muted-foreground">{t("provider.jobs.reportNoShowConfirmBody")}</p>
+          {noShowError && <p className="text-xs text-red-600">{noShowError}</p>}
           <div className="flex gap-3 pt-2">
             <Button variant="outline" className="flex-1 bg-transparent" onClick={() => setShowNoShowConfirm(false)} disabled={isReportingNoShow}>
               {t("common.cancel")}

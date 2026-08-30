@@ -151,8 +151,8 @@ export default function AvailabilityPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">{t("provider.availability.title")}</h1>
-          <p className="text-sm text-muted-foreground mt-1">{t("provider.availability.subtitle")}</p>
+          <h1 className="text-xl font-bold text-foreground">{t("provider.availability.title")}</h1>
+          <p className="text-xs text-muted-foreground mt-1">{t("provider.availability.subtitle")}</p>
         </div>
         <Button onClick={handleSave} disabled={isSaving} className="flex items-center gap-2 rounded-xl">
           {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
@@ -168,8 +168,8 @@ export default function AvailabilityPage() {
               <Plane className={`w-4.5 h-4.5 ${isOnVacation ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`} />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-foreground">{t("provider.availability.vacationModeTitle")}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="text-xs font-semibold text-foreground">{t("provider.availability.vacationModeTitle")}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
                 {isOnVacation ? (vacationNote || t("provider.availability.vacationModeOnHint")) : t("provider.availability.vacationModeOffHint")}
               </p>
             </div>
@@ -187,12 +187,12 @@ export default function AvailabilityPage() {
 
         {showVacationNote && (
           <div className="mt-3 pt-3 border-t border-border/60 space-y-2">
-            <label className="text-xs font-medium text-muted-foreground">{t("provider.availability.vacationNoteLabel")}</label>
+            <label className="text-[11px] font-medium text-muted-foreground">{t("provider.availability.vacationNoteLabel")}</label>
             <Textarea
               value={vacationNote}
               onChange={(e) => setVacationNote(e.target.value)}
               placeholder={t("provider.availability.vacationNotePlaceholder")}
-              className="min-h-[60px] text-sm"
+              className="min-h-[60px] text-xs"
             />
             <div className="flex gap-2">
               <Button size="sm" variant="outline" className="bg-transparent" onClick={() => setShowVacationNote(false)} disabled={isSavingVacation}>
@@ -216,7 +216,7 @@ export default function AvailabilityPage() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-medium transition-all ${
               activeTab === tab.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -242,7 +242,7 @@ export default function AvailabilityPage() {
                   >
                     <span className="w-5 h-5 bg-card rounded-full mx-0.5 shadow-sm" />
                   </button>
-                  <span className={`w-24 text-sm font-medium ${weeklySchedule[day].enabled ? "text-foreground" : "text-muted-foreground line-through"}`}>
+                  <span className={`w-24 text-xs font-medium ${weeklySchedule[day].enabled ? "text-foreground" : "text-muted-foreground line-through"}`}>
                     {t(DAY_LABEL_KEYS[day])}
                   </span>
                   {weeklySchedule[day].enabled ? (
@@ -251,18 +251,18 @@ export default function AvailabilityPage() {
                         type="time"
                         value={weeklySchedule[day].start}
                         onChange={(e) => updateTime(day, "start", e.target.value)}
-                        className="w-32 h-9 rounded-lg text-sm bg-card border-border"
+                        className="w-32 h-9 rounded-lg text-xs bg-card border-border"
                       />
-                      <span className="text-muted-foreground text-sm">{t("provider.availability.toWord")}</span>
+                      <span className="text-muted-foreground text-xs">{t("provider.availability.toWord")}</span>
                       <Input
                         type="time"
                         value={weeklySchedule[day].end}
                         onChange={(e) => updateTime(day, "end", e.target.value)}
-                        className="w-32 h-9 rounded-lg text-sm bg-card border-border"
+                        className="w-32 h-9 rounded-lg text-xs bg-card border-border"
                       />
                     </div>
                   ) : (
-                    <span className="text-sm text-muted-foreground italic">{t("provider.availability.dayOff")}</span>
+                    <span className="text-xs text-muted-foreground italic">{t("provider.availability.dayOff")}</span>
                   )}
                 </div>
               ))}
@@ -274,22 +274,22 @@ export default function AvailabilityPage() {
             <h3 className="font-semibold text-foreground mb-4">{t("provider.availability.bookingPreferencesTitle")}</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-sm text-muted-foreground mb-1 block">{t("provider.availability.maxJobsPerDay")}</label>
+                <label className="text-xs text-muted-foreground mb-1 block">{t("provider.availability.maxJobsPerDay")}</label>
                 <Input type="number" value={maxJobsPerDay} onChange={(e) => setMaxJobsPerDay(Number(e.target.value))} className="rounded-lg bg-card border-border" />
               </div>
               <div>
-                <label className="text-sm text-muted-foreground mb-1 block">{t("provider.availability.breakBetweenJobs")}</label>
+                <label className="text-xs text-muted-foreground mb-1 block">{t("provider.availability.breakBetweenJobs")}</label>
                 <Input type="number" value={breakDuration} onChange={(e) => setBreakDuration(Number(e.target.value))} className="rounded-lg bg-card border-border" />
               </div>
               <div>
-                <label className="text-sm text-muted-foreground mb-1 block">{t("provider.availability.travelRadius")}</label>
+                <label className="text-xs text-muted-foreground mb-1 block">{t("provider.availability.travelRadius")}</label>
                 <div className="flex items-center gap-2">
                   <Input type="number" value={travelRadius} onChange={(e) => setTravelRadius(Number(e.target.value))} className="rounded-lg bg-card border-border" />
                   <MapPin className="w-4 h-4 text-muted-foreground" />
                 </div>
               </div>
               <div>
-                <label className="text-sm text-muted-foreground mb-1 block">{t("provider.availability.autoAcceptJobs")}</label>
+                <label className="text-xs text-muted-foreground mb-1 block">{t("provider.availability.autoAcceptJobs")}</label>
                 <button
                   onClick={() => setAutoAccept(!autoAccept)}
                   className={`w-11 h-6 rounded-full transition-colors flex items-center ${autoAccept ? "bg-primary justify-end" : "bg-muted justify-start"}`}
@@ -328,11 +328,11 @@ export default function AvailabilityPage() {
               return (
                 <div
                   key={day}
-                  className={`min-h-[72px] p-1 rounded-lg border text-xs transition-all ${
+                  className={`min-h-[72px] p-1 rounded-lg border text-[11px] transition-all ${
                     isToday ? "border-primary bg-primary/5" : hasBlocked ? "border-destructive/30 bg-destructive/5" : "border-border"
                   }`}
                 >
-                  <span className={`block text-right text-[11px] font-medium ${isToday ? "text-primary" : "text-foreground"}`}>{day}</span>
+                  <span className={`block text-right text-[10px] font-medium ${isToday ? "text-primary" : "text-foreground"}`}>{day}</span>
                   <div className="mt-0.5 space-y-0.5">
                     {events.slice(0, 2).map((ev, i) => (
                       <div key={i} className={`truncate px-1 py-0.5 rounded text-[9px] font-medium ${
@@ -348,8 +348,8 @@ export default function AvailabilityPage() {
             })}
           </div>
           <div className="flex items-center gap-4 mt-4 pt-3 border-t border-border">
-            <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-primary" /><span className="text-xs text-muted-foreground">{t("provider.availability.legendJobs")}</span></div>
-            <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-destructive" /><span className="text-xs text-muted-foreground">{t("provider.availability.legendBlocked")}</span></div>
+            <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-primary" /><span className="text-[11px] text-muted-foreground">{t("provider.availability.legendJobs")}</span></div>
+            <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-destructive" /><span className="text-[11px] text-muted-foreground">{t("provider.availability.legendBlocked")}</span></div>
           </div>
         </Card>
       )}
@@ -370,7 +370,7 @@ export default function AvailabilityPage() {
             {blockedDates.length === 0 ? (
               <div className="text-center py-8">
                 <AlertCircle className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">{t("provider.availability.noBlockedDates")}</p>
+                <p className="text-xs text-muted-foreground">{t("provider.availability.noBlockedDates")}</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -379,8 +379,8 @@ export default function AvailabilityPage() {
                     <div className="flex items-center gap-3">
                       <Plane className="w-4 h-4 text-primary" />
                       <div>
-                        <p className="text-sm font-medium text-foreground">{bd.date}</p>
-                        <p className="text-xs text-muted-foreground">{bd.reason}</p>
+                        <p className="text-xs font-medium text-foreground">{bd.date}</p>
+                        <p className="text-[11px] text-muted-foreground">{bd.reason}</p>
                       </div>
                     </div>
                     <button onClick={() => removeBlockedDate(bd.id)} aria-label={t("common.delete")} className="p-1 hover:bg-destructive/10 rounded-lg transition-colors">

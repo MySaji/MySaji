@@ -53,8 +53,8 @@ export default function TeamEntryPage() {
   if (info?.parentBusinessId) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-3 px-4 text-center">
-        <p className="text-lg font-semibold text-foreground">You're already part of a team</p>
-        <p className="text-sm text-muted-foreground">You're staff on another business account, so this account can't also build its own team.</p>
+        <p className="text-base font-semibold text-foreground">You're already part of a team</p>
+        <p className="text-xs text-muted-foreground">You're staff on another business account, so this account can't also build its own team.</p>
         <Button onClick={() => router.push("/provider")}>Back to Home</Button>
       </div>
     )
@@ -64,8 +64,8 @@ export default function TeamEntryPage() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-3 px-4 text-center">
         <CheckCircle2 className="h-10 w-10 text-emerald-600" />
-        <p className="text-lg font-semibold text-foreground">You're now a Business account</p>
-        <p className="text-sm text-muted-foreground">Taking you to your Team Directory…</p>
+        <p className="text-base font-semibold text-foreground">You're now a Business account</p>
+        <p className="text-xs text-muted-foreground">Taking you to your Team Directory…</p>
       </div>
     )
   }
@@ -73,23 +73,23 @@ export default function TeamEntryPage() {
   return (
     <div className="p-4 lg:p-6 max-w-lg mx-auto space-y-6">
       <div>
-        <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground"><Users className="h-6 w-6 text-primary" /> Build Your Team</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <h1 className="flex items-center gap-2 text-xl font-bold text-foreground"><Users className="h-6 w-6 text-primary" /> Build Your Team</h1>
+        <p className="mt-1 text-xs text-muted-foreground">
           As a Saji Pro subscriber, you can convert to a Business account to invite staff, dispatch jobs across your team, and track company-wide revenue. Your existing services, jobs, and reviews carry over unchanged.
         </p>
       </div>
 
       <Card className="border-0 p-5 shadow-sm space-y-4">
-        <div className="flex items-center gap-2 text-sm font-semibold text-foreground"><Building2 className="h-4 w-4" /> Convert to a Business Account</div>
+        <div className="flex items-center gap-2 text-xs font-semibold text-foreground"><Building2 className="h-4 w-4" /> Convert to a Business Account</div>
         <div>
-          <label className="mb-1 block text-sm text-muted-foreground">Business registration number</label>
+          <label className="mb-1 block text-xs text-muted-foreground">Business registration number</label>
           <Input value={registrationNumber} onChange={(e) => setRegistrationNumber(e.target.value)} placeholder="e.g. BN-2024-XXXXXX" />
         </div>
         <div>
-          <label className="mb-1 block text-sm text-muted-foreground">Company HQ address</label>
+          <label className="mb-1 block text-xs text-muted-foreground">Company HQ address</label>
           <Input value={hqAddress} onChange={(e) => setHqAddress(e.target.value)} placeholder="Where is your business based?" />
         </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-xs text-red-600">{error}</p>}
         <Button className="h-11 w-full rounded-xl" disabled={isUpgrading || !registrationNumber.trim() || !hqAddress.trim()} onClick={handleUpgrade}>
           {isUpgrading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Convert & Start Building Your Team"}
         </Button>

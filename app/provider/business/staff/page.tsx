@@ -80,8 +80,8 @@ export default function ManageStaffPage() {
             <ArrowLeft className="w-6 h-6" />
           </Link>
           <div>
-            <h1 className="text-xl font-bold">{t("provider.business.staff.title")}</h1>
-            <p className="text-blue-100 text-sm">{t("provider.business.staff.subtitle")}</p>
+            <h1 className="text-lg font-bold">{t("provider.business.staff.title")}</h1>
+            <p className="text-blue-100 text-xs">{t("provider.business.staff.subtitle")}</p>
           </div>
         </div>
       </div>
@@ -94,9 +94,9 @@ export default function ManageStaffPage() {
         ) : (
           <>
             <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border dark:border-gray-700">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{t("provider.business.staff.inviteFormTitle")}</h2>
-              {error && <p className="text-sm text-red-600 dark:text-red-400 mb-3">{error}</p>}
-              {inviteResultMessage && <p className="text-sm text-emerald-600 dark:text-emerald-400 mb-3 break-all">{inviteResultMessage}</p>}
+              <h2 className="text-base font-bold text-gray-900 dark:text-white mb-4">{t("provider.business.staff.inviteFormTitle")}</h2>
+              {error && <p className="text-xs text-red-600 dark:text-red-400 mb-3">{error}</p>}
+              {inviteResultMessage && <p className="text-xs text-emerald-600 dark:text-emerald-400 mb-3 break-all">{inviteResultMessage}</p>}
               <div className="grid sm:grid-cols-2 gap-3 mb-4">
                 <input
                   value={email}
@@ -122,14 +122,14 @@ export default function ManageStaffPage() {
             </div>
 
             <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border dark:border-gray-700">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{t("provider.business.staff.pendingInvitesTitle")}</h2>
-              {data.invites.length === 0 && <p className="text-sm text-gray-500 dark:text-gray-400">{t("provider.business.staff.noPendingInvites")}</p>}
+              <h2 className="text-base font-bold text-gray-900 dark:text-white mb-4">{t("provider.business.staff.pendingInvitesTitle")}</h2>
+              {data.invites.length === 0 && <p className="text-xs text-gray-500 dark:text-gray-400">{t("provider.business.staff.noPendingInvites")}</p>}
               <div className="space-y-2">
                 {data.invites.map((invite) => (
                   <div key={invite.id} className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
                     <div className="min-w-0">
                       <p className="text-gray-900 dark:text-white font-medium truncate">{invite.email || invite.phone}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{t(INVITE_STATUS_KEY[invite.status])}</p>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400">{t(INVITE_STATUS_KEY[invite.status])}</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       {invite.status === "PENDING" && (
@@ -149,17 +149,17 @@ export default function ManageStaffPage() {
             </div>
 
             <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border dark:border-gray-700">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{t("provider.business.staff.teamTitle")}</h2>
-              {data.staff.length === 0 && <p className="text-sm text-gray-500 dark:text-gray-400">{t("provider.business.staff.noStaffYet")}</p>}
+              <h2 className="text-base font-bold text-gray-900 dark:text-white mb-4">{t("provider.business.staff.teamTitle")}</h2>
+              {data.staff.length === 0 && <p className="text-xs text-gray-500 dark:text-gray-400">{t("provider.business.staff.noStaffYet")}</p>}
               <div className="space-y-2">
                 {data.staff.map((member) => (
                   <div key={member.id} className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
                     <div>
                       <p className="text-gray-900 dark:text-white font-medium">{member.name}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{member.email}{member.phone ? ` · ${member.phone}` : ""}</p>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400">{member.email}{member.phone ? ` · ${member.phone}` : ""}</p>
                     </div>
                     {member.skills.length > 0 && (
-                      <span className="text-xs text-gray-500 dark:text-gray-400">{member.skills.slice(0, 2).join(", ")}</span>
+                      <span className="text-[11px] text-gray-500 dark:text-gray-400">{member.skills.slice(0, 2).join(", ")}</span>
                     )}
                   </div>
                 ))}

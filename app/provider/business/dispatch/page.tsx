@@ -72,15 +72,15 @@ export default function BusinessDispatchPage() {
               <ArrowLeft className="w-6 h-6" />
             </Link>
             <div className="min-w-0">
-              <h1 className="text-xl font-bold truncate">{t("provider.business.dispatch.title")}</h1>
-              <p className="text-blue-100 text-sm truncate">{t("provider.business.dispatch.subtitle")}</p>
+              <h1 className="text-lg font-bold truncate">{t("provider.business.dispatch.title")}</h1>
+              <p className="text-blue-100 text-xs truncate">{t("provider.business.dispatch.subtitle")}</p>
             </div>
           </div>
           {/* These three are shortcuts to nav items already reachable from
               the sidebar/bottom-nav on mobile — kept here only where there's
               room for them, rather than squeezing three underlined links
               next to the title on a narrow screen. */}
-          <div className="hidden sm:flex items-center gap-3 text-sm flex-shrink-0">
+          <div className="hidden sm:flex items-center gap-3 text-xs flex-shrink-0">
             <Link href="/provider/business/staff" className="underline text-blue-100 hover:text-white whitespace-nowrap">
               {t("provider.business.staff.title")}
             </Link>
@@ -103,13 +103,13 @@ export default function BusinessDispatchPage() {
           <>
             <div className="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4 border dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="min-w-0">
-                <h2 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">{t("provider.business.dashboard.autoAssignTitle")}</h2>
-                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{t("provider.business.dashboard.autoAssignDesc")}</p>
+                <h2 className="font-semibold text-gray-900 dark:text-white text-xs sm:text-sm">{t("provider.business.dashboard.autoAssignTitle")}</h2>
+                <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400">{t("provider.business.dashboard.autoAssignDesc")}</p>
               </div>
               <button
                 onClick={handleToggleAutoAssign}
                 disabled={isTogglingAutoAssign}
-                className={`self-start sm:self-auto shrink-0 flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                className={`self-start sm:self-auto shrink-0 flex items-center gap-2 rounded-full px-4 py-2 text-xs font-medium transition-colors ${
                   data.autoAssignEnabled ? "bg-emerald-500 text-white" : "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
                 }`}
               >
@@ -120,13 +120,13 @@ export default function BusinessDispatchPage() {
 
             <div className="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4 border dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="min-w-0">
-                <h2 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">{t("provider.business.dashboard.allowStaffRequestsTitle")}</h2>
-                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{t("provider.business.dashboard.allowStaffRequestsDesc")}</p>
+                <h2 className="font-semibold text-gray-900 dark:text-white text-xs sm:text-sm">{t("provider.business.dashboard.allowStaffRequestsTitle")}</h2>
+                <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400">{t("provider.business.dashboard.allowStaffRequestsDesc")}</p>
               </div>
               <button
                 onClick={handleToggleAllowStaffRequests}
                 disabled={isTogglingAllowStaffRequests}
-                className={`self-start sm:self-auto shrink-0 flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                className={`self-start sm:self-auto shrink-0 flex items-center gap-2 rounded-full px-4 py-2 text-xs font-medium transition-colors ${
                   data.allowStaffRequestResponses ? "bg-emerald-500 text-white" : "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
                 }`}
               >
@@ -136,7 +136,7 @@ export default function BusinessDispatchPage() {
             </div>
 
             <div className="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4 border dark:border-gray-700 overflow-hidden">
-              <h2 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2 text-sm sm:text-base">
+              <h2 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2 text-xs sm:text-sm">
                 <MapPinned className="w-4 h-4 flex-shrink-0" /> <span className="truncate">{t("provider.business.dashboard.technicianMapTitle")}</span>
               </h2>
               <TechnicianRosterMap
@@ -153,10 +153,10 @@ export default function BusinessDispatchPage() {
             </div>
 
             <div className="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4 border dark:border-gray-700 overflow-hidden">
-              <h2 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2 text-sm sm:text-base">
+              <h2 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2 text-xs sm:text-sm">
                 <Users className="w-4 h-4 flex-shrink-0" /> <span className="truncate">{t("provider.business.dashboard.requestsTitle")}</span>
               </h2>
-              {data.requests.length === 0 && <p className="text-sm text-gray-500 dark:text-gray-400">{t("provider.business.dashboard.noRequests")}</p>}
+              {data.requests.length === 0 && <p className="text-xs text-gray-500 dark:text-gray-400">{t("provider.business.dashboard.noRequests")}</p>}
               <div className="space-y-2">
                 {data.requests.map((req) => (
                   <RequestRow
@@ -173,22 +173,22 @@ export default function BusinessDispatchPage() {
             </div>
 
             <div className="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4 border dark:border-gray-700 overflow-hidden">
-              <h2 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2 text-sm sm:text-base">
+              <h2 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2 text-xs sm:text-sm">
                 <History className="w-4 h-4 flex-shrink-0" /> <span className="truncate">{t("provider.business.dashboard.completedJobsTitle")}</span>
               </h2>
               {completedJobs.length === 0 ? (
-                <p className="text-sm text-gray-500 dark:text-gray-400">{t("provider.business.dashboard.noCompletedJobs")}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{t("provider.business.dashboard.noCompletedJobs")}</p>
               ) : (
                 <div className="space-y-2">
                   {completedJobs.map((job) => (
                     <div key={job.id} className="flex items-center justify-between gap-3 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
                       <div className="min-w-0 flex-1">
                         <p className="font-medium text-gray-900 dark:text-white truncate">{job.title}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                        <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
                           {job.customerName} · {t("provider.business.dashboard.assignedTo", { name: job.assignedName })} · {new Date(job.completedAt).toLocaleDateString()}
                         </p>
                       </div>
-                      <span className="text-sm font-semibold text-gray-900 dark:text-white shrink-0">{formatMoney(job.price)}</span>
+                      <span className="text-xs font-semibold text-gray-900 dark:text-white shrink-0">{formatMoney(job.price)}</span>
                     </div>
                   ))}
                 </div>
@@ -207,9 +207,9 @@ function TechnicianRow({ tech, t }: { tech: BusinessTechnician; t: TFunc }) {
       <div className="flex items-center gap-2 min-w-0">
         <span className={`h-2 w-2 rounded-full flex-shrink-0 ${tech.isOnline ? "bg-emerald-500" : "bg-gray-400"}`} />
         <span className="text-gray-900 dark:text-white font-medium truncate">{tech.name}</span>
-        {tech.isOwner && <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">({t("provider.business.dashboard.ownerBadge")})</span>}
+        {tech.isOwner && <span className="text-[11px] text-gray-500 dark:text-gray-400 flex-shrink-0">({t("provider.business.dashboard.ownerBadge")})</span>}
       </div>
-      <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0 text-right">
+      <span className="text-[11px] text-gray-500 dark:text-gray-400 flex-shrink-0 text-right">
         {tech.isOnline ? t("provider.business.dashboard.activeJobCount", { count: tech.activeJobCount }) : t("provider.business.dashboard.offlineBadge")}
         {tech.atCapacity && ` · ${t("provider.business.dashboard.atCapacityBadge")}`}
       </span>
@@ -231,12 +231,12 @@ function RequestRow({
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
       <div className="min-w-0 flex-1">
         <p className="font-medium text-gray-900 dark:text-white truncate">{request.title}</p>
-        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+        <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
           {request.customerName} · {t("provider.business.dashboard.assignedTo", { name: request.assignedName })} · {formatMoney(request.price)}
         </p>
       </div>
       <select
-        className="w-full sm:w-auto shrink-0 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-2 py-1.5"
+        className="w-full sm:w-auto shrink-0 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-2 py-1.5"
         value={request.assignedProviderId}
         disabled={isReassigning}
         onChange={(e) => onReassign(e.target.value)}

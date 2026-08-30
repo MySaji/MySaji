@@ -57,14 +57,14 @@ export default function ProviderRequestsPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 lg:p-8">
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">
-          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">{t("provider.requests.title")}</h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{t("provider.requests.subtitle")}</p>
+          <h1 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t("provider.requests.title")}</h1>
+          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{t("provider.requests.subtitle")}</p>
         </div>
 
         {requests.length === 0 ? (
           <Card className="p-10 text-center border-0 shadow-sm">
             <ClipboardList className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">{t("provider.requests.noOpenRequests")}</p>
+            <p className="text-xs text-muted-foreground">{t("provider.requests.noOpenRequests")}</p>
           </Card>
         ) : (
           <div className="space-y-3">
@@ -72,10 +72,10 @@ export default function ProviderRequestsPage() {
               <Card key={req.id} className="p-4 border-0 shadow-sm">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-sm text-gray-900 dark:text-white">{req.title}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{req.categoryName}</p>
-                    <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{req.description}</p>
-                    <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
+                    <p className="font-semibold text-xs text-gray-900 dark:text-white">{req.title}</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">{req.categoryName}</p>
+                    <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{req.description}</p>
+                    <div className="flex items-center gap-4 mt-3 text-[11px] text-muted-foreground">
                       <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{req.location}</span>
                       <span className="flex items-center gap-1"><MessageSquare className="w-3 h-3" />{t("provider.requests.responseCount", { count: req.responseCount })}</span>
                       {(req.budgetMin != null || req.budgetMax != null) && (
@@ -85,8 +85,8 @@ export default function ProviderRequestsPage() {
                   </div>
                   {req.myResponse ? (
                     <div className="text-right flex-shrink-0">
-                      <p className="text-sm font-bold text-primary">{formatMoney(req.myResponse.price)}</p>
-                      <span className="inline-flex items-center gap-1 text-xs text-emerald-600 mt-1"><CheckCircle2 className="w-3 h-3" />{t("provider.requests.responded")}</span>
+                      <p className="text-xs font-bold text-primary">{formatMoney(req.myResponse.price)}</p>
+                      <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 mt-1"><CheckCircle2 className="w-3 h-3" />{t("provider.requests.responded")}</span>
                     </div>
                   ) : (
                     <Button size="sm" className="rounded-lg flex-shrink-0" onClick={() => openRespond(req)}>
@@ -105,14 +105,14 @@ export default function ProviderRequestsPage() {
           <DialogHeader><DialogTitle>{t("provider.requests.respondModalTitle")}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <div>
-              <label className="text-sm font-medium mb-1.5 block">{t("provider.requests.messageLabel")}</label>
+              <label className="text-xs font-medium mb-1.5 block">{t("provider.requests.messageLabel")}</label>
               <Textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder={t("provider.requests.messagePlaceholder")} className="min-h-[80px]" />
             </div>
             <div>
-              <label className="text-sm font-medium mb-1.5 block">{t("provider.requests.priceLabel")}</label>
+              <label className="text-xs font-medium mb-1.5 block">{t("provider.requests.priceLabel")}</label>
               <Input type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0" />
             </div>
-            {formError && <p className="text-xs text-red-600">{formError}</p>}
+            {formError && <p className="text-[11px] text-red-600">{formError}</p>}
             <Button className="w-full rounded-xl" onClick={handleSubmit} disabled={isSubmitting || message.trim().length < 5 || !(Number(price) > 0)}>
               {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : t("provider.requests.submitResponse")}
             </Button>

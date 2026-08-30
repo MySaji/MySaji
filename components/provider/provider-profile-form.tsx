@@ -60,7 +60,7 @@ export function ProviderProfileForm({ provider }: ProviderProfileFormProps) {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-4xl font-bold text-foreground mb-2">Your Profile</h1>
+        <h1 className="text-3xl font-bold text-foreground mb-2">Your Profile</h1>
         <p className="text-muted-foreground">Complete your profile to get more job offers and build trust</p>
       </div>
 
@@ -75,7 +75,7 @@ export function ProviderProfileForm({ provider }: ProviderProfileFormProps) {
         {/* Basic Information Tab */}
         <TabsContent value="basic" className="space-y-6">
           <Card className="p-6 space-y-6">
-            <h3 className="font-semibold text-foreground text-lg">Personal Information</h3>
+            <h3 className="font-semibold text-foreground text-base">Personal Information</h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
@@ -141,7 +141,7 @@ export function ProviderProfileForm({ provider }: ProviderProfileFormProps) {
         {/* Verification Tab */}
         <TabsContent value="verification" className="space-y-6">
           <Card className="p-6 space-y-6">
-            <h3 className="font-semibold text-foreground text-lg">Verification Status</h3>
+            <h3 className="font-semibold text-foreground text-base">Verification Status</h3>
 
             <div className="space-y-4">
               {[
@@ -152,7 +152,7 @@ export function ProviderProfileForm({ provider }: ProviderProfileFormProps) {
                 <Card key={idx} className="p-4 border-2 border-border">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                      <span className="text-2xl">{item.icon}</span>
+                      <span className="text-xl">{item.icon}</span>
                       <div>
                         <p className="font-semibold text-foreground">{item.label}</p>
                         <Badge className={getVerificationColor(item.status)}>
@@ -177,7 +177,7 @@ export function ProviderProfileForm({ provider }: ProviderProfileFormProps) {
         {/* Payments Tab */}
         <TabsContent value="payments" className="space-y-6">
           <Card className="p-6 space-y-6">
-            <h3 className="font-semibold text-foreground text-lg">Payment Methods</h3>
+            <h3 className="font-semibold text-foreground text-base">Payment Methods</h3>
 
             <div className="space-y-6">
               <div className="space-y-2">
@@ -188,7 +188,7 @@ export function ProviderProfileForm({ provider }: ProviderProfileFormProps) {
                   onChange={(e) => handleChange("mpesaNumber", e.target.value)}
                   className="rounded-lg border-2 border-border focus-visible:border-primary h-11"
                 />
-                <p className="text-xs text-muted-foreground">Payments will be sent to this M-Pesa account</p>
+                <p className="text-[11px] text-muted-foreground">Payments will be sent to this M-Pesa account</p>
               </div>
 
               <div className="space-y-2">
@@ -199,7 +199,7 @@ export function ProviderProfileForm({ provider }: ProviderProfileFormProps) {
                   onChange={(e) => handleChange("bankAccount", e.target.value)}
                   className="rounded-lg border-2 border-border focus-visible:border-primary h-11"
                 />
-                <p className="text-xs text-muted-foreground">Optional: Add bank details for larger transactions</p>
+                <p className="text-[11px] text-muted-foreground">Optional: Add bank details for larger transactions</p>
               </div>
 
               <Button className="rounded-lg bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-semibold">
@@ -212,13 +212,13 @@ export function ProviderProfileForm({ provider }: ProviderProfileFormProps) {
         {/* Portfolio Tab */}
         <TabsContent value="portfolio" className="space-y-6">
           <Card className="p-6 space-y-6">
-            <h3 className="font-semibold text-foreground text-lg">Portfolio & Certifications</h3>
+            <h3 className="font-semibold text-foreground text-base">Portfolio & Certifications</h3>
 
             <div className="space-y-6">
               {/* Certifications */}
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <Label className="text-base">Certifications</Label>
+                  <Label className="text-sm">Certifications</Label>
                   <Button size="sm" variant="outline" className="gap-2 border-2 bg-transparent rounded-lg">
                     <Plus className="w-4 h-4" />
                     Add Certification
@@ -227,7 +227,7 @@ export function ProviderProfileForm({ provider }: ProviderProfileFormProps) {
 
                 <div className="space-y-2">
                   {formData.certifications.length === 0 ? (
-                    <p className="text-sm text-muted-foreground p-4 text-center border-2 border-dashed border-border rounded-lg">
+                    <p className="text-xs text-muted-foreground p-4 text-center border-2 border-dashed border-border rounded-lg">
                       No certifications added yet
                     </p>
                   ) : (
@@ -249,13 +249,13 @@ export function ProviderProfileForm({ provider }: ProviderProfileFormProps) {
               {/* Portfolio Photos */}
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <Label className="text-base">Portfolio Photos</Label>
+                  <Label className="text-sm">Portfolio Photos</Label>
                 </div>
 
                 <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors cursor-pointer">
                   <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-sm font-semibold text-foreground mb-1">Upload Portfolio Photos</p>
-                  <p className="text-xs text-muted-foreground">Show examples of your best work</p>
+                  <p className="text-xs font-semibold text-foreground mb-1">Upload Portfolio Photos</p>
+                  <p className="text-[11px] text-muted-foreground">Show examples of your best work</p>
                 </div>
               </div>
 

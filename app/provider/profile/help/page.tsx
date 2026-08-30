@@ -61,7 +61,7 @@ export default function HelpSupportPage() {
           <Link href="/provider/profile" className="lg:hidden">
             <ArrowLeft className="w-6 h-6" />
           </Link>
-          <h1 className="text-xl font-bold">{t("provider.help.title")}</h1>
+          <h1 className="text-lg font-bold">{t("provider.help.title")}</h1>
         </div>
       </div>
 
@@ -72,24 +72,24 @@ export default function HelpSupportPage() {
           <button onClick={() => setShowNewTicket(true)} className="bg-white dark:bg-gray-800 rounded-lg p-6 border dark:border-gray-700 text-center hover:border-blue-400 transition">
             <MessageCircle className="w-8 h-8 text-blue-600 dark:text-blue-400 mx-auto mb-2" />
             <p className="font-medium text-gray-900 dark:text-white">{t("provider.help.fileTicketTitle")}</p>
-            <p className="text-xs text-gray-600 dark:text-gray-400">{t("provider.help.fileTicketDesc")}</p>
+            <p className="text-[11px] text-gray-600 dark:text-gray-400">{t("provider.help.fileTicketDesc")}</p>
           </button>
           <a href="tel:+254700072547" className="bg-white dark:bg-gray-800 rounded-lg p-6 border dark:border-gray-700 text-center hover:border-blue-400 transition block">
             <Phone className="w-8 h-8 text-blue-600 dark:text-blue-400 mx-auto mb-2" />
             <p className="font-medium text-gray-900 dark:text-white">{t("provider.help.callUsTitle")}</p>
-            <p className="text-xs text-gray-600 dark:text-gray-400">+254 700 072 547</p>
+            <p className="text-[11px] text-gray-600 dark:text-gray-400">+254 700 072 547</p>
           </a>
           <a href="mailto:support@saji.co.ke" className="bg-white dark:bg-gray-800 rounded-lg p-6 border dark:border-gray-700 text-center hover:border-blue-400 transition block">
             <Mail className="w-8 h-8 text-blue-600 dark:text-blue-400 mx-auto mb-2" />
             <p className="font-medium text-gray-900 dark:text-white">{t("auth.email")}</p>
-            <p className="text-xs text-gray-600 dark:text-gray-400">support@saji.co.ke</p>
+            <p className="text-[11px] text-gray-600 dark:text-gray-400">support@saji.co.ke</p>
           </a>
         </div>
 
         {/* My Tickets */}
         <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border dark:border-gray-700">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <h2 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
               <MessageCircle className="w-5 h-5" />{t("provider.help.myTicketsTitle")}
             </h2>
             <Button size="sm" onClick={() => setShowNewTicket(true)} className="gap-1.5"><Plus className="w-3.5 h-3.5" />{t("provider.help.newTicketButton")}</Button>
@@ -97,7 +97,7 @@ export default function HelpSupportPage() {
           {isLoading ? (
             <div className="flex justify-center py-6"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
           ) : tickets.length === 0 ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400">{t("provider.help.noTicketsYet")}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{t("provider.help.noTicketsYet")}</p>
           ) : (
             <div className="space-y-2">
               {tickets.map((ticket) => {
@@ -105,10 +105,10 @@ export default function HelpSupportPage() {
                 return (
                   <div key={ticket.id} className="p-3 bg-gray-50 dark:bg-gray-700/30 rounded-lg">
                     <div className="flex items-start justify-between gap-2 mb-1">
-                      <p className="font-medium text-sm text-gray-900 dark:text-white">{ticket.subject}</p>
-                      <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold capitalize ${statusColors[uiStatus] ?? statusColors.open}`}>{uiStatus.replace("-", " ")}</span>
+                      <p className="font-medium text-xs text-gray-900 dark:text-white">{ticket.subject}</p>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold capitalize ${statusColors[uiStatus] ?? statusColors.open}`}>{uiStatus.replace("-", " ")}</span>
                     </div>
-                    <p className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400"><Clock className="w-3 h-3" />{t("provider.help.filedLabel", { time: formatRelativeTime(ticket.createdAt) })}</p>
+                    <p className="flex items-center gap-1 text-[11px] text-gray-500 dark:text-gray-400"><Clock className="w-3 h-3" />{t("provider.help.filedLabel", { time: formatRelativeTime(ticket.createdAt) })}</p>
                   </div>
                 )
               })}
@@ -118,7 +118,7 @@ export default function HelpSupportPage() {
 
         {/* FAQs */}
         <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border dark:border-gray-700">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+          <h2 className="text-base font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
             <HelpCircle className="w-5 h-5" />
             {t("provider.help.faqTitle")}
           </h2>
@@ -126,7 +126,7 @@ export default function HelpSupportPage() {
             {faqs.map((faq, idx) => (
               <div key={idx} className="border-l-4 border-blue-600 pl-4">
                 <p className="font-medium text-gray-900 dark:text-white mb-1">{t(faq.qKey)}</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">{t(faq.aKey)}</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">{t(faq.aKey)}</p>
               </div>
             ))}
           </div>
@@ -139,7 +139,7 @@ export default function HelpSupportPage() {
           <DialogHeader><DialogTitle>{t("provider.help.fileTicketModalTitle")}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <div>
-              <label className="text-sm font-medium mb-2 block">{t("provider.help.categoryLabel")}</label>
+              <label className="text-xs font-medium mb-2 block">{t("provider.help.categoryLabel")}</label>
               <Select value={ticketCategory} onValueChange={setTicketCategory}>
                 <SelectTrigger className="rounded-xl"><SelectValue placeholder={t("provider.help.selectCategoryPlaceholder")} /></SelectTrigger>
                 <SelectContent>
@@ -151,8 +151,8 @@ export default function HelpSupportPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div><label className="text-sm font-medium mb-2 block">{t("provider.help.subjectLabel")}</label><Input value={ticketSubject} onChange={(e) => setTicketSubject(e.target.value)} placeholder={t("provider.help.subjectPlaceholder")} className="rounded-xl" /></div>
-            <div><label className="text-sm font-medium mb-2 block">{t("provider.help.detailsLabel")}</label><Textarea value={ticketDetails} onChange={(e) => setTicketDetails(e.target.value)} placeholder={t("provider.help.detailsPlaceholder")} className="min-h-[120px] rounded-xl" /></div>
+            <div><label className="text-xs font-medium mb-2 block">{t("provider.help.subjectLabel")}</label><Input value={ticketSubject} onChange={(e) => setTicketSubject(e.target.value)} placeholder={t("provider.help.subjectPlaceholder")} className="rounded-xl" /></div>
+            <div><label className="text-xs font-medium mb-2 block">{t("provider.help.detailsLabel")}</label><Textarea value={ticketDetails} onChange={(e) => setTicketDetails(e.target.value)} placeholder={t("provider.help.detailsPlaceholder")} className="min-h-[120px] rounded-xl" /></div>
           </div>
           <div className="flex gap-3">
             <Button variant="outline" onClick={() => setShowNewTicket(false)} className="flex-1 rounded-xl bg-transparent" disabled={isSubmitting}>{t("common.cancel")}</Button>

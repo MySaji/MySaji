@@ -81,8 +81,8 @@ export default function RentalsPage() {
     <div className="p-4 lg:p-6 max-w-5xl mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground"><Package className="h-6 w-6 text-amber-500" /> Rental Bookings</h1>
-          <p className="text-sm text-muted-foreground mt-1">Run the pickup and return side of your rental business.</p>
+          <h1 className="flex items-center gap-2 text-xl font-bold text-foreground"><Package className="h-6 w-6 text-amber-500" /> Rental Bookings</h1>
+          <p className="text-xs text-muted-foreground mt-1">Run the pickup and return side of your rental business.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" asChild className="rounded-xl gap-2"><Link href="/provider/pro"><Crown className="w-4 h-4" />Saji Pro</Link></Button>
@@ -93,19 +93,19 @@ export default function RentalsPage() {
 
       <div className="grid grid-cols-2 gap-3">
         <Card className="p-3 border border-border rounded-xl text-center">
-          <p className="text-2xl font-bold text-foreground">{activeBookingCount}</p>
-          <p className="text-[11px] text-muted-foreground">Active Bookings</p>
+          <p className="text-xl font-bold text-foreground">{activeBookingCount}</p>
+          <p className="text-[10px] text-muted-foreground">Active Bookings</p>
         </Card>
         <Card className="p-3 border border-border rounded-xl text-center">
-          <p className="text-2xl font-bold text-foreground">{completedCount}</p>
-          <p className="text-[11px] text-muted-foreground">Completed</p>
+          <p className="text-xl font-bold text-foreground">{completedCount}</p>
+          <p className="text-[10px] text-muted-foreground">Completed</p>
         </Card>
       </div>
 
       <div className="space-y-3">
         {bookings.length === 0 && (
           <Card className="p-10 text-center border-dashed">
-            <p className="text-sm text-muted-foreground">No rental bookings yet. Create a rental listing from My Listings to start taking bookings.</p>
+            <p className="text-xs text-muted-foreground">No rental bookings yet. Create a rental listing from My Listings to start taking bookings.</p>
           </Card>
         )}
         {bookings.map((booking) => (
@@ -116,11 +116,11 @@ export default function RentalsPage() {
                   <h3 className="font-semibold text-foreground">{booking.listingTitle}</h3>
                   <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${BOOKING_STATUS_STYLE[booking.status].className}`}>{BOOKING_STATUS_STYLE[booking.status].label}</span>
                 </div>
-                <p className="text-xs text-muted-foreground">{booking.customerName} · {new Date(booking.startDate).toLocaleDateString()} – {new Date(booking.endDate).toLocaleDateString()} ({booking.days} day{booking.days > 1 ? "s" : ""})</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{booking.location}</p>
+                <p className="text-[11px] text-muted-foreground">{booking.customerName} · {new Date(booking.startDate).toLocaleDateString()} – {new Date(booking.endDate).toLocaleDateString()} ({booking.days} day{booking.days > 1 ? "s" : ""})</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">{booking.location}</p>
               </div>
               <div className="text-right">
-                <p className="text-sm font-bold text-foreground">{formatMoney(booking.totalAmount)}</p>
+                <p className="text-xs font-bold text-foreground">{formatMoney(booking.totalAmount)}</p>
                 {booking.depositAmount > 0 && <p className="text-[10px] text-muted-foreground">incl. {formatMoney(booking.depositAmount)} deposit</p>}
                 <div className="mt-2">
                   {booking.status === "CONFIRMED" && (
@@ -141,15 +141,15 @@ export default function RentalsPage() {
         <DialogContent className="max-w-sm rounded-xl" showCloseButton={false}>
           {returningBooking && (
             <div className="space-y-4">
-              <h2 className="text-lg font-bold text-foreground">Mark as Returned</h2>
-              <p className="text-sm text-muted-foreground">{returningBooking.listingTitle}, deposit paid: {formatMoney(returningBooking.depositAmount)}</p>
+              <h2 className="text-base font-bold text-foreground">Mark as Returned</h2>
+              <p className="text-xs text-muted-foreground">{returningBooking.listingTitle}, deposit paid: {formatMoney(returningBooking.depositAmount)}</p>
               <div>
-                <label className="text-sm text-muted-foreground mb-1 block">Deposit to refund (KES)</label>
+                <label className="text-xs text-muted-foreground mb-1 block">Deposit to refund (KES)</label>
                 <Input type="number" max={returningBooking.depositAmount} value={refundAmount} onChange={(e) => setRefundAmount(e.target.value)} className="rounded-lg bg-card border-border" />
-                <p className="text-xs text-muted-foreground mt-1">Refunded straight to the customer's Saji Wallet. Reduce this for damage or loss.</p>
+                <p className="text-[11px] text-muted-foreground mt-1">Refunded straight to the customer's Saji Wallet. Reduce this for damage or loss.</p>
               </div>
               <div>
-                <label className="text-sm text-muted-foreground mb-1 block">Note (optional)</label>
+                <label className="text-xs text-muted-foreground mb-1 block">Note (optional)</label>
                 <Textarea value={refundNote} onChange={(e) => setRefundNote(e.target.value)} placeholder="e.g. Minor scratch on housing" className="rounded-lg bg-card border-border" />
               </div>
               <div className="flex gap-2 pt-2">

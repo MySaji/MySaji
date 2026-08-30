@@ -70,8 +70,8 @@ export default function CertificationsPage() {
     <div className="p-4 lg:p-6 max-w-3xl mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">{t("provider.certifications.title")}</h1>
-          <p className="text-sm text-muted-foreground mt-1">{t("provider.certifications.subtitle")}</p>
+          <h1 className="text-xl font-bold text-foreground">{t("provider.certifications.title")}</h1>
+          <p className="text-xs text-muted-foreground mt-1">{t("provider.certifications.subtitle")}</p>
         </div>
         <Button onClick={() => setShowAdd(true)} className="rounded-xl"><Plus className="w-4 h-4 mr-2" />{t("provider.certifications.addCertification")}</Button>
       </div>
@@ -84,13 +84,13 @@ export default function CertificationsPage() {
           </div>
           <div className="flex-1">
             <h3 className="font-semibold text-foreground">{t("provider.certifications.trustScoreTitle")}</h3>
-            <p className="text-xs text-muted-foreground mb-2">{t("provider.certifications.verifiedOfTotal", { verified: verifiedCount, total: certifications.length })}</p>
+            <p className="text-[11px] text-muted-foreground mb-2">{t("provider.certifications.verifiedOfTotal", { verified: verifiedCount, total: certifications.length })}</p>
             <div className="h-2.5 bg-muted rounded-full overflow-hidden">
               <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${(verifiedCount / Math.max(certifications.length, 1)) * 100}%` }} />
             </div>
           </div>
           <div className="text-right">
-            <p className="text-2xl font-bold text-primary">{Math.round((verifiedCount / Math.max(certifications.length, 1)) * 100)}%</p>
+            <p className="text-xl font-bold text-primary">{Math.round((verifiedCount / Math.max(certifications.length, 1)) * 100)}%</p>
           </div>
         </div>
       </Card>
@@ -100,15 +100,15 @@ export default function CertificationsPage() {
         <h3 className="font-semibold text-foreground mb-3">{t("provider.certifications.earnedBadgesTitle")}</h3>
         <div className="flex flex-wrap gap-2">
           {verifiedCount >= 1 && (
-            <div className="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1.5 rounded-full text-xs font-medium"><Award className="w-3.5 h-3.5" />{t("provider.certifications.badgeCertifiedPro")}</div>
+            <div className="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1.5 rounded-full text-[11px] font-medium"><Award className="w-3.5 h-3.5" />{t("provider.certifications.badgeCertifiedPro")}</div>
           )}
           {verifiedCount >= 2 && (
-            <div className="flex items-center gap-1.5 bg-accent/10 text-accent px-3 py-1.5 rounded-full text-xs font-medium"><Star className="w-3.5 h-3.5" />{t("provider.certifications.badgeMultiSkilled")}</div>
+            <div className="flex items-center gap-1.5 bg-accent/10 text-accent px-3 py-1.5 rounded-full text-[11px] font-medium"><Star className="w-3.5 h-3.5" />{t("provider.certifications.badgeMultiSkilled")}</div>
           )}
           {verifiedCount >= 3 && (
-            <div className="flex items-center gap-1.5 bg-amber-500/10 text-amber-600 px-3 py-1.5 rounded-full text-xs font-medium"><Shield className="w-3.5 h-3.5" />{t("provider.certifications.badgeTrustedExpert")}</div>
+            <div className="flex items-center gap-1.5 bg-amber-500/10 text-amber-600 px-3 py-1.5 rounded-full text-[11px] font-medium"><Shield className="w-3.5 h-3.5" />{t("provider.certifications.badgeTrustedExpert")}</div>
           )}
-          {verifiedCount < 1 && <p className="text-xs text-muted-foreground">{t("provider.certifications.noBadgesYetText")}</p>}
+          {verifiedCount < 1 && <p className="text-[11px] text-muted-foreground">{t("provider.certifications.noBadgesYetText")}</p>}
         </div>
       </div>
 
@@ -116,7 +116,7 @@ export default function CertificationsPage() {
       <div className="space-y-2">
         {certifications.length === 0 && (
           <Card className="p-10 text-center border-dashed">
-            <p className="text-sm text-muted-foreground">{t("provider.certifications.emptyText")}</p>
+            <p className="text-xs text-muted-foreground">{t("provider.certifications.emptyText")}</p>
           </Card>
         )}
         {certifications.map((cert) => {
@@ -128,8 +128,8 @@ export default function CertificationsPage() {
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0"><Award className="w-5 h-5 text-primary" /></div>
                   <div>
-                    <h4 className="font-semibold text-foreground text-sm">{cert.name}</h4>
-                    <p className="text-xs text-muted-foreground">{cert.issuer}</p>
+                    <h4 className="font-semibold text-foreground text-xs">{cert.name}</h4>
+                    <p className="text-[11px] text-muted-foreground">{cert.issuer}</p>
                     <div className="flex items-center gap-3 mt-1.5 text-[10px] text-muted-foreground">
                       <span>{t("provider.certifications.issuedLabel", { date: new Date(cert.dateIssued).toLocaleDateString() })}</span>
                       {cert.expiryDate && <span>{t("provider.certifications.expiresLabel", { date: new Date(cert.expiryDate).toLocaleDateString() })}</span>}
@@ -152,19 +152,19 @@ export default function CertificationsPage() {
       <Dialog open={showAdd} onOpenChange={setShowAdd}>
         <DialogContent className="max-w-md rounded-xl" showCloseButton={false}>
           <div className="space-y-4">
-            <h2 className="text-lg font-bold text-foreground">{t("provider.certifications.addCertification")}</h2>
+            <h2 className="text-base font-bold text-foreground">{t("provider.certifications.addCertification")}</h2>
             <Input value={newCert.name} onChange={(e) => setNewCert((p) => ({ ...p, name: e.target.value }))} placeholder={t("provider.certifications.namePlaceholder")} className="rounded-lg bg-card border-border" />
             <Input value={newCert.issuer} onChange={(e) => setNewCert((p) => ({ ...p, issuer: e.target.value }))} placeholder={t("provider.certifications.issuerPlaceholder")} className="rounded-lg bg-card border-border" />
             <div className="grid grid-cols-2 gap-3">
-              <div><label className="text-xs text-muted-foreground mb-1 block">{t("provider.certifications.dateIssuedLabel")}</label><Input type="date" value={newCert.dateIssued} onChange={(e) => setNewCert((p) => ({ ...p, dateIssued: e.target.value }))} className="rounded-lg bg-card border-border" /></div>
-              <div><label className="text-xs text-muted-foreground mb-1 block">{t("provider.certifications.expiryDateLabel")}</label><Input type="date" value={newCert.expiryDate} onChange={(e) => setNewCert((p) => ({ ...p, expiryDate: e.target.value }))} className="rounded-lg bg-card border-border" /></div>
+              <div><label className="text-[11px] text-muted-foreground mb-1 block">{t("provider.certifications.dateIssuedLabel")}</label><Input type="date" value={newCert.dateIssued} onChange={(e) => setNewCert((p) => ({ ...p, dateIssued: e.target.value }))} className="rounded-lg bg-card border-border" /></div>
+              <div><label className="text-[11px] text-muted-foreground mb-1 block">{t("provider.certifications.expiryDateLabel")}</label><Input type="date" value={newCert.expiryDate} onChange={(e) => setNewCert((p) => ({ ...p, expiryDate: e.target.value }))} className="rounded-lg bg-card border-border" /></div>
             </div>
             <label className="border-2 border-dashed border-border rounded-xl p-4 text-center cursor-pointer hover:border-primary/50 transition-colors block">
               <input type="file" accept="image/*,.pdf" className="hidden" onChange={handleDocumentChange} />
               <Upload className="w-5 h-5 text-muted-foreground mx-auto mb-1" />
-              <p className="text-xs text-muted-foreground">{newCert.documentUrl ? t("provider.certifications.documentAttached") : t("provider.certifications.uploadDocumentPrompt")}</p>
+              <p className="text-[11px] text-muted-foreground">{newCert.documentUrl ? t("provider.certifications.documentAttached") : t("provider.certifications.uploadDocumentPrompt")}</p>
             </label>
-            {formError && <p className="text-sm text-red-600">{formError}</p>}
+            {formError && <p className="text-xs text-red-600">{formError}</p>}
             <div className="flex gap-2 pt-2">
               <Button variant="outline" onClick={() => setShowAdd(false)} className="flex-1 rounded-xl" disabled={isSaving}>{t("common.cancel")}</Button>
               <Button onClick={addCert} disabled={!newCert.name.trim() || !newCert.issuer.trim() || !newCert.dateIssued || isSaving} className="flex-1 rounded-xl">

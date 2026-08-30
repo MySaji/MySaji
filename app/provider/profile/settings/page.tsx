@@ -95,8 +95,8 @@ export default function SettingsPage() {
             <ArrowLeft className="w-6 h-6" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold">{t("settings.title")}</h1>
-            <p className="text-blue-100 text-sm">{t("provider.settings.subtitle")}</p>
+            <h1 className="text-xl font-bold">{t("settings.title")}</h1>
+            <p className="text-blue-100 text-xs">{t("provider.settings.subtitle")}</p>
           </div>
         </div>
       </div>
@@ -110,11 +110,11 @@ export default function SettingsPage() {
             <div className="p-2.5 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
               <Eye className="w-5 h-5 text-purple-600 dark:text-purple-400" />
             </div>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white">{t("provider.settings.appearanceTitle")}</h2>
+            <h2 className="text-base font-bold text-gray-900 dark:text-white">{t("provider.settings.appearanceTitle")}</h2>
           </div>
           <div className="space-y-5">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t("provider.settings.themePreference")}</label>
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">{t("provider.settings.themePreference")}</label>
               <select
                 value={theme}
                 onChange={(e) => setTheme(e.target.value as "light" | "dark")}
@@ -125,7 +125,7 @@ export default function SettingsPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t("settings.language")}</label>
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">{t("settings.language")}</label>
               <select
                 value={language}
                 onChange={(e) => setLanguage(e.target.value as Language)}
@@ -137,7 +137,7 @@ export default function SettingsPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t("settings.currency")}</label>
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">{t("settings.currency")}</label>
               <select
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value as CurrencyCode)}
@@ -161,7 +161,7 @@ export default function SettingsPage() {
             <div className="p-2.5 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
               <Bell className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             </div>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white">{t("settings.notifications")}</h2>
+            <h2 className="text-base font-bold text-gray-900 dark:text-white">{t("settings.notifications")}</h2>
           </div>
           <div className="space-y-3">
             {[
@@ -174,7 +174,7 @@ export default function SettingsPage() {
               <div key={setting.key} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/30 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors">
                 <div className="flex-1">
                   <p className="font-medium text-gray-900 dark:text-white">{setting.label}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{setting.desc}</p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">{setting.desc}</p>
                 </div>
                 <button
                   onClick={() => toggleSetting(setting.key)}
@@ -195,7 +195,7 @@ export default function SettingsPage() {
             <div className="p-2.5 bg-green-100 dark:bg-green-900/30 rounded-lg">
               <Lock className="w-5 h-5 text-green-600 dark:text-green-400" />
             </div>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white">{t("provider.settings.securityTitle")}</h2>
+            <h2 className="text-base font-bold text-gray-900 dark:text-white">{t("provider.settings.securityTitle")}</h2>
           </div>
           <div className="space-y-4">
             <button
@@ -204,7 +204,7 @@ export default function SettingsPage() {
             >
               <div className="text-left">
                 <p className="font-medium text-gray-900 dark:text-white">{t("provider.settings.changePassword")}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t("provider.settings.changePasswordDesc")}</p>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">{t("provider.settings.changePasswordDesc")}</p>
               </div>
               <ChevronRight className="w-5 h-5 text-gray-400" />
             </button>
@@ -217,7 +217,7 @@ export default function SettingsPage() {
             <div className="p-2.5 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
               <Shield className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
             </div>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white">{t("provider.settings.privacyDataTitle")}</h2>
+            <h2 className="text-base font-bold text-gray-900 dark:text-white">{t("provider.settings.privacyDataTitle")}</h2>
           </div>
           <div className="space-y-3">
             <button
@@ -226,7 +226,7 @@ export default function SettingsPage() {
             >
               <div className="text-left">
                 <p className="font-medium text-gray-900 dark:text-white">{t("provider.settings.exportDataTitle")}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t("provider.settings.exportDataDesc")}</p>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">{t("provider.settings.exportDataDesc")}</p>
               </div>
               <Download className="w-5 h-5 text-gray-400" />
             </button>
@@ -236,7 +236,7 @@ export default function SettingsPage() {
             >
               <div className="text-left">
                 <p className="font-medium text-red-700 dark:text-red-400">{t("provider.settings.deleteAccountTitle")}</p>
-                <p className="text-xs text-red-600 dark:text-red-300 mt-1">{t("provider.settings.deleteAccountDesc")}</p>
+                <p className="text-[11px] text-red-600 dark:text-red-300 mt-1">{t("provider.settings.deleteAccountDesc")}</p>
               </div>
               <Trash2 className="w-5 h-5 text-red-600 dark:text-red-400" />
             </button>
@@ -249,7 +249,7 @@ export default function SettingsPage() {
             <div className="p-2.5 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
               <LogOut className="w-5 h-5 text-amber-600 dark:text-amber-400" />
             </div>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white">{t("provider.settings.sessionTitle")}</h2>
+            <h2 className="text-base font-bold text-gray-900 dark:text-white">{t("provider.settings.sessionTitle")}</h2>
           </div>
           <Button onClick={() => setShowSignOutConfirm(true)} className="w-full bg-amber-600 hover:bg-amber-700">
             {t("provider.settings.signOut")}
@@ -267,18 +267,18 @@ export default function SettingsPage() {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2">{t("provider.settings.currentPasswordLabel")}</label>
+              <label className="block text-xs font-medium mb-2">{t("provider.settings.currentPasswordLabel")}</label>
               <input type="password" value={passwordData.current} onChange={(e) => setPasswordData({ ...passwordData, current: e.target.value })} className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700" placeholder={t("provider.settings.currentPasswordPlaceholder")} />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">{t("provider.settings.newPasswordLabel")}</label>
+              <label className="block text-xs font-medium mb-2">{t("provider.settings.newPasswordLabel")}</label>
               <input type="password" value={passwordData.new} onChange={(e) => setPasswordData({ ...passwordData, new: e.target.value })} className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700" placeholder={t("provider.settings.newPasswordPlaceholder")} />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">{t("provider.settings.confirmPasswordLabel")}</label>
+              <label className="block text-xs font-medium mb-2">{t("provider.settings.confirmPasswordLabel")}</label>
               <input type="password" value={passwordData.confirm} onChange={(e) => setPasswordData({ ...passwordData, confirm: e.target.value })} className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700" placeholder={t("provider.settings.confirmPasswordPlaceholder")} />
             </div>
-            {passwordError && <p className="text-red-600 text-sm">{passwordError}</p>}
+            {passwordError && <p className="text-red-600 text-xs">{passwordError}</p>}
             <div className="flex gap-3 pt-2">
               <Button variant="outline" onClick={() => setShowChangePassword(false)} className="flex-1" disabled={isChangingPassword}>{t("common.cancel")}</Button>
               <Button onClick={handlePasswordChange} className="flex-1 bg-blue-600 hover:bg-blue-700" disabled={isChangingPassword}>
@@ -296,11 +296,11 @@ export default function SettingsPage() {
             <DialogTitle className="text-red-600">{t("provider.settings.deleteAccountTitle")}</DialogTitle>
             <DialogDescription>{t("provider.settings.deleteAccountModalDesc")}</DialogDescription>
           </DialogHeader>
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/30 rounded-lg p-4 text-sm text-red-700 dark:text-red-400">
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/30 rounded-lg p-4 text-xs text-red-700 dark:text-red-400">
             {t("provider.settings.deleteAccountWarning")}
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">{t("provider.settings.typeDeleteLabel")}</label>
+            <label className="block text-xs font-medium mb-2">{t("provider.settings.typeDeleteLabel")}</label>
             <input type="text" value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.target.value.toUpperCase())} placeholder={t("provider.settings.typeDeletePlaceholder")} className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700" />
           </div>
           <div className="flex gap-3 pt-2">

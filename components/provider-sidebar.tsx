@@ -161,7 +161,7 @@ export default function ProviderSidebar({ isOpen, onClose }: ProviderSidebarProp
         <div className="p-5 border-b border-gray-200 dark:border-gray-700 flex items-start justify-between">
           <div>
             <Logo size="md" showText />
-            <p className="text-xs text-muted-foreground mt-1">Service Provider Portal</p>
+            <p className="text-[11px] text-muted-foreground mt-1">Service Provider Portal</p>
           </div>
           <button
             onClick={onClose}
@@ -184,7 +184,7 @@ export default function ProviderSidebar({ isOpen, onClose }: ProviderSidebarProp
             const active = isItemActive(item)
             const showGroupLabel = item.group && item.group !== menuItems[i - 1]?.group
             const groupLabel = showGroupLabel && (
-              <p className="px-3 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+              <p className="px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
                 {GROUP_LABEL[item.group as string]}
               </p>
             )
@@ -203,7 +203,7 @@ export default function ProviderSidebar({ isOpen, onClose }: ProviderSidebarProp
                   >
                     <div className="flex items-center gap-3">
                       <IconComponent className="w-5 h-5" />
-                      <span className="font-medium text-sm">{item.label}</span>
+                      <span className="font-medium text-xs">{item.label}</span>
                     </div>
                     <ChevronDown
                       className={`w-4 h-4 transition-transform ${expandedMenu === "profile" ? "rotate-180" : ""}`}
@@ -217,7 +217,7 @@ export default function ProviderSidebar({ isOpen, onClose }: ProviderSidebarProp
                           key={subitem.href}
                           href={subitem.href}
                           onClick={() => onClose()}
-                          className={`flex items-center justify-between text-sm py-2 px-3 rounded-lg transition-colors ${
+                          className={`flex items-center justify-between text-xs py-2 px-3 rounded-lg transition-colors ${
                             pathname === subitem.href
                               ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium"
                               : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -246,7 +246,7 @@ export default function ProviderSidebar({ isOpen, onClose }: ProviderSidebarProp
                 >
                   <div className="flex items-center gap-3">
                     <IconComponent className="w-5 h-5" />
-                    <span className="font-medium text-sm">{item.label}</span>
+                    <span className="font-medium text-xs">{item.label}</span>
                     {item.isNew && (
                       <span className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold rounded-full px-1.5 py-0.5">
                         NEW
@@ -254,7 +254,7 @@ export default function ProviderSidebar({ isOpen, onClose }: ProviderSidebarProp
                     )}
                   </div>
                   {item.badge && (
-                    <span className="bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5">
+                    <span className="bg-red-500 text-white text-[11px] font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5">
                       {item.badge}
                     </span>
                   )}
@@ -329,7 +329,7 @@ export default function ProviderSidebar({ isOpen, onClose }: ProviderSidebarProp
                       <Link
                         href={item.href}
                         onClick={() => setShowMoreMenu(false)}
-                        className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
+                        className={`flex items-center gap-3 px-4 py-2.5 text-xs transition-colors ${
                           active
                             ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium"
                             : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"

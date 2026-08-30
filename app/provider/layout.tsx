@@ -76,18 +76,18 @@ export default function ProviderLayout({ children }: { children: React.ReactNode
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300">
               <ShieldCheck className="h-8 w-8" />
             </div>
-            <h1 className="text-3xl font-semibold text-slate-900 dark:text-white">{t("provider.layout.verificationRequiredTitle")}</h1>
-            <p className="max-w-xl text-sm text-slate-600 dark:text-slate-400">
+            <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">{t("provider.layout.verificationRequiredTitle")}</h1>
+            <p className="max-w-xl text-xs text-slate-600 dark:text-slate-400">
               {t("provider.layout.verificationRequiredBody")}
             </p>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-gray-800 dark:bg-gray-900">
-                <p className="text-sm text-slate-500 dark:text-slate-400">{t("provider.layout.currentStatus")}</p>
-                <p className="mt-2 text-xl font-semibold text-slate-900 dark:text-white">{user?.kycStatus === "rejected" ? t("provider.layout.statusRejected") : t("provider.layout.statusPendingReview")}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{t("provider.layout.currentStatus")}</p>
+                <p className="mt-2 text-lg font-semibold text-slate-900 dark:text-white">{user?.kycStatus === "rejected" ? t("provider.layout.statusRejected") : t("provider.layout.statusPendingReview")}</p>
               </div>
               <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-gray-800 dark:bg-gray-900">
-                <p className="text-sm text-slate-500 dark:text-slate-400">{t("provider.layout.nextStep")}</p>
-                <p className="mt-2 text-xl font-semibold text-slate-900 dark:text-white">{t("provider.layout.nextStepSubmitDocs")}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{t("provider.layout.nextStep")}</p>
+                <p className="mt-2 text-lg font-semibold text-slate-900 dark:text-white">{t("provider.layout.nextStepSubmitDocs")}</p>
               </div>
             </div>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -124,7 +124,7 @@ export default function ProviderLayout({ children }: { children: React.ReactNode
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-lg focus:bg-blue-600 focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-lg focus:bg-blue-600 focus:px-4 focus:py-2 focus:text-xs focus:font-medium focus:text-white"
       >
         {t("customer.layout.skipToContent")}
       </a>

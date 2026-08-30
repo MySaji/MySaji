@@ -46,7 +46,7 @@ function timeAgo(iso: string): string {
 function TrendBadge({ pct }: { pct: number | null }) {
   if (pct === null) return null
   return (
-    <span className={`flex items-center gap-0.5 text-xs font-medium ${pct >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+    <span className={`flex items-center gap-0.5 text-[11px] font-medium ${pct >= 0 ? "text-emerald-600" : "text-red-500"}`}>
       {pct >= 0 ? "+" : ""}{pct}% this week <TrendingUp className={`h-3 w-3 ${pct < 0 ? "rotate-180" : ""}`} />
     </span>
   )
@@ -78,8 +78,8 @@ export default function ProDashboardPage() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-4 text-center">
         <Rocket className="h-10 w-10 text-amber-500" />
-        <p className="text-lg font-semibold text-foreground">This dashboard is a Saji Pro feature</p>
-        <p className="max-w-sm text-sm text-muted-foreground">Subscribe to Saji Pro to unlock the full offers dashboard, performance overview, and growth tools.</p>
+        <p className="text-base font-semibold text-foreground">This dashboard is a Saji Pro feature</p>
+        <p className="max-w-sm text-xs text-muted-foreground">Subscribe to Saji Pro to unlock the full offers dashboard, performance overview, and growth tools.</p>
         <Button asChild className="rounded-xl"><Link href="/provider/pro">See Saji Pro</Link></Button>
       </div>
     )
@@ -92,8 +92,8 @@ export default function ProDashboardPage() {
       {/* Welcome header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Welcome back, {firstName}! 👋</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage your offers, bookings and grow your business.</p>
+          <h1 className="text-xl font-bold text-foreground">Welcome back, {firstName}! 👋</h1>
+          <p className="text-xs text-muted-foreground mt-1">Manage your offers, bookings and grow your business.</p>
         </div>
         <Button asChild className="gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700">
           <Link href="/provider/offers"><Plus className="h-4 w-4" /> Create an Offer</Link>
@@ -103,22 +103,22 @@ export default function ProDashboardPage() {
       {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Card className="border-0 p-4 shadow-sm">
-          <div className="mb-2 flex items-center gap-2 text-sm text-muted-foreground"><Eye className="h-4 w-4 text-emerald-600" /> Profile views</div>
-          <p className="text-2xl font-bold text-foreground">{overview.profileViews.toLocaleString()}</p>
+          <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground"><Eye className="h-4 w-4 text-emerald-600" /> Profile views</div>
+          <p className="text-xl font-bold text-foreground">{overview.profileViews.toLocaleString()}</p>
         </Card>
         <Card className="border-0 p-4 shadow-sm">
-          <div className="mb-2 flex items-center gap-2 text-sm text-muted-foreground"><MessageSquare className="h-4 w-4 text-sky-600" /> Requests</div>
-          <p className="text-2xl font-bold text-foreground">{overview.requests.value}</p>
+          <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground"><MessageSquare className="h-4 w-4 text-sky-600" /> Requests</div>
+          <p className="text-xl font-bold text-foreground">{overview.requests.value}</p>
           <TrendBadge pct={overview.requests.changePct} />
         </Card>
         <Card className="border-0 p-4 shadow-sm">
-          <div className="mb-2 flex items-center gap-2 text-sm text-muted-foreground"><Calendar className="h-4 w-4 text-amber-600" /> Bookings</div>
-          <p className="text-2xl font-bold text-foreground">{overview.bookings.value}</p>
+          <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground"><Calendar className="h-4 w-4 text-amber-600" /> Bookings</div>
+          <p className="text-xl font-bold text-foreground">{overview.bookings.value}</p>
           <TrendBadge pct={overview.bookings.changePct} />
         </Card>
         <Card className="border-0 p-4 shadow-sm">
-          <div className="mb-2 flex items-center gap-2 text-sm text-muted-foreground"><Wallet className="h-4 w-4 text-emerald-600" /> Earnings</div>
-          <p className="text-2xl font-bold text-foreground">{formatMoney(overview.earnings.value)}</p>
+          <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground"><Wallet className="h-4 w-4 text-emerald-600" /> Earnings</div>
+          <p className="text-xl font-bold text-foreground">{formatMoney(overview.earnings.value)}</p>
           <TrendBadge pct={overview.earnings.changePct} />
         </Card>
       </div>
@@ -131,7 +131,7 @@ export default function ProDashboardPage() {
               <ShieldAlert className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-600" />
               <div>
                 <p className="font-semibold text-foreground">Complete your verification</p>
-                <p className="text-sm text-muted-foreground">Get verified to build trust and get more bookings.</p>
+                <p className="text-xs text-muted-foreground">Get verified to build trust and get more bookings.</p>
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
@@ -145,12 +145,12 @@ export default function ProDashboardPage() {
       {/* My Offers */}
       <div>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-foreground">My Offers</h2>
-          <Link href="/provider/offers" className="text-sm font-medium text-emerald-600 hover:underline">View all offers</Link>
+          <h2 className="text-base font-bold text-foreground">My Offers</h2>
+          <Link href="/provider/offers" className="text-xs font-medium text-emerald-600 hover:underline">View all offers</Link>
         </div>
         {overview.offers.length === 0 ? (
           <Card className="border-dashed p-8 text-center">
-            <p className="text-sm text-muted-foreground">No offers yet. Create one to start appearing in discovery.</p>
+            <p className="text-xs text-muted-foreground">No offers yet. Create one to start appearing in discovery.</p>
             <Button asChild size="sm" className="mt-3 rounded-xl"><Link href="/provider/offers">Create an Offer</Link></Button>
           </Card>
         ) : (
@@ -161,14 +161,14 @@ export default function ProDashboardPage() {
               return (
                 <Card key={offer.id} className="w-64 flex-shrink-0 overflow-hidden border-0 shadow-sm">
                   <div className="relative aspect-[4/3] bg-muted">
-                    {offer.image ? <img src={offer.image} alt={offer.title} className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">No Image</div>}
+                    {offer.image ? <img src={offer.image} alt={offer.title} className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center text-[11px] text-muted-foreground">No Image</div>}
                     <span className={`absolute left-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-bold ${statusStyle.className}`}>{statusStyle.label}</span>
                   </div>
                   <div className="p-3">
                     <h3 className="truncate font-semibold text-foreground">{offer.title}</h3>
-                    <p className="truncate text-xs text-muted-foreground">{offer.categoryName ?? "—"}</p>
-                    <p className="mt-1 text-sm font-bold text-foreground">{offer.price != null ? <>From {formatMoney(offer.price)}</> : "Request Quote"}</p>
-                    <div className="mt-2 grid grid-cols-3 gap-1 text-center text-xs text-muted-foreground">
+                    <p className="truncate text-[11px] text-muted-foreground">{offer.categoryName ?? "—"}</p>
+                    <p className="mt-1 text-xs font-bold text-foreground">{offer.price != null ? <>From {formatMoney(offer.price)}</> : "Request Quote"}</p>
+                    <div className="mt-2 grid grid-cols-3 gap-1 text-center text-[11px] text-muted-foreground">
                       <div><p className="font-semibold text-foreground">{offer.viewCount}</p>Views</div>
                       <div><p className="font-semibold text-foreground">{offer.requestCount}</p>Requests</div>
                       <div><p className="font-semibold text-foreground">{offer.bookingCount}</p>Bookings</div>
@@ -185,7 +185,7 @@ export default function ProDashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Quick Actions */}
         <Card className="border-0 p-4 shadow-sm">
-          <h2 className="mb-4 text-base font-bold text-foreground">Quick Actions</h2>
+          <h2 className="mb-4 text-sm font-bold text-foreground">Quick Actions</h2>
           <div className="grid grid-cols-3 gap-4">
             {[
               { icon: Plus, label: "Create an Offer", href: "/provider/offers", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" },
@@ -197,7 +197,7 @@ export default function ProDashboardPage() {
             ].map((action) => (
               <Link key={action.label} href={action.href} className="flex flex-col items-center gap-2 text-center">
                 <div className={`flex h-11 w-11 items-center justify-center rounded-full ${action.color}`}><action.icon className="h-5 w-5" /></div>
-                <span className="text-xs text-muted-foreground">{action.label}</span>
+                <span className="text-[11px] text-muted-foreground">{action.label}</span>
               </Link>
             ))}
           </div>
@@ -206,11 +206,11 @@ export default function ProDashboardPage() {
         {/* Recent Activity */}
         <Card className="border-0 p-4 shadow-sm">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-base font-bold text-foreground">Recent Activity</h2>
-            <Link href="/provider/jobs" className="text-sm font-medium text-emerald-600 hover:underline">View all</Link>
+            <h2 className="text-sm font-bold text-foreground">Recent Activity</h2>
+            <Link href="/provider/jobs" className="text-xs font-medium text-emerald-600 hover:underline">View all</Link>
           </div>
           {overview.recentActivity.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">Nothing yet. Activity will show up here as customers interact with your offers.</p>
+            <p className="py-6 text-center text-xs text-muted-foreground">Nothing yet. Activity will show up here as customers interact with your offers.</p>
           ) : (
             <div className="space-y-3">
               {overview.recentActivity.map((item) => {
@@ -219,10 +219,10 @@ export default function ProDashboardPage() {
                   <div key={item.id} className="flex items-start gap-3">
                     <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-muted"><Icon className="h-4 w-4 text-muted-foreground" /></div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-foreground">{item.title}</p>
-                      <p className="truncate text-xs text-muted-foreground">{item.subtitle}</p>
+                      <p className="text-xs font-medium text-foreground">{item.title}</p>
+                      <p className="truncate text-[11px] text-muted-foreground">{item.subtitle}</p>
                     </div>
-                    <span className="flex-shrink-0 text-xs text-muted-foreground">{timeAgo(item.createdAt)}</span>
+                    <span className="flex-shrink-0 text-[11px] text-muted-foreground">{timeAgo(item.createdAt)}</span>
                   </div>
                 )
               })}
@@ -235,12 +235,12 @@ export default function ProDashboardPage() {
         {/* Performance Overview */}
         <Card className="border-0 p-4 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-base font-bold text-foreground">Performance Overview</h2>
-            <span className="text-xs text-muted-foreground">This month</span>
+            <h2 className="text-sm font-bold text-foreground">Performance Overview</h2>
+            <span className="text-[11px] text-muted-foreground">This month</span>
           </div>
           <div className="h-52">
             {overview.chart.length === 0 ? (
-              <div className="flex h-full items-center justify-center text-sm text-muted-foreground">No data yet this month</div>
+              <div className="flex h-full items-center justify-center text-xs text-muted-foreground">No data yet this month</div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={overview.chart} margin={{ top: 5, right: 5, left: -15, bottom: 0 }}>
@@ -260,16 +260,16 @@ export default function ProDashboardPage() {
             )}
           </div>
           <div className="mt-3 grid grid-cols-4 gap-2 border-t border-border/50 pt-3 text-center">
-            <div><p className="text-sm font-bold text-foreground">{overview.monthStats.views}</p><p className="text-[10px] text-muted-foreground">Views</p></div>
-            <div><p className="text-sm font-bold text-foreground">{overview.monthStats.requests.value}</p><p className="text-[10px] text-muted-foreground">Requests</p></div>
-            <div><p className="text-sm font-bold text-foreground">{overview.monthStats.bookings.value}</p><p className="text-[10px] text-muted-foreground">Bookings</p></div>
-            <div><p className="text-sm font-bold text-foreground">{formatMoney(overview.monthStats.earnings.value)}</p><p className="text-[10px] text-muted-foreground">Earnings</p></div>
+            <div><p className="text-xs font-bold text-foreground">{overview.monthStats.views}</p><p className="text-[10px] text-muted-foreground">Views</p></div>
+            <div><p className="text-xs font-bold text-foreground">{overview.monthStats.requests.value}</p><p className="text-[10px] text-muted-foreground">Requests</p></div>
+            <div><p className="text-xs font-bold text-foreground">{overview.monthStats.bookings.value}</p><p className="text-[10px] text-muted-foreground">Bookings</p></div>
+            <div><p className="text-xs font-bold text-foreground">{formatMoney(overview.monthStats.earnings.value)}</p><p className="text-[10px] text-muted-foreground">Earnings</p></div>
           </div>
         </Card>
 
         {/* Grow Your Business */}
         <Card className="border-0 p-4 shadow-sm">
-          <h2 className="mb-3 text-base font-bold text-foreground">Grow Your Business</h2>
+          <h2 className="mb-3 text-sm font-bold text-foreground">Grow Your Business</h2>
           <div className="space-y-1">
             {[
               { icon: ClipboardCheck, title: "Add more offers", desc: "More offers = more visibility", href: "/provider/offers", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" },
@@ -280,8 +280,8 @@ export default function ProDashboardPage() {
               <Link key={tip.title} href={tip.href} className="flex items-center gap-3 rounded-xl p-2 hover:bg-muted/60 transition-colors">
                 <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full ${tip.color}`}><tip.icon className="h-4 w-4" /></div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-foreground">{tip.title}</p>
-                  <p className="truncate text-xs text-muted-foreground">{tip.desc}</p>
+                  <p className="text-xs font-medium text-foreground">{tip.title}</p>
+                  <p className="truncate text-[11px] text-muted-foreground">{tip.desc}</p>
                 </div>
                 <ChevronRight className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
               </Link>

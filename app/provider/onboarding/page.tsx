@@ -124,7 +124,7 @@ export default function ProviderOnboardingPage() {
       <div className="w-full max-w-xl bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 p-6 sm:p-8">
         {step === "choice" && (
           <>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-2">{t("provider.onboarding.title")}</h1>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white text-center mb-2">{t("provider.onboarding.title")}</h1>
             <p className="text-gray-500 dark:text-gray-400 text-center mb-8">{t("provider.onboarding.subtitle")}</p>
             <div className="grid sm:grid-cols-2 gap-4">
               <button
@@ -135,7 +135,7 @@ export default function ProviderOnboardingPage() {
                   <HardHat className="w-7 h-7 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div className="font-bold text-gray-900 dark:text-white">{t("provider.onboarding.soloTitle")}</div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">{t("provider.onboarding.soloDesc")}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">{t("provider.onboarding.soloDesc")}</div>
               </button>
               <button
                 onClick={() => setStep("business-details")}
@@ -145,7 +145,7 @@ export default function ProviderOnboardingPage() {
                   <Building2 className="w-7 h-7 text-purple-600 dark:text-purple-400" />
                 </div>
                 <div className="font-bold text-gray-900 dark:text-white">{t("provider.onboarding.businessTitle")}</div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">{t("provider.onboarding.businessDesc")}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">{t("provider.onboarding.businessDesc")}</div>
               </button>
             </div>
           </>
@@ -153,12 +153,12 @@ export default function ProviderOnboardingPage() {
 
         {step === "professional" && (
           <>
-            <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-1">{t("provider.onboarding.professionalTitle")}</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">{t("provider.onboarding.professionalSubtitle")}</p>
-            {error && <p className="text-sm text-red-600 dark:text-red-400 mb-4">{error}</p>}
+            <h1 className="text-lg font-bold text-gray-900 dark:text-white mb-1">{t("provider.onboarding.professionalTitle")}</h1>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-6">{t("provider.onboarding.professionalSubtitle")}</p>
+            {error && <p className="text-xs text-red-600 dark:text-red-400 mb-4">{error}</p>}
             <div className="space-y-4">
               <div>
-                <label htmlFor="ob-headline" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t("provider.onboarding.headlineLabel")}</label>
+                <label htmlFor="ob-headline" className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">{t("provider.onboarding.headlineLabel")}</label>
                 <input
                   id="ob-headline"
                   value={headline}
@@ -170,7 +170,7 @@ export default function ProviderOnboardingPage() {
               </div>
 
               <div>
-                <label htmlFor="ob-about" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t("provider.onboarding.aboutLabel")}</label>
+                <label htmlFor="ob-about" className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">{t("provider.onboarding.aboutLabel")}</label>
                 <textarea
                   id="ob-about"
                   value={about}
@@ -183,7 +183,7 @@ export default function ProviderOnboardingPage() {
               </div>
 
               <div>
-                <label htmlFor="ob-years" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t("provider.onboarding.yearsLabel")}</label>
+                <label htmlFor="ob-years" className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">{t("provider.onboarding.yearsLabel")}</label>
                 <input
                   id="ob-years"
                   type="number"
@@ -199,7 +199,7 @@ export default function ProviderOnboardingPage() {
                   to the customer. A translator or developer picks Remote and
                   becomes findable outside their own town. */}
               <div>
-                <p className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("provider.onboarding.workPreferenceLabel")}</p>
+                <p className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t("provider.onboarding.workPreferenceLabel")}</p>
                 <div className="grid grid-cols-3 gap-2">
                   {([
                     ["REMOTE", Globe, "provider.onboarding.workRemote", "provider.onboarding.workRemoteDesc"],
@@ -216,8 +216,8 @@ export default function ProviderOnboardingPage() {
                         className={`rounded-lg border-2 p-3 text-left transition-colors ${active ? "border-blue-600 bg-blue-50 dark:bg-blue-900/20" : "border-gray-200 dark:border-gray-700 hover:border-gray-400"}`}
                       >
                         <Icon className="w-5 h-5 mb-1.5 text-blue-600 dark:text-blue-400" />
-                        <div className="text-sm font-medium text-gray-900 dark:text-white">{t(labelKey)}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">{t(descKey)}</div>
+                        <div className="text-xs font-medium text-gray-900 dark:text-white">{t(labelKey)}</div>
+                        <div className="text-[11px] text-gray-500 dark:text-gray-400">{t(descKey)}</div>
                       </button>
                     )
                   })}
@@ -235,7 +235,7 @@ export default function ProviderOnboardingPage() {
 
               <button
                 onClick={() => router.push(afterProfessional)}
-                className="w-full text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                className="w-full text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
               >
                 {t("provider.onboarding.skipForNow")}
               </button>
@@ -245,11 +245,11 @@ export default function ProviderOnboardingPage() {
 
         {step === "business-details" && (
           <>
-            <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-6">{t("provider.onboarding.businessDetailsTitle")}</h1>
-            {error && <p className="text-sm text-red-600 dark:text-red-400 mb-4">{error}</p>}
+            <h1 className="text-lg font-bold text-gray-900 dark:text-white mb-6">{t("provider.onboarding.businessDetailsTitle")}</h1>
+            {error && <p className="text-xs text-red-600 dark:text-red-400 mb-4">{error}</p>}
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t("provider.onboarding.registrationNumberLabel")}</label>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">{t("provider.onboarding.registrationNumberLabel")}</label>
                 <input
                   value={registrationNumber}
                   onChange={(e) => setRegistrationNumber(e.target.value)}
@@ -258,7 +258,7 @@ export default function ProviderOnboardingPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t("provider.onboarding.hqAddressLabel")}</label>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">{t("provider.onboarding.hqAddressLabel")}</label>
                 <input
                   value={hqAddress}
                   onChange={(e) => setHqAddress(e.target.value)}
@@ -280,11 +280,11 @@ export default function ProviderOnboardingPage() {
 
         {step === "business-permit" && (
           <>
-            <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-6">{t("provider.onboarding.permitStepTitle")}</h1>
-            {error && <p className="text-sm text-red-600 dark:text-red-400 mb-4">{error}</p>}
+            <h1 className="text-lg font-bold text-gray-900 dark:text-white mb-6">{t("provider.onboarding.permitStepTitle")}</h1>
+            {error && <p className="text-xs text-red-600 dark:text-red-400 mb-4">{error}</p>}
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t("provider.onboarding.permitNumberLabel")}</label>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">{t("provider.onboarding.permitNumberLabel")}</label>
                 <input
                   value={permitNumber}
                   onChange={(e) => setPermitNumber(e.target.value)}
@@ -292,7 +292,7 @@ export default function ProviderOnboardingPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t("provider.onboarding.permitFileLabel")}</label>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">{t("provider.onboarding.permitFileLabel")}</label>
                 <label className="flex items-center justify-center gap-2 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg py-6 cursor-pointer text-gray-500 dark:text-gray-400 hover:border-blue-500">
                   <Upload className="w-5 h-5" />
                   {permitFile ? "✓" : t("provider.onboarding.permitFileLabel")}
@@ -313,13 +313,13 @@ export default function ProviderOnboardingPage() {
 
         {step === "invite-staff" && (
           <>
-            <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-1">{t("provider.onboarding.inviteStepTitle")}</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">{t("provider.onboarding.inviteStepSubtitle")}</p>
-            {error && <p className="text-sm text-red-600 dark:text-red-400 mb-4">{error}</p>}
-            {inviteMessage && <p className="text-sm text-emerald-600 dark:text-emerald-400 mb-4 break-all">{inviteMessage}</p>}
+            <h1 className="text-lg font-bold text-gray-900 dark:text-white mb-1">{t("provider.onboarding.inviteStepTitle")}</h1>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-6">{t("provider.onboarding.inviteStepSubtitle")}</p>
+            {error && <p className="text-xs text-red-600 dark:text-red-400 mb-4">{error}</p>}
+            {inviteMessage && <p className="text-xs text-emerald-600 dark:text-emerald-400 mb-4 break-all">{inviteMessage}</p>}
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t("provider.business.staff.emailLabel")}</label>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">{t("provider.business.staff.emailLabel")}</label>
                 <input
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
@@ -327,7 +327,7 @@ export default function ProviderOnboardingPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t("provider.business.staff.phoneLabel")}</label>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">{t("provider.business.staff.phoneLabel")}</label>
                 <input
                   value={invitePhone}
                   onChange={(e) => setInvitePhone(e.target.value)}
@@ -345,13 +345,13 @@ export default function ProviderOnboardingPage() {
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => { setAfterProfessional("/provider/business/staff"); setStep("professional") }}
-                  className="flex-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                  className="flex-1 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                 >
                   {t("provider.onboarding.skipForNow")}
                 </button>
                 <button
                   onClick={() => { setAfterProfessional("/provider/business/staff"); setStep("professional") }}
-                  className="flex-1 bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 text-white py-2 rounded-lg text-sm font-medium"
+                  className="flex-1 bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 text-white py-2 rounded-lg text-xs font-medium"
                 >
                   {t("provider.onboarding.finishSetup")}
                 </button>

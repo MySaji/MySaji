@@ -38,7 +38,7 @@ export function ProviderStoryRing({ groups }: { groups: StoryFeedGroup[] }) {
                 />
               </div>
             </div>
-            <span className="text-[11px] text-foreground truncate w-full text-center">{group.providerName.split(" ")[0]}</span>
+            <span className="text-[10px] text-foreground truncate w-full text-center">{group.providerName.split(" ")[0]}</span>
           </button>
         ))}
       </div>
@@ -139,8 +139,8 @@ function StoryViewer({
         <div className="flex items-center gap-2.5">
           <img src={group.providerAvatar || "/placeholder.svg"} alt={group.providerName} className="w-9 h-9 rounded-full object-cover" />
           <div>
-            <p className="text-white text-sm font-semibold">{group.providerName}</p>
-            <p className="text-white/60 text-xs">Work in Action</p>
+            <p className="text-white text-xs font-semibold">{group.providerName}</p>
+            <p className="text-white/60 text-[11px]">Work in Action</p>
           </div>
         </div>
         <button onClick={onClose} aria-label="Close" className="p-2 text-white/80 hover:text-white">
@@ -159,29 +159,29 @@ function StoryViewer({
 
         <div className="w-full max-w-md grid grid-cols-2 gap-1.5">
           <div className="space-y-1">
-            <p className="text-white/70 text-[11px] font-medium text-center">Before</p>
+            <p className="text-white/70 text-[10px] font-medium text-center">Before</p>
             <img src={story.beforeImage} alt="Before" className="w-full aspect-[3/4] object-cover rounded-lg" />
           </div>
           <div className="space-y-1">
-            <p className="text-white/70 text-[11px] font-medium text-center">After</p>
+            <p className="text-white/70 text-[10px] font-medium text-center">After</p>
             <img src={story.afterImage} alt="After" className="w-full aspect-[3/4] object-cover rounded-lg" />
           </div>
         </div>
       </div>
 
       {story.caption && (
-        <p className="text-white text-sm text-center px-6 py-2">{story.caption}</p>
+        <p className="text-white text-xs text-center px-6 py-2">{story.caption}</p>
       )}
 
       {/* Footer: like + reply */}
       <div className="p-3 pb-4 flex items-center gap-3">
         <button onClick={handleLike} className="flex items-center gap-1.5 text-white flex-shrink-0">
           <Heart className={`w-6 h-6 ${story.likedByMe ? "fill-red-500 text-red-500" : "text-white"}`} />
-          {story.likeCount > 0 && <span className="text-sm">{story.likeCount}</span>}
+          {story.likeCount > 0 && <span className="text-xs">{story.likeCount}</span>}
         </button>
 
         {replySent ? (
-          <p className="flex-1 text-sm text-emerald-400">Sent! Opening your conversation...</p>
+          <p className="flex-1 text-xs text-emerald-400">Sent! Opening your conversation...</p>
         ) : (
           <>
             <input
@@ -189,7 +189,7 @@ function StoryViewer({
               onChange={(e) => setReplyText(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") handleReply() }}
               placeholder={`Reply to ${group.providerName.split(" ")[0]}...`}
-              className="flex-1 rounded-full bg-white/10 border border-white/20 text-white placeholder:text-white/50 px-4 py-2 text-sm focus:outline-none focus:border-white/40"
+              className="flex-1 rounded-full bg-white/10 border border-white/20 text-white placeholder:text-white/50 px-4 py-2 text-xs focus:outline-none focus:border-white/40"
             />
             <button onClick={handleReply} disabled={!replyText.trim() || isReplying} aria-label="Send reply" className="p-2 text-white flex-shrink-0 disabled:opacity-40">
               {isReplying ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
@@ -197,7 +197,7 @@ function StoryViewer({
           </>
         )}
       </div>
-      {replyError && <p className="text-red-400 text-xs text-center pb-2">{replyError}</p>}
+      {replyError && <p className="text-red-400 text-[11px] text-center pb-2">{replyError}</p>}
     </div>
   )
 }

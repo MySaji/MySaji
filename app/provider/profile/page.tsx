@@ -68,7 +68,7 @@ export default function ProviderProfilePage() {
       <div className="bg-blue-600 dark:bg-blue-700 text-white p-4 rounded-b-2xl">
         <div className="flex items-center justify-between">
           <div className="w-10 h-10 bg-blue-500 rounded-full"></div>
-          <span className="text-sm font-medium">{t("provider.profile.headerLabel")}</span>
+          <span className="text-xs font-medium">{t("provider.profile.headerLabel")}</span>
           <Bell className="w-5 h-5" />
         </div>
       </div>
@@ -78,7 +78,7 @@ export default function ProviderProfilePage() {
         {/* Profile Card */}
         <div className="bg-white dark:bg-gray-800 rounded-lg p-6 text-center border dark:border-gray-700">
           <div className="w-24 h-24 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full mx-auto mb-4"></div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{provider.name}</h2>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">{provider.name}</h2>
           <div className="flex justify-center gap-1 my-2">
             {[...Array(5)].map((_, i) => (
               <Star
@@ -87,10 +87,10 @@ export default function ProviderProfilePage() {
               />
             ))}
           </div>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+          <p className="text-xs text-gray-600 dark:text-gray-400">
             {provider.rating} • {provider.providerSince}
           </p>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{t("provider.profile.completedJobsLabel", { count: provider.completedJobs })}</p>
+          <p className="text-xs text-gray-600 dark:text-gray-400 mb-4">{t("provider.profile.completedJobsLabel", { count: provider.completedJobs })}</p>
           {/* Edit Profile Button */}
           <Link
             href="/provider/profile/edit"
@@ -116,7 +116,7 @@ export default function ProviderProfilePage() {
                     <IconComponent className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                     <span className="font-medium text-gray-900 dark:text-white">{item.title}</span>
                     {item.badge && (
-                      <span className="ml-2 bg-orange-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full">
+                      <span className="ml-2 bg-orange-500 text-white text-[11px] font-semibold px-2 py-0.5 rounded-full">
                         {item.badge}
                       </span>
                     )}
@@ -146,32 +146,32 @@ export default function ProviderProfilePage() {
           className="flex flex-col items-center gap-1 text-gray-600 dark:text-gray-400 hover:text-blue-600"
         >
           <Home className="w-6 h-6" />
-          <span className="text-xs">{t("provider.profile.navHome")}</span>
+          <span className="text-[11px]">{t("provider.profile.navHome")}</span>
         </Link>
         <Link
           href="/provider/jobs"
           className="flex flex-col items-center gap-1 text-gray-600 dark:text-gray-400 hover:text-blue-600"
         >
           <Briefcase className="w-6 h-6" />
-          <span className="text-xs">{t("provider.profile.navJobs")}</span>
+          <span className="text-[11px]">{t("provider.profile.navJobs")}</span>
         </Link>
         <Link
           href="/provider/messages"
           className="flex flex-col items-center gap-1 text-gray-600 dark:text-gray-400 hover:text-blue-600"
         >
           <MessageCircle className="w-6 h-6" />
-          <span className="text-xs">{t("nav.messages")}</span>
+          <span className="text-[11px]">{t("nav.messages")}</span>
         </Link>
         <Link
           href="/provider/wallet"
           className="flex flex-col items-center gap-1 text-gray-600 dark:text-gray-400 hover:text-blue-600"
         >
           <Wallet className="w-6 h-6" />
-          <span className="text-xs">{t("nav.wallet")}</span>
+          <span className="text-[11px]">{t("nav.wallet")}</span>
         </Link>
         <Link href="/provider/profile" className="flex flex-col items-center gap-1 text-blue-600">
           <User className="w-6 h-6" />
-          <span className="text-xs">{t("provider.profile.navProfile")}</span>
+          <span className="text-[11px]">{t("provider.profile.navProfile")}</span>
         </Link>
       </div>
     </div>

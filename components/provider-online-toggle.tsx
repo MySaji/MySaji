@@ -84,7 +84,7 @@ export function ProviderOnlineToggle({ variant = "full" }: { variant?: "full" | 
         onClick={handleToggleOnline}
         disabled={isTogglingOnline}
         title={onlineError || undefined}
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold transition-colors ${
           isOnline
             ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
             : "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
@@ -101,7 +101,7 @@ export function ProviderOnlineToggle({ variant = "full" }: { variant?: "full" | 
       <button
         onClick={handleToggleOnline}
         disabled={isTogglingOnline}
-        className={`flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-colors ${
+        className={`flex items-center gap-2 rounded-full px-3 py-2 text-xs font-medium transition-colors ${
           isOnline ? "bg-emerald-500 text-white" : "bg-white/10 text-blue-100 hover:bg-white/20"
         }`}
       >
@@ -109,12 +109,12 @@ export function ProviderOnlineToggle({ variant = "full" }: { variant?: "full" | 
         {isOnline ? t("provider.jobs.onlineStatusOn") : t("provider.jobs.onlineStatusOff")}
       </button>
       {isOnline && (
-        <button onClick={handleUpdateLocationNow} disabled={isUpdatingLocation} className="text-xs text-blue-100 hover:text-white underline flex items-center gap-1">
+        <button onClick={handleUpdateLocationNow} disabled={isUpdatingLocation} className="text-[11px] text-blue-100 hover:text-white underline flex items-center gap-1">
           {isUpdatingLocation && <Loader2 className="w-3 h-3 animate-spin" />}
           {t("provider.jobs.updateLocationButton")}
         </button>
       )}
-      {onlineError && <p className="text-xs text-amber-200">{onlineError}</p>}
+      {onlineError && <p className="text-[11px] text-amber-200">{onlineError}</p>}
     </div>
   )
 }

@@ -48,25 +48,25 @@ export default function ReferralsPage() {
   return (
     <div className="p-4 lg:p-6 max-w-3xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">{t("provider.referrals.title")}</h1>
-        <p className="text-sm text-muted-foreground mt-1">{t("provider.referrals.subtitle", { amount: formatMoney(REFERRAL_REWARD_KES) })}</p>
+        <h1 className="text-xl font-bold text-foreground">{t("provider.referrals.title")}</h1>
+        <p className="text-xs text-muted-foreground mt-1">{t("provider.referrals.subtitle", { amount: formatMoney(REFERRAL_REWARD_KES) })}</p>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3">
         <Card className="p-3 border border-border rounded-xl text-center">
           <Users className="w-4 h-4 text-primary mx-auto mb-1" />
-          <p className="text-xl font-bold text-foreground">{summary.invited}</p>
+          <p className="text-lg font-bold text-foreground">{summary.invited}</p>
           <p className="text-[10px] text-muted-foreground">{t("provider.referrals.statReferrals")}</p>
         </Card>
         <Card className="p-3 border border-border rounded-xl text-center">
           <Check className="w-4 h-4 text-emerald-500 mx-auto mb-1" />
-          <p className="text-xl font-bold text-foreground">{summary.completed}</p>
+          <p className="text-lg font-bold text-foreground">{summary.completed}</p>
           <p className="text-[10px] text-muted-foreground">{t("provider.referrals.statActive")}</p>
         </Card>
         <Card className="p-3 border border-border rounded-xl text-center">
           <DollarSign className="w-4 h-4 text-amber-500 mx-auto mb-1" />
-          <p className="text-xl font-bold text-foreground">{formatMoney(summary.totalEarned)}</p>
+          <p className="text-lg font-bold text-foreground">{formatMoney(summary.totalEarned)}</p>
           <p className="text-[10px] text-muted-foreground">{t("provider.referrals.statEarned")}</p>
         </Card>
       </div>
@@ -74,9 +74,9 @@ export default function ReferralsPage() {
       {/* Referral Code */}
       <Card className="p-5 border border-border rounded-xl text-center space-y-3">
         <Gift className="w-10 h-10 text-primary mx-auto" />
-        <h2 className="font-bold text-foreground text-lg">{t("provider.referrals.yourCodeTitle")}</h2>
+        <h2 className="font-bold text-foreground text-base">{t("provider.referrals.yourCodeTitle")}</h2>
         <div className="bg-muted rounded-xl p-3 flex items-center justify-center gap-3">
-          <span className="text-lg font-mono font-bold text-foreground tracking-wider">{summary.code}</span>
+          <span className="text-base font-mono font-bold text-foreground tracking-wider">{summary.code}</span>
           <button onClick={handleCopy} aria-label={t("customer.referrals.copyCode")} className="p-2 rounded-lg hover:bg-card transition-colors">
             {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-muted-foreground" />}
           </button>
@@ -97,10 +97,10 @@ export default function ReferralsPage() {
             { step: "3", title: t("provider.referrals.step3Title"), desc: t("provider.referrals.step3Desc", { amount: formatMoney(REFERRAL_REWARD_KES) }) },
           ].map(s => (
             <div key={s.step} className="flex items-start gap-3">
-              <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold flex-shrink-0">{s.step}</div>
+              <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-[11px] font-bold flex-shrink-0">{s.step}</div>
               <div>
-                <p className="text-sm font-medium text-foreground">{s.title}</p>
-                <p className="text-xs text-muted-foreground">{s.desc}</p>
+                <p className="text-xs font-medium text-foreground">{s.title}</p>
+                <p className="text-[11px] text-muted-foreground">{s.desc}</p>
               </div>
             </div>
           ))}
@@ -112,22 +112,22 @@ export default function ReferralsPage() {
         <h3 className="font-semibold text-foreground mb-3">{t("provider.referrals.yourReferralsTitle")}</h3>
         {summary.history.length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-sm text-muted-foreground">{t("provider.referrals.emptyText")}</p>
+            <p className="text-xs text-muted-foreground">{t("provider.referrals.emptyText")}</p>
           </div>
         ) : (
           <div className="space-y-2">
             {summary.history.map((r) => (
               <div key={r.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">{r.name.charAt(0).toUpperCase()}</div>
+                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">{r.name.charAt(0).toUpperCase()}</div>
                   <div>
-                    <p className="text-sm font-medium text-foreground">{r.name}</p>
+                    <p className="text-xs font-medium text-foreground">{r.name}</p>
                     <p className="text-[10px] text-muted-foreground">{formatRelativeTime(r.date)}</p>
                   </div>
                 </div>
                 <div className="text-right">
                   <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${r.status === "REWARDED" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"}`}>{r.status === "REWARDED" ? t("provider.referrals.statusActive") : t("provider.referrals.statusPending")}</span>
-                  {r.status === "REWARDED" && <p className="text-xs font-medium text-emerald-600 mt-0.5">{t("provider.referrals.rewardPrefix", { amount: formatMoney(r.rewardAmount) })}</p>}
+                  {r.status === "REWARDED" && <p className="text-[11px] font-medium text-emerald-600 mt-0.5">{t("provider.referrals.rewardPrefix", { amount: formatMoney(r.rewardAmount) })}</p>}
                 </div>
               </div>
             ))}

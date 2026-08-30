@@ -74,8 +74,8 @@ export default function FieldTechnicianHomePage() {
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-800 dark:to-blue-900 text-white p-6 lg:rounded-b-3xl">
         <div className="max-w-2xl mx-auto flex items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold">{t("provider.field.title")}</h1>
-            <p className="text-blue-100 text-sm">{t("provider.field.subtitle")}</p>
+            <h1 className="text-xl font-bold">{t("provider.field.title")}</h1>
+            <p className="text-blue-100 text-xs">{t("provider.field.subtitle")}</p>
           </div>
           <ProviderOnlineToggle />
         </div>
@@ -84,17 +84,17 @@ export default function FieldTechnicianHomePage() {
       <div className="max-w-2xl mx-auto px-4 -mt-4 space-y-3">
         {activeJobs.length === 0 ? (
           <Card className="p-8 text-center mt-4">
-            <p className="text-sm text-muted-foreground">{t("provider.field.noJobs")}</p>
+            <p className="text-xs text-muted-foreground">{t("provider.field.noJobs")}</p>
           </Card>
         ) : (
           activeJobs.map((job) => (
             <Card key={job.id} className="p-4 shadow-lg border-0">
               <div className="flex items-start justify-between gap-2 mb-2">
                 <h3 className="font-semibold text-gray-900 dark:text-white">{job.title}</h3>
-                <span className="text-lg font-bold text-gray-900 dark:text-white whitespace-nowrap">{formatMoney(job.price)}</span>
+                <span className="text-base font-bold text-gray-900 dark:text-white whitespace-nowrap">{formatMoney(job.price)}</span>
               </div>
-              <p className="text-sm text-muted-foreground mb-2">{job.clientName}</p>
-              <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mb-3">
+              <p className="text-xs text-muted-foreground mb-2">{job.clientName}</p>
+              <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground mb-3">
                 <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{job.location}</span>
                 <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{formatDate(job.scheduledDate)}</span>
               </div>

@@ -73,8 +73,8 @@ export default function OffersPage() {
     <div className="p-4 lg:p-6 max-w-5xl mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground"><Rocket className="h-6 w-6 text-amber-500" /> My Offers</h1>
-          <p className="text-sm text-muted-foreground mt-1">Provider-controlled listings. Saji structures discovery and applies trust &amp; safety rules before they go live.</p>
+          <h1 className="flex items-center gap-2 text-xl font-bold text-foreground"><Rocket className="h-6 w-6 text-amber-500" /> My Offers</h1>
+          <p className="text-xs text-muted-foreground mt-1">Provider-controlled listings. Saji structures discovery and applies trust &amp; safety rules before they go live.</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" asChild className="rounded-xl gap-2"><Link href="/provider/pro"><Crown className="w-4 h-4" />Saji Pro</Link></Button>
@@ -84,15 +84,15 @@ export default function OffersPage() {
 
       {drafts.length > 0 && (
         <Card className="border-dashed p-4">
-          <p className="mb-2 text-sm font-semibold text-foreground">Continue creating your offer</p>
+          <p className="mb-2 text-xs font-semibold text-foreground">Continue creating your offer</p>
           <div className="space-y-2">
             {drafts.map((d) => (
               <Link key={d.id} href={`/provider/offers/new?id=${d.id}`} className="flex items-center justify-between gap-3 rounded-xl border border-border p-3 hover:border-primary/40 transition-colors">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <FileEdit className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
-                  <span className="truncate text-sm font-medium text-foreground">{d.title}</span>
+                  <span className="truncate text-xs font-medium text-foreground">{d.title}</span>
                 </div>
-                <span className="flex-shrink-0 text-xs text-muted-foreground">Step {d.wizardStep}/10</span>
+                <span className="flex-shrink-0 text-[11px] text-muted-foreground">Step {d.wizardStep}/10</span>
               </Link>
             ))}
           </div>
@@ -101,16 +101,16 @@ export default function OffersPage() {
 
       <div className="grid grid-cols-3 gap-3">
         <Card className="p-3 border border-border rounded-xl text-center">
-          <p className="text-2xl font-bold text-foreground">{liveCount}</p>
-          <p className="text-[11px] text-muted-foreground">Live</p>
+          <p className="text-xl font-bold text-foreground">{liveCount}</p>
+          <p className="text-[10px] text-muted-foreground">Live</p>
         </Card>
         <Card className="p-3 border border-border rounded-xl text-center">
-          <p className="text-2xl font-bold text-foreground">{totalBookings}</p>
-          <p className="text-[11px] text-muted-foreground">Bookings</p>
+          <p className="text-xl font-bold text-foreground">{totalBookings}</p>
+          <p className="text-[10px] text-muted-foreground">Bookings</p>
         </Card>
         <Card className="p-3 border border-border rounded-xl text-center">
-          <p className="text-2xl font-bold text-foreground">{totalRequests}</p>
-          <p className="text-[11px] text-muted-foreground">Quotes &amp; Requests</p>
+          <p className="text-xl font-bold text-foreground">{totalRequests}</p>
+          <p className="text-[10px] text-muted-foreground">Quotes &amp; Requests</p>
         </Card>
       </div>
 
@@ -122,7 +122,7 @@ export default function OffersPage() {
       <div className="space-y-3">
         {filtered.length === 0 && (
           <Card className="p-10 text-center border-dashed">
-            <p className="text-sm text-muted-foreground">No offers yet. Create your first one to start appearing in discovery with a Book/Hire/Buy/Quote/Request action.</p>
+            <p className="text-xs text-muted-foreground">No offers yet. Create your first one to start appearing in discovery with a Book/Hire/Buy/Quote/Request action.</p>
           </Card>
         )}
         {filtered.map((offer) => (
@@ -130,7 +130,7 @@ export default function OffersPage() {
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-start gap-3 min-w-0">
                 <div className="w-20 h-14 flex-shrink-0 bg-muted rounded-md overflow-hidden">
-                  {offer.image ? <img src={offer.image} alt={offer.title} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">No Image</div>}
+                  {offer.image ? <img src={offer.image} alt={offer.title} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[11px] text-muted-foreground">No Image</div>}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -138,9 +138,9 @@ export default function OffersPage() {
                     <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${STATUS_STYLE[offer.status].className}`}>{STATUS_STYLE[offer.status].label}</span>
                     <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-medium">{OFFER_ACTION_LABEL[offer.actionType]}</span>
                   </div>
-                  {offer.reviewNote && <p className="text-xs text-red-600 dark:text-red-400 mb-1">{offer.reviewNote}</p>}
-                  <p className="text-xs text-muted-foreground line-clamp-1 mb-2">{offer.description}</p>
-                  <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                  {offer.reviewNote && <p className="text-[11px] text-red-600 dark:text-red-400 mb-1">{offer.reviewNote}</p>}
+                  <p className="text-[11px] text-muted-foreground line-clamp-1 mb-2">{offer.description}</p>
+                  <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
                     {offer.categoryName && <span className="flex items-center gap-1"><Tag className="w-3 h-3" />{offer.categoryName}</span>}
                     <span className="flex items-center gap-1"><BarChart3 className="w-3 h-3" />{offer.viewCount} views</span>
                     <span>{offer.bookingCount} bookings</span>
@@ -150,7 +150,7 @@ export default function OffersPage() {
               </div>
               <div className="text-right flex-shrink-0">
                 <div className="mb-2">
-                  {offer.price != null ? <span className="text-lg font-bold text-foreground">{formatMoney(offer.price)}</span> : <span className="text-xs text-muted-foreground">No fixed price</span>}
+                  {offer.price != null ? <span className="text-base font-bold text-foreground">{formatMoney(offer.price)}</span> : <span className="text-[11px] text-muted-foreground">No fixed price</span>}
                 </div>
                 <div className="flex items-center gap-1 justify-end">
                   {offer.status === "LIVE" ? (

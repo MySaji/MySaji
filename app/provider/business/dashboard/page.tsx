@@ -46,8 +46,8 @@ function TileGrid({ tiles, cols = 3 }: { tiles: Tile[]; cols?: 2 | 3 }) {
               <Icon className={`w-4 h-4 ${color.text}`} />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{tile.label}</p>
-              {tile.badge && <p className={`text-xs truncate ${tile.badgeWarn ? "text-red-600 dark:text-red-400" : "text-gray-500 dark:text-gray-400"}`}>{tile.badge}</p>}
+              <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{tile.label}</p>
+              {tile.badge && <p className={`text-[11px] truncate ${tile.badgeWarn ? "text-red-600 dark:text-red-400" : "text-gray-500 dark:text-gray-400"}`}>{tile.badge}</p>}
             </div>
             {!tile.disabled && <ChevronRight className="w-4 h-4 text-gray-400 shrink-0" />}
           </div>
@@ -73,8 +73,8 @@ function SectionCard({ title, subtitle, tiles, cols }: { title: string; subtitle
   return (
     <div className="border border-gray-200 dark:border-gray-700 rounded-2xl p-4">
       <div className="mb-3">
-        <h2 className="text-sm font-bold text-emerald-700 dark:text-emerald-400">{title}</h2>
-        <p className="text-xs text-gray-500 dark:text-gray-400">{subtitle}</p>
+        <h2 className="text-xs font-bold text-emerald-700 dark:text-emerald-400">{title}</h2>
+        <p className="text-[11px] text-gray-500 dark:text-gray-400">{subtitle}</p>
       </div>
       <TileGrid tiles={tiles} cols={cols} />
     </div>
@@ -184,9 +184,9 @@ export default function BusinessDashboardHubPage() {
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
           <p className="text-gray-500 dark:text-gray-400 flex items-center gap-1.5">{t(greetingKey())}, {firstName} 👋</p>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mt-0.5">{t("provider.business.hub.title")}</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mt-0.5">{t("provider.business.hub.title")}</h1>
           {overview.verified && (
-            <span className="inline-flex items-center gap-1 mt-2 text-xs font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2.5 py-1 rounded-full">
+            <span className="inline-flex items-center gap-1 mt-2 text-[11px] font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2.5 py-1 rounded-full">
               <BadgeCheck className="w-3.5 h-3.5" /> {t("provider.business.hub.verifiedBadge")}
             </span>
           )}
@@ -200,9 +200,9 @@ export default function BusinessDashboardHubPage() {
             </div>
           )}
           <div className="text-right">
-            <p className="font-semibold text-gray-900 dark:text-white text-sm leading-tight">{overview.businessName}</p>
+            <p className="font-semibold text-gray-900 dark:text-white text-xs leading-tight">{overview.businessName}</p>
             {overview.location && (
-              <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1 justify-end mt-0.5">
+              <p className="text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1 justify-end mt-0.5">
                 <MapPin className="w-3 h-3" /> {overview.location}
               </p>
             )}
@@ -217,11 +217,11 @@ export default function BusinessDashboardHubPage() {
           const Icon = stat.icon
           return (
             <div key={stat.label} className="min-w-0">
-              <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 flex items-center gap-1">
                 {stat.label} <Icon className={`w-3 h-3 ${stat.color}`} />
               </p>
-              <p className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mt-0.5 truncate">{stat.value}</p>
-              {stat.sub && <p className={`text-xs mt-0.5 ${stat.subColor}`}>{stat.sub}</p>}
+              <p className="text-base sm:text-lg font-bold text-gray-900 dark:text-white mt-0.5 truncate">{stat.value}</p>
+              {stat.sub && <p className={`text-[11px] mt-0.5 ${stat.subColor}`}>{stat.sub}</p>}
             </div>
           )
         })}
@@ -229,7 +229,7 @@ export default function BusinessDashboardHubPage() {
 
       {/* Quick actions */}
       <div>
-        <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">{t("provider.business.hub.quickActions")}</h2>
+        <h2 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-3">{t("provider.business.hub.quickActions")}</h2>
         <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-3">
           {[
             { icon: FilePlus, label: t("provider.business.hub.newQuote"), href: "/provider/quotes", color: "bg-emerald-600" },
@@ -246,7 +246,7 @@ export default function BusinessDashboardHubPage() {
                 <div className={`w-9 h-9 rounded-lg ${action.color} flex items-center justify-center`}>
                   <Icon className="w-4 h-4 text-white" />
                 </div>
-                <span className="text-[11px] sm:text-xs font-medium text-gray-700 dark:text-gray-300 leading-tight">{action.label}</span>
+                <span className="text-[10px] sm:text-[11px] font-medium text-gray-700 dark:text-gray-300 leading-tight">{action.label}</span>
               </div>
             )
             if (action.onClick) return <button key={action.label} type="button" onClick={action.onClick} className="w-full">{inner}</button>
@@ -267,8 +267,8 @@ export default function BusinessDashboardHubPage() {
       {/* FINANCE */}
       <div>
         <div className="mb-3">
-          <h2 className="text-sm font-bold text-emerald-700 dark:text-emerald-400">{t("provider.business.hub.finance")}</h2>
-          <p className="text-xs text-gray-500 dark:text-gray-400">{t("provider.business.hub.financeSubtitle")}</p>
+          <h2 className="text-xs font-bold text-emerald-700 dark:text-emerald-400">{t("provider.business.hub.finance")}</h2>
+          <p className="text-[11px] text-gray-500 dark:text-gray-400">{t("provider.business.hub.financeSubtitle")}</p>
         </div>
         <div className="bg-emerald-950 rounded-2xl p-4 sm:p-5 text-white">
           <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -277,25 +277,25 @@ export default function BusinessDashboardHubPage() {
                 <Wallet className="w-5 h-5 text-amber-200" />
               </div>
               <div>
-                <p className="text-xs text-emerald-200/70">{t("provider.business.hub.walletBalance")}</p>
-                <p className="text-lg sm:text-xl font-bold">{formatMoney(wallet?.balance ?? 0)}</p>
-                <Link href="/provider/wallet" className="inline-block mt-1.5 text-[11px] font-semibold bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 rounded-full transition-colors">
+                <p className="text-[11px] text-emerald-200/70">{t("provider.business.hub.walletBalance")}</p>
+                <p className="text-base sm:text-lg font-bold">{formatMoney(wallet?.balance ?? 0)}</p>
+                <Link href="/provider/wallet" className="inline-block mt-1.5 text-[10px] font-semibold bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 rounded-full transition-colors">
                   {t("provider.business.hub.viewWallet")}
                 </Link>
               </div>
             </div>
             <div className="flex items-center gap-5 sm:gap-6 flex-wrap">
               <div>
-                <p className="text-xs text-emerald-200/70">{t("provider.business.hub.pendingPayouts")}</p>
-                <p className="text-sm font-semibold">{formatMoney(wallet?.pending ?? 0)}</p>
+                <p className="text-[11px] text-emerald-200/70">{t("provider.business.hub.pendingPayouts")}</p>
+                <p className="text-xs font-semibold">{formatMoney(wallet?.pending ?? 0)}</p>
               </div>
               <div>
-                <p className="text-xs text-emerald-200/70">{t("provider.business.hub.onHoldEscrow")}</p>
-                <p className="text-sm font-semibold">{formatMoney(wallet?.escrow ?? 0)}</p>
+                <p className="text-[11px] text-emerald-200/70">{t("provider.business.hub.onHoldEscrow")}</p>
+                <p className="text-xs font-semibold">{formatMoney(wallet?.escrow ?? 0)}</p>
               </div>
               <div>
-                <p className="text-xs text-emerald-200/70">{t("provider.business.hub.availableToWithdraw")}</p>
-                <p className="text-sm font-semibold">{formatMoney(wallet?.available ?? 0)}</p>
+                <p className="text-[11px] text-emerald-200/70">{t("provider.business.hub.availableToWithdraw")}</p>
+                <p className="text-xs font-semibold">{formatMoney(wallet?.available ?? 0)}</p>
               </div>
               <Link href="/provider/wallet" className="hidden sm:block">
                 <ChevronRight className="w-5 h-5 text-emerald-200/60" />
@@ -313,28 +313,28 @@ export default function BusinessDashboardHubPage() {
             <ShieldCheck className="w-4 h-4 text-white" />
           </div>
           <div className="min-w-0">
-            <p className="font-semibold text-gray-900 dark:text-white text-sm whitespace-nowrap">{t("provider.business.hub.protectionTitle")}</p>
-            <p className="text-[11px] text-gray-500 dark:text-gray-400 whitespace-nowrap">{t("provider.business.hub.protectionSubtitle")}</p>
+            <p className="font-semibold text-gray-900 dark:text-white text-xs whitespace-nowrap">{t("provider.business.hub.protectionTitle")}</p>
+            <p className="text-[10px] text-gray-500 dark:text-gray-400 whitespace-nowrap">{t("provider.business.hub.protectionSubtitle")}</p>
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <ShieldCheck className="w-4 h-4 text-gray-400 shrink-0" />
           <div className="min-w-0">
-            <p className="text-xs font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">{t("provider.business.hub.escrowProtection")}</p>
+            <p className="text-[11px] font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">{t("provider.business.hub.escrowProtection")}</p>
             <p className="text-[10px] text-gray-400 whitespace-nowrap">{t("provider.business.hub.escrowProtectionSub")}</p>
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <MessageCircle className="w-4 h-4 text-gray-400 shrink-0" />
           <div className="min-w-0">
-            <p className="text-xs font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">{t("provider.business.hub.disputeSupport")}</p>
+            <p className="text-[11px] font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">{t("provider.business.hub.disputeSupport")}</p>
             <p className="text-[10px] text-gray-400 whitespace-nowrap">{t("provider.business.hub.disputeSupportSub")}</p>
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0 opacity-60">
           <ShieldAlert className="w-4 h-4 text-gray-400 shrink-0" />
           <div className="min-w-0">
-            <p className="text-xs font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">{t("provider.business.hub.businessInsurance")}</p>
+            <p className="text-[11px] font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">{t("provider.business.hub.businessInsurance")}</p>
             <p className="text-[10px] text-gray-400 whitespace-nowrap">{t("provider.business.hub.comingSoon")}</p>
           </div>
         </div>
@@ -347,9 +347,9 @@ export default function BusinessDashboardHubPage() {
           <DialogHeader>
             <DialogTitle>{t("provider.business.hub.setupShopTitle")}</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-gray-600 dark:text-gray-400">{t("provider.business.hub.setupShopDesc")}</p>
+          <p className="text-xs text-gray-600 dark:text-gray-400">{t("provider.business.hub.setupShopDesc")}</p>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t("provider.business.hub.shopNameLabel")}</label>
+            <label className="text-xs font-medium text-gray-700 dark:text-gray-300">{t("provider.business.hub.shopNameLabel")}</label>
             <Input
               value={shopNameInput}
               onChange={(e) => setShopNameInput(e.target.value)}
@@ -357,7 +357,7 @@ export default function BusinessDashboardHubPage() {
               disabled={isSettingUpShop}
             />
           </div>
-          {setupShopError && <p className="text-sm text-red-600 dark:text-red-400">{setupShopError}</p>}
+          {setupShopError && <p className="text-xs text-red-600 dark:text-red-400">{setupShopError}</p>}
           <div className="flex gap-3 pt-2">
             <Button variant="outline" className="flex-1 bg-transparent" onClick={() => setShowSetupShop(false)} disabled={isSettingUpShop}>
               {t("common.cancel")}

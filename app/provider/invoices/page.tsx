@@ -105,8 +105,8 @@ export default function InvoicesPage() {
     <div className="p-4 lg:p-6 max-w-5xl mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">{t("provider.invoices.title")}</h1>
-          <p className="text-sm text-muted-foreground mt-1">{t("provider.invoices.subtitle")}</p>
+          <h1 className="text-xl font-bold text-foreground">{t("provider.invoices.title")}</h1>
+          <p className="text-xs text-muted-foreground mt-1">{t("provider.invoices.subtitle")}</p>
         </div>
         <Button onClick={openCreate} className="rounded-xl" disabled={clients.length === 0}><Plus className="w-4 h-4 mr-2" />{t("provider.invoices.createInvoice")}</Button>
       </div>
@@ -114,16 +114,16 @@ export default function InvoicesPage() {
       {/* Summary Cards */}
       <div className="grid grid-cols-3 gap-3">
         <Card className="p-3 border border-border rounded-xl">
-          <p className="text-[11px] text-muted-foreground">{t("provider.invoices.statCollected")}</p>
-          <p className="text-lg font-bold text-emerald-600">{formatMoney(stats.collected)}</p>
+          <p className="text-[10px] text-muted-foreground">{t("provider.invoices.statCollected")}</p>
+          <p className="text-base font-bold text-emerald-600">{formatMoney(stats.collected)}</p>
         </Card>
         <Card className="p-3 border border-border rounded-xl">
-          <p className="text-[11px] text-muted-foreground">{t("provider.invoices.statPending")}</p>
-          <p className="text-lg font-bold text-amber-600">{formatMoney(stats.pending)}</p>
+          <p className="text-[10px] text-muted-foreground">{t("provider.invoices.statPending")}</p>
+          <p className="text-base font-bold text-amber-600">{formatMoney(stats.pending)}</p>
         </Card>
         <Card className="p-3 border border-border rounded-xl">
-          <p className="text-[11px] text-muted-foreground">{t("provider.invoices.statOverdue")}</p>
-          <p className="text-lg font-bold text-destructive">{formatMoney(stats.overdue)}</p>
+          <p className="text-[10px] text-muted-foreground">{t("provider.invoices.statOverdue")}</p>
+          <p className="text-base font-bold text-destructive">{formatMoney(stats.overdue)}</p>
         </Card>
       </div>
 
@@ -141,7 +141,7 @@ export default function InvoicesPage() {
             { key: "Overdue", label: t("provider.invoices.filterOverdue") },
             { key: "Draft", label: t("provider.invoices.filterDraft") },
           ].map(s => (
-            <button key={s.key} onClick={() => setFilterStatus(s.key)} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${filterStatus === s.key ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}>{s.label}</button>
+            <button key={s.key} onClick={() => setFilterStatus(s.key)} className={`px-3 py-1.5 rounded-full text-[11px] font-medium transition-all ${filterStatus === s.key ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}>{s.label}</button>
           ))}
         </div>
       </div>
@@ -150,7 +150,7 @@ export default function InvoicesPage() {
       <div className="space-y-2">
         {filtered.length === 0 && (
           <Card className="p-10 text-center border-dashed">
-            <p className="text-sm text-muted-foreground">{t("provider.invoices.emptyText")}</p>
+            <p className="text-xs text-muted-foreground">{t("provider.invoices.emptyText")}</p>
           </Card>
         )}
         {filtered.map(inv => (
@@ -162,15 +162,15 @@ export default function InvoicesPage() {
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-foreground">{inv.invoiceNumber}</span>
+                    <span className="text-xs font-semibold text-foreground">{inv.invoiceNumber}</span>
                     <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${statusColors[inv.status]}`}>{statusLabelKeys[inv.status] ? t(statusLabelKeys[inv.status]) : inv.status}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground truncate">{inv.customerName}</p>
+                  <p className="text-[11px] text-muted-foreground truncate">{inv.customerName}</p>
                   <p className="text-[10px] text-muted-foreground">{t("provider.invoices.dueLabel", { date: new Date(inv.dueDate).toLocaleDateString() })}</p>
                 </div>
               </div>
               <div className="text-right flex-shrink-0">
-                <p className="text-sm font-bold text-foreground">{formatMoney(inv.total)}</p>
+                <p className="text-xs font-bold text-foreground">{formatMoney(inv.total)}</p>
                 <div className="flex items-center gap-1 mt-1">
                   <button onClick={() => setViewInvoice(inv)} aria-label={t("common.viewDetails")} className="p-1 rounded hover:bg-muted transition-colors"><Eye className="w-3.5 h-3.5 text-muted-foreground" /></button>
                   {inv.status === "draft" && (
@@ -196,32 +196,32 @@ export default function InvoicesPage() {
             <div className="p-5 space-y-4">
               <div className="flex justify-between items-start">
                 <div>
-                  <h2 className="text-lg font-bold text-foreground">{viewInvoice.invoiceNumber}</h2>
-                  <p className="text-xs text-muted-foreground">{t("provider.invoices.issuedLabel", { date: new Date(viewInvoice.createdAt).toLocaleDateString() })}</p>
+                  <h2 className="text-base font-bold text-foreground">{viewInvoice.invoiceNumber}</h2>
+                  <p className="text-[11px] text-muted-foreground">{t("provider.invoices.issuedLabel", { date: new Date(viewInvoice.createdAt).toLocaleDateString() })}</p>
                 </div>
-                <span className={`text-xs px-2 py-1 rounded-full font-medium ${statusColors[viewInvoice.status]}`}>{statusLabelKeys[viewInvoice.status] ? t(statusLabelKeys[viewInvoice.status]) : viewInvoice.status}</span>
+                <span className={`text-[11px] px-2 py-1 rounded-full font-medium ${statusColors[viewInvoice.status]}`}>{statusLabelKeys[viewInvoice.status] ? t(statusLabelKeys[viewInvoice.status]) : viewInvoice.status}</span>
               </div>
               <div className="bg-muted/30 rounded-lg p-3">
-                <p className="text-xs text-muted-foreground">{t("provider.invoices.billTo")}</p>
-                <p className="text-sm font-semibold text-foreground">{viewInvoice.customerName}</p>
-                {viewInvoice.customerPhone && <p className="text-xs text-muted-foreground">{viewInvoice.customerPhone}</p>}
+                <p className="text-[11px] text-muted-foreground">{t("provider.invoices.billTo")}</p>
+                <p className="text-xs font-semibold text-foreground">{viewInvoice.customerName}</p>
+                {viewInvoice.customerPhone && <p className="text-[11px] text-muted-foreground">{viewInvoice.customerPhone}</p>}
               </div>
               <div>
-                <p className="text-xs font-medium text-muted-foreground mb-2">{t("provider.invoices.itemsLabel")}</p>
+                <p className="text-[11px] font-medium text-muted-foreground mb-2">{t("provider.invoices.itemsLabel")}</p>
                 {viewInvoice.items.map((item, i) => (
                   <div key={i} className="flex justify-between py-2 border-b border-border last:border-0">
                     <div>
-                      <p className="text-sm text-foreground">{item.description}</p>
+                      <p className="text-xs text-foreground">{item.description}</p>
                       <p className="text-[10px] text-muted-foreground">{t("provider.invoices.qtyLabel", { qty: item.quantity })}</p>
                     </div>
-                    <p className="text-sm font-medium text-foreground">{formatMoney(item.quantity * item.rate)}</p>
+                    <p className="text-xs font-medium text-foreground">{formatMoney(item.quantity * item.rate)}</p>
                   </div>
                 ))}
               </div>
               <div className="border-t border-border pt-3 space-y-1">
-                <div className="flex justify-between text-sm"><span className="text-muted-foreground">{t("provider.invoices.subtotal")}</span><span className="text-foreground">{formatMoney(viewInvoice.subtotal)}</span></div>
-                <div className="flex justify-between text-sm"><span className="text-muted-foreground">{t("provider.invoices.vat")}</span><span className="text-foreground">{formatMoney(viewInvoice.tax)}</span></div>
-                <div className="flex justify-between text-sm font-bold pt-1 border-t border-border"><span className="text-foreground">{t("payment.total")}</span><span className="text-foreground">{formatMoney(viewInvoice.total)}</span></div>
+                <div className="flex justify-between text-xs"><span className="text-muted-foreground">{t("provider.invoices.subtotal")}</span><span className="text-foreground">{formatMoney(viewInvoice.subtotal)}</span></div>
+                <div className="flex justify-between text-xs"><span className="text-muted-foreground">{t("provider.invoices.vat")}</span><span className="text-foreground">{formatMoney(viewInvoice.tax)}</span></div>
+                <div className="flex justify-between text-xs font-bold pt-1 border-t border-border"><span className="text-foreground">{t("payment.total")}</span><span className="text-foreground">{formatMoney(viewInvoice.total)}</span></div>
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => setViewInvoice(null)} className="flex-1 rounded-xl">{t("common.close")}</Button>
@@ -236,35 +236,35 @@ export default function InvoicesPage() {
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="max-w-md rounded-xl max-h-[85vh] overflow-y-auto" showCloseButton={false}>
           <div className="space-y-4">
-            <h2 className="text-lg font-bold text-foreground">{t("provider.invoices.createInvoice")}</h2>
+            <h2 className="text-base font-bold text-foreground">{t("provider.invoices.createInvoice")}</h2>
             <div>
-              <label className="text-sm text-muted-foreground mb-1 block">{t("provider.invoices.clientLabel")}</label>
-              <select value={newInvoice.customerId} onChange={(e) => setNewInvoice(p => ({ ...p, customerId: e.target.value }))} className="w-full h-9 rounded-lg bg-card border border-border text-sm text-foreground px-2">
+              <label className="text-xs text-muted-foreground mb-1 block">{t("provider.invoices.clientLabel")}</label>
+              <select value={newInvoice.customerId} onChange={(e) => setNewInvoice(p => ({ ...p, customerId: e.target.value }))} className="w-full h-9 rounded-lg bg-card border border-border text-xs text-foreground px-2">
                 {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
             <div>
-              <label className="text-sm text-muted-foreground mb-1 block">{t("provider.invoices.dueDateLabel")}</label>
+              <label className="text-xs text-muted-foreground mb-1 block">{t("provider.invoices.dueDateLabel")}</label>
               <Input type="date" value={newInvoice.dueDate} onChange={(e) => setNewInvoice(p => ({ ...p, dueDate: e.target.value }))} className="rounded-lg bg-card border-border" />
             </div>
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="text-sm text-muted-foreground">{t("provider.invoices.lineItemsLabel")}</label>
-                <button onClick={addItem} className="text-xs text-primary font-medium hover:underline">{t("provider.invoices.addItemButton")}</button>
+                <label className="text-xs text-muted-foreground">{t("provider.invoices.lineItemsLabel")}</label>
+                <button onClick={addItem} className="text-[11px] text-primary font-medium hover:underline">{t("provider.invoices.addItemButton")}</button>
               </div>
               {newInvoice.items.map((item, idx) => (
                 <div key={idx} className="flex gap-2 mb-2">
-                  <Input value={item.desc} onChange={(e) => updateItem(idx, "desc", e.target.value)} placeholder={t("provider.invoices.descriptionPlaceholder")} className="flex-1 rounded-lg bg-card border-border text-sm" />
-                  <Input type="number" value={item.qty} onChange={(e) => updateItem(idx, "qty", Number(e.target.value))} className="w-14 rounded-lg bg-card border-border text-sm" />
-                  <Input type="number" value={item.rate || ""} onChange={(e) => updateItem(idx, "rate", Number(e.target.value))} placeholder={t("provider.invoices.ratePlaceholder")} className="w-20 rounded-lg bg-card border-border text-sm" />
+                  <Input value={item.desc} onChange={(e) => updateItem(idx, "desc", e.target.value)} placeholder={t("provider.invoices.descriptionPlaceholder")} className="flex-1 rounded-lg bg-card border-border text-xs" />
+                  <Input type="number" value={item.qty} onChange={(e) => updateItem(idx, "qty", Number(e.target.value))} className="w-14 rounded-lg bg-card border-border text-xs" />
+                  <Input type="number" value={item.rate || ""} onChange={(e) => updateItem(idx, "rate", Number(e.target.value))} placeholder={t("provider.invoices.ratePlaceholder")} className="w-20 rounded-lg bg-card border-border text-xs" />
                   {newInvoice.items.length > 1 && <button onClick={() => removeItem(idx)} aria-label={t("common.removeItem")} className="p-1 text-destructive"><X className="w-4 h-4" /></button>}
                 </div>
               ))}
-              <div className="text-right text-sm font-semibold text-foreground mt-2">
+              <div className="text-right text-xs font-semibold text-foreground mt-2">
                 {t("provider.invoices.totalPrefix")} {formatMoney(Math.round(newInvoice.items.reduce((a, i) => a + i.qty * i.rate, 0) * (1 + 0.16)))}
               </div>
             </div>
-            {formError && <p className="text-sm text-red-600">{formError}</p>}
+            {formError && <p className="text-xs text-red-600">{formError}</p>}
             <div className="flex gap-2 pt-2">
               <Button variant="outline" onClick={() => setShowCreate(false)} className="flex-1 rounded-xl" disabled={isSaving}>{t("common.cancel")}</Button>
               <Button onClick={handleCreate} disabled={!newInvoice.customerId || isSaving || newInvoice.items.some(i => !i.desc.trim())} className="flex-1 rounded-xl">

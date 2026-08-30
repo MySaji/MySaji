@@ -110,7 +110,7 @@ export default function MyAccountPage() {
           <Link href="/provider/profile" className="lg:hidden">
             <ArrowLeft className="w-6 h-6" />
           </Link>
-          <h1 className="text-xl font-bold">{t("provider.account.title")}</h1>
+          <h1 className="text-lg font-bold">{t("provider.account.title")}</h1>
         </div>
       </div>
 
@@ -119,17 +119,17 @@ export default function MyAccountPage() {
         <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border dark:border-gray-700 space-y-6">
           {/* Personal Information */}
           <div>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <h2 className="text-base font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
               <User className="w-5 h-5" />
               {t("provider.account.personalInfoTitle")}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("provider.account.firstNameLabel")}</label>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t("provider.account.firstNameLabel")}</label>
                 <input type="text" name="firstName" value={formData.firstName} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("provider.account.lastNameLabel")}</label>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t("provider.account.lastNameLabel")}</label>
                 <input type="text" name="lastName" value={formData.lastName} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
               </div>
             </div>
@@ -137,18 +137,18 @@ export default function MyAccountPage() {
 
           {/* Contact Information */}
           <div>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <h2 className="text-base font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
               <Mail className="w-5 h-5" />
               {t("provider.account.contactInfoTitle")}
             </h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("auth.email")}</label>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t("auth.email")}</label>
                 <input type="email" name="email" value={formData.email} disabled className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-900 text-gray-500 dark:text-gray-400 cursor-not-allowed" />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t("provider.account.emailChangeHint")}</p>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">{t("provider.account.emailChangeHint")}</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("provider.account.phoneLabel")}</label>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t("provider.account.phoneLabel")}</label>
                 <input type="tel" name="phone" value={formData.phone} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
               </div>
             </div>
@@ -156,7 +156,7 @@ export default function MyAccountPage() {
 
           {/* Location */}
           <div>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <h2 className="text-base font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
               <MapPin className="w-5 h-5" />
               {t("provider.account.locationTitle")}
             </h2>
@@ -165,11 +165,11 @@ export default function MyAccountPage() {
 
           {/* Linked Shop */}
           <div>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
+            <h2 className="text-base font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
               <Store className="w-5 h-5" />
               {t("provider.account.linkedShopTitle")}
             </h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+            <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-4">
               {t("provider.account.linkedShopDesc")}
             </p>
             {linkedShop ? (
@@ -178,7 +178,7 @@ export default function MyAccountPage() {
                   <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 overflow-hidden flex items-center justify-center flex-shrink-0">
                     {linkedShop.logoUrl ? <img src={linkedShop.logoUrl} alt="" className="w-full h-full object-cover" /> : <Store className="w-5 h-5 text-gray-400" />}
                   </div>
-                  <p className="font-medium text-gray-900 dark:text-white text-sm">{linkedShop.name}</p>
+                  <p className="font-medium text-gray-900 dark:text-white text-xs">{linkedShop.name}</p>
                 </div>
                 <button onClick={handleUnlinkShop} disabled={isLinkingShop} aria-label={t("provider.account.unlinkShop")} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
                   {isLinkingShop ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4 text-red-600" />}
@@ -193,7 +193,7 @@ export default function MyAccountPage() {
                     value={shopQuery}
                     onChange={(e) => setShopQuery(e.target.value)}
                     placeholder={t("provider.account.searchShopsPlaceholder")}
-                    className="w-full pl-9 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                    className="w-full pl-9 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-xs"
                   />
                 </div>
                 {shopQuery.trim().length >= 2 && (
@@ -201,7 +201,7 @@ export default function MyAccountPage() {
                     {isSearchingShops ? (
                       <div className="p-3 flex justify-center"><Loader2 className="w-4 h-4 animate-spin text-gray-400" /></div>
                     ) : shopResults.length === 0 ? (
-                      <p className="p-3 text-sm text-gray-500 dark:text-gray-400 text-center">{t("provider.account.noShopsFound")}</p>
+                      <p className="p-3 text-xs text-gray-500 dark:text-gray-400 text-center">{t("provider.account.noShopsFound")}</p>
                     ) : (
                       shopResults.map((shop) => (
                         <button
@@ -213,7 +213,7 @@ export default function MyAccountPage() {
                           <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-700 overflow-hidden flex items-center justify-center flex-shrink-0">
                             {shop.logoUrl ? <img src={shop.logoUrl} alt="" className="w-full h-full object-cover" /> : <Store className="w-4 h-4 text-gray-400" />}
                           </div>
-                          <span className="text-sm font-medium text-gray-900 dark:text-white">{shop.name}</span>
+                          <span className="text-xs font-medium text-gray-900 dark:text-white">{shop.name}</span>
                         </button>
                       ))
                     )}
@@ -226,11 +226,11 @@ export default function MyAccountPage() {
           {/* Convert to Business Account — Step 5 upgrade path */}
           {businessInfo && !businessInfo.isBusinessOwner && !businessInfo.parentBusinessId && (
             <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
+              <h2 className="text-base font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
                 <Building2 className="w-5 h-5" />
                 {t("provider.account.upgradeTitle")}
               </h2>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{t("provider.account.upgradeDesc")}</p>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-4">{t("provider.account.upgradeDesc")}</p>
 
               {!showUpgradeForm ? (
                 <button
@@ -240,30 +240,30 @@ export default function MyAccountPage() {
                   {t("provider.account.upgradeButton")}
                 </button>
               ) : upgraded ? (
-                <p className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">{t("provider.account.upgradeSuccess")}</p>
+                <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">{t("provider.account.upgradeSuccess")}</p>
               ) : (
                 <div className="space-y-3 bg-gray-50 dark:bg-gray-900/40 rounded-lg p-4">
-                  {upgradeError && <p className="text-sm text-red-600">{upgradeError}</p>}
+                  {upgradeError && <p className="text-xs text-red-600">{upgradeError}</p>}
                   <input
                     value={upgradeRegistrationNumber}
                     onChange={(e) => setUpgradeRegistrationNumber(e.target.value)}
                     placeholder={t("provider.onboarding.registrationNumberPlaceholder")}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-xs"
                   />
                   <input
                     value={upgradeHqAddress}
                     onChange={(e) => setUpgradeHqAddress(e.target.value)}
                     placeholder={t("provider.onboarding.hqAddressPlaceholder")}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-xs"
                   />
                   <div className="flex gap-2">
-                    <button onClick={() => setShowUpgradeForm(false)} className="flex-1 py-2 rounded-lg text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">
+                    <button onClick={() => setShowUpgradeForm(false)} className="flex-1 py-2 rounded-lg text-xs text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">
                       {t("common.cancel")}
                     </button>
                     <button
                       onClick={handleUpgrade}
                       disabled={isUpgrading || !upgradeRegistrationNumber.trim() || !upgradeHqAddress.trim()}
-                      className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2"
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-2"
                     >
                       {isUpgrading && <Loader2 className="w-4 h-4 animate-spin" />}
                       {t("provider.account.upgradeConfirmButton")}

@@ -125,8 +125,8 @@ export default function ShopPage() {
               <PartyPopper className="h-8 w-8" />
             </div>
             <div className="space-y-2">
-              <h1 className="text-2xl font-bold text-foreground">{t("provider.shop.switchingAccountsTitle")}</h1>
-              <p className="text-sm text-muted-foreground max-w-md mx-auto">
+              <h1 className="text-xl font-bold text-foreground">{t("provider.shop.switchingAccountsTitle")}</h1>
+              <p className="text-xs text-muted-foreground max-w-md mx-auto">
                 {t("provider.shop.switchingAccountsDesc")}
               </p>
             </div>
@@ -147,12 +147,12 @@ export default function ShopPage() {
               <CheckCircle2 className="h-8 w-8" />
             </div>
             <div className="space-y-2">
-              <h1 className="text-2xl font-bold text-foreground">{t("provider.shop.approvedTitle")}</h1>
-              <p className="text-sm text-muted-foreground max-w-md mx-auto">
+              <h1 className="text-xl font-bold text-foreground">{t("provider.shop.approvedTitle")}</h1>
+              <p className="text-xs text-muted-foreground max-w-md mx-auto">
                 {t("provider.shop.approvedDesc")}
               </p>
             </div>
-            {switchError && <p className="text-sm text-red-600">{switchError}</p>}
+            {switchError && <p className="text-xs text-red-600">{switchError}</p>}
             <Button onClick={handleSwitchToShopkeeper} disabled={isSwitching} size="lg" className="rounded-xl font-semibold gap-2">
               {isSwitching ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRightLeft className="w-4 h-4" />}
               {t("provider.shop.switchButton")}
@@ -169,14 +169,14 @@ export default function ShopPage() {
             {isRejected ? <CheckCircle2 className="h-8 w-8" /> : <Clock className="h-8 w-8" />}
           </div>
           <div className="space-y-2">
-            <h1 className="text-2xl font-bold text-foreground">{isRejected ? t("provider.shop.reviewedTitle") : t("provider.shop.pendingReviewTitle")}</h1>
-            <p className="text-sm text-muted-foreground max-w-md mx-auto">
+            <h1 className="text-xl font-bold text-foreground">{isRejected ? t("provider.shop.reviewedTitle") : t("provider.shop.pendingReviewTitle")}</h1>
+            <p className="text-xs text-muted-foreground max-w-md mx-auto">
               {isRejected
                 ? t("provider.shop.rejectedDesc")
                 : t("provider.shop.pendingDesc")}
             </p>
           </div>
-          <p className="text-xs text-muted-foreground">{t("provider.shop.ticketStatusLabel")} <span className="font-medium capitalize">{existingRequest.status.toLowerCase().replace("_", " ")}</span></p>
+          <p className="text-[11px] text-muted-foreground">{t("provider.shop.ticketStatusLabel")} <span className="font-medium capitalize">{existingRequest.status.toLowerCase().replace("_", " ")}</span></p>
         </Card>
       </div>
     )
@@ -188,8 +188,8 @@ export default function ShopPage() {
         <div className="w-20 h-20 rounded-2xl bg-primary/10 mx-auto mb-4 flex items-center justify-center">
           <Store className="w-10 h-10 text-primary" />
         </div>
-        <h1 className="text-2xl font-bold text-foreground mb-2">{t("provider.shop.upgradeTitle")}</h1>
-        <p className="text-sm text-muted-foreground max-w-md mx-auto">
+        <h1 className="text-xl font-bold text-foreground mb-2">{t("provider.shop.upgradeTitle")}</h1>
+        <p className="text-xs text-muted-foreground max-w-md mx-auto">
           {t("provider.shop.upgradeDesc")}
         </p>
       </div>
@@ -203,57 +203,57 @@ export default function ShopPage() {
         ].map((b, i) => (
           <Card key={i} className="p-4 border border-border rounded-xl text-center">
             <b.icon className="w-8 h-8 text-primary mx-auto mb-2" />
-            <h3 className="font-semibold text-foreground text-sm mb-1">{b.title}</h3>
-            <p className="text-[11px] text-muted-foreground">{b.desc}</p>
+            <h3 className="font-semibold text-foreground text-xs mb-1">{b.title}</h3>
+            <p className="text-[10px] text-muted-foreground">{b.desc}</p>
           </Card>
         ))}
       </div>
 
-      <Button onClick={() => setShowRegister(true)} className="w-full py-5 text-base font-bold rounded-xl">
+      <Button onClick={() => setShowRegister(true)} className="w-full py-5 text-sm font-bold rounded-xl">
         <Store className="w-5 h-5 mr-2" />{t("provider.shop.requestUpgradeButton")}
       </Button>
-      <p className="text-center text-[11px] text-muted-foreground">{t("provider.shop.trustFooter")}</p>
+      <p className="text-center text-[10px] text-muted-foreground">{t("provider.shop.trustFooter")}</p>
 
       {/* Registration Dialog */}
       <Dialog open={showRegister} onOpenChange={setShowRegister}>
         <DialogContent className="max-w-md rounded-xl max-h-[85vh] overflow-y-auto" showCloseButton={false}>
           <div className="space-y-4">
-            <h2 className="text-lg font-bold text-foreground">{t("provider.shop.dialogTitle")}</h2>
+            <h2 className="text-base font-bold text-foreground">{t("provider.shop.dialogTitle")}</h2>
             <div>
-              <label className="text-sm text-muted-foreground mb-1 block">{t("provider.shop.shopNameLabel")}</label>
+              <label className="text-xs text-muted-foreground mb-1 block">{t("provider.shop.shopNameLabel")}</label>
               <Input value={shopDetails.name} onChange={(e) => setShopDetails((p) => ({ ...p, name: e.target.value }))} placeholder={t("provider.shop.shopNamePlaceholder")} className="rounded-lg bg-card border-border" />
             </div>
             <div>
-              <label className="text-sm text-muted-foreground mb-1 block">{t("provider.shop.descriptionLabel")}</label>
+              <label className="text-xs text-muted-foreground mb-1 block">{t("provider.shop.descriptionLabel")}</label>
               <Textarea value={shopDetails.description} onChange={(e) => setShopDetails((p) => ({ ...p, description: e.target.value }))} placeholder={t("provider.shop.descriptionPlaceholder")} className="rounded-lg bg-card border-border min-h-[60px]" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-sm text-muted-foreground mb-1 block">{t("provider.shop.categoryLabel")}</label>
-                <select value={shopDetails.category} onChange={(e) => setShopDetails((p) => ({ ...p, category: e.target.value }))} className="w-full h-9 rounded-lg bg-card border border-border text-sm text-foreground px-2">
+                <label className="text-xs text-muted-foreground mb-1 block">{t("provider.shop.categoryLabel")}</label>
+                <select value={shopDetails.category} onChange={(e) => setShopDetails((p) => ({ ...p, category: e.target.value }))} className="w-full h-9 rounded-lg bg-card border border-border text-xs text-foreground px-2">
                   <option>{t("provider.shop.categoryHardware")}</option><option>{t("provider.shop.categoryElectronics")}</option><option>{t("provider.shop.categoryGroceries")}</option><option>{t("provider.shop.categoryFreshProduce")}</option><option>{t("provider.shop.categoryBuildingMaterials")}</option><option>{t("provider.shop.categoryGeneralStore")}</option>
                 </select>
               </div>
               <div>
-                <label className="text-sm text-muted-foreground mb-1 block">{t("provider.shop.phoneNumberLabel")}</label>
+                <label className="text-xs text-muted-foreground mb-1 block">{t("provider.shop.phoneNumberLabel")}</label>
                 <Input value={shopDetails.phone} onChange={(e) => setShopDetails((p) => ({ ...p, phone: e.target.value }))} placeholder="+254..." className="rounded-lg bg-card border-border" />
               </div>
             </div>
             <div>
-              <label className="text-sm text-muted-foreground mb-1 block">{t("provider.shop.shopLocationLabel")}</label>
+              <label className="text-xs text-muted-foreground mb-1 block">{t("provider.shop.shopLocationLabel")}</label>
               <Input value={shopDetails.location} onChange={(e) => setShopDetails((p) => ({ ...p, location: e.target.value }))} placeholder={t("provider.shop.shopLocationPlaceholder")} className="rounded-lg bg-card border-border" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-sm text-muted-foreground mb-1 block">{t("provider.shop.permitNumberLabel")}</label>
+                <label className="text-xs text-muted-foreground mb-1 block">{t("provider.shop.permitNumberLabel")}</label>
                 <Input value={shopDetails.permitNumber} onChange={(e) => setShopDetails((p) => ({ ...p, permitNumber: e.target.value }))} placeholder={t("provider.shop.optionalPlaceholder")} className="rounded-lg bg-card border-border" />
               </div>
               <div>
-                <label className="text-sm text-muted-foreground mb-1 block">{t("provider.shop.kraPinLabel")}</label>
+                <label className="text-xs text-muted-foreground mb-1 block">{t("provider.shop.kraPinLabel")}</label>
                 <Input value={shopDetails.kraPin} onChange={(e) => setShopDetails((p) => ({ ...p, kraPin: e.target.value }))} placeholder={t("provider.shop.optionalPlaceholder")} className="rounded-lg bg-card border-border" />
               </div>
             </div>
-            {submitError && <p className="text-sm text-red-600">{submitError}</p>}
+            {submitError && <p className="text-xs text-red-600">{submitError}</p>}
             <div className="flex gap-2 pt-2">
               <Button variant="outline" onClick={() => setShowRegister(false)} className="flex-1 rounded-xl" disabled={isSubmitting}>{t("common.cancel")}</Button>
               <Button onClick={handleSubmitRequest} disabled={!shopDetails.name.trim() || !shopDetails.location.trim() || isSubmitting} className="flex-1 rounded-xl">

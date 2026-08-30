@@ -43,7 +43,7 @@ export function QrHandshakeProvider({ jobId, canVerify }: { jobId: string; canVe
     return (
       <Card className="p-4 mb-4 border-0 shadow-sm flex items-center gap-2 border-l-4 border-l-emerald-500">
         <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-        <p className="text-sm font-medium text-foreground">Customer identity verified</p>
+        <p className="text-xs font-medium text-foreground">Customer identity verified</p>
       </Card>
     )
   }
@@ -54,7 +54,7 @@ export function QrHandshakeProvider({ jobId, canVerify }: { jobId: string; canVe
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <QrCode className="h-4 w-4 text-primary" />
-            <p className="text-sm font-medium text-foreground">Verify you're at the right job before starting</p>
+            <p className="text-xs font-medium text-foreground">Verify you're at the right job before starting</p>
           </div>
           <Button size="sm" className="rounded-lg flex-shrink-0" onClick={() => setShowDialog(true)}>Verify Identity</Button>
         </div>
@@ -63,10 +63,10 @@ export function QrHandshakeProvider({ jobId, canVerify }: { jobId: string; canVe
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent className="max-w-xs rounded-xl" showCloseButton={false}>
           <div className="space-y-4">
-            <h2 className="text-lg font-bold text-foreground">Enter Customer's Code</h2>
-            <p className="text-xs text-muted-foreground">Ask the customer to show you their code from the app.</p>
+            <h2 className="text-base font-bold text-foreground">Enter Customer's Code</h2>
+            <p className="text-[11px] text-muted-foreground">Ask the customer to show you their code from the app.</p>
             <Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Code" className="text-center font-mono" />
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            {error && <p className="text-xs text-red-600">{error}</p>}
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1 rounded-xl bg-transparent" onClick={() => setShowDialog(false)} disabled={isSubmitting}>Cancel</Button>
               <Button className="flex-1 rounded-xl" onClick={handleVerify} disabled={isSubmitting || !code.trim()}>

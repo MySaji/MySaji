@@ -102,30 +102,30 @@ export default function ProviderWalletPage() {
         <div className="mx-auto max-w-5xl">
           <div className="mb-6 flex items-start justify-between gap-4">
             <div>
-              <p className="mb-1 text-sm text-emerald-100">{t("provider.wallet.totalBalance")}</p>
+              <p className="mb-1 text-xs text-emerald-100">{t("provider.wallet.totalBalance")}</p>
               <div className="flex items-center gap-3">
-                <h1 className="text-3xl font-bold lg:text-4xl">{showBalance ? formatCurrency(summary.balance) : `${currency} ****`}</h1>
+                <h1 className="text-2xl font-bold lg:text-3xl">{showBalance ? formatCurrency(summary.balance) : `${currency} ****`}</h1>
                 <button onClick={() => setShowBalance(!showBalance)} aria-label={showBalance ? t("common.hideBalance") : t("common.showBalance")} className="rounded-full p-1.5 transition-colors hover:bg-white/10">{showBalance ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}</button>
               </div>
             </div>
             <div className="text-right">
-              <div className="mb-1 flex items-center gap-1 text-sm text-emerald-100"><TrendingUp className="h-4 w-4" /> {Number(percentChange) >= 0 ? "+" : ""}{percentChange}%</div>
-              <p className="text-xs text-emerald-200">{t("provider.wallet.versusLastMonth")}</p>
+              <div className="mb-1 flex items-center gap-1 text-xs text-emerald-100"><TrendingUp className="h-4 w-4" /> {Number(percentChange) >= 0 ? "+" : ""}{percentChange}%</div>
+              <p className="text-[11px] text-emerald-200">{t("provider.wallet.versusLastMonth")}</p>
             </div>
           </div>
 
           <div className="grid gap-3 md:grid-cols-3">
             <div className="rounded-2xl bg-white/10 p-3 backdrop-blur-sm">
-              <p className="mb-1 text-xs text-emerald-100">{t("provider.wallet.available")}</p>
-              <p className="text-lg font-semibold">{showBalance ? formatCurrency(summary.available) : '****'}</p>
+              <p className="mb-1 text-[11px] text-emerald-100">{t("provider.wallet.available")}</p>
+              <p className="text-base font-semibold">{showBalance ? formatCurrency(summary.available) : '****'}</p>
             </div>
             <div className="rounded-2xl bg-white/10 p-3 backdrop-blur-sm">
-              <p className="mb-1 text-xs text-emerald-100">{t("provider.wallet.pending")}</p>
-              <p className="text-lg font-semibold">{showBalance ? formatCurrency(summary.pending) : '****'}</p>
+              <p className="mb-1 text-[11px] text-emerald-100">{t("provider.wallet.pending")}</p>
+              <p className="text-base font-semibold">{showBalance ? formatCurrency(summary.pending) : '****'}</p>
             </div>
             <div className="rounded-2xl bg-white/10 p-3 backdrop-blur-sm">
-              <p className="mb-1 text-xs text-emerald-100">{t("provider.wallet.escrow")}</p>
-              <p className="text-lg font-semibold">{showBalance ? formatCurrency(summary.escrow) : '****'}</p>
+              <p className="mb-1 text-[11px] text-emerald-100">{t("provider.wallet.escrow")}</p>
+              <p className="text-base font-semibold">{showBalance ? formatCurrency(summary.escrow) : '****'}</p>
             </div>
           </div>
 
@@ -140,7 +140,7 @@ export default function ProviderWalletPage() {
         <Card className="mb-4 border-0 p-2 shadow-lg">
           <div className="flex gap-1">
             {(['overview', 'transactions', 'escrow'] as const).map((tab) => (
-              <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${activeTab === tab ? 'bg-emerald-600 text-white shadow-md' : 'text-muted-foreground hover:bg-muted'}`}>{tab === 'overview' ? t("provider.wallet.tabOverview") : tab === 'transactions' ? t("provider.wallet.tabTransactions") : t("provider.wallet.tabEscrow")}</button>
+              <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-1 rounded-lg px-4 py-2.5 text-xs font-medium transition-all ${activeTab === tab ? 'bg-emerald-600 text-white shadow-md' : 'text-muted-foreground hover:bg-muted'}`}>{tab === 'overview' ? t("provider.wallet.tabOverview") : tab === 'transactions' ? t("provider.wallet.tabTransactions") : t("provider.wallet.tabEscrow")}</button>
             ))}
           </div>
         </Card>
@@ -150,16 +150,16 @@ export default function ProviderWalletPage() {
             <Card className="border-0 p-5 shadow-sm">
               <div className="mb-4 flex items-center justify-between">
                 <h3 className="font-semibold text-foreground">{t("provider.wallet.thisMonth")}</h3>
-                <span className="text-xs text-muted-foreground">{new Date().toLocaleDateString(undefined, { month: "long", year: "numeric" })}</span>
+                <span className="text-[11px] text-muted-foreground">{new Date().toLocaleDateString(undefined, { month: "long", year: "numeric" })}</span>
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="rounded-xl bg-emerald-50 p-4 dark:bg-emerald-900/20">
-                  <p className="mb-1 text-sm text-emerald-700 dark:text-emerald-400">{t("provider.wallet.earned")}</p>
-                  <p className="text-xl font-bold text-emerald-700 dark:text-emerald-300">{formatCurrency(summary.thisMonth)}</p>
+                  <p className="mb-1 text-xs text-emerald-700 dark:text-emerald-400">{t("provider.wallet.earned")}</p>
+                  <p className="text-lg font-bold text-emerald-700 dark:text-emerald-300">{formatCurrency(summary.thisMonth)}</p>
                 </div>
                 <div className="rounded-xl bg-sky-50 p-4 dark:bg-sky-900/20">
-                  <p className="mb-1 text-sm text-sky-700 dark:text-sky-400">{t("provider.wallet.jobsCompleted")}</p>
-                  <p className="text-xl font-bold text-sky-700 dark:text-sky-300">{summary.jobsCompletedThisMonth}</p>
+                  <p className="mb-1 text-xs text-sky-700 dark:text-sky-400">{t("provider.wallet.jobsCompleted")}</p>
+                  <p className="text-lg font-bold text-sky-700 dark:text-sky-300">{summary.jobsCompletedThisMonth}</p>
                 </div>
               </div>
             </Card>
@@ -177,7 +177,7 @@ export default function ProviderWalletPage() {
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"><IconComponent className="h-5 w-5" /></div>
                       <div className="flex-1">
                         <p className="font-medium text-foreground">{t(method.nameKey)}</p>
-                        <p className="text-xs text-muted-foreground">{t(method.detailKey)}</p>
+                        <p className="text-[11px] text-muted-foreground">{t(method.detailKey)}</p>
                       </div>
                       {method.default && <span className="rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">{t("provider.wallet.defaultBadge")}</span>}
                     </div>
@@ -192,19 +192,19 @@ export default function ProviderWalletPage() {
             </div>
             <div className="space-y-3">
               <Button variant="ghost" size="sm" onClick={() => setActiveTab('transactions')}>{t("provider.wallet.viewAll")} <ChevronRight className="ml-1 h-4 w-4" /></Button>
-              {summary.transactions.length === 0 && <p className="text-sm text-muted-foreground px-2">{t("provider.wallet.noTransactionsYet")}</p>}
+              {summary.transactions.length === 0 && <p className="text-xs text-muted-foreground px-2">{t("provider.wallet.noTransactionsYet")}</p>}
               {summary.transactions.slice(0, 3).map((transaction) => (
                 <div key={transaction.id} className="flex items-center gap-3 py-2">
                   <div className={`flex h-10 w-10 items-center justify-center rounded-full ${transaction.type === 'credit' ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}>
                     {transaction.type === 'credit' ? <ArrowDownLeft className="h-5 w-5 text-emerald-600 dark:text-emerald-400" /> : <ArrowUpRight className="h-5 w-5 text-red-600 dark:text-red-400" />}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-foreground">{transaction.title}</p>
-                    <p className="text-xs text-muted-foreground">{new Date(transaction.date).toLocaleString()}</p>
+                    <p className="truncate text-xs font-medium text-foreground">{transaction.title}</p>
+                    <p className="text-[11px] text-muted-foreground">{new Date(transaction.date).toLocaleString()}</p>
                   </div>
                   <div className="text-right">
                     <p className={`font-semibold ${transaction.type === 'credit' ? 'text-emerald-600' : 'text-red-600'}`}>{transaction.type === 'credit' ? '+' : '-'}{formatCurrency(transaction.amount)}</p>
-                    <span className={`text-xs ${transaction.status === 'completed' ? 'text-emerald-600' : 'text-amber-600'}`}>{transaction.status}</span>
+                    <span className={`text-[11px] ${transaction.status === 'completed' ? 'text-emerald-600' : 'text-amber-600'}`}>{transaction.status}</span>
                   </div>
                 </div>
               ))}
@@ -225,7 +225,7 @@ export default function ProviderWalletPage() {
               </div>
             </Card>
             {summary.transactions.length === 0 && (
-              <Card className="border-0 p-8 text-center shadow-sm"><p className="text-sm text-muted-foreground">{t("provider.wallet.noTransactionsYet")}</p></Card>
+              <Card className="border-0 p-8 text-center shadow-sm"><p className="text-xs text-muted-foreground">{t("provider.wallet.noTransactionsYet")}</p></Card>
             )}
             {summary.transactions.map((transaction) => (
               <Card key={transaction.id} className="border-0 p-4 shadow-sm">
@@ -235,11 +235,11 @@ export default function ProviderWalletPage() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold text-foreground">{transaction.title}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">{new Date(transaction.date).toLocaleString()}</p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">{new Date(transaction.date).toLocaleString()}</p>
                   </div>
                   <div className="text-right">
-                    <p className={`text-lg font-bold ${transaction.type === 'credit' ? 'text-emerald-600' : 'text-red-600'}`}>{transaction.type === 'credit' ? '+' : '-'}{formatCurrency(transaction.amount)}</p>
-                    <span className={`mt-1 inline-flex items-center gap-1 text-xs ${transaction.status === 'completed' ? 'text-emerald-600' : 'text-amber-600'}`}>{transaction.status === 'completed' ? <CheckCircle2 className="h-3 w-3" /> : <Clock className="h-3 w-3" />}{transaction.status}</span>
+                    <p className={`text-base font-bold ${transaction.type === 'credit' ? 'text-emerald-600' : 'text-red-600'}`}>{transaction.type === 'credit' ? '+' : '-'}{formatCurrency(transaction.amount)}</p>
+                    <span className={`mt-1 inline-flex items-center gap-1 text-[11px] ${transaction.status === 'completed' ? 'text-emerald-600' : 'text-amber-600'}`}>{transaction.status === 'completed' ? <CheckCircle2 className="h-3 w-3" /> : <Clock className="h-3 w-3" />}{transaction.status}</span>
                   </div>
                 </div>
               </Card>
@@ -254,17 +254,17 @@ export default function ProviderWalletPage() {
                 <AlertCircle className="mt-0.5 h-5 w-5 text-sky-600" />
                 <div>
                   <h4 className="font-medium text-sky-900 dark:text-sky-200">{t("provider.wallet.aboutEscrowTitle")}</h4>
-                  <p className="mt-1 text-sm text-sky-700 dark:text-sky-300">{t("provider.wallet.aboutEscrowDesc")}</p>
+                  <p className="mt-1 text-xs text-sky-700 dark:text-sky-300">{t("provider.wallet.aboutEscrowDesc")}</p>
                 </div>
               </div>
             </Card>
             {summary.escrowJobs.length === 0 ? (
-              <Card className="border-0 p-8 text-center shadow-sm"><Wallet className="mx-auto mb-3 h-12 w-12 text-muted-foreground" /><h3 className="mb-1 font-semibold text-foreground">{t("provider.wallet.noActiveEscrowTitle")}</h3><p className="text-sm text-muted-foreground">{t("provider.wallet.noActiveEscrowDesc")}</p></Card>
+              <Card className="border-0 p-8 text-center shadow-sm"><Wallet className="mx-auto mb-3 h-12 w-12 text-muted-foreground" /><h3 className="mb-1 font-semibold text-foreground">{t("provider.wallet.noActiveEscrowTitle")}</h3><p className="text-xs text-muted-foreground">{t("provider.wallet.noActiveEscrowDesc")}</p></Card>
             ) : summary.escrowJobs.map((payment) => (
               <Card key={payment.id} className="border-0 p-5 shadow-sm">
                 <div className="mb-3 flex items-center justify-between"><h4 className="font-semibold text-foreground">{payment.job}</h4><span className="rounded-full bg-amber-100 px-2 py-1 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">{t("provider.wallet.awaitingCompletion")}</span></div>
-                <p className="mb-3 text-sm text-muted-foreground">{t("provider.wallet.clientLabel")} {payment.client}</p>
-                <div className="flex items-center justify-between"><div><p className="text-xs text-muted-foreground">{t("provider.wallet.amountLabel")}</p><p className="text-xl font-bold text-emerald-600">{formatCurrency(payment.amount)}</p></div><div className="text-right"><p className="text-xs text-muted-foreground">{t("provider.wallet.scheduledLabel")}</p><p className="text-sm font-medium text-foreground">{new Date(payment.dueDate).toLocaleDateString()}</p></div></div>
+                <p className="mb-3 text-xs text-muted-foreground">{t("provider.wallet.clientLabel")} {payment.client}</p>
+                <div className="flex items-center justify-between"><div><p className="text-[11px] text-muted-foreground">{t("provider.wallet.amountLabel")}</p><p className="text-lg font-bold text-emerald-600">{formatCurrency(payment.amount)}</p></div><div className="text-right"><p className="text-[11px] text-muted-foreground">{t("provider.wallet.scheduledLabel")}</p><p className="text-xs font-medium text-foreground">{new Date(payment.dueDate).toLocaleDateString()}</p></div></div>
               </Card>
             ))}
           </div>
@@ -278,8 +278,8 @@ export default function ProviderWalletPage() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="rounded-2xl bg-emerald-50 p-4 text-center dark:bg-emerald-900/20">
-              <p className="mb-1 text-sm text-emerald-700 dark:text-emerald-400">{t("provider.wallet.availableBalance")}</p>
-              <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">{formatCurrency(summary.available)}</p>
+              <p className="mb-1 text-xs text-emerald-700 dark:text-emerald-400">{t("provider.wallet.availableBalance")}</p>
+              <p className="text-xl font-bold text-emerald-700 dark:text-emerald-300">{formatCurrency(summary.available)}</p>
             </div>
 
             <div>
@@ -297,7 +297,7 @@ export default function ProviderWalletPage() {
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted"><IconComponent className="h-5 w-5" /></div>
                       <div>
                         <p className="font-medium text-foreground">{t(method.nameKey)}</p>
-                        <p className="text-xs text-muted-foreground">{t(method.detailKey)}</p>
+                        <p className="text-[11px] text-muted-foreground">{t(method.detailKey)}</p>
                       </div>
                     </button>
                   )
@@ -312,7 +312,7 @@ export default function ProviderWalletPage() {
               </div>
             )}
 
-            {withdrawError && <div className="flex items-start gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400"><AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" /><span>{withdrawError}</span></div>}
+            {withdrawError && <div className="flex items-start gap-2 rounded-lg bg-red-50 p-3 text-xs text-red-700 dark:bg-red-900/20 dark:text-red-400"><AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" /><span>{withdrawError}</span></div>}
 
             <Button className="h-12 w-full bg-emerald-600 hover:bg-emerald-700" disabled={!withdrawAmount || !withdrawMethod || isWithdrawing} onClick={handleWithdraw}>
               {isWithdrawing ? <Loader2 className="h-4 w-4 animate-spin" /> : t("provider.wallet.confirmWithdrawal")}

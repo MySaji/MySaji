@@ -128,7 +128,7 @@ export default function ProviderContentPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-foreground">{t("provider.content.title")}</h1>
+          <h1 className="text-xl lg:text-2xl font-bold text-foreground">{t("provider.content.title")}</h1>
           <p className="text-muted-foreground mt-1">{t("provider.content.subtitle")}</p>
         </div>
         <Button onClick={() => setShowCreatePost(true)} className="bg-primary hover:bg-primary/90">
@@ -144,8 +144,8 @@ export default function ProviderContentPage() {
               <Heart className="w-5 h-5 text-red-600 dark:text-red-400" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-foreground">{formatNumber(totals.likes)}</p>
-              <p className="text-xs text-muted-foreground">{t("provider.content.statLikes")}</p>
+              <p className="text-xl font-bold text-foreground">{formatNumber(totals.likes)}</p>
+              <p className="text-[11px] text-muted-foreground">{t("provider.content.statLikes")}</p>
             </div>
           </div>
         </Card>
@@ -155,8 +155,8 @@ export default function ProviderContentPage() {
               <MessageCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-foreground">{formatNumber(totals.comments)}</p>
-              <p className="text-xs text-muted-foreground">{t("provider.content.statComments")}</p>
+              <p className="text-xl font-bold text-foreground">{formatNumber(totals.comments)}</p>
+              <p className="text-[11px] text-muted-foreground">{t("provider.content.statComments")}</p>
             </div>
           </div>
         </Card>
@@ -166,8 +166,8 @@ export default function ProviderContentPage() {
               <Share2 className="w-5 h-5 text-purple-600 dark:text-purple-400" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-foreground">{formatNumber(totals.shares)}</p>
-              <p className="text-xs text-muted-foreground">{t("provider.content.statShares")}</p>
+              <p className="text-xl font-bold text-foreground">{formatNumber(totals.shares)}</p>
+              <p className="text-[11px] text-muted-foreground">{t("provider.content.statShares")}</p>
             </div>
           </div>
         </Card>
@@ -182,13 +182,13 @@ export default function ProviderContentPage() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value as typeof filterStatus)} className="px-3 py-2 rounded-lg border border-input bg-background text-sm">
+            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value as typeof filterStatus)} className="px-3 py-2 rounded-lg border border-input bg-background text-xs">
               <option value="all">{t("provider.content.filterAllStatus")}</option>
               <option value="published">{t("provider.content.filterPublished")}</option>
               <option value="archived">{t("provider.content.filterArchived")}</option>
             </select>
 
-            <select value={filterType} onChange={(e) => setFilterType(e.target.value as typeof filterType)} className="px-3 py-2 rounded-lg border border-input bg-background text-sm">
+            <select value={filterType} onChange={(e) => setFilterType(e.target.value as typeof filterType)} className="px-3 py-2 rounded-lg border border-input bg-background text-xs">
               <option value="all">{t("provider.content.filterAllTypes")}</option>
               <option value="image">{t("provider.content.filterImages")}</option>
               <option value="video">{t("provider.content.filterVideos")}</option>
@@ -211,7 +211,7 @@ export default function ProviderContentPage() {
       {filteredPosts.length === 0 ? (
         <Card className="p-12 text-center">
           <ImageIcon className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-foreground mb-2">{t("provider.content.noPostsFoundTitle")}</h3>
+          <h3 className="text-base font-semibold text-foreground mb-2">{t("provider.content.noPostsFoundTitle")}</h3>
           <p className="text-muted-foreground mb-4">{t("provider.content.noPostsFoundDesc")}</p>
           <Button onClick={() => setShowCreatePost(true)}>{t("provider.content.createNewPost")}</Button>
         </Card>
@@ -222,7 +222,7 @@ export default function ProviderContentPage() {
               <div className="relative aspect-square cursor-pointer" onClick={() => setSelectedPost(post)}>
                 <NextImage src={post.thumbnail || "/placeholder.svg"} alt={post.caption} fill className="object-cover" />
 
-                <div className="absolute top-2 left-2 flex items-center gap-1 px-2 py-1 bg-black/60 rounded-full text-white text-xs">
+                <div className="absolute top-2 left-2 flex items-center gap-1 px-2 py-1 bg-black/60 rounded-full text-white text-[11px]">
                   {getTypeIcon(post.type)}
                   <span>{getTypeLabel(post.type)}</span>
                 </div>
@@ -234,7 +234,7 @@ export default function ProviderContentPage() {
                 )}
 
                 {post.isArchived && (
-                  <div className="absolute bottom-2 left-2 px-2 py-1 rounded-full text-xs font-medium bg-gray-500 text-white">
+                  <div className="absolute bottom-2 left-2 px-2 py-1 rounded-full text-[11px] font-medium bg-gray-500 text-white">
                     {t("provider.content.archivedBadge")}
                   </div>
                 )}
@@ -260,9 +260,9 @@ export default function ProviderContentPage() {
               </div>
 
               <div className="p-4">
-                <p className="text-sm text-foreground line-clamp-2 mb-2">{post.caption}</p>
+                <p className="text-xs text-foreground line-clamp-2 mb-2">{post.caption}</p>
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
                     <Calendar className="w-3 h-3" />
                     {formatDate(post.createdAt)}
                   </div>
@@ -272,16 +272,16 @@ export default function ProviderContentPage() {
                       <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
                     </button>
                     <div className="absolute right-0 bottom-full mb-1 w-40 bg-popover border border-border rounded-lg shadow-lg opacity-0 invisible group-hover/menu:opacity-100 group-hover/menu:visible transition-all z-10">
-                      <button onClick={() => setSelectedPost(post)} className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors">
+                      <button onClick={() => setSelectedPost(post)} className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-muted transition-colors">
                         <ArrowUpRight className="w-4 h-4" /> {t("common.viewDetails")}
                       </button>
-                      <button onClick={() => handleTogglePin(post.id)} className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors">
+                      <button onClick={() => handleTogglePin(post.id)} className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-muted transition-colors">
                         <Pin className="w-4 h-4" /> {post.isPinned ? t("provider.content.unpin") : t("provider.content.pinToTop")}
                       </button>
-                      <button onClick={() => handleArchive(post.id)} className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors">
+                      <button onClick={() => handleArchive(post.id)} className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-muted transition-colors">
                         <Archive className="w-4 h-4" /> {post.isArchived ? t("provider.content.restoreAction") : t("provider.content.archiveAction")}
                       </button>
-                      <button onClick={() => { setPostToDelete(post.id); setShowDeleteConfirm(true) }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                      <button onClick={() => { setPostToDelete(post.id); setShowDeleteConfirm(true) }} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
                         <Trash2 className="w-4 h-4" /> {t("common.delete")}
                       </button>
                     </div>
@@ -307,22 +307,22 @@ export default function ProviderContentPage() {
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <p className="text-sm font-medium text-foreground line-clamp-2">{post.caption}</p>
+                    <p className="text-xs font-medium text-foreground line-clamp-2">{post.caption}</p>
                     <div className="flex items-center gap-1 flex-shrink-0">
                       {post.isPinned && <Pin className="w-4 h-4 text-yellow-500" />}
-                      <span className={`px-2 py-0.5 rounded-full text-xs ${post.isArchived ? "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300" : "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"}`}>
+                      <span className={`px-2 py-0.5 rounded-full text-[11px] ${post.isArchived ? "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300" : "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"}`}>
                         {post.isArchived ? t("provider.content.archivedStatus") : t("provider.content.publishedStatus")}
                       </span>
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-2">
+                  <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground mb-2">
                     <div className="flex items-center gap-1"><Heart className="w-4 h-4" /><span>{formatNumber(post.likeCount)}</span></div>
                     <div className="flex items-center gap-1"><MessageCircle className="w-4 h-4" /><span>{post.commentCount}</span></div>
                     <div className="flex items-center gap-1"><Share2 className="w-4 h-4" /><span>{post.shareCount}</span></div>
                   </div>
 
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
                     <span className="flex items-center gap-1">{getTypeIcon(post.type)} {getTypeLabel(post.type)}</span>
                     <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {formatDate(post.createdAt)}</span>
                   </div>
@@ -364,8 +364,8 @@ export default function ProviderContentPage() {
                       </div>
                     )}
                   </div>
-                  <p className="text-sm text-foreground">{selectedPost.caption}</p>
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                  <p className="text-xs text-foreground">{selectedPost.caption}</p>
+                  <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
                     <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {formatDate(selectedPost.createdAt)}</span>
                   </div>
                 </div>
@@ -375,18 +375,18 @@ export default function ProviderContentPage() {
                   <div className="grid grid-cols-3 gap-3">
                     <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg text-center">
                       <Heart className="w-5 h-5 text-red-500 mx-auto mb-1" />
-                      <p className="text-lg font-bold text-foreground">{formatNumber(selectedPost.likeCount)}</p>
-                      <p className="text-xs text-muted-foreground">{t("provider.content.likesLabel")}</p>
+                      <p className="text-base font-bold text-foreground">{formatNumber(selectedPost.likeCount)}</p>
+                      <p className="text-[11px] text-muted-foreground">{t("provider.content.likesLabel")}</p>
                     </div>
                     <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-center">
                       <MessageCircle className="w-5 h-5 text-blue-500 mx-auto mb-1" />
-                      <p className="text-lg font-bold text-foreground">{selectedPost.commentCount}</p>
-                      <p className="text-xs text-muted-foreground">{t("provider.content.commentsLabel")}</p>
+                      <p className="text-base font-bold text-foreground">{selectedPost.commentCount}</p>
+                      <p className="text-[11px] text-muted-foreground">{t("provider.content.commentsLabel")}</p>
                     </div>
                     <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg text-center">
                       <Share2 className="w-5 h-5 text-purple-500 mx-auto mb-1" />
-                      <p className="text-lg font-bold text-foreground">{selectedPost.shareCount}</p>
-                      <p className="text-xs text-muted-foreground">{t("provider.content.sharesLabel")}</p>
+                      <p className="text-base font-bold text-foreground">{selectedPost.shareCount}</p>
+                      <p className="text-[11px] text-muted-foreground">{t("provider.content.sharesLabel")}</p>
                     </div>
                   </div>
 
@@ -427,7 +427,7 @@ export default function ProviderContentPage() {
 
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-foreground mb-2 block">{t("provider.content.captionLabel")}</label>
+              <label className="text-xs font-medium text-foreground mb-2 block">{t("provider.content.captionLabel")}</label>
               <textarea
                 value={newPostCaption}
                 onChange={(e) => setNewPostCaption(e.target.value)}
@@ -437,14 +437,14 @@ export default function ProviderContentPage() {
             </div>
 
             <div>
-              <label className="text-sm font-medium text-foreground mb-2 block">{t("provider.content.photosLabel")}</label>
-              <input type="file" accept="image/*" multiple onChange={handleImagesChange} disabled={newPostImages.length >= 4} className="w-full text-sm text-foreground" />
+              <label className="text-xs font-medium text-foreground mb-2 block">{t("provider.content.photosLabel")}</label>
+              <input type="file" accept="image/*" multiple onChange={handleImagesChange} disabled={newPostImages.length >= 4} className="w-full text-xs text-foreground" />
               {newPostImages.length > 0 && (
                 <div className="grid grid-cols-4 gap-2 mt-2">
                   {newPostImages.map((img, i) => (
                     <div key={i} className="relative aspect-square rounded-lg overflow-hidden">
                       <img src={img} alt="" className="w-full h-full object-cover" />
-                      <button onClick={() => setNewPostImages(prev => prev.filter((_, idx) => idx !== i))} aria-label={t("common.removeItem")} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white text-xs flex items-center justify-center">×</button>
+                      <button onClick={() => setNewPostImages(prev => prev.filter((_, idx) => idx !== i))} aria-label={t("common.removeItem")} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white text-[11px] flex items-center justify-center">×</button>
                     </div>
                   ))}
                 </div>

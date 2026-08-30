@@ -53,44 +53,44 @@ export default function BusinessDocumentsPage() {
           <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-300" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t("provider.business.documents.title")}</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">{t("provider.business.documents.subtitle")}</p>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">{t("provider.business.documents.title")}</h1>
+          <p className="text-xs text-gray-500 dark:text-gray-400">{t("provider.business.documents.subtitle")}</p>
         </div>
       </div>
 
       <div className="border border-gray-200 dark:border-gray-700 rounded-2xl p-4">
-        <h2 className="flex items-center gap-2 text-sm font-bold text-emerald-700 dark:text-emerald-400 mb-3">
+        <h2 className="flex items-center gap-2 text-xs font-bold text-emerald-700 dark:text-emerald-400 mb-3">
           <Building2 className="w-4 h-4" /> {t("provider.business.documents.registrationTitle")}
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
           <div>
-            <p className="text-xs text-gray-500 dark:text-gray-400">{t("provider.business.documents.registrationNumber")}</p>
+            <p className="text-[11px] text-gray-500 dark:text-gray-400">{t("provider.business.documents.registrationNumber")}</p>
             <p className="font-medium text-gray-900 dark:text-white">{data.registrationNumber || t("provider.business.documents.notProvided")}</p>
           </div>
           <div>
-            <p className="text-xs text-gray-500 dark:text-gray-400">{t("provider.business.documents.hqAddress")}</p>
+            <p className="text-[11px] text-gray-500 dark:text-gray-400">{t("provider.business.documents.hqAddress")}</p>
             <p className="font-medium text-gray-900 dark:text-white">{data.hqAddress || t("provider.business.documents.notProvided")}</p>
           </div>
         </div>
       </div>
 
       <div className="border border-gray-200 dark:border-gray-700 rounded-2xl p-4">
-        <h2 className="flex items-center gap-2 text-sm font-bold text-emerald-700 dark:text-emerald-400 mb-3">
+        <h2 className="flex items-center gap-2 text-xs font-bold text-emerald-700 dark:text-emerald-400 mb-3">
           <FileText className="w-4 h-4" /> {t("provider.business.documents.kycTitle")}
         </h2>
         {data.kycDocuments.length === 0 ? (
-          <p className="text-sm text-gray-500 dark:text-gray-400">{t("provider.business.documents.noKyc")}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">{t("provider.business.documents.noKyc")}</p>
         ) : (
           <div className="space-y-2">
             {data.kycDocuments.map((doc) => (
               <div key={doc.id} className="flex items-center justify-between gap-3 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
                 <div className="min-w-0">
-                  <p className="font-medium text-gray-900 dark:text-white text-sm truncate">{doc.memberName}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <p className="font-medium text-gray-900 dark:text-white text-xs truncate">{doc.memberName}</p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">
                     {DOC_TYPE_LABEL[doc.documentType] ?? doc.documentType} · {new Date(doc.submittedAt).toLocaleDateString()}
                   </p>
                 </div>
-                <span className={`shrink-0 text-xs font-medium px-2.5 py-1 rounded-full ${KYC_STATUS_STYLE[doc.status] ?? ""}`}>{doc.status}</span>
+                <span className={`shrink-0 text-[11px] font-medium px-2.5 py-1 rounded-full ${KYC_STATUS_STYLE[doc.status] ?? ""}`}>{doc.status}</span>
               </div>
             ))}
           </div>
@@ -98,23 +98,23 @@ export default function BusinessDocumentsPage() {
       </div>
 
       <div className="border border-gray-200 dark:border-gray-700 rounded-2xl p-4">
-        <h2 className="flex items-center gap-2 text-sm font-bold text-emerald-700 dark:text-emerald-400 mb-3">
+        <h2 className="flex items-center gap-2 text-xs font-bold text-emerald-700 dark:text-emerald-400 mb-3">
           <Award className="w-4 h-4" /> {t("provider.business.documents.certificationsTitle")}
         </h2>
         {data.certifications.length === 0 ? (
-          <p className="text-sm text-gray-500 dark:text-gray-400">{t("provider.business.documents.noCertifications")}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">{t("provider.business.documents.noCertifications")}</p>
         ) : (
           <div className="space-y-2">
             {data.certifications.map((cert) => (
               <div key={cert.id} className="flex items-center justify-between gap-3 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
                 <div className="min-w-0">
-                  <p className="font-medium text-gray-900 dark:text-white text-sm truncate">{cert.name}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                  <p className="font-medium text-gray-900 dark:text-white text-xs truncate">{cert.name}</p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
                     {cert.memberName} · {cert.issuer}
                     {cert.expiryDate && ` · ${t("provider.business.documents.expires")} ${new Date(cert.expiryDate).toLocaleDateString()}`}
                   </p>
                 </div>
-                <span className={`shrink-0 text-xs font-medium px-2.5 py-1 rounded-full ${KYC_STATUS_STYLE[cert.status] ?? ""}`}>{cert.status}</span>
+                <span className={`shrink-0 text-[11px] font-medium px-2.5 py-1 rounded-full ${KYC_STATUS_STYLE[cert.status] ?? ""}`}>{cert.status}</span>
               </div>
             ))}
           </div>

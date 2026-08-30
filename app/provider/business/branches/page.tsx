@@ -68,11 +68,11 @@ export default function BranchOutletsPage() {
               <ArrowLeft className="w-6 h-6" />
             </Link>
             <div>
-              <h1 className="text-xl font-bold">{t("provider.business.branches.title")}</h1>
-              <p className="text-blue-100 text-sm">{t("provider.business.branches.subtitle")}</p>
+              <h1 className="text-lg font-bold">{t("provider.business.branches.title")}</h1>
+              <p className="text-blue-100 text-xs">{t("provider.business.branches.subtitle")}</p>
             </div>
           </div>
-          <button onClick={openAdd} className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 px-3 py-2 rounded-full text-sm font-medium">
+          <button onClick={openAdd} className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 px-3 py-2 rounded-full text-xs font-medium">
             <Plus className="w-4 h-4" />{t("provider.business.branches.addButton")}
           </button>
         </div>
@@ -94,13 +94,13 @@ export default function BranchOutletsPage() {
                   <div className="flex items-center gap-2">
                     <p className="font-medium text-gray-900 dark:text-white truncate">{branch.name}</p>
                     {!branch.isActive && (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
+                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
                         {t("provider.business.branches.inactiveBadge")}
                       </span>
                     )}
                   </div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">{branch.address}</p>
-                  {branch.phone && <p className="text-xs text-gray-400 dark:text-gray-500">{branch.phone}</p>}
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{branch.address}</p>
+                  {branch.phone && <p className="text-[11px] text-gray-400 dark:text-gray-500">{branch.phone}</p>}
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0">
@@ -120,12 +120,12 @@ export default function BranchOutletsPage() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowForm(false)}>
           <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+              <h2 className="text-base font-bold text-gray-900 dark:text-white">
                 {form.id ? t("provider.business.branches.editTitle") : t("provider.business.branches.addTitle")}
               </h2>
               <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
             </div>
-            {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
+            {error && <p className="text-xs text-red-600 mb-3">{error}</p>}
             <div className="space-y-3">
               <input
                 value={form.name}
@@ -146,7 +146,7 @@ export default function BranchOutletsPage() {
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               />
               {form.id && (
-                <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                <label className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">
                   <input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} />
                   {t("provider.business.branches.activeLabel")}
                 </label>

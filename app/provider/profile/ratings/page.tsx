@@ -74,7 +74,7 @@ export default function RatingsPage() {
           <Link href="/provider/profile" className="lg:hidden">
             <ArrowLeft className="w-6 h-6" />
           </Link>
-          <h1 className="text-xl font-bold">{t("provider.ratings.title")}</h1>
+          <h1 className="text-lg font-bold">{t("provider.ratings.title")}</h1>
         </div>
       </div>
 
@@ -87,15 +87,15 @@ export default function RatingsPage() {
               <Star key={i} className={`w-5 h-5 ${i < Math.round(Number(avgRating)) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`} />
             ))}
           </div>
-          <p className="text-4xl font-bold text-gray-900 dark:text-white">{avgRating}</p>
-          <p className="text-sm text-gray-600 dark:text-gray-400">{tn("provider.ratings.reviewCount", ratings.length)}</p>
+          <p className="text-3xl font-bold text-gray-900 dark:text-white">{avgRating}</p>
+          <p className="text-xs text-gray-600 dark:text-gray-400">{tn("provider.ratings.reviewCount", ratings.length)}</p>
         </div>
 
         {/* Reviews */}
         <div className="space-y-3">
           {ratings.length === 0 && (
             <div className="bg-white dark:bg-gray-800 rounded-lg p-8 border dark:border-gray-700 text-center">
-              <p className="text-sm text-gray-500 dark:text-gray-400">{t("provider.ratings.emptyText")}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t("provider.ratings.emptyText")}</p>
             </div>
           )}
           {ratings.map((review) => (
@@ -108,12 +108,12 @@ export default function RatingsPage() {
                   ))}
                 </div>
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{review.comment}</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">{review.comment}</p>
 
               {SUB_SCORES.some((s) => review[s.key] != null) && (
                 <div className="grid grid-cols-2 gap-2 mb-3">
                   {SUB_SCORES.filter((s) => review[s.key] != null).map((s) => (
-                    <div key={s.key} className="flex items-center justify-between text-xs bg-gray-50 dark:bg-gray-700/40 rounded-lg px-2 py-1">
+                    <div key={s.key} className="flex items-center justify-between text-[11px] bg-gray-50 dark:bg-gray-700/40 rounded-lg px-2 py-1">
                       <span className="text-gray-500 dark:text-gray-400">{t(s.labelKey)}</span>
                       <span className="font-medium text-gray-900 dark:text-white">{review[s.key]}/5</span>
                     </div>
@@ -121,16 +121,16 @@ export default function RatingsPage() {
                 </div>
               )}
 
-              <p className="text-xs text-gray-500 dark:text-gray-500 mb-2">{new Date(review.createdAt).toLocaleDateString()}</p>
+              <p className="text-[11px] text-gray-500 dark:text-gray-500 mb-2">{new Date(review.createdAt).toLocaleDateString()}</p>
 
               {review.response ? (
                 <div className="mt-2 pl-3 border-l-2 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded-r-lg p-2">
-                  <p className="text-xs font-medium text-blue-700 dark:text-blue-400 mb-0.5">{t("provider.ratings.yourReplyLabel")}</p>
-                  <p className="text-sm text-gray-700 dark:text-gray-300">{review.response}</p>
+                  <p className="text-[11px] font-medium text-blue-700 dark:text-blue-400 mb-0.5">{t("provider.ratings.yourReplyLabel")}</p>
+                  <p className="text-xs text-gray-700 dark:text-gray-300">{review.response}</p>
                 </div>
               ) : replyingTo === review.id ? (
                 <div className="mt-2 space-y-2">
-                  <Textarea value={replyText} onChange={(e) => setReplyText(e.target.value)} placeholder={t("provider.ratings.replyPlaceholder")} className="text-sm min-h-[70px]" />
+                  <Textarea value={replyText} onChange={(e) => setReplyText(e.target.value)} placeholder={t("provider.ratings.replyPlaceholder")} className="text-xs min-h-[70px]" />
                   <div className="flex gap-2">
                     <Button size="sm" variant="outline" onClick={() => setReplyingTo(null)} disabled={isSaving}>{t("common.cancel")}</Button>
                     <Button size="sm" onClick={() => submitReply(review.id)} disabled={!replyText.trim() || isSaving}>
@@ -139,7 +139,7 @@ export default function RatingsPage() {
                   </div>
                 </div>
               ) : (
-                <button onClick={() => openReply(review.id)} className="mt-1 flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline">
+                <button onClick={() => openReply(review.id)} className="mt-1 flex items-center gap-1 text-[11px] font-medium text-blue-600 dark:text-blue-400 hover:underline">
                   <MessageSquare className="w-3 h-3" /> {t("provider.ratings.replyButton")}
                 </button>
               )}
@@ -147,15 +147,15 @@ export default function RatingsPage() {
               {/* Formal dispute — separate from the public reply above */}
               {review.disputeStatus ? (
                 <div className="mt-2 pl-3 border-l-2 border-amber-500 bg-amber-50 dark:bg-amber-900/20 rounded-r-lg p-2">
-                  <p className="text-xs font-medium text-amber-700 dark:text-amber-400 mb-0.5">
+                  <p className="text-[11px] font-medium text-amber-700 dark:text-amber-400 mb-0.5">
                     {t("provider.ratings.disputeStatusLabel", { number: review.disputeStatus.disputeNumber })} &middot; {review.disputeStatus.status}
                   </p>
-                  {review.disputeStatus.resolution && <p className="text-sm text-gray-700 dark:text-gray-300">{review.disputeStatus.resolution}</p>}
+                  {review.disputeStatus.resolution && <p className="text-xs text-gray-700 dark:text-gray-300">{review.disputeStatus.resolution}</p>}
                 </div>
               ) : disputingId === review.id ? (
                 <div className="mt-2 space-y-2">
-                  <Textarea value={disputeText} onChange={(e) => setDisputeText(e.target.value)} placeholder={t("provider.ratings.disputePlaceholder")} className="text-sm min-h-[70px]" />
-                  {disputeError && <p className="text-xs text-red-600">{disputeError}</p>}
+                  <Textarea value={disputeText} onChange={(e) => setDisputeText(e.target.value)} placeholder={t("provider.ratings.disputePlaceholder")} className="text-xs min-h-[70px]" />
+                  {disputeError && <p className="text-[11px] text-red-600">{disputeError}</p>}
                   <div className="flex gap-2">
                     <Button size="sm" variant="outline" onClick={() => setDisputingId(null)} disabled={isSubmittingDispute}>{t("common.cancel")}</Button>
                     <Button size="sm" className="bg-amber-600 hover:bg-amber-700" onClick={() => submitDispute(review.id)} disabled={disputeText.trim().length < 10 || isSubmittingDispute}>
@@ -164,7 +164,7 @@ export default function RatingsPage() {
                   </div>
                 </div>
               ) : (
-                <button onClick={() => openDispute(review.id)} className="mt-1 ml-3 flex items-center gap-1 text-xs font-medium text-amber-600 dark:text-amber-400 hover:underline">
+                <button onClick={() => openDispute(review.id)} className="mt-1 ml-3 flex items-center gap-1 text-[11px] font-medium text-amber-600 dark:text-amber-400 hover:underline">
                   <Flag className="w-3 h-3" /> {t("provider.ratings.disputeButton")}
                 </button>
               )}

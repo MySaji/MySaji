@@ -113,8 +113,8 @@ export default function ProviderProPage() {
     <div className="min-h-screen bg-[linear-gradient(135deg,_rgba(240,253,250,1),_rgba(248,250,252,1))] pb-10 dark:bg-[linear-gradient(135deg,_rgba(2,6,23,1),_rgba(15,23,42,1))]">
       <div className="bg-gradient-to-br from-amber-500 via-orange-500 to-rose-500 p-6 text-white lg:rounded-b-3xl">
         <div className="mx-auto max-w-3xl">
-          <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.24em] text-amber-100"><Crown className="h-4 w-4" /> Saji Pro</div>
-          <h1 className="mt-2 text-3xl font-bold lg:text-4xl">{status.isPro ? "You're a Saji Pro subscriber" : "Unlock advanced provider features"}</h1>
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.24em] text-amber-100"><Crown className="h-4 w-4" /> Saji Pro</div>
+          <h1 className="mt-2 text-2xl font-bold lg:text-3xl">{status.isPro ? "You're a Saji Pro subscriber" : "Unlock advanced provider features"}</h1>
           <p className="mt-2 max-w-xl text-amber-50">
             {status.isPro
               ? `Your subscription is active${expiryLabel ? ` until ${expiryLabel}` : ""}.`
@@ -133,7 +133,7 @@ export default function ProviderProPage() {
                 </div>
                 <div>
                   <p className="font-medium text-foreground">{benefit.title}</p>
-                  <p className="text-xs text-muted-foreground">{benefit.desc}</p>
+                  <p className="text-[11px] text-muted-foreground">{benefit.desc}</p>
                 </div>
               </div>
             ))}
@@ -144,20 +144,20 @@ export default function ProviderProPage() {
           <Card className="border-0 p-5 shadow-lg text-center space-y-2 border-emerald-200 bg-emerald-50 dark:bg-emerald-900/20 dark:border-emerald-900/40">
             <CheckCircle2 className="mx-auto h-8 w-8 text-emerald-600" />
             <p className="font-semibold text-emerald-700 dark:text-emerald-400">Active until {expiryLabel}</p>
-            <p className="text-xs text-muted-foreground">Saji Pro renews manually each month. Come back here to renew when it's due.</p>
+            <p className="text-[11px] text-muted-foreground">Saji Pro renews manually each month. Come back here to renew when it's due.</p>
             <Button asChild className="mt-2 rounded-xl"><Link href="/provider/pro/dashboard">Go to your Pro Dashboard</Link></Button>
           </Card>
         ) : purchaseState === "success" ? (
           <Card className="border-0 p-6 text-center space-y-2 shadow-lg border-emerald-200 bg-emerald-50 dark:bg-emerald-900/20 dark:border-emerald-900/40">
             <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-600" />
             <p className="font-semibold text-emerald-700 dark:text-emerald-400">Payment successful. You're now on Saji Pro</p>
-            {message && <p className="text-xs text-muted-foreground">{message}</p>}
+            {message && <p className="text-[11px] text-muted-foreground">{message}</p>}
           </Card>
         ) : purchaseState === "awaiting-provider" ? (
           <Card className="border-0 p-6 text-center space-y-3 shadow-lg">
             <Loader2 className="mx-auto h-8 w-8 animate-spin text-amber-600" />
             <p className="font-semibold text-foreground">Waiting for payment confirmation…</p>
-            <p className="text-xs text-muted-foreground">{message ?? "Check your phone and approve the payment prompt."}</p>
+            <p className="text-[11px] text-muted-foreground">{message ?? "Check your phone and approve the payment prompt."}</p>
             <Button variant="outline" size="sm" onClick={() => { if (pollRef.current) clearInterval(pollRef.current); setPurchaseState("idle"); setMessage(null) }}>
               Cancel & choose another method
             </Button>
@@ -166,11 +166,11 @@ export default function ProviderProPage() {
           <Card className="border-0 p-5 shadow-lg space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-foreground">Subscribe to Saji Pro</h3>
-              <p className="text-xl font-bold text-foreground">{formatMoney(status.priceKES)}<span className="text-sm font-normal text-muted-foreground">/month</span></p>
+              <p className="text-lg font-bold text-foreground">{formatMoney(status.priceKES)}<span className="text-xs font-normal text-muted-foreground">/month</span></p>
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm text-muted-foreground">Mobile number (for M-Pesa)</label>
+              <label className="text-xs text-muted-foreground">Mobile number (for M-Pesa)</label>
               <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="07XXXXXXXX or 2547XXXXXXXX" />
             </div>
 
@@ -181,10 +181,10 @@ export default function ProviderProPage() {
             </div>
 
             {purchaseState === "failed" && (
-              <div className="flex items-center gap-2 text-sm text-destructive"><XCircle className="h-4 w-4" /> {message}</div>
+              <div className="flex items-center gap-2 text-xs text-destructive"><XCircle className="h-4 w-4" /> {message}</div>
             )}
-            {purchaseState === "idle" && message && <p className="text-xs break-words rounded bg-muted p-3">{message}</p>}
-            {submitting && <p className="flex items-center gap-1.5 text-xs text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" />Starting payment…</p>}
+            {purchaseState === "idle" && message && <p className="text-[11px] break-words rounded bg-muted p-3">{message}</p>}
+            {submitting && <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" />Starting payment…</p>}
           </Card>
         )}
       </div>

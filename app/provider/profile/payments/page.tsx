@@ -104,7 +104,7 @@ export default function PaymentMethodsPage() {
             <Link href="/provider/profile" className="lg:hidden hover:bg-blue-500/50 p-2 rounded-lg">
               <ArrowLeft className="w-6 h-6" />
             </Link>
-            <h1 className="text-xl font-bold">{t("provider.payments.title")}</h1>
+            <h1 className="text-lg font-bold">{t("provider.payments.title")}</h1>
           </div>
           <Button onClick={() => { setNewMethodDetails(""); setMethodError(""); setShowAddModal(true) }} className="bg-white text-blue-600 hover:bg-gray-100">
             <Plus className="w-4 h-4 mr-2" />{t("provider.payments.addMethod")}
@@ -118,7 +118,7 @@ export default function PaymentMethodsPage() {
           <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg">
             <CreditCard className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
             <p className="text-gray-900 dark:text-white font-medium mb-2">{t("provider.payments.noMethodsTitle")}</p>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">{t("provider.payments.noMethodsDesc")}</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mb-6">{t("provider.payments.noMethodsDesc")}</p>
             <Button onClick={() => setShowAddModal(true)} className="bg-blue-600 hover:bg-blue-700"><Plus className="w-4 h-4 mr-2" />{t("provider.payments.addFirstMethod")}</Button>
           </div>
         ) : (
@@ -131,15 +131,15 @@ export default function PaymentMethodsPage() {
                   </div>
                   <div className="flex-1">
                     <p className="font-semibold text-gray-900 dark:text-white">{payment.name}</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{payment.number}</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">{payment.number}</p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-3">
                   {payment.isDefault ? (
-                    <span className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs px-3 py-1 rounded-full font-medium">{t("provider.payments.primaryBadge")}</span>
+                    <span className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-[11px] px-3 py-1 rounded-full font-medium">{t("provider.payments.primaryBadge")}</span>
                   ) : (
-                    <button onClick={() => setPrimary(payment.id)} className="text-xs px-3 py-1 rounded-full border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">{t("provider.payments.setAsPrimary")}</button>
+                    <button onClick={() => setPrimary(payment.id)} className="text-[11px] px-3 py-1 rounded-full border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">{t("provider.payments.setAsPrimary")}</button>
                   )}
                   <button onClick={() => handleEditClick(payment)} aria-label={t("common.edit")} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"><Edit2 className="w-4 h-4 text-blue-600 dark:text-blue-400" /></button>
                   <button onClick={() => removePayment(payment.id)} aria-label={t("common.delete")} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"><Trash2 className="w-4 h-4 text-red-600 dark:text-red-400" /></button>
@@ -156,7 +156,7 @@ export default function PaymentMethodsPage() {
           <DialogHeader><DialogTitle>{t("provider.payments.addMethodModalTitle")}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">{t("provider.payments.methodTypeLabel")}</label>
+              <label className="block text-xs font-medium text-foreground mb-2">{t("provider.payments.methodTypeLabel")}</label>
               <select value={newMethodType} onChange={(e) => setNewMethodType(e.target.value as typeof newMethodType)} className="w-full p-3 border border-input rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-blue-500/20">
                 <option value="mpesa">{t("payment.mpesa")}</option>
                 <option value="airtel">{t("provider.payments.typeAirtelMoney")}</option>
@@ -165,10 +165,10 @@ export default function PaymentMethodsPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">{newMethodType === "mpesa" || newMethodType === "airtel" ? t("provider.payments.phoneNumberLabel") : newMethodType === "card" ? t("provider.payments.cardNumberLabel") : t("provider.payments.accountDetailsLabel")}</label>
+              <label className="block text-xs font-medium text-foreground mb-2">{newMethodType === "mpesa" || newMethodType === "airtel" ? t("provider.payments.phoneNumberLabel") : newMethodType === "card" ? t("provider.payments.cardNumberLabel") : t("provider.payments.accountDetailsLabel")}</label>
               <Input value={newMethodDetails} onChange={(e) => setNewMethodDetails(e.target.value)} placeholder={newMethodType === "mpesa" || newMethodType === "airtel" ? t("provider.payments.phonePlaceholder") : newMethodType === "card" ? t("provider.payments.cardNumberPlaceholder") : t("provider.payments.accountDetailsPlaceholder")} />
             </div>
-            {methodError && <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-lg text-sm">{methodError}</div>}
+            {methodError && <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-lg text-xs">{methodError}</div>}
             <div className="flex gap-3 pt-4">
               <Button variant="outline" onClick={() => setShowAddModal(false)} className="flex-1 bg-transparent" disabled={isSaving}>{t("common.cancel")}</Button>
               <Button onClick={handleAddMethod} className="flex-1 bg-blue-600 hover:bg-blue-700" disabled={isSaving}>
@@ -185,14 +185,14 @@ export default function PaymentMethodsPage() {
           <DialogHeader><DialogTitle>{t("provider.payments.editMethodTitle")}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">{t("provider.payments.methodTypeLabel")}</label>
-              <p className="text-sm text-muted-foreground p-2 bg-muted rounded">{editingPayment && (TYPE_LABEL_KEY[editingPayment.type] ? t(TYPE_LABEL_KEY[editingPayment.type]) : editingPayment.name)}</p>
+              <label className="block text-xs font-medium text-foreground mb-2">{t("provider.payments.methodTypeLabel")}</label>
+              <p className="text-xs text-muted-foreground p-2 bg-muted rounded">{editingPayment && (TYPE_LABEL_KEY[editingPayment.type] ? t(TYPE_LABEL_KEY[editingPayment.type]) : editingPayment.name)}</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">{t("provider.payments.newAccountDetailsLabel")}</label>
+              <label className="block text-xs font-medium text-foreground mb-2">{t("provider.payments.newAccountDetailsLabel")}</label>
               <Input value={newMethodDetails} onChange={(e) => setNewMethodDetails(e.target.value)} placeholder={t("provider.payments.enterUpdatedDetailsPlaceholder")} />
             </div>
-            {methodError && <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-lg text-sm">{methodError}</div>}
+            {methodError && <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-lg text-xs">{methodError}</div>}
             <div className="flex gap-3 pt-4">
               <Button variant="outline" onClick={() => { setShowEditModal(false); setEditingPayment(null) }} className="flex-1 bg-transparent" disabled={isSaving}>{t("common.cancel")}</Button>
               <Button onClick={handleEditMethod} className="flex-1 bg-blue-600 hover:bg-blue-700" disabled={isSaving}>

@@ -90,8 +90,8 @@ export default function VerificationPage() {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-6">
         <div className="rounded-3xl border border-slate-200 bg-white p-10 shadow-2xl dark:border-gray-800 dark:bg-slate-950">
-          <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">{t("provider.verification.signInTitle")}</h1>
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{t("provider.verification.signInDesc")}</p>
+          <h1 className="text-xl font-semibold text-slate-900 dark:text-white">{t("provider.verification.signInTitle")}</h1>
+          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{t("provider.verification.signInDesc")}</p>
           <Button onClick={() => router.push("/auth/login")} className="mt-6">{t("provider.verification.goToLogin")}</Button>
         </div>
       </div>
@@ -104,24 +104,24 @@ export default function VerificationPage() {
         <div className="max-w-5xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <div className="inline-flex items-center gap-2 text-sm text-slate-300 hover:text-white transition-colors">
+              <div className="inline-flex items-center gap-2 text-xs text-slate-300 hover:text-white transition-colors">
                 <ArrowLeft className="w-4 h-4" />
                 <Link href="/provider/profile">{t("provider.verification.backToProfile")}</Link>
               </div>
-              <h1 className="mt-4 text-3xl font-semibold tracking-tight text-white">{t("provider.verification.title")}</h1>
-              <p className="mt-2 text-sm text-slate-300 max-w-2xl">
+              <h1 className="mt-4 text-2xl font-semibold tracking-tight text-white">{t("provider.verification.title")}</h1>
+              <p className="mt-2 text-xs text-slate-300 max-w-2xl">
                 {t("provider.verification.subtitle")}
               </p>
             </div>
             <div className="rounded-3xl border border-white/10 bg-white/10 p-5 shadow-lg backdrop-blur sm:max-w-sm">
-              <p className="text-xs uppercase tracking-[0.24em] text-slate-300">{t("provider.verification.statusLabel")}</p>
+              <p className="text-[11px] uppercase tracking-[0.24em] text-slate-300">{t("provider.verification.statusLabel")}</p>
               <div className="mt-4 flex items-center gap-4">
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-400">
                   <ShieldCheck className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="text-sm text-slate-300">{t("provider.verification.currentStatusLabel")}</p>
-                  <p className="text-xl font-semibold text-white">{status === "approved" ? t("provider.verification.statusApproved") : status === "rejected" ? t("provider.verification.statusRejected") : t("provider.verification.statusPendingReview")}</p>
+                  <p className="text-xs text-slate-300">{t("provider.verification.currentStatusLabel")}</p>
+                  <p className="text-lg font-semibold text-white">{status === "approved" ? t("provider.verification.statusApproved") : status === "rejected" ? t("provider.verification.statusRejected") : t("provider.verification.statusPendingReview")}</p>
                 </div>
               </div>
             </div>
@@ -139,10 +139,10 @@ export default function VerificationPage() {
           <Card className="p-6 shadow-lg border-0">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">{t("provider.verification.kycEyebrow")}</p>
-                <h2 className="mt-3 text-2xl font-semibold text-slate-900 dark:text-white">{t("provider.verification.completeIdentityTitle")}</h2>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{t("provider.verification.kycEyebrow")}</p>
+                <h2 className="mt-3 text-xl font-semibold text-slate-900 dark:text-white">{t("provider.verification.completeIdentityTitle")}</h2>
               </div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+              <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
                 <BadgeCheck className="w-4 h-4 text-emerald-600" />
                 {status === "approved" ? t("provider.verification.badgeVerified") : status === "rejected" ? t("provider.verification.badgeResubmit") : t("provider.verification.badgePending")}
               </div>
@@ -157,8 +157,8 @@ export default function VerificationPage() {
                 <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400">
                   <Check className="w-7 h-7" />
                 </div>
-                <h3 className="mt-4 text-xl font-semibold text-slate-900 dark:text-white">{t("provider.verification.thankYouTitle")}</h3>
-                <p className="mt-2 text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto">{t("provider.verification.thankYouBody")}</p>
+                <h3 className="mt-4 text-lg font-semibold text-slate-900 dark:text-white">{t("provider.verification.thankYouTitle")}</h3>
+                <p className="mt-2 text-xs text-slate-600 dark:text-slate-400 max-w-md mx-auto">{t("provider.verification.thankYouBody")}</p>
               </div>
             ) : (
               <>
@@ -169,19 +169,19 @@ export default function VerificationPage() {
                     { title: t("provider.verification.step3Title"), detail: t("provider.verification.step3Desc") },
                   ].map((item) => (
                     <div key={item.title} className="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-gray-700 dark:bg-gray-900">
-                      <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{item.title}</h3>
-                      <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">{item.detail}</p>
+                      <h3 className="text-base font-semibold text-slate-900 dark:text-white">{item.title}</h3>
+                      <p className="mt-2 text-xs text-slate-600 dark:text-slate-400">{item.detail}</p>
                     </div>
                   ))}
                 </div>
 
-                {message && <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">{message}</div>}
+                {message && <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-xs text-blue-700">{message}</div>}
 
                 <div className="mt-6 space-y-4">
                   <div>
-                    <label className="text-sm font-medium text-slate-900 dark:text-white mb-2 block">{t("provider.verification.documentTypeLabel")}</label>
+                    <label className="text-xs font-medium text-slate-900 dark:text-white mb-2 block">{t("provider.verification.documentTypeLabel")}</label>
                     <Select value={formState.idType} onValueChange={(v) => handleChange("idType", v)}>
-                      <SelectTrigger className="w-full rounded-2xl border-slate-200 bg-white py-3 h-auto text-sm text-slate-900 dark:border-gray-700 dark:bg-gray-800 dark:text-white">
+                      <SelectTrigger className="w-full rounded-2xl border-slate-200 bg-white py-3 h-auto text-xs text-slate-900 dark:border-gray-700 dark:bg-gray-800 dark:text-white">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -192,19 +192,19 @@ export default function VerificationPage() {
                     </Select>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-slate-900 dark:text-white mb-2 block">{t("provider.verification.documentNumberLabel")}</label>
+                    <label className="text-xs font-medium text-slate-900 dark:text-white mb-2 block">{t("provider.verification.documentNumberLabel")}</label>
                     <div className="relative">
                       <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                       <Input
                         value={formState.idNumber}
                         onChange={(e) => handleChange("idNumber", e.target.value)}
                         placeholder={t("provider.verification.documentNumberPlaceholder")}
-                        className="w-full rounded-2xl border-slate-200 bg-white pl-11 py-3 h-auto text-sm text-slate-900 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                        className="w-full rounded-2xl border-slate-200 bg-white pl-11 py-3 h-auto text-xs text-slate-900 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-slate-900 dark:text-white mb-2 block">{t("provider.verification.idPhotosLabel")}</label>
+                    <label className="text-xs font-medium text-slate-900 dark:text-white mb-2 block">{t("provider.verification.idPhotosLabel")}</label>
                     <div className="grid grid-cols-2 gap-3">
                       <KycPhotoUpload label={t("provider.verification.frontSideLabel")} value={formState.idFile} onChange={(v) => handleChange("idFile", v)} />
                       <KycPhotoUpload label={t("provider.verification.backSideLabel")} value={formState.idFileBack} onChange={(v) => handleChange("idFileBack", v)} />
@@ -223,23 +223,23 @@ export default function VerificationPage() {
             <div className="flex items-center gap-3 rounded-3xl bg-slate-50 p-4 dark:bg-slate-800">
               <ShieldCheck className="w-5 h-5 text-blue-600" />
               <div>
-                <p className="text-sm font-semibold text-slate-900 dark:text-white">{t("provider.verification.whyMattersTitle")}</p>
-                <p className="text-sm text-slate-500 dark:text-slate-400">{t("provider.verification.whyMattersDesc")}</p>
+                <p className="text-xs font-semibold text-slate-900 dark:text-white">{t("provider.verification.whyMattersTitle")}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{t("provider.verification.whyMattersDesc")}</p>
               </div>
             </div>
 
             <div className="mt-6 space-y-4">
               <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-gray-700 dark:bg-gray-900">
                 <p className="font-semibold text-slate-900 dark:text-white">{t("provider.verification.benefit1Title")}</p>
-                <p className="text-sm text-slate-500 dark:text-slate-400">{t("provider.verification.benefit1Desc")}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{t("provider.verification.benefit1Desc")}</p>
               </div>
               <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-gray-700 dark:bg-gray-900">
                 <p className="font-semibold text-slate-900 dark:text-white">{t("provider.verification.benefit2Title")}</p>
-                <p className="text-sm text-slate-500 dark:text-slate-400">{t("provider.verification.benefit2Desc")}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{t("provider.verification.benefit2Desc")}</p>
               </div>
               <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-gray-700 dark:bg-gray-900">
                 <p className="font-semibold text-slate-900 dark:text-white">{t("provider.verification.benefit3Title")}</p>
-                <p className="text-sm text-slate-500 dark:text-slate-400">{t("provider.verification.benefit3Desc")}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{t("provider.verification.benefit3Desc")}</p>
               </div>
             </div>
           </Card>

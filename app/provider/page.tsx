@@ -176,7 +176,7 @@ export default function ProviderHomePage() {
             <button onClick={() => setShowCreatePost(false)} aria-label={t("common.close")} className="p-2 hover:bg-muted rounded-full transition-colors">
               <X className="w-5 h-5 text-muted-foreground" />
             </button>
-            <h2 className="text-lg font-semibold text-foreground">{t("provider.dashboard.createPostModalTitle")}</h2>
+            <h2 className="text-base font-semibold text-foreground">{t("provider.dashboard.createPostModalTitle")}</h2>
             <Button
               onClick={handlePost}
               disabled={!postContent.trim() || isPosting}
@@ -194,7 +194,7 @@ export default function ProviderHomePage() {
               </div>
               <div>
                 <p className="font-semibold text-foreground">Mike Thompson</p>
-                <p className="text-sm text-muted-foreground">{t("provider.dashboard.mockProviderRole")}</p>
+                <p className="text-xs text-muted-foreground">{t("provider.dashboard.mockProviderRole")}</p>
               </div>
             </div>
 
@@ -220,7 +220,7 @@ export default function ProviderHomePage() {
                     >
                       <X className="w-4 h-4 text-white" />
                     </button>
-                    <div className="absolute bottom-2 left-2 px-2 py-0.5 bg-black/60 rounded text-xs text-white">
+                    <div className="absolute bottom-2 left-2 px-2 py-0.5 bg-black/60 rounded text-[11px] text-white">
                       {idx + 1}/{selectedImages.length}
                     </div>
                   </div>
@@ -231,7 +231,7 @@ export default function ProviderHomePage() {
                   className="aspect-video rounded-lg border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center hover:border-primary hover:bg-primary/5 transition-all"
                 >
                   <Plus className="w-8 h-8 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground mt-1">{t("provider.dashboard.addMore")}</span>
+                  <span className="text-[11px] text-muted-foreground mt-1">{t("provider.dashboard.addMore")}</span>
                 </button>
               </div>
             )}
@@ -256,7 +256,7 @@ export default function ProviderHomePage() {
 
             {/* Add Photo/Video Buttons */}
             <div className="border-t border-border pt-4">
-              <p className="text-sm font-medium text-muted-foreground mb-3">{t("provider.dashboard.addPhotosVideos")}</p>
+              <p className="text-xs font-medium text-muted-foreground mb-3">{t("provider.dashboard.addPhotosVideos")}</p>
               <div className="grid grid-cols-2 gap-3 mb-4">
                 <button
                   onClick={() => fileInputRef.current?.click()}
@@ -265,8 +265,8 @@ export default function ProviderHomePage() {
                   <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center mb-2">
                     <Upload className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <span className="text-sm font-medium text-foreground">{t("provider.dashboard.uploadFromDevice")}</span>
-                  <span className="text-xs text-muted-foreground mt-1">{t("provider.dashboard.selectPhotosVideos")}</span>
+                  <span className="text-xs font-medium text-foreground">{t("provider.dashboard.uploadFromDevice")}</span>
+                  <span className="text-[11px] text-muted-foreground mt-1">{t("provider.dashboard.selectPhotosVideos")}</span>
                 </button>
                 <button
                   onClick={() => cameraInputRef.current?.click()}
@@ -275,13 +275,13 @@ export default function ProviderHomePage() {
                   <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mb-2">
                     <Camera className="w-6 h-6 text-green-600 dark:text-green-400" />
                   </div>
-                  <span className="text-sm font-medium text-foreground">{t("provider.dashboard.takePhoto")}</span>
-                  <span className="text-xs text-muted-foreground mt-1">{t("provider.dashboard.openCamera")}</span>
+                  <span className="text-xs font-medium text-foreground">{t("provider.dashboard.takePhoto")}</span>
+                  <span className="text-[11px] text-muted-foreground mt-1">{t("provider.dashboard.openCamera")}</span>
                 </button>
               </div>
 
               {/* Sample Images Grid */}
-              <p className="text-sm font-medium text-muted-foreground mb-3">{t("provider.dashboard.orChooseFromRecent")}</p>
+              <p className="text-xs font-medium text-muted-foreground mb-3">{t("provider.dashboard.orChooseFromRecent")}</p>
               <div className="grid grid-cols-4 gap-2">
                 {sampleImages.map((img, idx) => (
                   <button 
@@ -306,26 +306,26 @@ export default function ProviderHomePage() {
             <div className="flex flex-wrap items-center gap-4 border-t border-border pt-4">
               <button 
                 onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
+                className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors"
               >
                 <ImageIcon className="w-5 h-5" />
                 {t("provider.dashboard.gallery")}
               </button>
               <button
                 onClick={() => cameraInputRef.current?.click()}
-                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
+                className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors"
               >
                 <Camera className="w-5 h-5" />
                 {t("provider.dashboard.camera")}
               </button>
               <button
                 onClick={() => setPostLocation(postLocation ? "" : "Nairobi, Kenya")}
-                className={`flex items-center gap-2 text-sm transition-colors ${postLocation ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`}
+                className={`flex items-center gap-2 text-xs transition-colors ${postLocation ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`}
               >
                 <MapPin className="w-5 h-5" />
                 {postLocation || t("provider.dashboard.locationLabel")}
               </button>
-              <button className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors">
+              <button className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors">
                 <Tag className="w-5 h-5" />
                 {t("provider.dashboard.tag")}
               </button>
@@ -335,7 +335,7 @@ export default function ProviderHomePage() {
             {postLocation && (
               <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
                 <MapPin className="w-4 h-4 text-primary" />
-                <span className="text-sm text-foreground">{postLocation}</span>
+                <span className="text-xs text-foreground">{postLocation}</span>
                 <button onClick={() => setPostLocation("")} aria-label={t("common.removeItem")} className="ml-auto">
                   <X className="w-4 h-4 text-muted-foreground" />
                 </button>
@@ -350,7 +350,7 @@ export default function ProviderHomePage() {
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-3xl font-bold mb-1">{t("provider.dashboard.welcomeBack", { name: dashboard?.name ?? "there" })}</h1>
+              <h1 className="text-2xl font-bold mb-1">{t("provider.dashboard.welcomeBack", { name: dashboard?.name ?? "there" })}</h1>
               <p className="text-blue-100">{t("provider.dashboard.performanceOverview")}</p>
             </div>
             <Bell className="w-8 h-8 text-blue-100" />
@@ -371,8 +371,8 @@ export default function ProviderHomePage() {
                 <Camera className="w-7 h-7 text-white" />
               </div>
               <div>
-                <h3 className="text-white font-bold text-lg">{t("provider.dashboard.createPostCardTitle")}</h3>
-                <p className="text-blue-100 text-sm">{t("provider.dashboard.createPostCardDesc")}</p>
+                <h3 className="text-white font-bold text-base">{t("provider.dashboard.createPostCardTitle")}</h3>
+                <p className="text-blue-100 text-xs">{t("provider.dashboard.createPostCardDesc")}</p>
               </div>
             </div>
           </Card>
@@ -384,8 +384,8 @@ export default function ProviderHomePage() {
                   <ImageIcon className="w-7 h-7 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-white font-bold text-lg">{t("provider.dashboard.shareWork")}</h3>
-                  <p className="text-orange-100 text-sm">{t("provider.dashboard.shareWorkDesc")}</p>
+                  <h3 className="text-white font-bold text-base">{t("provider.dashboard.shareWork")}</h3>
+                  <p className="text-orange-100 text-xs">{t("provider.dashboard.shareWorkDesc")}</p>
                 </div>
               </div>
             </Card>
@@ -403,8 +403,8 @@ export default function ProviderHomePage() {
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">{stat.label}</p>
-                    <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{stat.value}</p>
+                    <p className="text-gray-600 dark:text-gray-400 text-xs font-medium">{stat.label}</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white mt-2">{stat.value}</p>
                   </div>
                   <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${stat.color}`}>
                     <Icon className="w-6 h-6" />
@@ -421,7 +421,7 @@ export default function ProviderHomePage() {
             <Card className="bg-white dark:bg-gray-800 border-0 rounded-xl shadow-sm overflow-hidden">
               <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
                     <AlertCircle className="w-5 h-5 text-orange-500" />
                     {t("provider.dashboard.pendingActionsTitle")}
                   </h2>
@@ -429,20 +429,20 @@ export default function ProviderHomePage() {
               </div>
               <div className="divide-y divide-gray-200 dark:divide-gray-700">
                 {alerts.length === 0 ? (
-                  <div className="p-6 text-center text-sm text-muted-foreground">{t("provider.dashboard.noAlerts")}</div>
+                  <div className="p-6 text-center text-xs text-muted-foreground">{t("provider.dashboard.noAlerts")}</div>
                 ) : alerts.map((alert, idx) => (
                   <div key={idx} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <h3 className="font-semibold text-gray-900 dark:text-white">{alert.title}</h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{alert.service}</p>
-                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mt-2">{alert.amount != null ? formatMoney(alert.amount) : t("provider.dashboard.pendingReview")}</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{alert.service}</p>
+                        <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mt-2">{alert.amount != null ? formatMoney(alert.amount) : t("provider.dashboard.pendingReview")}</p>
                       </div>
                       <Link href="/provider/jobs">
                         <Button
                           className={`${
                             alert.color === "orange" ? "bg-orange-500 hover:bg-orange-600" : "bg-red-500 hover:bg-red-600"
-                          } text-white font-medium h-9 text-sm`}
+                          } text-white font-medium h-9 text-xs`}
                         >
                           {alert.action}
                         </Button>
@@ -516,10 +516,10 @@ export default function ProviderHomePage() {
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl">{badge.icon}</span>
+                    <span className="text-xl">{badge.icon}</span>
                     <div>
-                      <p className="font-medium text-gray-900 dark:text-white text-sm">{t(badge.labelKey)}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                      <p className="font-medium text-gray-900 dark:text-white text-xs">{t(badge.labelKey)}</p>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400">
                         {badge.locked ? t("provider.dashboard.moreVotesNeeded", { count: (badge.needed ?? 0) - badge.votes }) : t("provider.dashboard.communityVotes", { count: badge.votes })}
                       </p>
                     </div>
@@ -539,13 +539,13 @@ export default function ProviderHomePage() {
         <Card className="bg-white dark:bg-gray-800 border-0 rounded-xl shadow-sm overflow-hidden">
           <div className="p-5 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white">{t("provider.dashboard.getStartedChecklist")}</h2>
-              <span className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-0.5 rounded-full font-medium">{t("provider.dashboard.stepsComplete", { done: onboardingDoneCount, total: onboardingSteps.length })}</span>
+              <h2 className="text-base font-bold text-gray-900 dark:text-white">{t("provider.dashboard.getStartedChecklist")}</h2>
+              <span className="text-[11px] bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-0.5 rounded-full font-medium">{t("provider.dashboard.stepsComplete", { done: onboardingDoneCount, total: onboardingSteps.length })}</span>
             </div>
             <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mb-1">
               <div className="h-full bg-blue-600 rounded-full transition-all" style={{ width: `${onboardingPct}%` }} />
             </div>
-            <p className="text-[11px] text-gray-500 dark:text-gray-400">{t("provider.dashboard.completeStepsHint")}</p>
+            <p className="text-[10px] text-gray-500 dark:text-gray-400">{t("provider.dashboard.completeStepsHint")}</p>
           </div>
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
             {onboardingSteps.map((step, i) => (
@@ -553,7 +553,7 @@ export default function ProviderHomePage() {
                 <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${step.done ? "bg-blue-600" : "border-2 border-gray-300 dark:border-gray-600"}`}>
                   {step.done && <CheckCircle2 className="w-4 h-4 text-white" />}
                 </div>
-                <span className={`text-sm flex-1 ${step.done ? "text-gray-500 dark:text-gray-400 line-through" : "text-gray-900 dark:text-white font-medium"}`}>{step.label}</span>
+                <span className={`text-xs flex-1 ${step.done ? "text-gray-500 dark:text-gray-400 line-through" : "text-gray-900 dark:text-white font-medium"}`}>{step.label}</span>
                 {!step.done && <ChevronRight className="w-4 h-4 text-gray-400" />}
               </Link>
             ))}
@@ -563,10 +563,10 @@ export default function ProviderHomePage() {
         {/* Recent Jobs */}
         <Card className="bg-white dark:bg-gray-800 border-0 rounded-xl shadow-sm overflow-hidden">
           <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t("provider.dashboard.recentJobsTitle")}</h2>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">{t("provider.dashboard.recentJobsTitle")}</h2>
             <Link
               href="/provider/jobs"
-              className="text-blue-600 dark:text-blue-400 hover:underline font-medium text-sm flex items-center gap-1"
+              className="text-blue-600 dark:text-blue-400 hover:underline font-medium text-xs flex items-center gap-1"
             >
               {t("provider.dashboard.viewAll")} <ArrowRight className="w-4 h-4" />
             </Link>
@@ -575,17 +575,17 @@ export default function ProviderHomePage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">
                     {t("provider.dashboard.colJobTitle")}
                   </th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("provider.dashboard.colClient")}</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("common.status")}</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("provider.dashboard.colAmount")}</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("provider.dashboard.colClient")}</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("common.status")}</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("provider.dashboard.colAmount")}</th>
                 </tr>
               </thead>
               <tbody>
                 {recentJobs.length === 0 ? (
-                  <tr><td colSpan={4} className="px-6 py-8 text-center text-sm text-muted-foreground">{t("provider.dashboard.noJobsYet")}</td></tr>
+                  <tr><td colSpan={4} className="px-6 py-8 text-center text-xs text-muted-foreground">{t("provider.dashboard.noJobsYet")}</td></tr>
                 ) : recentJobs.map((job) => (
                   <tr
                     key={job.id}
@@ -595,7 +595,7 @@ export default function ProviderHomePage() {
                     <td className="px-6 py-4 text-gray-600 dark:text-gray-400">{job.client}</td>
                     <td className="px-6 py-4">
                       <span
-                        className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        className={`px-3 py-1 rounded-full text-[11px] font-semibold ${
                           job.status === "IN_PROGRESS" || job.status === "ACCEPTED"
                             ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
                             : job.status === "COMPLETED"
@@ -622,7 +622,7 @@ export default function ProviderHomePage() {
             <button onClick={() => setShowCreateStory(false)} aria-label={t("common.close")} className="p-2 hover:bg-muted rounded-full transition-colors">
               <X className="w-5 h-5 text-muted-foreground" />
             </button>
-            <h2 className="text-lg font-semibold text-foreground">{t("provider.dashboard.createBeforeAfterTitle")}</h2>
+            <h2 className="text-base font-semibold text-foreground">{t("provider.dashboard.createBeforeAfterTitle")}</h2>
             <Button
               disabled={!beforeImage || !afterImage || !storyTitle || isPostingStory || isCompressingBefore || isCompressingAfter}
               className="bg-purple-600 hover:bg-purple-700"
@@ -643,7 +643,7 @@ export default function ProviderHomePage() {
           </div>
 
           <div className="p-4 space-y-4">
-            {storyError && <p className="text-sm text-red-600">{storyError}</p>}
+            {storyError && <p className="text-xs text-red-600">{storyError}</p>}
 
             {/* Story Title */}
             <Input
@@ -656,7 +656,7 @@ export default function ProviderHomePage() {
             {/* Before/After Image Upload */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <p className="text-sm font-medium mb-2 text-muted-foreground">{t("provider.dashboard.beforeLabel")}</p>
+                <p className="text-xs font-medium mb-2 text-muted-foreground">{t("provider.dashboard.beforeLabel")}</p>
                 <label className="block aspect-video rounded-lg border-2 border-dashed border-muted-foreground/30 hover:border-purple-500 cursor-pointer overflow-hidden transition-colors">
                   {isCompressingBefore ? (
                     <div className="w-full h-full flex items-center justify-center text-muted-foreground">
@@ -667,7 +667,7 @@ export default function ProviderHomePage() {
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground">
                       <Camera className="w-8 h-8 mb-2" />
-                      <span className="text-xs">{t("provider.dashboard.addPhoto")}</span>
+                      <span className="text-[11px]">{t("provider.dashboard.addPhoto")}</span>
                     </div>
                   )}
                   <input
@@ -691,7 +691,7 @@ export default function ProviderHomePage() {
                 </label>
               </div>
               <div>
-                <p className="text-sm font-medium mb-2 text-muted-foreground">{t("provider.dashboard.afterLabel")}</p>
+                <p className="text-xs font-medium mb-2 text-muted-foreground">{t("provider.dashboard.afterLabel")}</p>
                 <label className="block aspect-video rounded-lg border-2 border-dashed border-muted-foreground/30 hover:border-purple-500 cursor-pointer overflow-hidden transition-colors">
                   {isCompressingAfter ? (
                     <div className="w-full h-full flex items-center justify-center text-muted-foreground">
@@ -702,7 +702,7 @@ export default function ProviderHomePage() {
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground">
                       <Camera className="w-8 h-8 mb-2" />
-                      <span className="text-xs">{t("provider.dashboard.addPhoto")}</span>
+                      <span className="text-[11px]">{t("provider.dashboard.addPhoto")}</span>
                     </div>
                   )}
                   <input
@@ -729,8 +729,8 @@ export default function ProviderHomePage() {
 
             {/* Tips */}
             <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3">
-              <p className="text-sm font-medium text-purple-800 dark:text-purple-200 mb-1">{t("provider.dashboard.tipsTitle")}</p>
-              <ul className="text-xs text-purple-700 dark:text-purple-300 space-y-1">
+              <p className="text-xs font-medium text-purple-800 dark:text-purple-200 mb-1">{t("provider.dashboard.tipsTitle")}</p>
+              <ul className="text-[11px] text-purple-700 dark:text-purple-300 space-y-1">
                 <li>- {t("provider.dashboard.tipSameAngle")}</li>
                 <li>- {t("provider.dashboard.tipGoodLighting")}</li>
                 <li>- {t("provider.dashboard.tipShowsOnHomePage")}</li>
@@ -747,7 +747,7 @@ export default function ProviderHomePage() {
             <button onClick={() => setShowEndorsementRequest(false)} aria-label={t("common.close")} className="p-2 hover:bg-muted rounded-full transition-colors">
               <X className="w-5 h-5 text-muted-foreground" />
             </button>
-            <h2 className="text-lg font-semibold text-foreground">{t("provider.dashboard.requestEndorsementTitle")}</h2>
+            <h2 className="text-base font-semibold text-foreground">{t("provider.dashboard.requestEndorsementTitle")}</h2>
             <Button
               disabled={!endorsementShop || !endorsementMessage}
               className="bg-amber-500 hover:bg-amber-600"
@@ -768,7 +768,7 @@ export default function ProviderHomePage() {
                 <Store className="w-5 h-5 text-amber-600 mt-0.5" />
                 <div>
                   <p className="font-medium text-amber-800 dark:text-amber-200">{t("provider.dashboard.shopkeeperEndorsementsTitle")}</p>
-                  <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                  <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
                     {t("provider.dashboard.shopkeeperEndorsementsDesc")}
                   </p>
                 </div>
@@ -777,7 +777,7 @@ export default function ProviderHomePage() {
 
             {/* Select Shop */}
             <div>
-              <p className="text-sm font-medium mb-2 text-foreground">{t("provider.dashboard.selectShopLabel")}</p>
+              <p className="text-xs font-medium mb-2 text-foreground">{t("provider.dashboard.selectShopLabel")}</p>
               <div className="space-y-2">
                 {nearbyShops.map((shop) => (
                   <button
@@ -796,9 +796,9 @@ export default function ProviderHomePage() {
                     />
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-foreground truncate">{shop.name}</p>
-                      <p className="text-xs text-muted-foreground">{shop.owner} - {shop.location}</p>
+                      <p className="text-[11px] text-muted-foreground">{shop.owner} - {shop.location}</p>
                     </div>
-                    <span className="text-xs px-2 py-1 bg-muted rounded-full">{shop.category}</span>
+                    <span className="text-[11px] px-2 py-1 bg-muted rounded-full">{shop.category}</span>
                   </button>
                 ))}
               </div>
@@ -806,7 +806,7 @@ export default function ProviderHomePage() {
 
             {/* Message to Shop Owner */}
             <div>
-              <p className="text-sm font-medium mb-2 text-foreground">{t("provider.dashboard.messageToShopLabel")}</p>
+              <p className="text-xs font-medium mb-2 text-foreground">{t("provider.dashboard.messageToShopLabel")}</p>
               <Textarea
                 value={endorsementMessage}
                 onChange={(e) => setEndorsementMessage(e.target.value)}
@@ -817,8 +817,8 @@ export default function ProviderHomePage() {
 
             {/* What happens next */}
             <div className="bg-muted/50 rounded-lg p-3">
-              <p className="text-sm font-medium text-foreground mb-2">{t("provider.dashboard.whatHappensNextTitle")}</p>
-              <ul className="text-xs text-muted-foreground space-y-1">
+              <p className="text-xs font-medium text-foreground mb-2">{t("provider.dashboard.whatHappensNextTitle")}</p>
+              <ul className="text-[11px] text-muted-foreground space-y-1">
                 <li className="flex items-center gap-2">
                   <ChevronRight className="w-3 h-3" />
                   {t("provider.dashboard.whatHappensNext1")}

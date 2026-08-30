@@ -74,14 +74,14 @@ export function JobDetailModal({ job, isOpen, onOpenChange }: JobDetailModalProp
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">Job Date</p>
+                  <p className="text-[11px] text-muted-foreground mb-1">Job Date</p>
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-muted-foreground" />
                     <span className="font-semibold text-foreground">{job.date}</span>
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">Amount</p>
+                  <p className="text-[11px] text-muted-foreground mb-1">Amount</p>
                   <div className="flex items-center gap-2">
                     <DollarSign className="w-4 h-4 text-primary" />
                     <span className="font-semibold text-foreground">KES {job.amount.toLocaleString()}</span>
@@ -95,7 +95,7 @@ export function JobDetailModal({ job, isOpen, onOpenChange }: JobDetailModalProp
               <h3 className="font-semibold text-foreground">Customer Information</h3>
               <div className="space-y-3">
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">Name</p>
+                  <p className="text-[11px] text-muted-foreground mb-1">Name</p>
                   <p className="font-semibold text-foreground">{job.customer}</p>
                 </div>
                 <div className="flex gap-2">
@@ -115,7 +115,7 @@ export function JobDetailModal({ job, isOpen, onOpenChange }: JobDetailModalProp
             <Card className="p-6">
               <h3 className="font-semibold text-foreground mb-4">Progress</h3>
               <div className="space-y-2">
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between text-xs">
                   <span className="text-muted-foreground">Overall completion</span>
                   <span className="font-semibold text-foreground">{job.progress}%</span>
                 </div>
@@ -135,13 +135,13 @@ export function JobDetailModal({ job, isOpen, onOpenChange }: JobDetailModalProp
               <Card className="p-6 text-center">
                 <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
                 <p className="font-semibold text-foreground mb-2">Work Completed</p>
-                <p className="text-sm text-muted-foreground">All proof of work has been submitted and verified</p>
+                <p className="text-xs text-muted-foreground">All proof of work has been submitted and verified</p>
               </Card>
             ) : (
               <Card className="p-6 space-y-6">
                 <div>
                   <h3 className="font-semibold text-foreground mb-4">Submit Proof of Work</h3>
-                  <p className="text-sm text-muted-foreground mb-6">
+                  <p className="text-xs text-muted-foreground mb-6">
                     Upload photos, documents, or videos showing the completed work.
                   </p>
 
@@ -150,21 +150,21 @@ export function JobDetailModal({ job, isOpen, onOpenChange }: JobDetailModalProp
                     {/* Photo Upload */}
                     <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 transition-colors cursor-pointer">
                       <ImageIcon className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                      <p className="text-sm font-semibold text-foreground mb-1">Add Photos</p>
-                      <p className="text-xs text-muted-foreground">Click to upload before/after photos</p>
+                      <p className="text-xs font-semibold text-foreground mb-1">Add Photos</p>
+                      <p className="text-[11px] text-muted-foreground">Click to upload before/after photos</p>
                     </div>
 
                     {/* Document Upload */}
                     <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 transition-colors cursor-pointer">
                       <FileText className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                      <p className="text-sm font-semibold text-foreground mb-1">Add Documents</p>
-                      <p className="text-xs text-muted-foreground">Upload certificates, reports, or invoices</p>
+                      <p className="text-xs font-semibold text-foreground mb-1">Add Documents</p>
+                      <p className="text-[11px] text-muted-foreground">Upload certificates, reports, or invoices</p>
                     </div>
                   </div>
 
                   {/* Description */}
                   <div className="space-y-2 mb-6">
-                    <label className="text-sm font-medium text-foreground">Work Description</label>
+                    <label className="text-xs font-medium text-foreground">Work Description</label>
                     <Textarea
                       placeholder="Describe the work completed, any challenges faced, and how you resolved them..."
                       value={description}
@@ -190,14 +190,14 @@ export function JobDetailModal({ job, isOpen, onOpenChange }: JobDetailModalProp
                 {/* Sample messages */}
                 <div className="flex justify-start">
                   <div className="bg-muted rounded-lg p-3 max-w-xs">
-                    <p className="text-sm text-muted-foreground">Customer - 2 hours ago</p>
+                    <p className="text-xs text-muted-foreground">Customer - 2 hours ago</p>
                     <p className="text-foreground">When will you start the work?</p>
                   </div>
                 </div>
 
                 <div className="flex justify-end">
                   <div className="bg-primary text-primary-foreground rounded-lg p-3 max-w-xs">
-                    <p className="text-sm text-primary-foreground/80">You - 1 hour ago</p>
+                    <p className="text-xs text-primary-foreground/80">You - 1 hour ago</p>
                     <p>I'll start tomorrow morning at 9 AM</p>
                   </div>
                 </div>

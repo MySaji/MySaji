@@ -66,7 +66,7 @@ export default function SkillsPage() {
           <Link href="/provider/profile" className="lg:hidden">
             <ArrowLeft className="w-6 h-6" />
           </Link>
-          <h1 className="text-xl font-bold">{t("provider.skills.title")}</h1>
+          <h1 className="text-lg font-bold">{t("provider.skills.title")}</h1>
         </div>
       </div>
 
@@ -74,7 +74,7 @@ export default function SkillsPage() {
       <div className="p-4 max-w-2xl mx-auto lg:max-w-4xl space-y-6">
         {/* Skills Section */}
         <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border dark:border-gray-700">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+          <h2 className="text-base font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
             <Award className="w-5 h-5" />
             {t("provider.skills.professionalSkillsTitle")}
           </h2>
@@ -92,11 +92,11 @@ export default function SkillsPage() {
           </div>
 
           <div className="space-y-2">
-            {skills.length === 0 && <p className="text-sm text-gray-500 dark:text-gray-400">{t("provider.skills.noSkillsYet")}</p>}
+            {skills.length === 0 && <p className="text-xs text-gray-500 dark:text-gray-400">{t("provider.skills.noSkillsYet")}</p>}
             {skills.map((skill) => (
               <div key={skill} className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
                 <span className="text-gray-900 dark:text-white font-medium">{skill}</span>
-                <button onClick={() => removeSkill(skill)} className="text-red-600 dark:text-red-400 hover:text-red-700 text-sm font-medium">{t("provider.skills.removeButton")}</button>
+                <button onClick={() => removeSkill(skill)} className="text-red-600 dark:text-red-400 hover:text-red-700 text-xs font-medium">{t("provider.skills.removeButton")}</button>
               </div>
             ))}
           </div>
@@ -104,7 +104,7 @@ export default function SkillsPage() {
 
         {/* Work Areas Section */}
         <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border dark:border-gray-700">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+          <h2 className="text-base font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
             <MapPin className="w-5 h-5" />
             {t("provider.skills.workAreasTitle")}
           </h2>
@@ -122,11 +122,11 @@ export default function SkillsPage() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {workAreas.length === 0 && <p className="text-sm text-gray-500 dark:text-gray-400">{t("provider.skills.noWorkAreasYet")}</p>}
+            {workAreas.length === 0 && <p className="text-xs text-gray-500 dark:text-gray-400">{t("provider.skills.noWorkAreasYet")}</p>}
             {workAreas.map((area) => (
               <div key={area} className="flex items-center gap-2 bg-blue-100 dark:bg-blue-900/30 px-3 py-2 rounded-full">
                 <span className="text-blue-900 dark:text-blue-400 font-medium">{area}</span>
-                <button onClick={() => removeWorkArea(area)} className="text-blue-600 dark:text-blue-400 hover:text-blue-700 text-sm">✕</button>
+                <button onClick={() => removeWorkArea(area)} className="text-blue-600 dark:text-blue-400 hover:text-blue-700 text-xs">✕</button>
               </div>
             ))}
           </div>

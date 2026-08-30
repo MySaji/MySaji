@@ -81,7 +81,7 @@ export default function ProviderTopbar({ onMenuClick }: { onMenuClick: () => voi
 
         {/* Desktop page title */}
         <div className="hidden lg:block">
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">{pageTitleFor(pathname ?? "")}</h1>
+          <h1 className="text-base font-semibold text-gray-900 dark:text-white">{pageTitleFor(pathname ?? "")}</h1>
         </div>
 
         {/* Right side actions */}
@@ -100,7 +100,7 @@ export default function ProviderTopbar({ onMenuClick }: { onMenuClick: () => voi
             className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors"
           >
             <Wallet className="w-4 h-4" />
-            <span className="text-sm font-semibold">
+            <span className="text-xs font-semibold">
               {walletBalance === null ? "—" : formatMoney(walletBalance)}
             </span>
           </Link>
@@ -139,14 +139,14 @@ export default function ProviderTopbar({ onMenuClick }: { onMenuClick: () => voi
                   <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                     <h3 className="font-semibold text-gray-900 dark:text-white">{t("provider.layout.notificationsTitle")}</h3>
                     {unreadCount > 0 && (
-                      <button onClick={markAllRead} className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline">
+                      <button onClick={markAllRead} className="text-[11px] font-medium text-blue-600 dark:text-blue-400 hover:underline">
                         {t("provider.layout.markAllRead")}
                       </button>
                     )}
                   </div>
                   <div className="max-h-80 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700">
                     {notifications.length === 0 ? (
-                      <p className="p-6 text-center text-sm text-gray-500 dark:text-gray-400">{t("provider.layout.noNotifications")}</p>
+                      <p className="p-6 text-center text-xs text-gray-500 dark:text-gray-400">{t("provider.layout.noNotifications")}</p>
                     ) : notifications.map((notif) => (
                       <div
                         key={notif.id}
@@ -155,11 +155,11 @@ export default function ProviderTopbar({ onMenuClick }: { onMenuClick: () => voi
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1 min-w-0">
-                            <p className={`font-medium text-sm truncate ${!notif.isRead ? "text-gray-900 dark:text-white" : "text-gray-700 dark:text-gray-300"}`}>
+                            <p className={`font-medium text-xs truncate ${!notif.isRead ? "text-gray-900 dark:text-white" : "text-gray-700 dark:text-gray-300"}`}>
                               {notif.title}
                             </p>
-                            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">{notif.message}</p>
-                            <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1">{formatRelativeTime(notif.createdAt)}</p>
+                            <p className="text-[11px] text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">{notif.message}</p>
+                            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">{formatRelativeTime(notif.createdAt)}</p>
                           </div>
                           <button
                             onClick={(e) => { e.stopPropagation(); remove(notif.id) }}
@@ -175,7 +175,7 @@ export default function ProviderTopbar({ onMenuClick }: { onMenuClick: () => voi
                   <Link
                     href="/provider/notifications"
                     onClick={() => setShowNotifications(false)}
-                    className="block p-3 text-center text-sm text-blue-600 dark:text-blue-400 font-medium hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                    className="block p-3 text-center text-xs text-blue-600 dark:text-blue-400 font-medium hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                   >
                     {t("provider.layout.viewAllNotifications")}
                   </Link>

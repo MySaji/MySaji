@@ -106,8 +106,8 @@ export default function ProfessionalProfilePage() {
             <ArrowLeft className="w-6 h-6" />
           </Link>
           <div>
-            <h1 className="text-xl font-bold">Professional Profile</h1>
-            <p className="text-sm text-blue-100">What customers see when they find you</p>
+            <h1 className="text-lg font-bold">Professional Profile</h1>
+            <p className="text-xs text-blue-100">What customers see when they find you</p>
           </div>
         </div>
       </div>
@@ -123,8 +123,8 @@ export default function ProfessionalProfilePage() {
             className="flex items-center justify-between gap-3 bg-white dark:bg-gray-800 rounded-xl p-4 border dark:border-gray-700 hover:border-blue-500 transition"
           >
             <span className="min-w-0">
-              <span className="block text-sm font-medium">Your public storefront</span>
-              <span className="block truncate text-xs text-gray-500 font-mono">/p/{slug}</span>
+              <span className="block text-xs font-medium">Your public storefront</span>
+              <span className="block truncate text-[11px] text-gray-500 font-mono">/p/{slug}</span>
             </span>
             <ExternalLink className="w-4 h-4 shrink-0 text-gray-400" aria-hidden="true" />
           </a>
@@ -133,27 +133,27 @@ export default function ProfessionalProfilePage() {
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border dark:border-gray-700">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
             <div>
-              <div className="flex items-center justify-center gap-1 text-lg font-bold">
+              <div className="flex items-center justify-center gap-1 text-base font-bold">
                 <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
                 {stats.reviewCount > 0 ? stats.rating.toFixed(1) : "—"}
               </div>
-              <p className="text-xs text-gray-500">
+              <p className="text-[11px] text-gray-500">
                 {stats.reviewCount} review{stats.reviewCount === 1 ? "" : "s"}
               </p>
             </div>
             <div>
-              <div className="text-lg font-bold">{stats.completedJobs}</div>
-              <p className="text-xs text-gray-500">Jobs completed</p>
+              <div className="text-base font-bold">{stats.completedJobs}</div>
+              <p className="text-[11px] text-gray-500">Jobs completed</p>
             </div>
             <div>
-              <div className="text-lg font-bold">
+              <div className="text-base font-bold">
                 {stats.successRate === null ? "—" : `${stats.successRate}%`}
               </div>
-              <p className="text-xs text-gray-500">Success rate</p>
+              <p className="text-[11px] text-gray-500">Success rate</p>
             </div>
             <div>
-              <div className="text-lg font-bold">{stats.repeatCustomers}</div>
-              <p className="text-xs text-gray-500">Repeat customers</p>
+              <div className="text-base font-bold">{stats.repeatCustomers}</div>
+              <p className="text-[11px] text-gray-500">Repeat customers</p>
             </div>
           </div>
         </div>
@@ -163,7 +163,7 @@ export default function ProfessionalProfilePage() {
           <h2 className="font-semibold">Who you are</h2>
 
           <div>
-            <label htmlFor="headline" className="block text-sm font-medium mb-1">Professional headline</label>
+            <label htmlFor="headline" className="block text-xs font-medium mb-1">Professional headline</label>
             <input
               id="headline"
               value={headline}
@@ -172,11 +172,11 @@ export default function ProfessionalProfilePage() {
               placeholder="Full-stack engineer · React and Go"
               className="w-full rounded-lg border px-3 py-2 dark:bg-gray-900 dark:border-gray-600"
             />
-            <p className="text-xs text-gray-500 mt-1">{headline.length}/160</p>
+            <p className="text-[11px] text-gray-500 mt-1">{headline.length}/160</p>
           </div>
 
           <div>
-            <label htmlFor="bio" className="block text-sm font-medium mb-1">About</label>
+            <label htmlFor="bio" className="block text-xs font-medium mb-1">About</label>
             <textarea
               id="bio"
               value={bio}
@@ -186,11 +186,11 @@ export default function ProfessionalProfilePage() {
               placeholder="What you do, who you do it for, and what makes your work worth paying for."
               className="w-full rounded-lg border px-3 py-2 dark:bg-gray-900 dark:border-gray-600"
             />
-            <p className="text-xs text-gray-500 mt-1">{bio.length}/2000</p>
+            <p className="text-[11px] text-gray-500 mt-1">{bio.length}/2000</p>
           </div>
 
           <div>
-            <label htmlFor="years" className="block text-sm font-medium mb-1">Years of experience</label>
+            <label htmlFor="years" className="block text-xs font-medium mb-1">Years of experience</label>
             <input
               id="years"
               type="number"
@@ -206,7 +206,7 @@ export default function ProfessionalProfilePage() {
         {/* Work preference */}
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border dark:border-gray-700">
           <h2 className="font-semibold">How you work</h2>
-          <p className="text-sm text-gray-500 mb-3">
+          <p className="text-xs text-gray-500 mb-3">
             Customers filter on this. Choosing Remote means you reach people outside your area.
           </p>
           <div className="grid gap-3 sm:grid-cols-3">
@@ -227,7 +227,7 @@ export default function ProfessionalProfilePage() {
                 >
                   <Icon className="w-5 h-5 mb-2" />
                   <div className="font-medium">{option.label}</div>
-                  <div className={`text-xs ${active ? "text-blue-100" : "text-gray-500"}`}>{option.hint}</div>
+                  <div className={`text-[11px] ${active ? "text-blue-100" : "text-gray-500"}`}>{option.hint}</div>
                 </button>
               )
             })}
@@ -239,10 +239,10 @@ export default function ProfessionalProfilePage() {
           <h2 className="font-semibold mb-3">Languages</h2>
           <div className="flex flex-wrap gap-2 mb-3">
             {languages.length === 0 ? (
-              <p className="text-sm text-gray-500">None added yet.</p>
+              <p className="text-xs text-gray-500">None added yet.</p>
             ) : (
               languages.map((language) => (
-                <span key={language} className="inline-flex items-center gap-1 rounded-full bg-gray-100 dark:bg-gray-700 px-3 py-1 text-sm">
+                <span key={language} className="inline-flex items-center gap-1 rounded-full bg-gray-100 dark:bg-gray-700 px-3 py-1 text-xs">
                   {language}
                   <button
                     type="button"
@@ -265,7 +265,7 @@ export default function ProfessionalProfilePage() {
               aria-label="Add a language"
               className="flex-1 rounded-lg border px-3 py-2 dark:bg-gray-900 dark:border-gray-600"
             />
-            <button type="button" onClick={addLanguage} className="rounded-lg border px-4 py-2 text-sm font-medium hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700">
+            <button type="button" onClick={addLanguage} className="rounded-lg border px-4 py-2 text-xs font-medium hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700">
               Add
             </button>
           </div>
@@ -315,7 +315,7 @@ export default function ProfessionalProfilePage() {
             <button
               type="button"
               onClick={() => setEducation([...education, { institution: "", qualification: "", year: "" }])}
-              className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:underline"
+              className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:underline"
             >
               <Plus className="w-4 h-4" /> Add education
             </button>
@@ -366,7 +366,7 @@ export default function ProfessionalProfilePage() {
             <button
               type="button"
               onClick={() => setAwards([...awards, { title: "", issuer: "", year: "" }])}
-              className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:underline"
+              className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:underline"
             >
               <Plus className="w-4 h-4" /> Add award
             </button>
@@ -378,7 +378,7 @@ export default function ProfessionalProfilePage() {
           <h2 className="font-semibold flex items-center gap-2 mb-1">
             <FileText className="w-4 h-4" /> Resume / CV
           </h2>
-          <p className="text-sm text-gray-500 mb-3">A link to your CV on Drive, Dropbox, or your own site.</p>
+          <p className="text-xs text-gray-500 mb-3">A link to your CV on Drive, Dropbox, or your own site.</p>
           <input
             value={resumeUrl}
             onChange={(e) => setResumeUrl(e.target.value)}
@@ -391,7 +391,7 @@ export default function ProfessionalProfilePage() {
         </div>
 
         {error && (
-          <p role="alert" className="text-sm text-red-600">{error}</p>
+          <p role="alert" className="text-xs text-red-600">{error}</p>
         )}
 
         <button

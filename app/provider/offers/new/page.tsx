@@ -118,7 +118,7 @@ function TagList({ items, onChange, placeholder }: { items: string[]; onChange: 
       {items.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {items.map((item, i) => (
-            <span key={`${item}-${i}`} className="flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-foreground">
+            <span key={`${item}-${i}`} className="flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-foreground">
               {item}
               <button type="button" onClick={() => onChange(items.filter((_, idx) => idx !== i))} aria-label={`Remove ${item}`}><X className="h-3 w-3 text-muted-foreground" /></button>
             </span>
@@ -140,7 +140,7 @@ function OfferPreviewCard({ data, selectedCategory, formatMoney }: { data: Wizar
       <div className="relative aspect-[16/10] bg-muted/30">
         {data.images[0] && <Image src={data.images[0]} alt={data.title ? `Photo for ${data.title}` : "Offer photo"} fill className="object-cover" />}
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-        <span className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-2.5 py-1 text-[11px] font-semibold text-white">
+        <span className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-2.5 py-1 text-[10px] font-semibold text-white">
           <ShieldCheck className="h-3 w-3" /> Saji Pro
         </span>
       </div>
@@ -148,27 +148,27 @@ function OfferPreviewCard({ data, selectedCategory, formatMoney }: { data: Wizar
         <div className="mb-2 flex items-start justify-between gap-2">
           <div>
             <h3 className="font-semibold text-foreground">{data.title || "Untitled offer"}</h3>
-            <p className="mt-0.5 text-sm text-muted-foreground">{selectedCategory?.name ?? "No category"}</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{selectedCategory?.name ?? "No category"}</p>
           </div>
           {data.price && (
-            <div className="rounded-full bg-primary/10 px-2.5 py-1 text-sm font-semibold text-primary">
+            <div className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
               {formatMoney(Number(data.price))}{data.actionType === "RENT" ? <span className="font-normal">/day</span> : null}
             </div>
           )}
         </div>
         {data.actionType === "RENT" && Number(data.depositAmount) > 0 && (
-          <p className="mb-2 text-xs text-muted-foreground">Plus a refundable {formatMoney(Number(data.depositAmount))} deposit</p>
+          <p className="mb-2 text-[11px] text-muted-foreground">Plus a refundable {formatMoney(Number(data.depositAmount))} deposit</p>
         )}
         {(data.attributes.youOffer as string[] | undefined)?.length ? (
           <div className="mb-2 flex flex-wrap gap-1.5">
-            {(data.attributes.youOffer as string[]).map((t) => <span key={t} className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">{t}</span>)}
+            {(data.attributes.youOffer as string[]).map((t) => <span key={t} className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">{t}</span>)}
           </div>
         ) : null}
-        <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+        <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
           <span className="flex items-center gap-1"><Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" /> New listing</span>
           {data.fulfilmentMethods.length > 0 && <span>{data.fulfilmentMethods.map((m) => OFFER_FULFILMENT_LABEL[m]).join(" · ")}</span>}
         </div>
-        <p className="text-xs font-medium text-muted-foreground">{OFFER_AVAILABILITY_LABEL[data.availabilityStatus]}</p>
+        <p className="text-[11px] font-medium text-muted-foreground">{OFFER_AVAILABILITY_LABEL[data.availabilityStatus]}</p>
         <Button size="sm" className="mt-3 w-full rounded-lg" tabIndex={-1}>{OFFER_ACTION_LABEL[data.actionType]}</Button>
       </div>
     </Card>
@@ -187,10 +187,10 @@ function StepChrome({ step, title, onBack, children, footer, preview }: { step: 
         <div className={`mx-auto flex items-center gap-3 max-w-xl ${preview ? "lg:max-w-4xl" : ""}`}>
           <button onClick={onBack} aria-label="Back" className="rounded-lg p-1.5 hover:bg-muted flex-shrink-0"><ArrowLeft className="h-5 w-5" /></button>
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-medium text-muted-foreground">STEP {step}</p>
-            <h1 className="truncate text-base font-bold text-foreground">{title}</h1>
+            <p className="text-[10px] font-medium text-muted-foreground">STEP {step}</p>
+            <h1 className="truncate text-sm font-bold text-foreground">{title}</h1>
           </div>
-          <span className="flex-shrink-0 text-xs font-semibold text-primary">{step}/{TOTAL_STEPS}</span>
+          <span className="flex-shrink-0 text-[11px] font-semibold text-primary">{step}/{TOTAL_STEPS}</span>
         </div>
         <div className={`mx-auto mt-2 max-w-xl ${preview ? "lg:max-w-4xl" : ""}`}>
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuenow={step} aria-valuemin={1} aria-valuemax={TOTAL_STEPS} aria-label={`Step ${step} of ${TOTAL_STEPS}`}>
@@ -204,7 +204,7 @@ function StepChrome({ step, title, onBack, children, footer, preview }: { step: 
           <div>{children}</div>
           <div className="hidden lg:block">
             <div className="sticky top-24 space-y-2">
-              <p className="text-xs font-semibold text-muted-foreground">Live Preview</p>
+              <p className="text-[11px] font-semibold text-muted-foreground">Live Preview</p>
               {preview}
             </div>
           </div>
@@ -464,7 +464,7 @@ function CreateOfferWizard() {
   }
 
   const ContinueButton = ({ onClick, disabled, label = "Continue" }: { onClick: () => void; disabled?: boolean; label?: string }) => (
-    <Button className="h-12 w-full rounded-xl text-base" disabled={disabled || isSaving} onClick={onClick}>
+    <Button className="h-12 w-full rounded-xl text-sm" disabled={disabled || isSaving} onClick={onClick}>
       {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : label}
     </Button>
   )
@@ -477,8 +477,8 @@ function CreateOfferWizard() {
       }>
         <div className="space-y-5">
           <div>
-            <h2 className="text-lg font-bold text-foreground">What are you offering?</h2>
-            <p className="mt-0.5 text-sm text-muted-foreground">Describe what you sell, provide, teach, or do.</p>
+            <h2 className="text-base font-bold text-foreground">What are you offering?</h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">Describe what you sell, provide, teach, or do.</p>
           </div>
           <div>
             <Textarea
@@ -487,11 +487,11 @@ function CreateOfferWizard() {
               placeholder='I supply cement and steel to contractors and deliver around Nairobi.'
               className="min-h-[140px] rounded-xl"
             />
-            <p className="mt-1 text-right text-xs text-muted-foreground">{data.description.length}/500</p>
+            <p className="mt-1 text-right text-[11px] text-muted-foreground">{data.description.length}/500</p>
           </div>
 
           <div>
-            <p className="mb-2 text-sm font-medium text-foreground">Add Photos</p>
+            <p className="mb-2 text-xs font-medium text-foreground">Add Photos</p>
             <div className="flex flex-wrap gap-2">
               {data.images.map((img, i) => (
                 <div key={i} className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl bg-muted">
@@ -506,7 +506,7 @@ function CreateOfferWizard() {
                 </label>
               )}
             </div>
-            <p className="mt-1 text-xs text-muted-foreground">JPG, PNG, WebP or GIF, up to {formatMB(MAX_IMAGE_BYTES)} each.</p>
+            <p className="mt-1 text-[11px] text-muted-foreground">JPG, PNG, WebP or GIF, up to {formatMB(MAX_IMAGE_BYTES)} each.</p>
           </div>
 
           {voiceSupported && (
@@ -515,12 +515,12 @@ function CreateOfferWizard() {
                 {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
               </span>
               <span className="text-left">
-                <span className="block text-sm font-medium text-foreground">{isListening ? "Listening…" : "Speak instead"}</span>
-                <span className="block text-xs text-muted-foreground">Press to record</span>
+                <span className="block text-xs font-medium text-foreground">{isListening ? "Listening…" : "Speak instead"}</span>
+                <span className="block text-[11px] text-muted-foreground">Press to record</span>
               </span>
             </button>
           )}
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-xs text-red-600">{error}</p>}
         </div>
       </StepChrome>
     )
@@ -534,22 +534,22 @@ function CreateOfferWizard() {
       }>
         <div className="space-y-5">
           <div>
-            <h2 className="text-lg font-bold text-foreground">We understood your offer</h2>
-            <p className="mt-0.5 text-sm text-muted-foreground">Please confirm or edit the details below.</p>
+            <h2 className="text-base font-bold text-foreground">We understood your offer</h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">Please confirm or edit the details below.</p>
           </div>
 
           {aiState === "loading" && (
-            <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 p-4 text-xs text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" /> Reading your description…
             </div>
           )}
           {aiState === "simulated" && (
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-900/40 dark:bg-amber-900/10 dark:text-amber-300">
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-[11px] text-amber-800 dark:border-amber-900/40 dark:bg-amber-900/10 dark:text-amber-300">
               AI assistance isn't configured for this account yet. Fill these in yourself below.
             </div>
           )}
           {aiState === "failed" && (
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-900/40 dark:bg-amber-900/10 dark:text-amber-300">
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-[11px] text-amber-800 dark:border-amber-900/40 dark:bg-amber-900/10 dark:text-amber-300">
               Couldn't analyze that automatically. Fill these in yourself below.
             </div>
           )}
@@ -557,7 +557,7 @@ function CreateOfferWizard() {
           <Card className="space-y-4 border-0 p-4 shadow-sm">
             <div>
               <div className="mb-1 flex items-center justify-between gap-2">
-                <label className="block text-xs font-medium text-muted-foreground">Offer Title</label>
+                <label className="block text-[11px] font-medium text-muted-foreground">Offer Title</label>
                 {data.title.trim() && polishState !== "unavailable" && (
                   <button
                     type="button"
@@ -578,7 +578,7 @@ function CreateOfferWizard() {
                       setPolishedTitle(result.data.title)
                       setPolishState("done")
                     }}
-                    className="text-xs font-medium text-primary hover:underline disabled:opacity-50"
+                    className="text-[11px] font-medium text-primary hover:underline disabled:opacity-50"
                   >
                     {polishState === "loading" ? "Thinking…" : "Suggest a sharper title"}
                   </button>
@@ -588,20 +588,20 @@ function CreateOfferWizard() {
 
               {polishState === "done" && polishedTitle && polishedTitle !== data.title && (
                 <div className="mt-2 rounded-xl border border-primary/30 bg-primary/5 p-3">
-                  <p className="text-xs text-muted-foreground">Suggested</p>
-                  <p className="mt-0.5 text-sm font-medium text-foreground">{polishedTitle}</p>
+                  <p className="text-[11px] text-muted-foreground">Suggested</p>
+                  <p className="mt-0.5 text-xs font-medium text-foreground">{polishedTitle}</p>
                   <div className="mt-2 flex gap-2">
                     <button
                       type="button"
                       onClick={() => { setData((p) => ({ ...p, title: polishedTitle })); setPolishedTitle(null) }}
-                      className="rounded-lg bg-primary px-3 py-1 text-xs font-medium text-primary-foreground"
+                      className="rounded-lg bg-primary px-3 py-1 text-[11px] font-medium text-primary-foreground"
                     >
                       Use this
                     </button>
                     <button
                       type="button"
                       onClick={() => setPolishedTitle(null)}
-                      className="rounded-lg border border-border px-3 py-1 text-xs font-medium text-muted-foreground"
+                      className="rounded-lg border border-border px-3 py-1 text-[11px] font-medium text-muted-foreground"
                     >
                       Keep mine
                     </button>
@@ -610,7 +610,7 @@ function CreateOfferWizard() {
               )}
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">Category</label>
+              <label className="mb-1 block text-[11px] font-medium text-muted-foreground">Category</label>
               {/* Type-to-filter rather than a ~90-option dropdown. */}
               <CategoryPicker
                 categories={categories}
@@ -619,22 +619,22 @@ function CreateOfferWizard() {
               />
             </div>
             {(aiTags.youOffer.length > 0 || aiTags.youServe.length > 0) && (
-              <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="grid grid-cols-2 gap-3 text-xs">
                 {aiTags.youOffer.length > 0 && (
-                  <div><p className="text-xs font-medium text-muted-foreground">You Offer</p><p className="text-foreground">{aiTags.youOffer.join(", ")}</p></div>
+                  <div><p className="text-[11px] font-medium text-muted-foreground">You Offer</p><p className="text-foreground">{aiTags.youOffer.join(", ")}</p></div>
                 )}
                 {aiTags.youServe.length > 0 && (
-                  <div><p className="text-xs font-medium text-muted-foreground">You Serve</p><p className="text-foreground">{aiTags.youServe.join(", ")}</p></div>
+                  <div><p className="text-[11px] font-medium text-muted-foreground">You Serve</p><p className="text-foreground">{aiTags.youServe.join(", ")}</p></div>
                 )}
               </div>
             )}
           </Card>
           {aiState !== "loading" && aiState !== "idle" && (
-            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
               <Sparkles className="h-3.5 w-3.5" /> {aiState === "done" ? "Saji used AI to help organize your offer." : "You can edit anything above before continuing."}
             </p>
           )}
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-xs text-red-600">{error}</p>}
         </div>
       </StepChrome>
     )
@@ -649,19 +649,19 @@ function CreateOfferWizard() {
       }>
         <div className="space-y-5">
           <div>
-            <h2 className="text-lg font-bold text-foreground">Offer Details</h2>
-            <p className="mt-0.5 text-sm text-muted-foreground">Tell us more about what you offer.</p>
+            <h2 className="text-base font-bold text-foreground">Offer Details</h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">Tell us more about what you offer.</p>
           </div>
 
           {attributeFieldsLoading && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading fields for this category…</div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading fields for this category…</div>
           )}
 
           {!attributeFieldsLoading && attributeFields.map((f) => (
             <div key={f.key}>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">{f.label}</label>
+              <label className="mb-1.5 block text-xs font-medium text-foreground">{f.label}</label>
               {f.type === "select" && (
-                <select value={String(data.attributes[f.key] ?? "")} onChange={(e) => setAttr(f.key, e.target.value)} className="h-10 w-full rounded-xl border border-border bg-background px-3 text-sm">
+                <select value={String(data.attributes[f.key] ?? "")} onChange={(e) => setAttr(f.key, e.target.value)} className="h-10 w-full rounded-xl border border-border bg-background px-3 text-xs">
                   <option value="">Select…</option>
                   {f.options?.map((o) => <option key={o} value={o}>{o}</option>)}
                 </select>
@@ -678,7 +678,7 @@ function CreateOfferWizard() {
               {f.type === "tags" && f.options && f.options.length > 0 && (
                 <div className="mt-1.5 flex flex-wrap gap-1.5">
                   {f.options.map((o) => (
-                    <button key={o} type="button" onClick={() => { const cur = (data.attributes[f.key] as string[]) ?? []; if (!cur.includes(o)) setAttr(f.key, [...cur, o]) }} className="rounded-full border border-dashed border-border px-2.5 py-1 text-xs text-muted-foreground hover:border-primary/40">+ {o}</button>
+                    <button key={o} type="button" onClick={() => { const cur = (data.attributes[f.key] as string[]) ?? []; if (!cur.includes(o)) setAttr(f.key, [...cur, o]) }} className="rounded-full border border-dashed border-border px-2.5 py-1 text-[11px] text-muted-foreground hover:border-primary/40">+ {o}</button>
                   ))}
                 </div>
               )}
@@ -686,10 +686,10 @@ function CreateOfferWizard() {
           ))}
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">Minimum order <span className="font-normal text-muted-foreground">(optional)</span></label>
+            <label className="mb-1.5 block text-xs font-medium text-foreground">Minimum order <span className="font-normal text-muted-foreground">(optional)</span></label>
             <Input value={data.minimumOrder} onChange={(e) => setData((p) => ({ ...p, minimumOrder: e.target.value }))} placeholder="e.g. 50 bags or 1 ton" className="rounded-xl" />
           </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-xs text-red-600">{error}</p>}
         </div>
       </StepChrome>
     )
@@ -708,8 +708,8 @@ function CreateOfferWizard() {
       }>
         <div className="space-y-5">
           <div>
-            <h2 className="text-lg font-bold text-foreground">Price & Availability</h2>
-            <p className="mt-0.5 text-sm text-muted-foreground">{isRental ? "Set your daily rate and refundable deposit." : "Set how you price and when you are available."}</p>
+            <h2 className="text-base font-bold text-foreground">Price & Availability</h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">{isRental ? "Set your daily rate and refundable deposit." : "Set how you price and when you are available."}</p>
           </div>
 
           {/* What comparable providers actually charge, and how much demand
@@ -718,17 +718,17 @@ function CreateOfferWizard() {
               comparable offers exist for it to mean anything. */}
           {priceBand?.available && (
             <div className="rounded-xl border border-border bg-muted/40 p-3">
-              <p className="text-sm font-medium text-foreground">
+              <p className="text-xs font-medium text-foreground">
                 Similar offers charge {formatMoney(priceBand.low)}–{formatMoney(priceBand.high)}
               </p>
-              <p className="mt-0.5 text-xs text-muted-foreground">
+              <p className="mt-0.5 text-[11px] text-muted-foreground">
                 Typical is {formatMoney(priceBand.median)}, across {priceBand.comparables} live offers in this category. A guide, not a rule.
               </p>
             </div>
           )}
 
           {demand && demand.openRequests > 0 && (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-[11px] text-muted-foreground">
               {demand.openRequests} customer{demand.openRequests === 1 ? " is" : "s are"} currently requesting this category
               {demand.liveOffers > 0 ? `, against ${demand.liveOffers} live offer${demand.liveOffers === 1 ? "" : "s"}.` : "."}
             </p>
@@ -736,17 +736,17 @@ function CreateOfferWizard() {
 
           {isRental ? (
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Price per day (KES)</label>
+              <label className="mb-1.5 block text-xs font-medium text-foreground">Price per day (KES)</label>
               <Input type="number" value={data.price} onChange={(e) => setData((p) => ({ ...p, price: e.target.value, pricingModel: "PER_UNIT", unitLabel: "day" }))} placeholder="0" className="rounded-xl" />
             </div>
           ) : (
             <div>
-              <p className="mb-2 text-sm font-medium text-foreground">Pricing Model</p>
+              <p className="mb-2 text-xs font-medium text-foreground">Pricing Model</p>
               <div className="space-y-2">
                 {OFFER_PRICING_MODELS.map((m) => (
                   <label key={m} className="flex items-center gap-3 rounded-xl border border-border p-3 cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-primary/5">
                     <input type="radio" name="pricingModel" checked={data.pricingModel === m} onChange={() => setData((p) => ({ ...p, pricingModel: m }))} className="h-4 w-4 accent-primary" />
-                    <span className="text-sm text-foreground">{OFFER_PRICING_LABEL[m]}</span>
+                    <span className="text-xs text-foreground">{OFFER_PRICING_LABEL[m]}</span>
                   </label>
                 ))}
               </div>
@@ -755,38 +755,38 @@ function CreateOfferWizard() {
 
           {isRental && (
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Refundable deposit (KES) <span className="font-normal text-muted-foreground">(optional)</span></label>
+              <label className="mb-1.5 block text-xs font-medium text-foreground">Refundable deposit (KES) <span className="font-normal text-muted-foreground">(optional)</span></label>
               <Input type="number" value={data.depositAmount} onChange={(e) => setData((p) => ({ ...p, depositAmount: e.target.value }))} placeholder="0" className="rounded-xl" />
-              <p className="mt-1 text-xs text-muted-foreground">Collected upfront with the rental fee, refunded to the customer's Wallet when you mark the item returned.</p>
+              <p className="mt-1 text-[11px] text-muted-foreground">Collected upfront with the rental fee, refunded to the customer's Wallet when you mark the item returned.</p>
             </div>
           )}
 
           {!isRental && !isPriceless && (
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Price (KES)</label>
+              <label className="mb-1.5 block text-xs font-medium text-foreground">Price (KES)</label>
               <Input type="number" value={data.price} onChange={(e) => setData((p) => ({ ...p, price: e.target.value }))} placeholder="0" className="rounded-xl" />
             </div>
           )}
           {!isRental && data.pricingModel === "PER_UNIT" && (
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Unit label</label>
+              <label className="mb-1.5 block text-xs font-medium text-foreground">Unit label</label>
               <Input value={data.unitLabel} onChange={(e) => setData((p) => ({ ...p, unitLabel: e.target.value }))} placeholder="e.g. per bag, per hour" className="rounded-xl" />
             </div>
           )}
           {data.pricingModel === "BULK" && (
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Bulk pricing</label>
+              <label className="mb-1.5 block text-xs font-medium text-foreground">Bulk pricing</label>
               <Textarea value={data.bulkPricingNote} onChange={(e) => setData((p) => ({ ...p, bulkPricingNote: e.target.value }))} placeholder="Discounts available for large orders." className="rounded-xl" />
             </div>
           )}
 
           <div>
-            <p className="mb-2 text-sm font-medium text-foreground">Availability</p>
-            <select value={data.availabilityStatus} onChange={(e) => setData((p) => ({ ...p, availabilityStatus: e.target.value as OfferAvailabilityStatus }))} className="h-10 w-full rounded-xl border border-border bg-background px-3 text-sm">
+            <p className="mb-2 text-xs font-medium text-foreground">Availability</p>
+            <select value={data.availabilityStatus} onChange={(e) => setData((p) => ({ ...p, availabilityStatus: e.target.value as OfferAvailabilityStatus }))} className="h-10 w-full rounded-xl border border-border bg-background px-3 text-xs">
               {OFFER_AVAILABILITY_STATUSES.map((s) => <option key={s} value={s}>{OFFER_AVAILABILITY_LABEL[s]}</option>)}
             </select>
           </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-xs text-red-600">{error}</p>}
         </div>
       </StepChrome>
     )
@@ -801,36 +801,36 @@ function CreateOfferWizard() {
       }>
         <div className="space-y-5">
           <div>
-            <h2 className="text-lg font-bold text-foreground">Location & Fulfilment</h2>
-            <p className="mt-0.5 text-sm text-muted-foreground">Where do you operate and how do you deliver?</p>
+            <h2 className="text-base font-bold text-foreground">Location & Fulfilment</h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">Where do you operate and how do you deliver?</p>
           </div>
 
           <Card className="space-y-3 border-0 p-4 shadow-sm">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Service Area</label>
+              <label className="mb-1.5 block text-xs font-medium text-foreground">Service Area</label>
               <Input value={data.serviceArea} onChange={(e) => setData((p) => ({ ...p, serviceArea: e.target.value }))} placeholder="e.g. Nairobi" className="rounded-xl" />
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Radius</label>
+              <label className="mb-1.5 block text-xs font-medium text-foreground">Radius</label>
               <Input type="number" value={data.radiusKm} onChange={(e) => setData((p) => ({ ...p, radiusKm: e.target.value }))} placeholder="e.g. 30" className="rounded-xl" />
-              <p className="mt-1 text-xs text-muted-foreground">
+              <p className="mt-1 text-[11px] text-muted-foreground">
                 Defaults to your profile ({providerDefaults?.workArea ?? "no area set"}{providerDefaults?.radiusKm != null ? `, +${providerDefaults.radiusKm} km` : ""}). Override just for this offer, or <Link href="/provider/profile" className="font-medium text-primary">edit your profile default</Link>.
               </p>
             </div>
           </Card>
 
           <div>
-            <p className="mb-2 text-sm font-medium text-foreground">How do customers receive your offer?</p>
+            <p className="mb-2 text-xs font-medium text-foreground">How do customers receive your offer?</p>
             <div className="space-y-2">
               {OFFER_FULFILMENT_METHODS.map((m) => (
                 <label key={m} className="flex items-center gap-3 rounded-xl border border-border p-3 cursor-pointer">
                   <Checkbox checked={data.fulfilmentMethods.includes(m)} onCheckedChange={() => toggleFulfilment(m)} />
-                  <span className="text-sm text-foreground">{OFFER_FULFILMENT_LABEL[m]}</span>
+                  <span className="text-xs text-foreground">{OFFER_FULFILMENT_LABEL[m]}</span>
                 </label>
               ))}
             </div>
           </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-xs text-red-600">{error}</p>}
         </div>
       </StepChrome>
     )
@@ -844,18 +844,18 @@ function CreateOfferWizard() {
       }>
         <div className="space-y-5">
           <div>
-            <h2 className="text-lg font-bold text-foreground">What's Included</h2>
-            <p className="mt-0.5 text-sm text-muted-foreground">Help customers know what to expect.</p>
+            <h2 className="text-base font-bold text-foreground">What's Included</h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">Help customers know what to expect.</p>
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">What's included?</label>
+            <label className="mb-1.5 block text-xs font-medium text-foreground">What's included?</label>
             <TagList items={data.includedItems} onChange={(v) => setData((p) => ({ ...p, includedItems: v }))} placeholder="e.g. Delivery to site" />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">What's not included? <span className="font-normal text-muted-foreground">(optional)</span></label>
+            <label className="mb-1.5 block text-xs font-medium text-foreground">What's not included? <span className="font-normal text-muted-foreground">(optional)</span></label>
             <TagList items={data.excludedItems} onChange={(v) => setData((p) => ({ ...p, excludedItems: v }))} placeholder="e.g. Unloading" />
           </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-xs text-red-600">{error}</p>}
         </div>
       </StepChrome>
     )
@@ -869,25 +869,25 @@ function CreateOfferWizard() {
       }>
         <div className="space-y-5">
           <div>
-            <h2 className="text-lg font-bold text-foreground">Customer Actions</h2>
-            <p className="mt-0.5 text-sm text-muted-foreground">Choose how customers can engage with you.</p>
+            <h2 className="text-base font-bold text-foreground">Customer Actions</h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">Choose how customers can engage with you.</p>
           </div>
           <div className="space-y-2">
             {ACTION_TYPES.map((a) => (
               <label key={a} className="flex items-center gap-3 rounded-xl border border-border p-3 cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-primary/5">
                 <input type="radio" name="actionType" checked={data.actionType === a} onChange={() => setData((p) => ({ ...p, actionType: a }))} className="h-4 w-4 accent-primary" />
-                <span className="text-sm text-foreground">{OFFER_ACTION_LABEL[a]}</span>
+                <span className="text-xs text-foreground">{OFFER_ACTION_LABEL[a]}</span>
               </label>
             ))}
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-[11px] text-muted-foreground">
             {data.actionType === "RENT"
               ? "Customers pick dates, pay the rental fee plus deposit through Saji, and you manage pickup/return from Rental Bookings."
               : ["BOOK", "HIRE", "BUY"].includes(data.actionType)
                 ? "Customers pay through Saji and a Job is created automatically."
                 : "Customers send you a message instead of paying up front."}
           </p>
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-xs text-red-600">{error}</p>}
         </div>
       </StepChrome>
     )
@@ -901,8 +901,8 @@ function CreateOfferWizard() {
       }>
         <div className="space-y-5">
           <div>
-            <h2 className="text-lg font-bold text-foreground">Add Proof</h2>
-            <p className="mt-0.5 text-sm text-muted-foreground">Build trust by showing your work.</p>
+            <h2 className="text-base font-bold text-foreground">Add Proof</h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">Build trust by showing your work.</p>
           </div>
 
           {/* What to photograph for this kind of offer. SAJI never supplies
@@ -910,17 +910,17 @@ function CreateOfferWizard() {
               provider's own work. */}
           {shots && shots.shots.length > 0 && (
             <div className="rounded-xl border border-border bg-muted/40 p-3">
-              <p className="text-sm font-medium text-foreground">Photos that work well here</p>
+              <p className="text-xs font-medium text-foreground">Photos that work well here</p>
               <ul className="mt-1.5 space-y-1">
                 {shots.shots.map((s) => (
-                  <li key={s} className="flex gap-2 text-xs text-muted-foreground"><span aria-hidden="true">·</span>{s}</li>
+                  <li key={s} className="flex gap-2 text-[11px] text-muted-foreground"><span aria-hidden="true">·</span>{s}</li>
                 ))}
               </ul>
             </div>
           )}
 
           <div>
-            <p className="mb-2 text-sm font-medium text-foreground">Photos</p>
+            <p className="mb-2 text-xs font-medium text-foreground">Photos</p>
             <div className="flex flex-wrap gap-2">
               {data.images.map((img, i) => (
                 <div key={i} className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl bg-muted">
@@ -938,17 +938,17 @@ function CreateOfferWizard() {
           </div>
 
           <div>
-            <p className="mb-2 text-sm font-medium text-foreground">Documents <span className="font-normal text-muted-foreground">(optional)</span></p>
-            <p className="mb-2 text-xs text-muted-foreground">PDF or image, up to {formatMB(MAX_DOCUMENT_BYTES)}.</p>
+            <p className="mb-2 text-xs font-medium text-foreground">Documents <span className="font-normal text-muted-foreground">(optional)</span></p>
+            <p className="mb-2 text-[11px] text-muted-foreground">PDF or image, up to {formatMB(MAX_DOCUMENT_BYTES)}.</p>
             <div className="space-y-2">
               {data.documents.map((doc, i) => (
                 <div key={i} className="flex items-center gap-2 rounded-xl border border-border p-2.5">
                   <FileText className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
-                  <span className="flex-1 truncate text-sm text-foreground">{doc.name}</span>
+                  <span className="flex-1 truncate text-xs text-foreground">{doc.name}</span>
                   <button onClick={() => setData((p) => ({ ...p, documents: p.documents.filter((_, idx) => idx !== i) }))} aria-label={`Remove ${doc.name}`}><X className="h-4 w-4 text-muted-foreground" /></button>
                 </div>
               ))}
-              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border p-3 text-sm text-muted-foreground hover:border-primary/40">
+              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border p-3 text-xs text-muted-foreground hover:border-primary/40">
                 <Upload className="h-4 w-4" /> Add document
                 <input type="file" accept={ALLOWED_DOCUMENT_TYPES.join(",")} className="hidden" onChange={handleAddDocument} aria-label="Add document" />
               </label>
@@ -956,9 +956,9 @@ function CreateOfferWizard() {
           </div>
 
           <div>
-            <p className="mb-2 text-sm font-medium text-foreground">Certifications / Licenses</p>
+            <p className="mb-2 text-xs font-medium text-foreground">Certifications / Licenses</p>
             {licenseCheck.required && (
-              <div className={`mb-2 rounded-xl border p-3 text-xs ${licenseCheck.satisfied ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-900/10 dark:text-emerald-300" : "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/40 dark:bg-amber-900/10 dark:text-amber-300"}`}>
+              <div className={`mb-2 rounded-xl border p-3 text-[11px] ${licenseCheck.satisfied ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-900/10 dark:text-emerald-300" : "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/40 dark:bg-amber-900/10 dark:text-amber-300"}`}>
                 {licenseCheck.satisfied
                   ? `Your approved ${licenseCheck.licenseName} covers this offer.`
                   : `This category requires a verified ${licenseCheck.licenseName} before it can go live.`}
@@ -967,18 +967,18 @@ function CreateOfferWizard() {
             {certifications.length > 0 ? (
               <div className="space-y-1.5">
                 {certifications.map((c) => (
-                  <div key={c.id} className="flex items-center justify-between rounded-xl border border-border p-2.5 text-sm">
+                  <div key={c.id} className="flex items-center justify-between rounded-xl border border-border p-2.5 text-xs">
                     <span className="text-foreground">{c.name}</span>
-                    <span className={`text-xs font-medium ${c.status === "approved" ? "text-emerald-600" : c.status === "pending" ? "text-amber-600" : "text-red-600"}`}>{c.status}</span>
+                    <span className={`text-[11px] font-medium ${c.status === "approved" ? "text-emerald-600" : c.status === "pending" ? "text-amber-600" : "text-red-600"}`}>{c.status}</span>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-muted-foreground">No certifications on file yet.</p>
+              <p className="text-[11px] text-muted-foreground">No certifications on file yet.</p>
             )}
-            <Link href="/provider/profile/certifications" className="mt-2 inline-block text-xs font-medium text-primary">+ Add certificate</Link>
+            <Link href="/provider/profile/certifications" className="mt-2 inline-block text-[11px] font-medium text-primary">+ Add certificate</Link>
           </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-xs text-red-600">{error}</p>}
         </div>
       </StepChrome>
     )
@@ -992,12 +992,12 @@ function CreateOfferWizard() {
       }>
         <div className="space-y-5">
           <div>
-            <h2 className="text-lg font-bold text-foreground">Preview Your Offer</h2>
-            <p className="mt-0.5 text-sm text-muted-foreground">This is how customers will see your offer.</p>
+            <h2 className="text-base font-bold text-foreground">Preview Your Offer</h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">This is how customers will see your offer.</p>
           </div>
 
           <OfferPreviewCard data={data} selectedCategory={selectedCategory} formatMoney={formatMoney} />
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-xs text-red-600">{error}</p>}
         </div>
       </StepChrome>
     )
@@ -1017,7 +1017,7 @@ function CreateOfferWizard() {
   return (
     <StepChrome step={10} title="Publish Offer" onBack={goBack} preview={<OfferPreviewCard data={data} selectedCategory={selectedCategory} formatMoney={formatMoney} />} footer={
       <div className="space-y-2">
-        <Button className="h-12 w-full rounded-xl text-base" disabled={isPublishing} onClick={handlePublish}>
+        <Button className="h-12 w-full rounded-xl text-sm" disabled={isPublishing} onClick={handlePublish}>
           {isPublishing ? <Loader2 className="h-4 w-4 animate-spin" /> : (licenseCheck.required ? "Submit for Verification" : "Publish Offer")}
         </Button>
         <Button variant="outline" className="h-10 w-full rounded-xl bg-transparent" onClick={() => router.push("/provider/offers")}>Save as Draft</Button>
@@ -1025,24 +1025,24 @@ function CreateOfferWizard() {
     }>
       <div className="space-y-5">
         <div>
-          <h2 className="text-lg font-bold text-foreground">Publish Your Offer</h2>
-          <p className="mt-0.5 text-sm text-muted-foreground">Review and publish your offer.</p>
+          <h2 className="text-base font-bold text-foreground">Publish Your Offer</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">Review and publish your offer.</p>
         </div>
 
         <Card className="space-y-3 border-0 p-4 shadow-sm">
-          <div className="flex items-center justify-between"><span className="text-xs text-muted-foreground">Offer Title</span><span className="text-sm font-medium text-foreground">{data.title}</span></div>
-          <div className="flex items-center justify-between"><span className="text-xs text-muted-foreground">Category</span><span className="text-sm font-medium text-foreground">{selectedCategory?.name ?? "—"}</span></div>
-          <div className="flex items-center justify-between"><span className="text-xs text-muted-foreground">Pricing</span><span className="text-sm font-medium text-foreground">{OFFER_PRICING_LABEL[data.pricingModel]}{data.price ? `, ${formatMoney(Number(data.price))}` : ""}</span></div>
-          <div className="flex items-center justify-between"><span className="text-xs text-muted-foreground">Availability</span><span className="text-sm font-medium text-foreground">{OFFER_AVAILABILITY_LABEL[data.availabilityStatus]}</span></div>
-          <div className="flex items-center justify-between"><span className="text-xs text-muted-foreground">Customer Action</span><span className="text-sm font-medium text-foreground">{OFFER_ACTION_LABEL[data.actionType]}</span></div>
+          <div className="flex items-center justify-between"><span className="text-[11px] text-muted-foreground">Offer Title</span><span className="text-xs font-medium text-foreground">{data.title}</span></div>
+          <div className="flex items-center justify-between"><span className="text-[11px] text-muted-foreground">Category</span><span className="text-xs font-medium text-foreground">{selectedCategory?.name ?? "—"}</span></div>
+          <div className="flex items-center justify-between"><span className="text-[11px] text-muted-foreground">Pricing</span><span className="text-xs font-medium text-foreground">{OFFER_PRICING_LABEL[data.pricingModel]}{data.price ? `, ${formatMoney(Number(data.price))}` : ""}</span></div>
+          <div className="flex items-center justify-between"><span className="text-[11px] text-muted-foreground">Availability</span><span className="text-xs font-medium text-foreground">{OFFER_AVAILABILITY_LABEL[data.availabilityStatus]}</span></div>
+          <div className="flex items-center justify-between"><span className="text-[11px] text-muted-foreground">Customer Action</span><span className="text-xs font-medium text-foreground">{OFFER_ACTION_LABEL[data.actionType]}</span></div>
         </Card>
 
         {licenseCheck.required && (
           <Card className={`flex items-start gap-3 border-0 p-4 shadow-sm ${licenseCheck.satisfied ? "bg-emerald-50 dark:bg-emerald-900/10" : "bg-amber-50 dark:bg-amber-900/10"}`}>
             {licenseCheck.satisfied ? <CheckCircle2 className="h-5 w-5 flex-shrink-0 text-emerald-600" /> : <AlertTriangle className="h-5 w-5 flex-shrink-0 text-amber-600" />}
             <div>
-              <p className={`text-sm font-semibold ${licenseCheck.satisfied ? "text-emerald-800 dark:text-emerald-300" : "text-amber-800 dark:text-amber-300"}`}>Verification Required</p>
-              <p className={`mt-0.5 text-xs ${licenseCheck.satisfied ? "text-emerald-700 dark:text-emerald-400" : "text-amber-700 dark:text-amber-400"}`}>
+              <p className={`text-xs font-semibold ${licenseCheck.satisfied ? "text-emerald-800 dark:text-emerald-300" : "text-amber-800 dark:text-amber-300"}`}>Verification Required</p>
+              <p className={`mt-0.5 text-[11px] ${licenseCheck.satisfied ? "text-emerald-700 dark:text-emerald-400" : "text-amber-700 dark:text-amber-400"}`}>
                 {licenseCheck.satisfied
                   ? `We've verified your ${licenseCheck.licenseName}. You're clear to publish.`
                   : `We need to verify your ${licenseCheck.licenseName} before this offer can go live. Add it from Profile > Certifications and wait for admin approval.`}
@@ -1050,7 +1050,7 @@ function CreateOfferWizard() {
             </div>
           </Card>
         )}
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-xs text-red-600">{error}</p>}
       </div>
     </StepChrome>
   )
