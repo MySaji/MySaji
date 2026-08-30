@@ -39,7 +39,7 @@ export default function AgentStatsPage() {
   return (
     <div className="space-y-8 pb-8">
       <div>
-        <h1 className="text-4xl font-bold text-gray-900 dark:text-white">{t("agent.stats.title")}</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t("agent.stats.title")}</h1>
         <p className="text-gray-600 dark:text-gray-400 mt-2">{t("agent.stats.subtitle")}</p>
       </div>
 
@@ -53,8 +53,8 @@ export default function AgentStatsPage() {
                   <Icon className="w-6 h-6 text-gray-700 dark:text-gray-300" />
                 </div>
               </div>
-              <p className="text-sm text-muted-foreground mb-2">{stat.label}</p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{stat.value}</p>
+              <p className="text-xs text-muted-foreground mb-2">{stat.label}</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{stat.value}</p>
             </Card>
           )
         })}
@@ -63,10 +63,10 @@ export default function AgentStatsPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {topMetrics.map((metric, idx) => (
           <Card key={idx} className="p-6">
-            <p className="text-sm text-muted-foreground mb-3">{metric.title}</p>
+            <p className="text-xs text-muted-foreground mb-3">{metric.title}</p>
             <div className="flex items-baseline gap-2 mb-4">
-              <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">{metric.value}</p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">{metric.benchmark}</p>
+              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{metric.value}</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">{metric.benchmark}</p>
             </div>
             <div className="h-1 bg-gradient-to-r from-blue-500 to-blue-300 rounded-full"></div>
           </Card>
@@ -74,7 +74,7 @@ export default function AgentStatsPage() {
       </div>
 
       <Card className="p-6">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
           <BarChart3 className="w-6 h-6" />
           {t("agent.stats.monthlyPerformance")}
         </h2>
@@ -82,19 +82,19 @@ export default function AgentStatsPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200 dark:border-gray-700">
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("agent.stats.colMonth")}</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("agent.stats.colCasesAssigned")}</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("agent.common.casesResolved")}</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("agent.common.resolutionRate")}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("agent.stats.colMonth")}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("agent.stats.colCasesAssigned")}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("agent.common.casesResolved")}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("agent.common.resolutionRate")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {data.monthlyStats.map((stat, idx) => (
                 <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">{stat.month}</td>
-                  <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{stat.cases}</td>
-                  <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{stat.resolved}</td>
-                  <td className="px-6 py-4 text-sm font-medium text-emerald-600 dark:text-emerald-400">
+                  <td className="px-6 py-4 text-xs font-medium text-gray-900 dark:text-white">{stat.month}</td>
+                  <td className="px-6 py-4 text-xs text-gray-700 dark:text-gray-300">{stat.cases}</td>
+                  <td className="px-6 py-4 text-xs text-gray-700 dark:text-gray-300">{stat.resolved}</td>
+                  <td className="px-6 py-4 text-xs font-medium text-emerald-600 dark:text-emerald-400">
                     {stat.resolutionRatePct}%
                   </td>
                 </tr>

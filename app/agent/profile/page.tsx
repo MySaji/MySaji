@@ -88,19 +88,19 @@ export default function AgentProfilePage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{t("agent.profile.title")}</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{t("agent.profile.title")}</h1>
           <p className="text-gray-600 dark:text-gray-400">{t("agent.profile.subtitle")}</p>
         </div>
 
         <Card className="p-6 bg-white dark:bg-gray-800 border-0 rounded-xl shadow-sm mb-8">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-6 mb-8 pb-8 border-b border-gray-200 dark:border-gray-700">
-            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center text-white text-3xl font-bold flex-shrink-0">
+            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center text-white text-2xl font-bold flex-shrink-0">
               {account.name.charAt(0).toUpperCase()}
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{account.name}</h2>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">{account.name}</h2>
               <p className="text-gray-600 dark:text-gray-400">{account.email}</p>
-              <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">{t("agent.profile.roleLabel")}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">{t("agent.profile.roleLabel")}</p>
             </div>
           </div>
 
@@ -130,7 +130,7 @@ export default function AgentProfilePage() {
             <div className="space-y-6">
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("agent.profile.fullNameLabel")}</label>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t("agent.profile.fullNameLabel")}</label>
                   <Input
                     type="text"
                     value={profileForm.name}
@@ -139,7 +139,7 @@ export default function AgentProfilePage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("auth.email")}</label>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t("auth.email")}</label>
                   <Input
                     type="email"
                     value={account.email}
@@ -148,7 +148,7 @@ export default function AgentProfilePage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("agent.profile.phoneLabel")}</label>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t("agent.profile.phoneLabel")}</label>
                   <Input
                     type="tel"
                     value={profileForm.phone}
@@ -161,14 +161,14 @@ export default function AgentProfilePage() {
                 <Button onClick={handleSaveProfile} disabled={isSavingProfile} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold h-10 rounded-lg">
                   {isSavingProfile ? <Loader2 size={16} className="animate-spin" /> : t("agent.profile.saveChanges")}
                 </Button>
-                {saved && <span className="flex items-center gap-1 text-emerald-600 text-sm font-medium"><CheckCircle2 size={16} />{t("agent.profile.saved")}</span>}
+                {saved && <span className="flex items-center gap-1 text-emerald-600 text-xs font-medium"><CheckCircle2 size={16} />{t("agent.profile.saved")}</span>}
               </div>
 
               <div className="pt-6 mt-2 border-t border-gray-200 dark:border-gray-700">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t("agent.profile.languageAndRegion")}</h3>
+                <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">{t("agent.profile.languageAndRegion")}</h3>
                 <div className="grid md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("settings.language")}</label>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t("settings.language")}</label>
                     <div className="space-y-2">
                       {[
                         { code: "en", name: "English" },
@@ -180,14 +180,14 @@ export default function AgentProfilePage() {
                           onClick={() => setLanguage(lang.code as Language)}
                           className={`w-full flex items-center justify-between p-3 rounded-lg border-2 transition-colors ${language === lang.code ? "border-blue-500" : "border-gray-200 dark:border-gray-600 hover:border-blue-400"}`}
                         >
-                          <span className="font-medium text-sm text-gray-900 dark:text-white">{lang.name}</span>
+                          <span className="font-medium text-xs text-gray-900 dark:text-white">{lang.name}</span>
                           {language === lang.code && <CheckCircle2 className="w-4 h-4 text-blue-600" />}
                         </button>
                       ))}
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("settings.currency")}</label>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t("settings.currency")}</label>
                     <div className="space-y-2">
                       {[
                         { code: "KES", symbol: "KES", name: "Kenyan Shilling" },
@@ -201,8 +201,8 @@ export default function AgentProfilePage() {
                           className={`w-full flex items-center justify-between p-3 rounded-lg border-2 transition-colors ${currency === curr.code ? "border-blue-500" : "border-gray-200 dark:border-gray-600 hover:border-blue-400"}`}
                         >
                           <div className="text-left">
-                            <p className="font-medium text-sm text-gray-900 dark:text-white">{curr.symbol} {curr.code}</p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">{curr.name}</p>
+                            <p className="font-medium text-xs text-gray-900 dark:text-white">{curr.symbol} {curr.code}</p>
+                            <p className="text-[11px] text-gray-500 dark:text-gray-400">{curr.name}</p>
                           </div>
                           {currency === curr.code && <CheckCircle2 className="w-4 h-4 text-blue-600" />}
                         </button>
@@ -217,10 +217,10 @@ export default function AgentProfilePage() {
           {activeTab === "security" && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t("agent.profile.passwordReset")}</h3>
+                <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">{t("agent.profile.passwordReset")}</h3>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("agent.profile.currentPasswordLabel")}</label>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t("agent.profile.currentPasswordLabel")}</label>
                     <div className="relative">
                       <Input
                         type={showPassword ? "text" : "password"}
@@ -235,7 +235,7 @@ export default function AgentProfilePage() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("agent.profile.newPasswordLabel")}</label>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t("agent.profile.newPasswordLabel")}</label>
                     <div className="relative">
                       <Input
                         type={showNewPassword ? "text" : "password"}
@@ -251,12 +251,12 @@ export default function AgentProfilePage() {
                   </div>
                 </div>
               </div>
-              {passwordError && <p className="text-sm text-red-600">{passwordError}</p>}
+              {passwordError && <p className="text-xs text-red-600">{passwordError}</p>}
               <div className="flex items-center gap-3">
                 <Button onClick={handleChangePassword} disabled={isChangingPassword || !currentPassword || !newPassword} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold h-10 rounded-lg">
                   {isChangingPassword ? <Loader2 size={16} className="animate-spin" /> : t("agent.profile.updatePassword")}
                 </Button>
-                {saved && <span className="flex items-center gap-1 text-emerald-600 text-sm font-medium"><CheckCircle2 size={16} />{t("agent.profile.saved")}</span>}
+                {saved && <span className="flex items-center gap-1 text-emerald-600 text-xs font-medium"><CheckCircle2 size={16} />{t("agent.profile.saved")}</span>}
               </div>
             </div>
           )}
@@ -264,18 +264,18 @@ export default function AgentProfilePage() {
           {activeTab === "appearance" && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t("agent.profile.themePreferences")}</h3>
+                <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">{t("agent.profile.themePreferences")}</h3>
                 <div className="grid md:grid-cols-2 gap-4">
                   <button onClick={() => setTheme("light")} className={`text-left p-4 rounded-lg border-2 transition-colors ${theme === "light" ? "border-blue-500" : "border-gray-200 dark:border-gray-600 hover:border-blue-400"}`}>
                     <p className="font-medium text-gray-900 dark:text-white">{t("settings.lightMode")}</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{t("agent.profile.lightModeDesc")}{theme === "light" ? ` ${t("agent.profile.currentLabel")}` : ""}</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">{t("agent.profile.lightModeDesc")}{theme === "light" ? ` ${t("agent.profile.currentLabel")}` : ""}</p>
                   </button>
                   <button onClick={() => setTheme("dark")} className={`text-left p-4 rounded-lg border-2 transition-colors ${theme === "dark" ? "border-blue-500" : "border-gray-200 dark:border-gray-600 hover:border-blue-400"}`}>
                     <p className="font-medium text-gray-900 dark:text-white">{t("settings.darkMode")}</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{t("agent.profile.darkModeDesc")}{theme === "dark" ? ` ${t("agent.profile.currentLabel")}` : ""}</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">{t("agent.profile.darkModeDesc")}{theme === "dark" ? ` ${t("agent.profile.currentLabel")}` : ""}</p>
                   </button>
                 </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">{t("agent.profile.appliesImmediately")}</p>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-3">{t("agent.profile.appliesImmediately")}</p>
               </div>
             </div>
           )}
@@ -283,7 +283,7 @@ export default function AgentProfilePage() {
           {activeTab === "notifications" && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t("agent.profile.disputeNotifications")}</h3>
+                <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">{t("agent.profile.disputeNotifications")}</h3>
                 <div className="space-y-3">
                   {([
                     { key: "email" as const, label: t("agent.profile.notifEmail") },
@@ -305,7 +305,7 @@ export default function AgentProfilePage() {
                 <Button onClick={handleSaveNotifications} disabled={isSavingNotifs} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold h-10 rounded-lg">
                   {isSavingNotifs ? <Loader2 size={16} className="animate-spin" /> : t("agent.profile.savePreferences")}
                 </Button>
-                {saved && <span className="flex items-center gap-1 text-emerald-600 text-sm font-medium"><CheckCircle2 size={16} />{t("agent.profile.saved")}</span>}
+                {saved && <span className="flex items-center gap-1 text-emerald-600 text-xs font-medium"><CheckCircle2 size={16} />{t("agent.profile.saved")}</span>}
               </div>
 
               <NotificationPreferencesCard />

@@ -85,24 +85,24 @@ export default function AgentVerificationsPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">{t("agent.shopVerifications.title")}</h1>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{t("agent.shopVerifications.subtitle")}</p>
+        <h1 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t("agent.shopVerifications.title")}</h1>
+        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{t("agent.shopVerifications.subtitle")}</p>
       </div>
 
       <div className="grid grid-cols-3 gap-3">
-        <Card className="p-3 border-0 shadow-sm"><p className="text-xs text-gray-500">{t("agent.shopVerifications.statPending")}</p><p className="text-xl font-bold text-amber-600">{verifications.filter(v=>v.status==="Pending").length}</p></Card>
-        <Card className="p-3 border-0 shadow-sm"><p className="text-xs text-gray-500">{t("agent.shopVerifications.statApproved")}</p><p className="text-xl font-bold text-emerald-600">{verifications.filter(v=>v.status==="Approved").length}</p></Card>
-        <Card className="p-3 border-0 shadow-sm"><p className="text-xs text-gray-500">{t("agent.shopVerifications.statRejected")}</p><p className="text-xl font-bold text-red-600">{verifications.filter(v=>v.status==="Rejected").length}</p></Card>
+        <Card className="p-3 border-0 shadow-sm"><p className="text-[11px] text-gray-500">{t("agent.shopVerifications.statPending")}</p><p className="text-lg font-bold text-amber-600">{verifications.filter(v=>v.status==="Pending").length}</p></Card>
+        <Card className="p-3 border-0 shadow-sm"><p className="text-[11px] text-gray-500">{t("agent.shopVerifications.statApproved")}</p><p className="text-lg font-bold text-emerald-600">{verifications.filter(v=>v.status==="Approved").length}</p></Card>
+        <Card className="p-3 border-0 shadow-sm"><p className="text-[11px] text-gray-500">{t("agent.shopVerifications.statRejected")}</p><p className="text-lg font-bold text-red-600">{verifications.filter(v=>v.status==="Rejected").length}</p></Card>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder={t("agent.shopVerifications.searchPlaceholder")} className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30" />
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder={t("agent.shopVerifications.searchPlaceholder")} className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30" />
         </div>
         <div className="flex gap-2 overflow-x-auto">
           {["All","Pending","Approved","Rejected"].map(f => (
-            <button key={f} onClick={()=>setFilter(f)} className={`px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap ${filter===f?"bg-indigo-600 text-white":"bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700"}`}>{filterLabels[f]}</button>
+            <button key={f} onClick={()=>setFilter(f)} className={`px-3 py-2 rounded-lg text-[11px] font-medium whitespace-nowrap ${filter===f?"bg-indigo-600 text-white":"bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700"}`}>{filterLabels[f]}</button>
           ))}
         </div>
       </div>
@@ -112,28 +112,28 @@ export default function AgentVerificationsPage() {
           <table className="w-full">
             <thead className="bg-gray-50 dark:bg-gray-800">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("agent.shopVerifications.colShop")}</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 hidden sm:table-cell">{t("agent.shopVerifications.colType")}</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 hidden sm:table-cell">{t("agent.shopVerifications.colDocuments")}</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("common.status")}</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("agent.common.actions")}</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-700 dark:text-gray-300">{t("agent.shopVerifications.colShop")}</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-700 dark:text-gray-300 hidden sm:table-cell">{t("agent.shopVerifications.colType")}</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-700 dark:text-gray-300 hidden sm:table-cell">{t("agent.shopVerifications.colDocuments")}</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-700 dark:text-gray-300">{t("common.status")}</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-700 dark:text-gray-300">{t("agent.common.actions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {filtered.length === 0 ? (
-                <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">{t("agent.shopVerifications.noneFound")}</td></tr>
+                <tr><td colSpan={5} className="px-4 py-8 text-center text-xs text-gray-500 dark:text-gray-400">{t("agent.shopVerifications.noneFound")}</td></tr>
               ) : filtered.map(v => {
                 const Icon = RoleIcon(v.role)
                 return (
                 <tr key={v.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                   <td className="px-4 py-3">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">{v.displayName}</p>
+                    <p className="text-xs font-medium text-gray-900 dark:text-white">{v.displayName}</p>
                     <p className="text-[10px] text-gray-500">{v.ownerName} -- {new Date(v.submittedDate).toLocaleDateString()}</p>
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 hidden sm:table-cell">
+                  <td className="px-4 py-3 text-[11px] text-gray-600 dark:text-gray-400 hidden sm:table-cell">
                     <span className="inline-flex items-center gap-1"><Icon size={12} />{roleLabel(v.role)}</span>
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 hidden sm:table-cell">{v.documents}</td>
+                  <td className="px-4 py-3 text-[11px] text-gray-600 dark:text-gray-400 hidden sm:table-cell">{v.documents}</td>
                   <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${getColor(v.status)}`}>{v.status}</span></td>
                   <td className="px-4 py-3">
                     <div className="flex gap-1">
@@ -156,12 +156,12 @@ export default function AgentVerificationsPage() {
           {selected && <div className="space-y-3 py-3">
             <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-2">
               {[[t("agent.shopVerifications.colType"),roleLabel(selected.role)],[t("agent.shopVerifications.colShop"),selected.displayName],[t("agent.shopVerifications.labelOwner"),selected.ownerName],[t("auth.email"),selected.email],[t("agent.shopVerifications.labelDocumentType"),selected.documentType],...(selected.documentNumber ? [[t("agent.shopVerifications.labelDocumentNumber"),selected.documentNumber]] : []),[t("common.status"),selected.status],[t("agent.shopVerifications.labelSubmitted"),new Date(selected.submittedDate).toLocaleDateString()],...(selected.rejectionReason ? [[t("agent.shopVerifications.labelRejectionReason"),selected.rejectionReason]] : [])].map(([l,v])=>(
-                <div key={l} className="flex justify-between text-sm"><span className="text-gray-500">{l}</span><span className="font-medium text-gray-900 dark:text-white">{v}</span></div>
+                <div key={l} className="flex justify-between text-xs"><span className="text-gray-500">{l}</span><span className="font-medium text-gray-900 dark:text-white">{v}</span></div>
               ))}
             </div>
 
             <div>
-              <p className="text-xs text-gray-500 mb-1.5">{t("agent.shopVerifications.submittedDocumentsLabel")}</p>
+              <p className="text-[11px] text-gray-500 mb-1.5">{t("agent.shopVerifications.submittedDocumentsLabel")}</p>
               <KycDocumentViewer
                 documents={[
                   { label: t("agent.shopVerifications.docIdFront"), url: selected.idFileUrl },
@@ -173,7 +173,7 @@ export default function AgentVerificationsPage() {
 
             {selected.status==="Pending" && showRejectReason && (
               <div>
-                <label className="block text-sm font-medium mb-1.5">{t("agent.shopVerifications.rejectionReasonInputLabel")}</label>
+                <label className="block text-xs font-medium mb-1.5">{t("agent.shopVerifications.rejectionReasonInputLabel")}</label>
                 <Textarea value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder={t("agent.shopVerifications.rejectReasonPlaceholder")} className="min-h-[80px]" />
               </div>
             )}

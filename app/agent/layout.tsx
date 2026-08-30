@@ -127,7 +127,7 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
             <Shield className="w-5 h-5" />
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-lg font-bold leading-tight">{t("agent.layout.title")}</h1>
+            <h1 className="text-base font-bold leading-tight">{t("agent.layout.title")}</h1>
             <p className="text-[10px] text-indigo-200">{t("agent.layout.subtitle")}</p>
           </div>
           <button
@@ -151,7 +151,7 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
                 <Link
                   href={item.href}
                   onClick={() => setMenuOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-colors ${
                     isActive(item.href)
                       ? "bg-white text-indigo-700 shadow-sm"
                       : "text-indigo-100 hover:bg-indigo-600/50"
@@ -170,7 +170,7 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
               logout()
               setMenuOpen(false)
             }}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-indigo-100 hover:bg-indigo-600/50"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium text-indigo-100 hover:bg-indigo-600/50"
           >
             <LogOut size={18} />
             {t("auth.logout")}
@@ -191,7 +191,7 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
               <Search size={16} className="text-gray-400" />
               <input
                 placeholder={t("agent.common.searchPlaceholder")}
-                className="bg-transparent text-sm outline-none w-full text-gray-700 dark:text-gray-200"
+                className="bg-transparent text-xs outline-none w-full text-gray-700 dark:text-gray-200"
               />
             </div>
           </div>
@@ -207,7 +207,7 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
               {notifOpen && (
                 <div className="absolute right-0 top-12 w-72 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50">
                   <div className="p-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                    <h3 className="font-semibold text-sm text-gray-900 dark:text-white">
+                    <h3 className="font-semibold text-xs text-gray-900 dark:text-white">
                       {t("agent.layout.notifications")}
                     </h3>
                     {unreadCount > 0 && (
@@ -218,21 +218,21 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
                   </div>
                   <div className="max-h-48 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700">
                     {notifications.length === 0 ? (
-                      <div className="px-3 py-6 text-center text-xs text-gray-500 dark:text-gray-400">{t("agent.layout.noNotifications")}</div>
+                      <div className="px-3 py-6 text-center text-[11px] text-gray-500 dark:text-gray-400">{t("agent.layout.noNotifications")}</div>
                     ) : notifications.map((n) => (
                       <button
                         key={n.id}
                         onClick={() => handleNotificationClick(n)}
                         className={`w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 ${!n.isRead ? "bg-indigo-50/50 dark:bg-indigo-900/10" : ""}`}
                       >
-                        <p className="text-xs text-gray-900 dark:text-white">{n.title}</p>
+                        <p className="text-[11px] text-gray-900 dark:text-white">{n.title}</p>
                         <p className="text-[10px] text-gray-500 mt-0.5">{formatRelativeTime(n.createdAt)}</p>
                       </button>
                     ))}
                   </div>
                   <button
                     onClick={() => { setNotifOpen(false); router.push("/agent/notifications") }}
-                    className="block w-full px-3 py-2.5 text-center text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 border-t border-gray-100 dark:border-gray-700"
+                    className="block w-full px-3 py-2.5 text-center text-[11px] font-medium text-indigo-600 dark:text-indigo-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 border-t border-gray-100 dark:border-gray-700"
                   >
                     {t("agent.layout.viewAllNotifications")}
                   </button>
@@ -242,7 +242,7 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
             <div className="relative" ref={profileMenuRef}>
               <button
                 onClick={() => setShowProfileMenu(!showProfileMenu)}
-                className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold cursor-pointer hover:shadow-lg transition-shadow"
+                className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-[11px] font-bold cursor-pointer hover:shadow-lg transition-shadow"
               >
                 {(user?.name || "Agent").split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase()}
               </button>
@@ -251,7 +251,7 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
                 <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-2 z-50">
                   <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
                     <p className="font-semibold text-gray-900 dark:text-white truncate">{user?.name ?? t("agent.layout.title")}</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 truncate">{user?.email ?? ""}</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 truncate">{user?.email ?? ""}</p>
                   </div>
 
                   <Link
@@ -315,7 +315,7 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
                     key={item.href}
                     href={item.href}
                     onClick={() => setShowMore(false)}
-                    className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    className="flex items-center gap-2 px-3 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                   >
                     <item.icon size={16} />
                     {item.label}
@@ -368,16 +368,16 @@ function AgentVerificationPending({ onLogout }: { onLogout: () => void }) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-6">
       <div className="max-w-xl w-full bg-white dark:bg-gray-800 border border-border rounded-xl p-6 text-center">
-        <h2 className="text-lg font-bold text-foreground">{t("agent.layout.verificationPendingTitle")}</h2>
-        <p className="text-sm text-muted-foreground mt-2">
+        <h2 className="text-base font-bold text-foreground">{t("agent.layout.verificationPendingTitle")}</h2>
+        <p className="text-xs text-muted-foreground mt-2">
           {t("agent.layout.verificationPendingBody")}
         </p>
         <div className="mt-4">
           {status === "done" ? (
-            <p className="text-sm text-emerald-600 font-medium">{t("agent.layout.verificationUploaded")}</p>
+            <p className="text-xs text-emerald-600 font-medium">{t("agent.layout.verificationUploaded")}</p>
           ) : (
             <>
-              <p className="text-sm text-muted-foreground">{t("agent.layout.verificationUploadHint")}</p>
+              <p className="text-xs text-muted-foreground">{t("agent.layout.verificationUploadHint")}</p>
               <input
                 type="file"
                 accept="image/*,application/pdf"
@@ -385,8 +385,8 @@ function AgentVerificationPending({ onLogout }: { onLogout: () => void }) {
                 onChange={handleFileChange}
                 className="mt-3 mx-auto"
               />
-              {status === "uploading" && <p className="text-xs text-muted-foreground mt-2">{t("agent.layout.uploading")}</p>}
-              {status === "error" && <p className="text-xs text-red-600 mt-2">{errorMsg}</p>}
+              {status === "uploading" && <p className="text-[11px] text-muted-foreground mt-2">{t("agent.layout.uploading")}</p>}
+              {status === "error" && <p className="text-[11px] text-red-600 mt-2">{errorMsg}</p>}
             </>
           )}
         </div>

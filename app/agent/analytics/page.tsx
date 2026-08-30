@@ -64,8 +64,8 @@ export default function AgentAnalyticsPage() {
     <div className="space-y-5 pb-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">{t("agent.analytics.title")}</h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{t("agent.analytics.subtitle")}</p>
+          <h1 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t("agent.analytics.title")}</h1>
+          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{t("agent.analytics.subtitle")}</p>
         </div>
         <Button onClick={handleExport} variant="outline" className="bg-transparent gap-2" size="sm">
           <Download size={16} /> {t("agent.common.export")}
@@ -76,14 +76,14 @@ export default function AgentAnalyticsPage() {
         {kpis.map((s, i) => (
           <Card key={i} className="p-4 border-0 shadow-sm">
             <s.icon className={`w-5 h-5 ${s.color} mb-2`} />
-            <p className="text-xs text-gray-500">{s.label}</p>
-            <p className="text-xl font-bold text-gray-900 dark:text-white mt-1">{s.value}</p>
+            <p className="text-[11px] text-gray-500">{s.label}</p>
+            <p className="text-lg font-bold text-gray-900 dark:text-white mt-1">{s.value}</p>
           </Card>
         ))}
       </div>
 
       <Card className="p-4 lg:p-5 border-0 shadow-sm">
-        <h2 className="text-base font-bold text-gray-900 dark:text-white mb-4">{t("agent.analytics.performanceTrend")}</h2>
+        <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-4">{t("agent.analytics.performanceTrend")}</h2>
         <ResponsiveContainer width="100%" height={280}>
           <AreaChart data={stats.monthlyStats}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -98,7 +98,7 @@ export default function AgentAnalyticsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <Card className="p-4 lg:p-5 border-0 shadow-sm">
-          <h2 className="text-base font-bold text-gray-900 dark:text-white mb-4">{t("agent.analytics.weeklyResolution")}</h2>
+          <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-4">{t("agent.analytics.weeklyResolution")}</h2>
           <ResponsiveContainer width="100%" height={240}>
             <BarChart data={analytics.weeklyResolution}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -112,9 +112,9 @@ export default function AgentAnalyticsPage() {
         </Card>
 
         <Card className="p-4 lg:p-5 border-0 shadow-sm">
-          <h2 className="text-base font-bold text-gray-900 dark:text-white mb-4">{t("agent.analytics.disputeReasons")}</h2>
+          <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-4">{t("agent.analytics.disputeReasons")}</h2>
           {analytics.reasonBreakdown.length === 0 ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">{t("agent.analytics.noDisputesAssignedYet")}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-8">{t("agent.analytics.noDisputesAssignedYet")}</p>
           ) : (
             <div className="flex flex-col sm:flex-row items-center gap-4">
               <ResponsiveContainer width="100%" height={200}>
@@ -129,7 +129,7 @@ export default function AgentAnalyticsPage() {
               </ResponsiveContainer>
               <div className="flex flex-wrap sm:flex-col gap-2">
                 {analytics.reasonBreakdown.map((cat, i) => (
-                  <div key={cat.name} className="flex items-center gap-2 text-xs">
+                  <div key={cat.name} className="flex items-center gap-2 text-[11px]">
                     <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
                     <span className="text-gray-600 dark:text-gray-400">{cat.name}</span>
                     <span className="font-semibold text-gray-900 dark:text-white">{cat.percentage}%</span>
@@ -142,9 +142,9 @@ export default function AgentAnalyticsPage() {
       </div>
 
       <Card className="p-4 lg:p-5 border-0 shadow-sm">
-        <h2 className="text-base font-bold text-gray-900 dark:text-white mb-4">{t("agent.analytics.agentComparison")}</h2>
+        <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-4">{t("agent.analytics.agentComparison")}</h2>
         {agentComparison.length === 0 ? (
-          <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">{t("agent.leaderboard.noAgentsFound")}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-8">{t("agent.leaderboard.noAgentsFound")}</p>
         ) : (
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={agentComparison} layout="vertical">
