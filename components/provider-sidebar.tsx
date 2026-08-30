@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { Home, Briefcase, MessageCircle, Wallet, User, ChevronDown, ImageIcon, Calendar, Wrench, BarChart3, FileText, Users, Store, Gift, Award, ClipboardList, X, MoreHorizontal, Megaphone, LayoutDashboard, Building2, TrendingUp, Navigation, Crown, Rocket, Package, Handshake, Radar } from "lucide-react"
+import { Home, Briefcase, MessageCircle, Wallet, User, ChevronDown, ChevronLeft, ChevronRight, ImageIcon, Calendar, Wrench, BarChart3, FileText, Users, Store, Gift, Award, ClipboardList, X, MoreHorizontal, Megaphone, LayoutDashboard, Building2, TrendingUp, Navigation, Crown, Rocket, Package, Handshake, Radar } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Logo } from "@/components/logo"
@@ -9,13 +9,17 @@ import { AccountMenu } from "@/components/account-menu"
 import { getProviderJobStats } from "@/lib/actions/provider-jobs"
 import { getUnreadMessageCount } from "@/lib/actions/messages"
 import { useProviderWorkspace } from "@/lib/hooks/useProviderWorkspace"
+import { useLocalization } from "@/lib/hooks/useLocalization"
 
 type ProviderSidebarProps = {
   isOpen: boolean
   onClose: () => void
+  isCollapsed: boolean
+  onToggleCollapsed: () => void
 }
 
-export default function ProviderSidebar({ isOpen, onClose }: ProviderSidebarProps) {
+export default function ProviderSidebar({ isOpen, onClose, isCollapsed, onToggleCollapsed }: ProviderSidebarProps) {
+  const { t } = useLocalization()
   const [expandedMenu, setExpandedMenu] = useState<string | null>(null)
   const [pendingJobs, setPendingJobs] = useState(0)
   const [unreadMessages, setUnreadMessages] = useState(0)
@@ -155,13 +159,25 @@ export default function ProviderSidebar({ isOpen, onClose }: ProviderSidebarProp
       <aside
         className={`${
           isOpen ? "translate-x-0" : "-translate-x-full"
-        } lg:translate-x-0 fixed left-0 top-0 w-64 h-dvh bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-transform duration-300 z-50 flex flex-col`}
+        } lg:translate-x-0 fixed left-0 top-0 ${isCollapsed ? "lg:w-20" : "lg:w-64"} w-64 h-dvh bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-[transform,width] duration-300 z-50 flex flex-col`}
       >
+        <button
+          onClick={onToggleCollapsed}
+          aria-label={isCollapsed ? t("common.sidebar.expand") : t("common.sidebar.collapse")}
+          title={isCollapsed ? t("common.sidebar.expand") : t("common.sidebar.collapse")}
+          className="hidden lg:flex absolute -right-3 top-20 z-10 w-6 h-6 items-center justify-center rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-500 shadow-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+        >
+          {isCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
+        </button>
+
         {/* Sidebar Header */}
-        <div className="p-5 border-b border-gray-200 dark:border-gray-700 flex items-start justify-between">
-          <div>
+        <div className={`p-5 border-b border-gray-200 dark:border-gray-700 flex items-start justify-between ${isCollapsed ? "lg:justify-center" : ""}`}>
+          <div className={isCollapsed ? "lg:hidden" : ""}>
             <Logo size="md" showText />
             <p className="text-[11px] text-muted-foreground mt-1">Service Provider Portal</p>
+          </div>
+          <div className={`hidden ${isCollapsed ? "lg:block" : ""}`}>
+            <Logo size="md" showText={false} />
           </div>
           <button
             onClick={onClose}
@@ -173,7 +189,7 @@ export default function ProviderSidebar({ isOpen, onClose }: ProviderSidebarProp
         </div>
 
         {/* User Info / Account Switcher */}
-        <div className="p-3 border-b border-gray-200 dark:border-gray-700">
+        <div className={`p-3 border-b border-gray-200 dark:border-gray-700 ${isCollapsed ? "lg:hidden" : ""}`}>
           <AccountMenu alwaysShowLabel />
         </div>
 
@@ -184,7 +200,7 @@ export default function ProviderSidebar({ isOpen, onClose }: ProviderSidebarProp
             const active = isItemActive(item)
             const showGroupLabel = item.group && item.group !== menuItems[i - 1]?.group
             const groupLabel = showGroupLabel && (
-              <p className="px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+              <p className={`px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 ${isCollapsed ? "lg:hidden" : ""}`}>
                 {GROUP_LABEL[item.group as string]}
               </p>
             )
@@ -195,23 +211,24 @@ export default function ProviderSidebar({ isOpen, onClose }: ProviderSidebarProp
                   {groupLabel}
                   <button
                     onClick={() => setExpandedMenu(expandedMenu === "profile" ? null : "profile")}
-                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all ${
+                    title={isCollapsed ? item.label : undefined}
+                    className={`w-full flex items-center justify-between py-2.5 rounded-lg transition-all ${isCollapsed ? "lg:justify-center px-2" : "px-3"} ${
                       active
                         ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
                         : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <IconComponent className="w-5 h-5" />
-                      <span className="font-medium text-xs">{item.label}</span>
+                      <IconComponent className="w-5 h-5 flex-shrink-0" />
+                      <span className={`font-medium text-xs ${isCollapsed ? "lg:hidden" : ""}`}>{item.label}</span>
                     </div>
                     <ChevronDown
-                      className={`w-4 h-4 transition-transform ${expandedMenu === "profile" ? "rotate-180" : ""}`}
+                      className={`w-4 h-4 transition-transform ${isCollapsed ? "lg:hidden" : ""} ${expandedMenu === "profile" ? "rotate-180" : ""}`}
                     />
                   </button>
 
                   {expandedMenu === "profile" && (
-                    <div className="mt-1 ml-4 pl-4 border-l-2 border-gray-200 dark:border-gray-700 space-y-1">
+                    <div className={`mt-1 ml-4 pl-4 border-l-2 border-gray-200 dark:border-gray-700 space-y-1 ${isCollapsed ? "lg:hidden" : ""}`}>
                       {profileMenuItems.map((subitem) => (
                         <Link
                           key={subitem.href}
@@ -238,23 +255,24 @@ export default function ProviderSidebar({ isOpen, onClose }: ProviderSidebarProp
                 <Link
                   href={item.href}
                   onClick={() => onClose()}
-                  className={`flex items-center justify-between px-3 py-2.5 rounded-lg transition-all ${
+                  title={isCollapsed ? item.label : undefined}
+                  className={`flex items-center justify-between py-2.5 rounded-lg transition-all ${isCollapsed ? "lg:justify-center lg:relative px-2" : "px-3"} ${
                     active
                       ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
                       : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <IconComponent className="w-5 h-5" />
-                    <span className="font-medium text-xs">{item.label}</span>
+                    <IconComponent className="w-5 h-5 flex-shrink-0" />
+                    <span className={`font-medium text-xs ${isCollapsed ? "lg:hidden" : ""}`}>{item.label}</span>
                     {item.isNew && (
-                      <span className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold rounded-full px-1.5 py-0.5">
+                      <span className={`bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold rounded-full px-1.5 py-0.5 ${isCollapsed ? "lg:hidden" : ""}`}>
                         NEW
                       </span>
                     )}
                   </div>
                   {item.badge && (
-                    <span className="bg-red-500 text-white text-[11px] font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5">
+                    <span className={`bg-red-500 text-white text-[11px] font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5 ${isCollapsed ? "lg:absolute lg:top-1 lg:right-1 lg:w-4 lg:h-4 lg:min-w-0 lg:text-[9px] lg:px-0" : ""}`}>
                       {item.badge}
                     </span>
                   )}

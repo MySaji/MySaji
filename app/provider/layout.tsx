@@ -14,6 +14,7 @@ import { AccountSuspendedScreen } from "@/components/account-status/account-susp
 import { DisputeBanner } from "@/components/account-status/dispute-banner"
 import { getMyAccountStatus, type MyOpenDispute } from "@/lib/actions/account-status"
 import { useLocalization } from "@/lib/hooks/useLocalization"
+import { useSidebarCollapsed } from "@/lib/hooks/useSidebarCollapsed"
 
 export default function ProviderLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -21,6 +22,7 @@ export default function ProviderLayout({ children }: { children: React.ReactNode
   const { isAuthenticated, isLoading, user, logout } = useAuthContext()
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [openDisputes, setOpenDisputes] = useState<MyOpenDispute[]>([])
+  const { isCollapsed, toggle: toggleCollapsed } = useSidebarCollapsed()
 
   const pathname = usePathname()
 
@@ -130,13 +132,18 @@ export default function ProviderLayout({ children }: { children: React.ReactNode
       </a>
 
       {/* Sidebar */}
-      <ProviderSidebar isOpen={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
+      <ProviderSidebar
+        isOpen={mobileNavOpen}
+        onClose={() => setMobileNavOpen(false)}
+        isCollapsed={isCollapsed}
+        onToggleCollapsed={toggleCollapsed}
+      />
 
       {/* Floating Chat Button */}
       <FloatingChatButton />
 
       {/* Main Content */}
-      <div className="lg:pl-64">
+      <div className={isCollapsed ? "lg:pl-20" : "lg:pl-64"}>
         <ProviderTopbar onMenuClick={() => setMobileNavOpen(true)} />
         {/* pb-36 / lg:pb-24 reserve the floating chat button's footprint as
             well as the bottom nav's; see app/customer/layout.tsx. */}
