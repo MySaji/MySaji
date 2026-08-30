@@ -8,10 +8,11 @@ import { usePathname, useRouter } from "next/navigation"
 import { useAuthContext } from "@/lib/auth-context"
 import { useCartCount } from "@/lib/hooks/useCartCount"
 import { useNotificationBell } from "@/lib/hooks/useNotificationBell"
+import { useSidebarCollapsed } from "@/lib/hooks/useSidebarCollapsed"
 import { formatRelativeTime } from "@/lib/format"
 import {
   Home, Store, Briefcase, Users, MessageCircle, UserSearch, Settings,
-  Bell, User, Menu, X, LogOut, ChevronRight, Wallet, Heart, MapPin,
+  Bell, User, Menu, X, LogOut, ChevronRight, ChevronLeft, Wallet, Heart, MapPin,
   HelpCircle, Gift, ShoppingCart, Package, MoreHorizontal, Award, ClipboardList, FileText, RefreshCw
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -29,6 +30,7 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
   const { t } = useLocalization()
   const { user, logout } = useAuthContext()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { isCollapsed, toggle: toggleCollapsed } = useSidebarCollapsed()
   const [showNotifications, setShowNotifications] = useState(false)
   const [showMoreMenu, setShowMoreMenu] = useState(false)
   const moreMenuRef = useRef<HTMLDivElement>(null)
@@ -110,21 +112,37 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
       </a>
       <FloatingChatButton />
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 border-r border-border bg-card">
+      <aside className={`hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 border-r border-border bg-card transition-[width] duration-200 ${isCollapsed ? "lg:w-20" : "lg:w-64"}`}>
+        {/* Collapse/expand toggle — fixed's own containing block means this
+            absolutely-positioned child doesn't need the aside to be
+            explicitly `relative` too. */}
+        <button
+          onClick={toggleCollapsed}
+          aria-label={isCollapsed ? t("common.sidebar.expand") : t("common.sidebar.collapse")}
+          title={isCollapsed ? t("common.sidebar.expand") : t("common.sidebar.collapse")}
+          className="hidden lg:flex absolute -right-3 top-20 z-10 w-6 h-6 items-center justify-center rounded-full border border-border bg-card shadow-md hover:bg-muted transition-colors"
+        >
+          {isCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
+        </button>
+
         {/* Logo */}
-        <div className="flex items-center h-16 px-6 border-b border-border">
-          <Link href="/customer/home" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+        <div className={`flex items-center h-16 border-b border-border ${isCollapsed ? "justify-center px-2" : "px-6"}`}>
+          <Link href="/customer/home" className="flex items-center gap-2 min-w-0">
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
               <span className="text-primary-foreground font-bold text-base">S</span>
             </div>
-            <span className="font-bold text-lg text-foreground">SAJI</span>
+            {!isCollapsed && <span className="font-bold text-lg text-foreground truncate">SAJI</span>}
           </Link>
         </div>
 
         {/* User Profile Quick View */}
         <div className="p-4 border-b border-border">
-          <Link href="/customer/profile" className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted transition-colors">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+          <Link
+            href="/customer/profile"
+            title={isCollapsed ? (user?.name || t("customer.layout.guestUser")) : undefined}
+            className={`flex items-center gap-3 rounded-xl hover:bg-muted transition-colors ${isCollapsed ? "justify-center p-2" : "p-3"}`}
+          >
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
               {user?.avatar ? (
                 // eslint-disable-next-line @next/next/no-img-element -- base64 data URLs (locally-uploaded avatars) aren't supported by next/image
                 <img src={user.avatar} alt="" width={40} height={40} className="w-full h-full object-cover" />
@@ -132,11 +150,15 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
                 <User className="w-5 h-5 text-primary" />
               )}
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-xs text-foreground truncate">{user?.name || t("customer.layout.guestUser")}</p>
-              <p className="text-[11px] text-muted-foreground truncate">{user?.email || "guest@example.com"}</p>
-            </div>
-            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+            {!isCollapsed && (
+              <>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-xs text-foreground truncate">{user?.name || t("customer.layout.guestUser")}</p>
+                  <p className="text-[11px] text-muted-foreground truncate">{user?.email || "guest@example.com"}</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              </>
+            )}
           </Link>
         </div>
 
@@ -147,21 +169,22 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
             const showGroupLabel = item.group && item.group !== sidebarItems[i - 1]?.group
             return (
               <div key={item.href}>
-                {showGroupLabel && (
+                {showGroupLabel && !isCollapsed && (
                   <p className="px-4 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
                     {SIDEBAR_GROUP_LABEL[item.group as string]}
                   </p>
                 )}
                 <Link
                   href={item.href}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-medium transition-all ${
+                  title={isCollapsed ? item.label : undefined}
+                  className={`flex items-center gap-3 rounded-xl text-xs font-medium transition-all ${isCollapsed ? "justify-center px-2 py-3" : "px-4 py-3"} ${
                     isActive
                       ? "bg-primary text-primary-foreground shadow-md"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground"
                   }`}
                 >
-                  <item.icon className="w-5 h-5" />
-                  {item.label}
+                  <item.icon className="w-5 h-5 flex-shrink-0" />
+                  {!isCollapsed && item.label}
                 </Link>
               </div>
             )
@@ -170,19 +193,20 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
 
         {/* Logout Button */}
         <div className="p-4 border-t border-border">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             onClick={logout}
-            className="w-full justify-start gap-3 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+            title={isCollapsed ? t("auth.logout") : undefined}
+            className={`w-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 ${isCollapsed ? "justify-center px-0 gap-0" : "justify-start gap-3"}`}
           >
-            <LogOut className="w-5 h-5" />
-            {t("auth.logout")}
+            <LogOut className="w-5 h-5 flex-shrink-0" />
+            {!isCollapsed && t("auth.logout")}
           </Button>
         </div>
       </aside>
 
       {/* Main Content Area */}
-      <div className="lg:pl-64">
+      <div className={`transition-[padding] duration-200 ${isCollapsed ? "lg:pl-20" : "lg:pl-64"}`}>
         {/* Top Header */}
         <header className="sticky top-0 z-40 bg-card/95 backdrop-blur-md border-b border-border">
           <div className="flex items-center justify-between h-16 px-4 lg:px-6">

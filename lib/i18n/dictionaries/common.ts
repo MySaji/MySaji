@@ -40,6 +40,8 @@ const en = {
 
   // Common
   "common.loading": "Loading...",
+  "common.sidebar.collapse": "Collapse sidebar",
+  "common.sidebar.expand": "Expand sidebar",
   "common.error": "An error occurred",
   "common.success": "Success",
   "common.cancel": "Cancel",
@@ -182,6 +184,8 @@ const sw: Record<keyof typeof en, string> = {
   "settings.notifications": "Arifa",
 
   "common.loading": "Inapakaa...",
+  "common.sidebar.collapse": "Kunja upau wa kando",
+  "common.sidebar.expand": "Panua upau wa kando",
   "common.error": "Hitilafu ilitokea",
   "common.success": "Umefanikiwa",
   "common.cancel": "Ghairi",
@@ -320,6 +324,8 @@ const fr: Record<keyof typeof en, string> = {
   "settings.notifications": "Notifications",
 
   "common.loading": "Chargement...",
+  "common.sidebar.collapse": "Réduire la barre latérale",
+  "common.sidebar.expand": "Développer la barre latérale",
   "common.error": "Une erreur est survenue",
   "common.success": "Succès",
   "common.cancel": "Annuler",
