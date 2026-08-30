@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import {
   ArrowRight, Zap, Lock, CheckCircle, ShieldCheck, Smartphone, MessageCircle, Star,
-  Menu, X, Download,
+  Menu, X, Download, ChevronDown, MapPin,
   Plug, Droplets, Hammer, Wind, Truck, Paintbrush, BriefcaseBusiness,
   Search, CalendarCheck, CreditCard, ThumbsUp, Home, Wrench, Store,
 } from "lucide-react"
@@ -16,6 +16,10 @@ import { getServiceCategories, getLandingStats, type HomeServiceCategory, type L
 import { usePwaInstall } from "@/lib/hooks/usePwaInstall"
 import PublicChatButton from "@/components/public-chat-button"
 import { BrandLogo } from "@/components/brand-logo"
+
+// 4 rows at the mobile 2-column grid width, 2 rows at the desktop 4-column
+// width — a reasonable first screenful either way, with the rest one tap away.
+const CATEGORIES_PREVIEW_COUNT = 8
 
 const CATEGORY_ICON: Record<string, ComponentType<{ className?: string }>> = {
   electricians: Plug,
@@ -65,6 +69,13 @@ const AUDIENCES = [
     image: "https://images.unsplash.com/photo-1556740758-90de374c12ad?w=600&h=400&fit=crop&q=80",
     description: "List your hardware or supplies shop and reach customers already booking services on SAJI.",
     items: ["Storefront on the marketplace", "Order & inventory management", "Promotions to featured customers"],
+  },
+  {
+    name: "For Distributors",
+    icon: Truck,
+    image: "https://images.unsplash.com/photo-1553413077-190dd305871c?w=600&h=400&fit=crop&q=80",
+    description: "Supply shops and businesses in bulk from one or more warehouse locations, with procurement requests coming straight to you.",
+    items: ["Multi-location warehouse management", "Wholesale catalog & bulk pricing", "Procurement requests from local shops"],
   },
 ]
 
@@ -286,6 +297,11 @@ export function LandingPage() {
   const [stats, setStats] = useState<LandingStats | null>(null)
   const [categories, setCategories] = useState<HomeServiceCategory[]>([])
   const [isLoadingLive, setIsLoadingLive] = useState(true)
+  // The category catalog easily runs to 50-70+ entries — rendering all of
+  // them at once on a 2-column mobile grid means 30+ rows of scrolling
+  // before a visitor even reaches the next section. Show a short preview
+  // and let them expand in place instead.
+  const [showAllCategories, setShowAllCategories] = useState(false)
   const { reduce, fadeUp, stagger, scaleIn } = useMotionVariants()
   const scrolledPastHero = useScrolledPast(420)
   const { canInstall, promptInstall } = usePwaInstall()
@@ -514,6 +530,18 @@ export function LandingPage() {
                 <div>
                   <p className="font-semibold text-foreground">Verified professionals, real reviews</p>
                   <p className="text-sm text-muted-foreground">Secure payments & dispute protection on every job</p>
+                </div>
+              </motion.div>
+
+              {/* Coverage Badge — an availability claim (the app supports
+                  booking/listing everywhere in this list), not a usage claim,
+                  so it stays true regardless of where activity is currently
+                  concentrated. */}
+              <motion.div variants={fadeUp} className="mt-4 flex items-center gap-3">
+                <MapPin className="w-8 h-8 text-primary flex-shrink-0" />
+                <div>
+                  <p className="font-semibold text-foreground">Built for all of Kenya</p>
+                  <p className="text-sm text-muted-foreground">Available across all 47 counties, from Nairobi to the coast</p>
                 </div>
               </motion.div>
 
@@ -759,12 +787,12 @@ export function LandingPage() {
               Built for Everyone
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Whether you need help, offer it, or sell supplies, SAJI has a place for you
+              Whether you need help, offer it, sell supplies, or supply the shops selling them, SAJI has a place for you
             </p>
           </motion.div>
 
           <motion.div
-            className="grid md:grid-cols-3 gap-8"
+            className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8"
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: "-80px" }}
@@ -842,7 +870,7 @@ export function LandingPage() {
                 animate="visible"
                 variants={stagger(0, 0.05)}
               >
-                {categories.map((category) => {
+                {(showAllCategories ? categories : categories.slice(0, CATEGORIES_PREVIEW_COUNT)).map((category) => {
                   const Icon = CATEGORY_ICON[category.slug] ?? BriefcaseBusiness
                   return (
                     <motion.div key={category.id} variants={scaleIn} whileHover={{ y: -6, scale: 1.02, transition: HOVER_SPRING }}>
@@ -856,6 +884,19 @@ export function LandingPage() {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {!isLoadingLive && categories.length > CATEGORIES_PREVIEW_COUNT && (
+            <div className="flex justify-center mt-8">
+              <Button
+                variant="outline"
+                onClick={() => setShowAllCategories((v) => !v)}
+                className="gap-2 rounded-full bg-transparent"
+              >
+                {showAllCategories ? "Show less" : `Show all ${categories.length} services`}
+                <ChevronDown className={`w-4 h-4 transition-transform ${showAllCategories ? "rotate-180" : ""}`} />
+              </Button>
+            </div>
+          )}
         </div>
       </section>
 

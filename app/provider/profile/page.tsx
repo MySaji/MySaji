@@ -20,13 +20,11 @@ import {
   LayoutDashboard,
 } from "lucide-react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { useAuthContext } from "@/lib/auth-context"
 import { useLocalization } from "@/lib/hooks/useLocalization"
 import { getMyProviderBusinessInfo } from "@/lib/actions/provider-business"
 
 export default function ProviderProfilePage() {
-  const router = useRouter()
   const { t } = useLocalization()
   const { logout } = useAuthContext()
   const [provider] = useState({
@@ -43,8 +41,13 @@ export default function ProviderProfilePage() {
   }, [])
 
   const handleLogout = () => {
+    // logout() (see lib/auth-context.tsx) already navigates to "/" itself
+    // once signOut() actually finishes clearing the session cookie. Pushing
+    // here too raced ahead of that and could land on "/" while the cookie
+    // was still valid — the server-side "/" route redirects an
+    // already-authenticated user straight back into their portal, which
+    // looked like a login/logout loop.
     logout()
-    router.push("/")
   }
 
   const menuItems = [

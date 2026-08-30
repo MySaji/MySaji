@@ -5,6 +5,18 @@ export type OfferAvailabilityStatus = "IN_STOCK" | "ON_REQUEST" | "BY_APPOINTMEN
 export type OfferFulfilmentMethod = "DELIVERY" | "PICKUP" | "PROVIDER_SITE_VISIT" | "SHIPPING" | "REMOTE"
 export type OfferDocument = { name: string; url: string }
 
+// Which existing browse surface an offer belongs alongside — a BUY offer is
+// a product for sale, RENT is neither a service nor a product sale, and
+// everything else (BOOK/HIRE/QUOTE/REQUEST) is a service being offered.
+export const OFFER_KIND: Record<OfferActionType, "product" | "service" | "rental"> = {
+  BUY: "product",
+  RENT: "rental",
+  BOOK: "service",
+  HIRE: "service",
+  QUOTE: "service",
+  REQUEST: "service",
+}
+
 export const OFFER_ACTION_LABEL: Record<OfferActionType, string> = {
   BOOK: "Book",
   HIRE: "Hire",

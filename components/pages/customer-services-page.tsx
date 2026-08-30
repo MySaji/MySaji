@@ -17,7 +17,7 @@ import {
   Grid3X3, List, TrendingUp, ShoppingBag, Zap, CalendarIcon, Phone,
   MessageCircle, Loader2, SlidersHorizontal, ChevronRight, Eye,
   AlertTriangle, Wallet, ShieldCheck, ArrowRight, Check, Info,
-  Flame, Plus, Minus, ArrowUpDown, Package, ChevronDown, ChevronUp,
+  Flame, Plus, Minus, ArrowUpDown, Package, ChevronDown, ChevronUp, Briefcase,
 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
@@ -28,6 +28,9 @@ import { ProductMarketplace } from "@/components/customer/product-marketplace"
 import { getServiceCategories, type HomeServiceCategory } from "@/lib/actions/home"
 import { getAllServices, getEmergencyCategoryOptions, type ServiceListItem, type EmergencyCategoryOption } from "@/lib/actions/services"
 import { getProducts, type ProductCard } from "@/lib/actions/products"
+import { getLiveOffers, type PublicOfferListItem } from "@/lib/actions/offers"
+import { OFFER_KIND } from "@/lib/offer-constants"
+import { OfferFeedRow } from "@/components/offers/offer-feed-row"
 import { getWalletSummary } from "@/lib/actions/wallet"
 import { getWishlistIds, toggleWishlist } from "@/lib/actions/wishlist"
 import { addToCart, getCart, type CartLine } from "@/lib/actions/cart"
@@ -118,6 +121,7 @@ export function CustomerServicesPage() {
   const [categories, setCategories] = useState<HomeServiceCategory[]>([])
   const [services, setServices] = useState<ServiceListItem[]>([])
   const [trendingProducts, setTrendingProducts] = useState<ProductCard[]>([])
+  const [liveOffers, setLiveOffers] = useState<PublicOfferListItem[]>([])
   const [cartItems, setCartItems] = useState<CartLine[]>([])
   const [walletBalance, setWalletBalance] = useState(0)
   const [emergencyCategories, setEmergencyCategories] = useState<EmergencyCategoryOption[]>([])
@@ -223,12 +227,14 @@ export function CustomerServicesPage() {
       withTimeout(getCart(), DASHBOARD_FETCH_TIMEOUT_MS).catch(() => []),
       withTimeout(getWalletSummary(), DASHBOARD_FETCH_TIMEOUT_MS).catch(() => null),
       withTimeout(getEmergencyCategoryOptions(), DASHBOARD_FETCH_TIMEOUT_MS).catch(() => []),
-    ]).then(([cats, wishlistIds, cart, wallet, emergencyCats]) => {
+      withTimeout(getLiveOffers(), DASHBOARD_FETCH_TIMEOUT_MS).catch(() => []),
+    ]).then(([cats, wishlistIds, cart, wallet, emergencyCats, offers]) => {
       setCategories(cats)
       setFavorites(wishlistIds)
       setCartItems(cart)
       setWalletBalance(wallet?.balance ?? 0)
       setEmergencyCategories(emergencyCats)
+      setLiveOffers(offers)
     })
 
     Promise.all([loadServices(), loadProducts()]).finally(() => setIsLoading(false))
@@ -239,6 +245,20 @@ export function CustomerServicesPage() {
   // search/filter state below, same "small curated row above the full
   // searchable catalog" pattern as the Trending Products row.
   const popularServices = [...services].sort((a, b) => b.rating - a.rating).slice(0, 6)
+
+  // Provider-created Offers, sorted into the same three buckets as the rest
+  // of this page — BUY reads as a product, RENT as equipment for hire, and
+  // BOOK/HIRE/QUOTE/REQUEST as a service — so each shows up next to its
+  // real-catalog counterpart instead of one undifferentiated list.
+  const offerProducts: PublicOfferListItem[] = []
+  const offerServices: PublicOfferListItem[] = []
+  const offerRentals: PublicOfferListItem[] = []
+  for (const offer of liveOffers) {
+    const bucket = OFFER_KIND[offer.actionType]
+    if (bucket === "product") offerProducts.push(offer)
+    else if (bucket === "rental") offerRentals.push(offer)
+    else offerServices.push(offer)
+  }
 
   const filteredServices = services.filter((service) => {
     const matchesSearch = service.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -678,6 +698,29 @@ export function CustomerServicesPage() {
           )}
         </div>
 
+        {/* From Saji Pro Providers — provider-created BUY Offers, next to
+            shop-sold Trending Products since they're the same thing to a
+            customer: something for sale. */}
+        <div className="mb-8">
+          <OfferFeedRow
+            title={t("customer.services.fromSajiProProducts")}
+            seeAllHref="/customer/services/more?type=offer"
+            offers={offerProducts}
+            icon={<ShoppingBag className="w-4 h-4 text-primary" />}
+          />
+        </div>
+
+        {/* Equipment for Rent — RENT-actionType Offers, the "neither a
+            service nor a product sale" third kind. */}
+        <div className="mb-8">
+          <OfferFeedRow
+            title={t("customer.services.equipmentForRent")}
+            seeAllHref="/customer/services/more?type=rental"
+            offers={offerRentals}
+            icon={<Package className="w-4 h-4 text-primary" />}
+          />
+        </div>
+
         {/* Popular Services — curated top-rated preview, independent of the
             search/filter state below (same pattern as Trending Products). */}
         <div className="mb-8">
@@ -738,6 +781,17 @@ export function CustomerServicesPage() {
               ))}
             </div>
           )}
+        </div>
+
+        {/* Saji Pro Services — provider-created BOOK/HIRE/QUOTE/REQUEST
+            Offers, next to the regular Popular Services row above. */}
+        <div className="mb-8">
+          <OfferFeedRow
+            title={t("customer.services.sajiProServices")}
+            seeAllHref="/customer/services/more?type=offer"
+            offers={offerServices}
+            icon={<Briefcase className="w-4 h-4 text-primary" />}
+          />
         </div>
 
         {/* All Products — the normal, full-catalog counterpart to the

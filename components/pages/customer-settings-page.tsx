@@ -145,7 +145,12 @@ export function CustomerSettingsPage() {
     setIsDeleting(true)
     const result = await deleteMyAccount({ reason: deleteReason })
     if (result.success) {
-      setTimeout(() => { setIsDeleting(false); setShowDeleteModal(false); logout(); router.push("/") }, 1500)
+      // logout() (see lib/auth-context.tsx) already navigates to "/" itself
+      // once signOut() actually clears the session cookie — an extra push
+      // here would race ahead of that and risk landing on "/" while the
+      // cookie was still valid, which the server-side "/" route would
+      // redirect straight back into the portal.
+      setTimeout(() => { setIsDeleting(false); setShowDeleteModal(false); logout() }, 1500)
     } else {
       setIsDeleting(false)
     }
@@ -179,7 +184,10 @@ export function CustomerSettingsPage() {
     { id: "dark", name: t("customer.settings.themeDark"), icon: Moon, desc: t("customer.settings.themeDarkDesc") },
   ]
 
-  const handleLogout = () => { logout(); router.push("/") }
+  // logout() (see lib/auth-context.tsx) already navigates to "/" itself once
+  // signOut() actually clears the session cookie; an extra push here would
+  // race ahead of that and land on "/" while the cookie was still valid.
+  const handleLogout = () => { logout() }
 
   if (isLoading || !profile) {
     return (

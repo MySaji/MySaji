@@ -3,22 +3,17 @@
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
 
-// A Provider Business owner can also run a shop (see setupBusinessShop() in
-// lib/actions/provider-business.ts) — that keeps role="provider" (their
-// portal stays Provider, not a role switch) but gets a real, linked
-// ShopkeeperProfile on the same account. So access here isn't purely
-// role-gated: it's "role=shopkeeper", OR "role=provider AND a business
-// owner AND a shop is actually linked" — either way, the caller must have
-// a real ShopkeeperProfile row, this never fabricates access.
+// A provider can also run a shop on the same account — a Business owner via
+// setupBusinessShop() (lib/actions/provider-business.ts), a Solo Pro via
+// setupProviderShop() (lib/actions/provider-shop.ts). Either way role stays
+// "provider" (their portal stays Provider, not a role switch), and they get
+// a real, linked ShopkeeperProfile. So access here isn't purely role-gated:
+// it's "role=shopkeeper" OR "role=provider", and EITHER WAY a real
+// ShopkeeperProfile row must exist — this never fabricates access.
 export async function requireShopkeeper(): Promise<{ userId: string; shopkeeperId: string } | null> {
   const session = await auth()
   if (!session?.user?.id) return null
-
-  if (session.user.role !== "shopkeeper") {
-    if (session.user.role !== "provider") return null
-    const providerProfile = await db.providerProfile.findUnique({ where: { userId: session.user.id }, select: { isBusinessOwner: true } })
-    if (!providerProfile?.isBusinessOwner) return null
-  }
+  if (session.user.role !== "shopkeeper" && session.user.role !== "provider") return null
 
   const profile = await db.shopkeeperProfile.findUnique({ where: { userId: session.user.id } })
   if (!profile) return null

@@ -63,9 +63,14 @@ export function AdminHeader() {
   }
 
   const handleLogout = () => {
+    // logout() (see lib/auth-context.tsx) already navigates to "/" itself,
+    // but only after signOut() finishes clearing the session cookie. Pushing
+    // here too raced ahead of that: "/" is a server component that redirects
+    // an already-authenticated admin straight back into /admin, so this
+    // extra push (landing while the cookie was still valid) was bouncing
+    // straight back in before the real sign-out redirect caught up.
     logout()
     setShowProfileMenu(false)
-    router.push("/")
   }
 
   const handleNotificationClick = async (notification: Parameters<typeof markRead>[0]) => {

@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Star, Sparkles, ArrowRight,
-  Truck, Package,
+  Truck, Package, ShoppingBag,
   ChevronRight, MapPin, Clock,
   CheckCircle2, AlertCircle, Zap, ShieldCheck, Calendar, History, Flame, Briefcase,
   Wallet, Lock, Headphones, Plus, ArrowLeftRight, Gift, Grid3X3, BadgeCheck, Store, Building2, ClipboardList,
@@ -29,6 +29,9 @@ import { getRecentlyViewed, type RecentlyViewedItem } from "@/lib/actions/recent
 import { getActiveProviderStories } from "@/lib/actions/provider-stories"
 import { getWalletSummary } from "@/lib/actions/wallet"
 import { getMyCustomerRequests, type MyRequestItem } from "@/lib/actions/requests"
+import { getLiveOffers, type PublicOfferListItem } from "@/lib/actions/offers"
+import { OFFER_KIND } from "@/lib/offer-constants"
+import { OfferFeedRow } from "@/components/offers/offer-feed-row"
 import { ProviderStoryRing } from "@/components/provider-story-ring"
 import { HomeHeroSection } from "@/components/customer/home-hero-section"
 import { HomeSearchBar } from "@/components/customer/home-search-bar"
@@ -716,9 +719,27 @@ export function CustomerHome() {
   const { data: mixedFeedRecommended } = useSWR(
     "mixed-feed-recommended", () => withTimeout(getNearbyMixedFeed(9, 9), HOME_DATA_TIMEOUT_MS),
   )
+  const { data: liveOffers } = useSWR(
+    "live-offers", () => withTimeout(getLiveOffers(), HOME_DATA_TIMEOUT_MS),
+  )
 
   const preferredAddress = addresses?.find((a) => a.isDefault) ?? addresses?.[0]
   const location = preferredAddress ? preferredAddress.address : null
+
+  // Provider-created Offers sorted into the same three buckets the rest of
+  // the marketplace already uses — a BUY offer reads as a product, RENT as
+  // equipment for hire, everything else (BOOK/HIRE/QUOTE/REQUEST) as a
+  // service — so each row sits next to its real-catalog counterpart instead
+  // of every offer type being dumped into one undifferentiated list.
+  const offerProducts: PublicOfferListItem[] = []
+  const offerServices: PublicOfferListItem[] = []
+  const offerRentals: PublicOfferListItem[] = []
+  for (const offer of liveOffers ?? []) {
+    const bucket = OFFER_KIND[offer.actionType]
+    if (bucket === "product") offerProducts.push(offer)
+    else if (bucket === "rental") offerRentals.push(offer)
+    else offerServices.push(offer)
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -780,6 +801,15 @@ export function CustomerHome() {
         {/* Recommended For You */}
         <RecommendedSection recommended={recommended ?? null} />
 
+        {/* Saji Pro Services — provider-created BOOK/HIRE/QUOTE/REQUEST
+            Offers, sitting next to the regular services row above. */}
+        <OfferFeedRow
+          title={t("customer.services.sajiProServices")}
+          seeAllHref="/customer/services/more?type=offer"
+          offers={offerServices}
+          icon={<Briefcase className="h-4 w-4 text-primary" />}
+        />
+
         {/* ---------------------------------------------------------------
             Trust & social proof — reassurance content sits after the
             customer has seen real listings, not before. */}
@@ -806,6 +836,26 @@ export function CustomerHome() {
 
         {/* Featured Products */}
         <FeaturedProductsSection products={featuredProducts ?? []} />
+
+        {/* Saji Pro Marketplace — provider-created BUY Offers, sitting next
+            to shop-sold products since they're the same thing to a
+            customer: something for sale, just from a provider's own
+            catalog instead of a shop's. */}
+        <OfferFeedRow
+          title={t("customer.services.fromSajiProProducts")}
+          seeAllHref="/customer/services/more?type=offer"
+          offers={offerProducts}
+          icon={<ShoppingBag className="h-4 w-4 text-primary" />}
+        />
+
+        {/* Equipment for Rent — RENT-actionType Offers, the "neither a
+            service nor a product sale" third kind. */}
+        <OfferFeedRow
+          title={t("customer.services.equipmentForRent")}
+          seeAllHref="/customer/services/more?type=rental"
+          offers={offerRentals}
+          icon={<Package className="h-4 w-4 text-primary" />}
+        />
 
         {/* Recently Viewed */}
         <RecentlyViewedSection items={recentlyViewed ?? []} />

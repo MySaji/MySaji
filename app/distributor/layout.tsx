@@ -139,8 +139,13 @@ export default function DistributorLayout({ children }: { children: React.ReactN
   const moreNavItems = menuItems.slice(4)
 
   const handleLogout = () => {
+    // logout() (see lib/auth-context.tsx) already navigates to "/" itself
+    // once signOut() actually finishes clearing the session cookie. Pushing
+    // here too raced ahead of that and could land on "/" while the cookie
+    // was still valid — the server-side "/" route redirects an
+    // already-authenticated user straight back into their portal, which
+    // looked like a login/logout loop.
     logout()
-    router.push("/")
   }
 
   const handleNotificationClick = async (notification: Parameters<typeof markRead>[0]) => {
