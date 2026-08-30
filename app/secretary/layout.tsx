@@ -8,13 +8,14 @@ import { LoadingScreen } from "@/components/loading-screen"
 import {
   LayoutDashboard, CreditCard, User, LogOut, Menu, X, FileText,
   BarChart3, MessageCircle, RefreshCcw, FileSpreadsheet, Bell, Search,
-  ChevronDown, MoreHorizontal
+  ChevronDown, ChevronLeft, ChevronRight, MoreHorizontal
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useNotificationBell } from "@/lib/hooks/useNotificationBell"
 import { formatRelativeTime } from "@/lib/format"
 import { useLocalization } from "@/lib/hooks/useLocalization"
+import { useSidebarCollapsed } from "@/lib/hooks/useSidebarCollapsed"
 
 export default function SecretaryLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, user, logout } = useAuthContext()
@@ -23,6 +24,7 @@ export default function SecretaryLayout({ children }: { children: React.ReactNod
   const pathname = usePathname()
   const [mounted, setMounted] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const { isCollapsed, toggle: toggleCollapsed } = useSidebarCollapsed()
   const [showNotifications, setShowNotifications] = useState(false)
   const [showMore, setShowMore] = useState(false)
   const [showProfileMenu, setShowProfileMenu] = useState(false)
@@ -93,9 +95,23 @@ export default function SecretaryLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
       {/* Desktop Sidebar */}
-      <aside className={`fixed top-0 left-0 h-dvh w-64 bg-gradient-to-b from-blue-600 to-blue-700 text-white transform transition-transform z-40 ${menuOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 lg:relative flex flex-col`}>
-        <div className="p-5 border-b border-blue-500/40 flex items-center gap-3">
-          <div className="flex-1 min-w-0">
+      <aside className={`fixed top-0 left-0 h-dvh ${isCollapsed ? "lg:w-20" : "lg:w-64"} w-64 bg-gradient-to-b from-blue-600 to-blue-700 text-white transform transition-[transform,width] z-40 ${menuOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 lg:relative flex flex-col`}>
+        <button
+          onClick={toggleCollapsed}
+          aria-label={isCollapsed ? t("common.sidebar.expand") : t("common.sidebar.collapse")}
+          title={isCollapsed ? t("common.sidebar.expand") : t("common.sidebar.collapse")}
+          className="hidden lg:flex absolute -right-3 top-20 z-10 w-6 h-6 items-center justify-center rounded-full border border-blue-500/40 bg-blue-600 text-white shadow-md hover:bg-blue-500 transition-colors"
+        >
+          {isCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
+        </button>
+
+        <div className={`p-5 border-b border-blue-500/40 flex items-center gap-3 ${isCollapsed ? "lg:justify-center" : ""}`}>
+          {isCollapsed && (
+            <div className="hidden lg:flex w-9 h-9 rounded-lg bg-white/20 items-center justify-center flex-shrink-0">
+              <LayoutDashboard className="w-5 h-5" />
+            </div>
+          )}
+          <div className={`flex-1 min-w-0 ${isCollapsed ? "lg:hidden" : ""}`}>
             <h1 className="text-base font-bold tracking-tight">{t("secretary.layout.portalName")}</h1>
             <p className="text-blue-200 text-[11px] mt-0.5 truncate">{user?.name || t("secretary.layout.fallbackName")}</p>
           </div>
@@ -113,26 +129,27 @@ export default function SecretaryLayout({ children }: { children: React.ReactNod
             return (
               <div key={item.href}>
                 {showGroupLabel && (
-                  <p className="px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-blue-200/70">
+                  <p className={`px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-blue-200/70 ${isCollapsed ? "lg:hidden" : ""}`}>
                     {GROUP_LABEL[item.group as string]}
                   </p>
                 )}
                 <Link
                   href={item.href}
                   onClick={() => setMenuOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-colors ${isActive(item.href) ? "bg-white text-blue-600 font-semibold shadow-sm" : "hover:bg-blue-500/50 text-blue-50"}`}
+                  title={isCollapsed ? item.label : undefined}
+                  className={`flex items-center gap-3 py-2.5 rounded-lg text-xs transition-colors ${isCollapsed ? "lg:justify-center px-2" : "px-3"} ${isActive(item.href) ? "bg-white text-blue-600 font-semibold shadow-sm" : "hover:bg-blue-500/50 text-blue-50"}`}
                 >
-                  <item.icon size={18} />
-                  {item.label}
+                  <item.icon size={18} className="flex-shrink-0" />
+                  <span className={isCollapsed ? "lg:hidden" : ""}>{item.label}</span>
                 </Link>
               </div>
             )
           })}
         </nav>
         <div className="p-3 border-t border-blue-500/40">
-          <button onClick={() => { logout(); setMenuOpen(false) }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-blue-500/50 transition-colors text-blue-100 text-xs">
-            <LogOut size={18} />
-            {t("auth.logout")}
+          <button onClick={() => { logout(); setMenuOpen(false) }} title={isCollapsed ? t("auth.logout") : undefined} className={`w-full flex items-center gap-3 py-2.5 rounded-lg hover:bg-blue-500/50 transition-colors text-blue-100 text-xs ${isCollapsed ? "lg:justify-center px-2" : "px-3"}`}>
+            <LogOut size={18} className="flex-shrink-0" />
+            <span className={isCollapsed ? "lg:hidden" : ""}>{t("auth.logout")}</span>
           </button>
         </div>
       </aside>
