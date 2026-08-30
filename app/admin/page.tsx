@@ -81,7 +81,7 @@ export default function AdminDashboard() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white">{t("admin.dashboard.title")}</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t("admin.dashboard.title")}</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">{t("admin.dashboard.welcome")}</p>
         </div>
       </div>
@@ -96,13 +96,13 @@ export default function AdminDashboard() {
                 <div className="p-2 sm:p-3 rounded-lg bg-white/50 dark:bg-gray-700/50">
                   <Icon className={`w-4 h-4 sm:w-6 sm:h-6 ${stat.textColor}`} />
                 </div>
-                <div className={`flex items-center gap-1 text-xs sm:text-sm font-semibold ${positive ? "text-emerald-600" : "text-red-600"}`}>
+                <div className={`flex items-center gap-1 text-[11px] sm:text-xs font-semibold ${positive ? "text-emerald-600" : "text-red-600"}`}>
                   {positive ? <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <TrendingDown className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
                   {Math.abs(stat.change)}%
                 </div>
               </div>
-              <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm font-medium">{stat.label}</p>
-              <p className="text-xl sm:text-3xl font-bold text-gray-900 dark:text-white mt-1 sm:mt-2">{stat.value}</p>
+              <p className="text-gray-600 dark:text-gray-400 text-[11px] sm:text-xs font-medium">{stat.label}</p>
+              <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white mt-1 sm:mt-2">{stat.value}</p>
             </Card>
           )
         })}
@@ -112,18 +112,18 @@ export default function AdminDashboard() {
         <Card className="lg:col-span-2 p-6 border-0 shadow-lg">
           <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
             <div>
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white">{t("admin.dashboard.revenueOverview")}</h2>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{revenue?.periodLabel ?? ""}</p>
+              <h2 className="text-base font-bold text-gray-900 dark:text-white">{t("admin.dashboard.revenueOverview")}</h2>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{revenue?.periodLabel ?? ""}</p>
             </div>
           </div>
 
           <div className="flex items-end justify-center gap-2 mb-6 flex-wrap">
             <div>
-              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t("admin.dashboard.yearLabel")}</label>
+              <label className="block text-[11px] text-gray-500 dark:text-gray-400 mb-1">{t("admin.dashboard.yearLabel")}</label>
               <select
                 value={draftYear}
                 onChange={(e) => setDraftYear(Number(e.target.value))}
-                className="text-sm font-medium text-gray-700 dark:text-gray-300 bg-transparent border border-gray-200 dark:border-gray-700 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="text-xs font-medium text-gray-700 dark:text-gray-300 bg-transparent border border-gray-200 dark:border-gray-700 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {yearOptions.map((y) => (
                   <option key={y} value={y}>{y}</option>
@@ -131,11 +131,11 @@ export default function AdminDashboard() {
               </select>
             </div>
             <div>
-              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t("admin.dashboard.monthLabel")}</label>
+              <label className="block text-[11px] text-gray-500 dark:text-gray-400 mb-1">{t("admin.dashboard.monthLabel")}</label>
               <select
                 value={draftMonth}
                 onChange={(e) => setDraftMonth(e.target.value === "" ? "" : Number(e.target.value))}
-                className="text-sm font-medium text-gray-700 dark:text-gray-300 bg-transparent border border-gray-200 dark:border-gray-700 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="text-xs font-medium text-gray-700 dark:text-gray-300 bg-transparent border border-gray-200 dark:border-gray-700 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">{t("admin.dashboard.wholeYear")}</option>
                 {MONTH_OPTIONS.map((m) => (
@@ -150,16 +150,16 @@ export default function AdminDashboard() {
 
           <div className="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
             <div className="min-w-0">
-              <p className="text-sm text-muted-foreground">{t("admin.dashboard.totalRevenue")}</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mt-1 truncate">{formatMoney(revenue?.totalRevenue ?? 0)}</p>
+              <p className="text-xs text-muted-foreground">{t("admin.dashboard.totalRevenue")}</p>
+              <p className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mt-1 truncate">{formatMoney(revenue?.totalRevenue ?? 0)}</p>
             </div>
             <div className="min-w-0">
-              <p className="text-sm text-muted-foreground">{t("admin.dashboard.commissionEst")}</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mt-1 truncate">{formatMoney(revenue?.totalCommission ?? 0)}</p>
+              <p className="text-xs text-muted-foreground">{t("admin.dashboard.commissionEst")}</p>
+              <p className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mt-1 truncate">{formatMoney(revenue?.totalCommission ?? 0)}</p>
             </div>
             <div className="min-w-0">
-              <p className="text-sm text-muted-foreground">{t("admin.dashboard.avgTransaction")}</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mt-1 truncate">{formatMoney(revenue?.avgTransaction ?? 0)}</p>
+              <p className="text-xs text-muted-foreground">{t("admin.dashboard.avgTransaction")}</p>
+              <p className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mt-1 truncate">{formatMoney(revenue?.avgTransaction ?? 0)}</p>
             </div>
           </div>
 
@@ -184,7 +184,7 @@ export default function AdminDashboard() {
 
         <Card className="p-6 border-0 shadow-lg">
           <div>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-6">{t("admin.dashboard.disputeResolution")}</h2>
+            <h2 className="text-base font-bold text-gray-900 dark:text-white mb-6">{t("admin.dashboard.disputeResolution")}</h2>
 
             <ResponsiveContainer width="100%" height={250}>
               <PieChart>
@@ -207,7 +207,7 @@ export default function AdminDashboard() {
 
             <div className="space-y-3 mt-6">
               {data.taskDistribution.map((item, index) => (
-                <div key={item.name} className="flex items-center justify-between text-sm">
+                <div key={item.name} className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full" style={{ backgroundColor: PIE_COLORS[index % PIE_COLORS.length] }} />
                     <span className="text-gray-700 dark:text-gray-300">{item.name}</span>
@@ -223,11 +223,11 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="p-6 border-0 shadow-lg">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white">{t("admin.dashboard.recentActivities")}</h2>
+            <h2 className="text-base font-bold text-gray-900 dark:text-white">{t("admin.dashboard.recentActivities")}</h2>
           </div>
 
           {data.recentActivities.length === 0 ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">{t("admin.dashboard.noRecentActivity")}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-8">{t("admin.dashboard.noRecentActivity")}</p>
           ) : (
             <div className="space-y-4">
               {data.recentActivities.map((activity) => {
@@ -238,10 +238,10 @@ export default function AdminDashboard() {
                       <Icon className="w-5 h-5" />
                     </div>
                     <div className="flex-1">
-                      <p className="font-medium text-gray-900 dark:text-white text-sm">{activity.label}</p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">{activity.detail}</p>
+                      <p className="font-medium text-gray-900 dark:text-white text-xs">{activity.label}</p>
+                      <p className="text-[11px] text-gray-600 dark:text-gray-400">{activity.detail}</p>
                     </div>
-                    <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">{formatRelative(activity.time, t, tn)}</span>
+                    <span className="text-[11px] text-gray-500 dark:text-gray-400 whitespace-nowrap">{formatRelative(activity.time, t, tn)}</span>
                   </div>
                 )
               })}
@@ -251,26 +251,26 @@ export default function AdminDashboard() {
 
         <Card className="p-6 border-0 shadow-lg">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white">{t("admin.dashboard.topEarners")}</h2>
+            <h2 className="text-base font-bold text-gray-900 dark:text-white">{t("admin.dashboard.topEarners")}</h2>
           </div>
 
           {data.topPerformers.length === 0 ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">{t("admin.dashboard.noEarningsRecorded")}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-8">{t("admin.dashboard.noEarningsRecorded")}</p>
           ) : (
             <div className="space-y-3">
               {data.topPerformers.map((performer) => (
                 <div key={performer.id} className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold text-sm">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold text-xs">
                         {performer.name.split(" ")[0][0]}
                       </div>
                       <div>
-                        <p className="font-semibold text-gray-900 dark:text-white text-sm">{performer.name}</p>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">{tn("admin.dashboard.jobsCompleted", performer.tasks)}</p>
+                        <p className="font-semibold text-gray-900 dark:text-white text-xs">{performer.name}</p>
+                        <p className="text-[11px] text-gray-600 dark:text-gray-400">{tn("admin.dashboard.jobsCompleted", performer.tasks)}</p>
                       </div>
                     </div>
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${performer.active
+                    <span className={`px-2 py-1 rounded-full text-[11px] font-semibold ${performer.active
                         ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
                         : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-400"
                       }`}>
@@ -278,7 +278,7 @@ export default function AdminDashboard() {
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <div className="text-sm">
+                    <div className="text-xs">
                       <p className="text-gray-600 dark:text-gray-400">{t("admin.dashboard.earningsLabel")}</p>
                       <p className="font-bold text-gray-900 dark:text-white">{formatMoney(performer.earnings)}</p>
                     </div>

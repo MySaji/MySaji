@@ -41,8 +41,8 @@ export function AdminSidebar() {
               <LayoutDashboard size={24} />
             </div>
             <div>
-              <h1 className="text-lg font-bold">Admin</h1>
-              <p className="text-xs text-blue-200">Portal</p>
+              <h1 className="text-base font-bold">Admin</h1>
+              <p className="text-[11px] text-blue-200">Portal</p>
             </div>
           </div>
         </div>
@@ -56,7 +56,7 @@ export function AdminSidebar() {
             return (
               <div key={item.href}>
                 {showGroupLabel && (
-                  <p className="px-4 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-blue-200/70">
+                  <p className="px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-blue-200/70">
                     {ADMIN_NAV_GROUP_LABEL[item.group as string]}
                   </p>
                 )}
@@ -73,11 +73,11 @@ export function AdminSidebar() {
                 >
                   <div className="flex items-center gap-3">
                     <Icon size={20} />
-                    <span className="text-sm">{item.label}</span>
+                    <span className="text-xs">{item.label}</span>
                   </div>
                   {item.badge && (
                     <span className={`
-                      px-2 py-1 rounded-full text-xs font-semibold
+                      px-2 py-1 rounded-full text-[11px] font-semibold
                       ${active
                         ? "bg-blue-100 text-blue-600"
                         : "bg-blue-400/30 text-blue-100"
@@ -95,15 +95,15 @@ export function AdminSidebar() {
         {/* Footer Section */}
         <div className="p-4 border-t border-blue-400/30 flex-shrink-0 space-y-2">
           <div className="px-4 py-3 rounded-lg bg-blue-500/20 border border-blue-400/30">
-            <p className="text-xs text-blue-200">Admin Status</p>
-            <p className="text-sm font-semibold text-white mt-1">Online</p>
+            <p className="text-[11px] text-blue-200">Admin Status</p>
+            <p className="text-xs font-semibold text-white mt-1">Online</p>
           </div>
           <button
             onClick={() => {
               logout()
               setIsOpen(false)
             }}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg hover:bg-blue-500/40 transition-colors text-blue-50 hover:text-white font-medium text-sm"
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg hover:bg-blue-500/40 transition-colors text-blue-50 hover:text-white font-medium text-xs"
           >
             <LogOut size={18} />
             <span>Logout</span>

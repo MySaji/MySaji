@@ -145,8 +145,8 @@ export default function AdminBannersPage() {
     <div className="p-4 lg:p-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t("admin.banners.title")}</h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400">{t("admin.banners.subtitle")}</p>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">{t("admin.banners.title")}</h1>
+          <p className="text-xs text-gray-600 dark:text-gray-400">{t("admin.banners.subtitle")}</p>
         </div>
         {!showForm && (
           <Button onClick={handleAddBanner} className="gap-2"><Upload className="w-4 h-4" />{t("admin.banners.addBanner")}</Button>
@@ -171,7 +171,7 @@ export default function AdminBannersPage() {
                   <ImageIcon className="w-6 h-6 text-blue-500" />
                 </div>
               )}
-              <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">{imageUrl ? t("admin.banners.imageSelected") : t("admin.banners.chooseImage")}</p>
+              <p className="text-xs font-medium text-gray-900 dark:text-white mb-1">{imageUrl ? t("admin.banners.imageSelected") : t("admin.banners.chooseImage")}</p>
               <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
               <Button size="sm" variant="outline" onClick={() => fileInputRef.current?.click()} className="bg-transparent">
                 {imageUrl ? t("admin.banners.chooseDifferentImage") : t("admin.banners.chooseImage")}
@@ -242,7 +242,7 @@ export default function AdminBannersPage() {
               <Label>{t("admin.banners.activeLabel")}</Label>
             </div>
 
-            {formError && <p className="text-sm text-red-600">{formError}</p>}
+            {formError && <p className="text-xs text-red-600">{formError}</p>}
 
             <div className="flex gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
               <Button variant="outline" onClick={handleCancelForm} className="flex-1 bg-transparent" disabled={isSaving}>{t("common.cancel")}</Button>
@@ -258,7 +258,7 @@ export default function AdminBannersPage() {
         <Card className="p-12 text-center border-dashed">
           <ImageIcon className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
           <p className="text-gray-900 dark:text-white font-medium mb-2">{t("admin.banners.noBannersTitle")}</p>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">{t("admin.banners.noBannersDesc")}</p>
+          <p className="text-xs text-gray-600 dark:text-gray-400 mb-6">{t("admin.banners.noBannersDesc")}</p>
           <Button onClick={handleAddBanner} className="gap-2"><Upload className="w-4 h-4" />{t("admin.banners.addFirstBanner")}</Button>
         </Card>
       ) : banners.length > 0 ? (
@@ -272,7 +272,7 @@ export default function AdminBannersPage() {
                 </div>
                 <div className="flex-1 p-3.5 min-w-0">
                   <div className="flex items-start justify-between gap-2 mb-1.5">
-                    <p className="font-semibold text-gray-900 dark:text-white text-sm truncate">{b.title}</p>
+                    <p className="font-semibold text-gray-900 dark:text-white text-xs truncate">{b.title}</p>
                     <div className="flex gap-1.5 flex-shrink-0">
                       <button onClick={() => handleEditBanner(b)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"><Edit2 className="w-3.5 h-3.5 text-blue-600" /></button>
                       <button onClick={() => handleDelete(b.id)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"><Trash2 className="w-3.5 h-3.5 text-red-600" /></button>
@@ -283,7 +283,7 @@ export default function AdminBannersPage() {
                     <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${status.className}`}>{status.label}</span>
                     <span className="text-[10px] text-gray-500 dark:text-gray-400">#{b.sortOrder}</span>
                   </div>
-                  {b.subtitle && <p className="text-xs text-gray-600 dark:text-gray-400 truncate">{b.subtitle}</p>}
+                  {b.subtitle && <p className="text-[11px] text-gray-600 dark:text-gray-400 truncate">{b.subtitle}</p>}
                 </div>
               </div>
             )

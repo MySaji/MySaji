@@ -102,7 +102,7 @@ export function AdminHeader() {
             <input
               type="text"
               placeholder={t("admin.header.searchPlaceholder")}
-              className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs"
             />
           </div>
         </div>
@@ -119,7 +119,7 @@ export function AdminHeader() {
             >
               <Bell size={20} className="text-gray-600 dark:text-gray-300" />
               {unreadNotifications > 0 && (
-                <span className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">{unreadNotifications}</span>
+                <span className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white text-[11px] font-bold rounded-full flex items-center justify-center">{unreadNotifications}</span>
               )}
             </button>
 
@@ -128,13 +128,13 @@ export function AdminHeader() {
                 <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white dark:bg-gray-800">
                   <h3 className="font-semibold text-gray-900 dark:text-white">{t("settings.notifications")}</h3>
                   {unreadNotifications > 0 && (
-                    <button onClick={handleMarkAllRead} className="text-xs text-blue-600 dark:text-blue-400 hover:underline">{t("admin.header.markAllRead")}</button>
+                    <button onClick={handleMarkAllRead} className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline">{t("admin.header.markAllRead")}</button>
                   )}
                 </div>
 
                 <div className="divide-y divide-gray-100 dark:divide-gray-700">
                   {notifications.length === 0 ? (
-                    <div className="p-6 text-center text-sm text-gray-500 dark:text-gray-400">{t("admin.header.noNotifications")}</div>
+                    <div className="p-6 text-center text-xs text-gray-500 dark:text-gray-400">{t("admin.header.noNotifications")}</div>
                   ) : notifications.map((notif) => (
                     <button key={notif.id} onClick={() => handleNotificationClick(notif)} className={`w-full text-left p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${!notif.isRead ? "bg-blue-50 dark:bg-blue-900/20" : ""}`}>
                       <div className="flex gap-3">
@@ -143,11 +143,11 @@ export function AdminHeader() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-2">
-                            <p className="font-medium text-gray-900 dark:text-white text-sm">{notif.title}</p>
+                            <p className="font-medium text-gray-900 dark:text-white text-xs">{notif.title}</p>
                             {!notif.isRead && <div className="w-2 h-2 rounded-full bg-blue-600 flex-shrink-0" />}
                           </div>
-                          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{notif.message}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">{formatRelativeTime(notif.createdAt)}</p>
+                          <p className="text-[11px] text-gray-600 dark:text-gray-400 mt-1">{notif.message}</p>
+                          <p className="text-[11px] text-gray-500 dark:text-gray-500 mt-1">{formatRelativeTime(notif.createdAt)}</p>
                         </div>
                       </div>
                     </button>
@@ -156,7 +156,7 @@ export function AdminHeader() {
                 <div className="p-3 border-t border-gray-200 dark:border-gray-700 text-center sticky bottom-0 bg-white dark:bg-gray-800">
                   <button
                     onClick={() => { setShowNotifications(false); router.push("/admin/notifications") }}
-                    className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                    className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
                   >
                     {t("admin.header.viewAllNotifications")}
                   </button>
@@ -176,7 +176,7 @@ export function AdminHeader() {
             >
               <MessageSquare size={20} className="text-gray-600 dark:text-gray-300" />
               {unreadMessages > 0 && (
-                <span className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">{unreadMessages}</span>
+                <span className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white text-[11px] font-bold rounded-full flex items-center justify-center">{unreadMessages}</span>
               )}
             </button>
 
@@ -191,20 +191,20 @@ export function AdminHeader() {
 
                 <div className="divide-y divide-gray-100 dark:divide-gray-700">
                   {conversations.length === 0 ? (
-                    <div className="p-6 text-center text-sm text-gray-500 dark:text-gray-400">{t("admin.header.noConversationsYet")}</div>
+                    <div className="p-6 text-center text-xs text-gray-500 dark:text-gray-400">{t("admin.header.noConversationsYet")}</div>
                   ) : conversations.slice(0, 5).map((conv) => (
                     <button key={conv.id} onClick={() => router.push("/admin/messages")} className="w-full text-left p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                       <div className="flex gap-3 items-start">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold flex-shrink-0 text-sm">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold flex-shrink-0 text-xs">
                           {conv.name.charAt(0).toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-2">
-                            <p className="font-medium text-gray-900 dark:text-white text-sm">{conv.name}</p>
+                            <p className="font-medium text-gray-900 dark:text-white text-xs">{conv.name}</p>
                             {conv.unreadCount > 0 && <div className="w-2 h-2 rounded-full bg-blue-600 flex-shrink-0" />}
                           </div>
-                          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 truncate">{conv.lastMessage}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">{conv.lastMessageAt ? formatRelativeTime(conv.lastMessageAt) : ""}</p>
+                          <p className="text-[11px] text-gray-600 dark:text-gray-400 mt-1 truncate">{conv.lastMessage}</p>
+                          <p className="text-[11px] text-gray-500 dark:text-gray-500 mt-1">{conv.lastMessageAt ? formatRelativeTime(conv.lastMessageAt) : ""}</p>
                         </div>
                       </div>
                     </button>
@@ -212,7 +212,7 @@ export function AdminHeader() {
                 </div>
 
                 <div className="p-3 border-t border-gray-200 dark:border-gray-700 text-center">
-                  <button onClick={() => router.push("/admin/messages")} className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300">{t("admin.header.openMessages")}</button>
+                  <button onClick={() => router.push("/admin/messages")} className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300">{t("admin.header.openMessages")}</button>
                 </div>
               </div>
             )}
@@ -231,7 +231,7 @@ export function AdminHeader() {
           <select
             value={currency}
             onChange={(e) => setCurrency(e.target.value as any)}
-            className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:outline-none text-sm hidden md:block"
+            className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:outline-none text-xs hidden md:block"
           >
             <option value="KES">KES</option>
             <option value="USD">USD</option>
@@ -251,7 +251,7 @@ export function AdminHeader() {
               <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-2 z-50">
                 <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
                   <p className="font-semibold text-gray-900 dark:text-white">{account?.name ?? t("nav.admin")}</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{account?.email ?? ""}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">{account?.email ?? ""}</p>
                 </div>
 
                 <Link

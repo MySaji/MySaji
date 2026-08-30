@@ -61,18 +61,18 @@ export default function AdminCommunityPage() {
   return (
     <div className="space-y-6 pb-8">
       <div>
-        <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">{t("admin.community.title")}</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t("admin.community.subtitle")}</p>
+        <h1 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t("admin.community.title")}</h1>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t("admin.community.subtitle")}</p>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 flex-1">
           <Search size={16} className="text-gray-400" />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("admin.community.searchPlaceholder")} className="bg-transparent text-sm outline-none flex-1 text-gray-700 dark:text-gray-200 placeholder:text-gray-400" />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("admin.community.searchPlaceholder")} className="bg-transparent text-xs outline-none flex-1 text-gray-700 dark:text-gray-200 placeholder:text-gray-400" />
         </div>
         <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5">
           {(["all", "post", "group_post"] as const).map((f) => (
-            <button key={f} onClick={() => setFilter(f)} className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${filter === f ? "bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm" : "text-gray-500"}`}>
+            <button key={f} onClick={() => setFilter(f)} className={`px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors ${filter === f ? "bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm" : "text-gray-500"}`}>
               {f === "all" ? t("admin.community.filterAll") : f === "post" ? t("admin.community.filterFeed") : t("admin.community.filterGroups")}
             </button>
           ))}
@@ -90,7 +90,7 @@ export default function AdminCommunityPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-2 mb-1">
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">{item.authorName}</span>
+                    <span className="text-xs font-medium text-gray-900 dark:text-white">{item.authorName}</span>
                     {item.groupName && (
                       <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">{item.groupName}</span>
                     )}
@@ -98,8 +98,8 @@ export default function AdminCommunityPage() {
                       <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300">{t("admin.community.archivedBadge")}</span>
                     )}
                   </div>
-                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-1 leading-relaxed line-clamp-3">{item.content}</p>
-                  <div className="flex flex-wrap items-center gap-3 text-[11px] text-gray-400">
+                  <p className="text-xs text-gray-700 dark:text-gray-300 mb-1 leading-relaxed line-clamp-3">{item.content}</p>
+                  <div className="flex flex-wrap items-center gap-3 text-[10px] text-gray-400">
                     <span>{new Date(item.createdAt).toLocaleString()}</span>
                     {item.imageCount > 0 && <span className="flex items-center gap-1"><ImageIcon size={12} />{item.imageCount}</span>}
                     {item.hasVideo && <span className="flex items-center gap-1"><Video size={12} />{t("admin.community.videoBadge")}</span>}
@@ -109,12 +109,12 @@ export default function AdminCommunityPage() {
                 </div>
                 <div className="flex sm:flex-col gap-2 flex-shrink-0">
                   {item.type === "post" && (
-                    <Button size="sm" variant="outline" onClick={() => handleToggleArchive(item.id)} disabled={isBusy} className="gap-1 text-xs">
+                    <Button size="sm" variant="outline" onClick={() => handleToggleArchive(item.id)} disabled={isBusy} className="gap-1 text-[11px]">
                       {item.isArchived ? <ArchiveRestore size={14} /> : <Archive size={14} />}
                       {item.isArchived ? t("admin.community.unarchive") : t("admin.community.archive")}
                     </Button>
                   )}
-                  <Button size="sm" variant="outline" onClick={() => handleDelete(item)} disabled={isBusy} className="gap-1 text-xs text-red-600 border-red-200 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20">
+                  <Button size="sm" variant="outline" onClick={() => handleDelete(item)} disabled={isBusy} className="gap-1 text-[11px] text-red-600 border-red-200 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20">
                     <Trash2 size={14} />{t("admin.community.delete")}
                   </Button>
                 </div>
@@ -125,7 +125,7 @@ export default function AdminCommunityPage() {
         {filtered.length === 0 && (
           <Card className="p-8 text-center">
             <MessageCircle size={32} className="text-gray-300 dark:text-gray-600 mx-auto mb-2" />
-            <p className="text-sm text-gray-500 dark:text-gray-400">{t("admin.community.emptyText")}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{t("admin.community.emptyText")}</p>
           </Card>
         )}
       </div>

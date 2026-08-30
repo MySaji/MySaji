@@ -41,14 +41,14 @@ export default function AdminSafetyIncidentsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="flex items-center gap-2 text-4xl font-bold text-gray-900 dark:text-white"><Siren className="h-8 w-8 text-red-600" /> Safety Incidents</h1>
+        <h1 className="flex items-center gap-2 text-3xl font-bold text-gray-900 dark:text-white"><Siren className="h-8 w-8 text-red-600" /> Safety Incidents</h1>
         <p className="mt-1 text-gray-600 dark:text-gray-400">Real-time SOS reports from active jobs. Refreshes automatically.</p>
       </div>
 
       {items.length === 0 ? (
         <Card className="border-0 p-10 text-center shadow-lg">
           <CheckCircle2 className="mx-auto mb-3 h-10 w-10 text-emerald-500" />
-          <p className="text-sm text-gray-600 dark:text-gray-400">No active safety incidents.</p>
+          <p className="text-xs text-gray-600 dark:text-gray-400">No active safety incidents.</p>
         </Card>
       ) : (
         <div className="space-y-3">
@@ -60,15 +60,15 @@ export default function AdminSafetyIncidentsPage() {
                   <div>
                     <div className="flex items-center gap-2">
                       <p className="font-semibold text-gray-900 dark:text-white">{incident.jobTitle}</p>
-                      <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${status.className}`}>{status.label}</span>
+                      <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${status.className}`}>{status.label}</span>
                     </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Reported by {incident.reportedByName} · {new Date(incident.createdAt).toLocaleString()}</p>
-                    {incident.description && <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">{incident.description}</p>}
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Reported by {incident.reportedByName} · {new Date(incident.createdAt).toLocaleString()}</p>
+                    {incident.description && <p className="mt-1 text-xs text-gray-700 dark:text-gray-300">{incident.description}</p>}
                     {incident.latitude != null && incident.longitude != null && (
                       <a
                         href={`https://www.google.com/maps?q=${incident.latitude},${incident.longitude}`}
                         target="_blank" rel="noopener noreferrer"
-                        className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:underline"
+                        className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:underline"
                       >
                         <MapPin className="h-3.5 w-3.5" /> View reported location
                       </a>

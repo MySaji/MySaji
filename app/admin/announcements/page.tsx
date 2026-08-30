@@ -105,12 +105,12 @@ export default function AdminAnnouncementsPage() {
     <div className="space-y-6 pb-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">{t("admin.announcements.title")}</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t("admin.announcements.subtitle")}</p>
+          <h1 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t("admin.announcements.title")}</h1>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t("admin.announcements.subtitle")}</p>
         </div>
         <Dialog open={showCreate} onOpenChange={setShowCreate}>
           <DialogTrigger asChild>
-            <Button size="sm" className="bg-blue-600 hover:bg-blue-700 gap-1.5 text-xs w-fit"><Plus size={14} />{t("admin.announcements.newAnnouncement")}</Button>
+            <Button size="sm" className="bg-blue-600 hover:bg-blue-700 gap-1.5 text-[11px] w-fit"><Plus size={14} />{t("admin.announcements.newAnnouncement")}</Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-lg">
             <DialogHeader>
@@ -118,16 +118,16 @@ export default function AdminAnnouncementsPage() {
             </DialogHeader>
             <div className="space-y-4 mt-2">
               <div>
-                <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">{t("admin.announcements.titleLabel")}</label>
-                <input value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder={t("admin.announcements.titlePlaceholder")} className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500/20 text-gray-900 dark:text-white" />
+                <label className="text-[11px] font-medium text-gray-700 dark:text-gray-300 mb-1 block">{t("admin.announcements.titleLabel")}</label>
+                <input value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder={t("admin.announcements.titlePlaceholder")} className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2.5 text-xs outline-none focus:ring-2 focus:ring-blue-500/20 text-gray-900 dark:text-white" />
               </div>
               <div>
-                <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">{t("admin.announcements.messageLabel")}</label>
-                <textarea value={newMessage} onChange={e => setNewMessage(e.target.value)} rows={4} placeholder={t("admin.announcements.messagePlaceholder")} className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2.5 text-sm outline-none resize-none focus:ring-2 focus:ring-blue-500/20 text-gray-900 dark:text-white" />
+                <label className="text-[11px] font-medium text-gray-700 dark:text-gray-300 mb-1 block">{t("admin.announcements.messageLabel")}</label>
+                <textarea value={newMessage} onChange={e => setNewMessage(e.target.value)} rows={4} placeholder={t("admin.announcements.messagePlaceholder")} className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2.5 text-xs outline-none resize-none focus:ring-2 focus:ring-blue-500/20 text-gray-900 dark:text-white" />
               </div>
               <div>
-                <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">{t("admin.announcements.targetAudienceLabel")}</label>
-                <select value={newAudience} onChange={e => setNewAudience(e.target.value)} className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2.5 text-sm outline-none text-gray-900 dark:text-white">
+                <label className="text-[11px] font-medium text-gray-700 dark:text-gray-300 mb-1 block">{t("admin.announcements.targetAudienceLabel")}</label>
+                <select value={newAudience} onChange={e => setNewAudience(e.target.value)} className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2.5 text-xs outline-none text-gray-900 dark:text-white">
                   <option value="All Users">{AUDIENCE_DISPLAY["All Users"]}</option>
                   <option value="Providers">{AUDIENCE_DISPLAY.Providers}</option>
                   <option value="Shopkeepers">{AUDIENCE_DISPLAY.Shopkeepers}</option>
@@ -138,10 +138,10 @@ export default function AdminAnnouncementsPage() {
                 </select>
               </div>
               <div className="flex gap-2">
-                <Button onClick={handleCreate} disabled={isSaving || !newTitle.trim() || !newMessage.trim()} className="flex-1 bg-blue-600 hover:bg-blue-700 gap-1.5 text-sm">
+                <Button onClick={handleCreate} disabled={isSaving || !newTitle.trim() || !newMessage.trim()} className="flex-1 bg-blue-600 hover:bg-blue-700 gap-1.5 text-xs">
                   {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}{t("admin.announcements.saveAsDraft")}
                 </Button>
-                <Button variant="outline" onClick={() => setShowCreate(false)} className="text-sm" disabled={isSaving}>{t("common.cancel")}</Button>
+                <Button variant="outline" onClick={() => setShowCreate(false)} className="text-xs" disabled={isSaving}>{t("common.cancel")}</Button>
               </div>
             </div>
           </DialogContent>
@@ -156,15 +156,15 @@ export default function AdminAnnouncementsPage() {
           { label: t("admin.announcements.statDrafts"), value: announcements.filter(a => a.status === "draft").length.toString(), icon: Edit3 },
         ].map((s, i) => (
           <Card key={i} className="p-4">
-            <p className="text-xs text-gray-500 dark:text-gray-400">{s.label}</p>
-            <p className="text-xl font-bold text-gray-900 dark:text-white mt-1">{s.value}</p>
+            <p className="text-[11px] text-gray-500 dark:text-gray-400">{s.label}</p>
+            <p className="text-lg font-bold text-gray-900 dark:text-white mt-1">{s.value}</p>
           </Card>
         ))}
       </div>
 
       <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5 w-fit">
         {["all", "sent", "scheduled", "draft"].map(f => (
-          <button key={f} onClick={() => setFilter(f)} className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${filter === f ? "bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm" : "text-gray-500"}`}>
+          <button key={f} onClick={() => setFilter(f)} className={`px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors ${filter === f ? "bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm" : "text-gray-500"}`}>
             {f === "all" ? t("admin.announcements.filterAll") : STATUS_LABEL[f]}
           </button>
         ))}
@@ -174,7 +174,7 @@ export default function AdminAnnouncementsPage() {
         {filtered.length === 0 ? (
           <Card className="p-8 text-center">
             <Megaphone size={32} className="text-gray-300 dark:text-gray-600 mx-auto mb-2" />
-            <p className="text-sm text-gray-500 dark:text-gray-400">{t("admin.announcements.noAnnouncementsFound")}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{t("admin.announcements.noAnnouncementsFound")}</p>
           </Card>
         ) : filtered.map(a => {
           const isBusy = busyId === a.id
@@ -186,11 +186,11 @@ export default function AdminAnnouncementsPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-2 mb-1">
-                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{a.title}</h3>
+                    <h3 className="text-xs font-semibold text-gray-900 dark:text-white">{a.title}</h3>
                     <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${statusBadge(a.status)}`}>{STATUS_LABEL[a.status] ?? a.status}</span>
                   </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 leading-relaxed line-clamp-2">{a.message}</p>
-                  <div className="flex flex-wrap items-center gap-3 text-[11px] text-gray-400">
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-2 leading-relaxed line-clamp-2">{a.message}</p>
+                  <div className="flex flex-wrap items-center gap-3 text-[10px] text-gray-400">
                     <span className="flex items-center gap-1"><Users size={11} />{AUDIENCE_DISPLAY[a.audience] ?? a.audience}</span>
                     <span className="flex items-center gap-1"><Clock size={11} />{a.sentAt ? new Date(a.sentAt).toLocaleDateString() : "-"}</span>
                     {a.views > 0 && <span className="flex items-center gap-1"><Eye size={11} />{tn("admin.announcements.viewsCount", a.views, { formatted: a.views.toLocaleString() })}</span>}
@@ -198,11 +198,11 @@ export default function AdminAnnouncementsPage() {
                 </div>
                 <div className="flex sm:flex-col gap-2 flex-shrink-0">
                   {a.status !== "sent" && (
-                    <Button size="sm" onClick={() => handleSend(a.id)} disabled={isBusy} className="gap-1 text-xs bg-blue-600 hover:bg-blue-700">
+                    <Button size="sm" onClick={() => handleSend(a.id)} disabled={isBusy} className="gap-1 text-[11px] bg-blue-600 hover:bg-blue-700">
                       {isBusy ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}{t("admin.announcements.sendNow")}
                     </Button>
                   )}
-                  <Button size="sm" variant="outline" onClick={() => handleDelete(a.id)} disabled={isBusy} className="gap-1 text-xs text-red-600 border-red-200 hover:bg-red-50"><Trash2 size={12} /></Button>
+                  <Button size="sm" variant="outline" onClick={() => handleDelete(a.id)} disabled={isBusy} className="gap-1 text-[11px] text-red-600 border-red-200 hover:bg-red-50"><Trash2 size={12} /></Button>
                 </div>
               </div>
             </Card>

@@ -79,8 +79,8 @@ export default function AdminMarketingPage() {
   return (
     <div className="space-y-6 pb-8">
       <div>
-        <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">{t("admin.marketing.title")}</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t("admin.marketing.subtitle")}</p>
+        <h1 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t("admin.marketing.title")}</h1>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t("admin.marketing.subtitle")}</p>
       </div>
 
       <Tabs defaultValue="referrals">
@@ -99,8 +99,8 @@ export default function AdminMarketingPage() {
               { label: t("admin.marketing.statRewardsPaid"), value: formatMoney(referrals.totalRewardsPaid) },
             ].map((s, i) => (
               <Card key={i} className="p-4">
-                <p className="text-xs text-gray-500 dark:text-gray-400">{s.label}</p>
-                <p className="text-xl font-bold text-gray-900 dark:text-white">{s.value}</p>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400">{s.label}</p>
+                <p className="text-lg font-bold text-gray-900 dark:text-white">{s.value}</p>
               </Card>
             ))}
           </div>
@@ -108,13 +108,13 @@ export default function AdminMarketingPage() {
             {referrals.recent.map((r) => (
               <Card key={r.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">{r.referrerName} <span className="text-gray-400">→</span> {r.referredUserName}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{r.referralCode} · {new Date(r.createdAt).toLocaleDateString()}</p>
+                  <p className="text-xs font-medium text-gray-900 dark:text-white">{r.referrerName} <span className="text-gray-400">→</span> {r.referredUserName}</p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">{r.referralCode} · {new Date(r.createdAt).toLocaleDateString()}</p>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${statusColor(r.status)}`}>{r.status}</span>
                   {r.status !== "REWARDED" && r.status !== "CANCELLED" && (
-                    <Button size="sm" variant="outline" onClick={() => handleVoidReferral(r.id)} disabled={busyId === r.id} className="gap-1 text-xs text-red-600 border-red-200">
+                    <Button size="sm" variant="outline" onClick={() => handleVoidReferral(r.id)} disabled={busyId === r.id} className="gap-1 text-[11px] text-red-600 border-red-200">
                       <Ban size={13} />{t("admin.marketing.voidButton")}
                     </Button>
                   )}
@@ -122,7 +122,7 @@ export default function AdminMarketingPage() {
               </Card>
             ))}
             {referrals.recent.length === 0 && (
-              <Card className="p-8 text-center"><p className="text-sm text-gray-500 dark:text-gray-400">{t("admin.marketing.noReferrals")}</p></Card>
+              <Card className="p-8 text-center"><p className="text-xs text-gray-500 dark:text-gray-400">{t("admin.marketing.noReferrals")}</p></Card>
             )}
           </div>
         </TabsContent>
@@ -131,17 +131,17 @@ export default function AdminMarketingPage() {
           {endorsements.map((e) => (
             <Card key={e.id} className="p-4 flex flex-col sm:flex-row sm:items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-gray-900 dark:text-white">{e.fromUserName} <span className="text-gray-400">→</span> {e.toName}</p>
-                <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{e.message}</p>
-                <p className="text-xs text-gray-400 mt-1">{new Date(e.createdAt).toLocaleDateString()}</p>
+                <p className="text-xs font-medium text-gray-900 dark:text-white">{e.fromUserName} <span className="text-gray-400">→</span> {e.toName}</p>
+                <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">{e.message}</p>
+                <p className="text-[11px] text-gray-400 mt-1">{new Date(e.createdAt).toLocaleDateString()}</p>
               </div>
-              <Button size="sm" variant="outline" onClick={() => handleDeleteEndorsement(e.id)} disabled={busyId === e.id} className="gap-1 text-xs text-red-600 border-red-200 flex-shrink-0">
+              <Button size="sm" variant="outline" onClick={() => handleDeleteEndorsement(e.id)} disabled={busyId === e.id} className="gap-1 text-[11px] text-red-600 border-red-200 flex-shrink-0">
                 <Trash2 size={13} />{t("admin.marketing.deleteButton")}
               </Button>
             </Card>
           ))}
           {endorsements.length === 0 && (
-            <Card className="p-8 text-center"><p className="text-sm text-gray-500 dark:text-gray-400">{t("admin.marketing.noEndorsements")}</p></Card>
+            <Card className="p-8 text-center"><p className="text-xs text-gray-500 dark:text-gray-400">{t("admin.marketing.noEndorsements")}</p></Card>
           )}
         </TabsContent>
 
@@ -149,15 +149,15 @@ export default function AdminMarketingPage() {
           {promotions.map((p) => (
             <Card key={p.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-sm font-medium text-gray-900 dark:text-white">{p.name} <span className="text-gray-400 font-mono text-xs">({p.code})</span></p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                <p className="text-xs font-medium text-gray-900 dark:text-white">{p.name} <span className="text-gray-400 font-mono text-[11px]">({p.code})</span></p>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
                   {p.shopName} · {p.type === "PERCENTAGE" ? `${p.value}%` : p.type === "FIXED" ? formatMoney(p.value) : "BOGO"} · {t("admin.marketing.usedCount", { count: p.usedCount, max: p.maxUses ?? "∞" })}
                 </p>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${statusColor(p.status)}`}>{p.status}</span>
                 {p.status !== "PAUSED" && p.status !== "EXPIRED" && (
-                  <Button size="sm" variant="outline" onClick={() => handlePausePromotion(p.id)} disabled={busyId === p.id} className="gap-1 text-xs text-amber-600 border-amber-200">
+                  <Button size="sm" variant="outline" onClick={() => handlePausePromotion(p.id)} disabled={busyId === p.id} className="gap-1 text-[11px] text-amber-600 border-amber-200">
                     <PauseCircle size={13} />{t("admin.marketing.pauseButton")}
                   </Button>
                 )}
@@ -165,7 +165,7 @@ export default function AdminMarketingPage() {
             </Card>
           ))}
           {promotions.length === 0 && (
-            <Card className="p-8 text-center"><p className="text-sm text-gray-500 dark:text-gray-400">{t("admin.marketing.noPromotions")}</p></Card>
+            <Card className="p-8 text-center"><p className="text-xs text-gray-500 dark:text-gray-400">{t("admin.marketing.noPromotions")}</p></Card>
           )}
         </TabsContent>
       </Tabs>

@@ -154,7 +154,7 @@ export default function DisputesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-4xl font-bold text-gray-900 dark:text-white">{t("admin.disputes.title")}</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t("admin.disputes.title")}</h1>
         <p className="text-gray-600 dark:text-gray-400 mt-1">{t("admin.disputes.subtitle")}</p>
       </div>
 
@@ -165,8 +165,8 @@ export default function DisputesPage() {
             <Card key={i} className={`p-4 border-0 shadow-lg bg-gradient-to-br ${stat.color} dark:from-gray-800 dark:to-gray-800`}>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{stat.label}</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{stat.value}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">{stat.label}</p>
+                  <p className="text-xl font-bold text-gray-900 dark:text-white mt-1">{stat.value}</p>
                 </div>
                 <Icon className="w-5 h-5 text-gray-400" />
               </div>
@@ -183,7 +183,7 @@ export default function DisputesPage() {
             placeholder={t("admin.disputes.searchPlaceholder")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs"
           />
         </div>
         <Button onClick={handleExportDisputes} className="bg-green-600 hover:bg-green-700 gap-2">
@@ -197,14 +197,14 @@ export default function DisputesPage() {
           <button
             key={filter.type}
             onClick={() => setActiveFilter(filter.type)}
-            className={`px-4 py-2 whitespace-nowrap rounded-lg font-medium transition-colors flex items-center gap-2 text-sm ${
+            className={`px-4 py-2 whitespace-nowrap rounded-lg font-medium transition-colors flex items-center gap-2 text-xs ${
               activeFilter === filter.type
                 ? "bg-blue-600 text-white shadow-lg"
                 : "border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
             }`}
           >
             {filter.label}
-            <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-200 dark:bg-gray-700">{filter.count}</span>
+            <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-gray-200 dark:bg-gray-700">{filter.count}</span>
           </button>
         ))}
       </div>
@@ -214,30 +214,30 @@ export default function DisputesPage() {
           <table className="w-full">
             <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
               <tr>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t("admin.disputes.colId")}</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t("common.customer")}</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t("admin.disputes.colJobOrder")}</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t("admin.disputes.colAmount")}</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t("admin.disputes.colReason")}</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t("common.status")}</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t("admin.disputes.colSeverity")}</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t("admin.disputes.colAction")}</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 dark:text-white">{t("admin.disputes.colId")}</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 dark:text-white">{t("common.customer")}</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 dark:text-white">{t("admin.disputes.colJobOrder")}</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 dark:text-white">{t("admin.disputes.colAmount")}</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 dark:text-white">{t("admin.disputes.colReason")}</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 dark:text-white">{t("common.status")}</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 dark:text-white">{t("admin.disputes.colSeverity")}</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 dark:text-white">{t("admin.disputes.colAction")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {filteredDisputes.length > 0 ? filteredDisputes.map((dispute) => (
                 <tr key={dispute.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                  <td className="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white">{dispute.disputeNumber}</td>
-                  <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{dispute.user}</td>
-                  <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{dispute.job}</td>
-                  <td className="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white">{formatMoney(dispute.amount)}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{dispute.reason}</td>
+                  <td className="px-6 py-4 text-xs font-semibold text-gray-900 dark:text-white">{dispute.disputeNumber}</td>
+                  <td className="px-6 py-4 text-xs text-gray-700 dark:text-gray-300">{dispute.user}</td>
+                  <td className="px-6 py-4 text-xs text-gray-700 dark:text-gray-300">{dispute.job}</td>
+                  <td className="px-6 py-4 text-xs font-semibold text-gray-900 dark:text-white">{formatMoney(dispute.amount)}</td>
+                  <td className="px-6 py-4 text-xs text-gray-600 dark:text-gray-400">{dispute.reason}</td>
                   <td className="px-6 py-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(dispute.status)}`}>
+                    <span className={`px-3 py-1 rounded-full text-[11px] font-semibold ${getStatusColor(dispute.status)}`}>
                       {STATUS_LABEL[dispute.status] ?? dispute.status}
                     </span>
                   </td>
-                  <td className={`px-6 py-4 text-sm font-semibold ${getSeverityColor(dispute.severity)}`}>
+                  <td className={`px-6 py-4 text-xs font-semibold ${getSeverityColor(dispute.severity)}`}>
                     {SEVERITY_LABEL[dispute.severity] ?? dispute.severity}
                   </td>
                   <td className="px-6 py-4">
@@ -265,40 +265,40 @@ export default function DisputesPage() {
             <div className="space-y-4 py-4">
               <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-3">
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">{t("admin.disputes.idLabel")}</span>
+                  <span className="text-xs text-muted-foreground">{t("admin.disputes.idLabel")}</span>
                   <span className="font-semibold">{selectedDispute.disputeNumber}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">{t("admin.disputes.userLabel")}</span>
+                  <span className="text-xs text-muted-foreground">{t("admin.disputes.userLabel")}</span>
                   <span className="font-semibold">{selectedDispute.user}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">{t("admin.disputes.jobOrderLabel")}</span>
+                  <span className="text-xs text-muted-foreground">{t("admin.disputes.jobOrderLabel")}</span>
                   <span className="font-semibold">{selectedDispute.job}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">{t("admin.disputes.amountAtStakeLabel")}</span>
+                  <span className="text-xs text-muted-foreground">{t("admin.disputes.amountAtStakeLabel")}</span>
                   <span className="font-semibold">{formatMoney(selectedDispute.amount)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">{t("admin.disputes.reasonLabel")}</span>
+                  <span className="text-xs text-muted-foreground">{t("admin.disputes.reasonLabel")}</span>
                   <span className="font-semibold">{selectedDispute.reason}</span>
                 </div>
                 <div>
-                  <span className="text-sm text-muted-foreground">{t("admin.disputes.descriptionLabel")}</span>
-                  <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">{selectedDispute.description}</p>
+                  <span className="text-xs text-muted-foreground">{t("admin.disputes.descriptionLabel")}</span>
+                  <p className="mt-1 text-xs text-gray-700 dark:text-gray-300">{selectedDispute.description}</p>
                 </div>
                 {selectedDispute.resolution && (
                   <div>
-                    <span className="text-sm text-muted-foreground">{t("admin.disputes.resolutionLabel")}</span>
-                    <p className="mt-1 text-sm text-emerald-700 dark:text-emerald-400">{selectedDispute.resolution}</p>
+                    <span className="text-xs text-muted-foreground">{t("admin.disputes.resolutionLabel")}</span>
+                    <p className="mt-1 text-xs text-emerald-700 dark:text-emerald-400">{selectedDispute.resolution}</p>
                   </div>
                 )}
               </div>
 
               {selectedDispute.photos.length > 0 && (
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1.5">{t("admin.disputes.photosLabel")}</p>
+                  <p className="text-xs text-muted-foreground mb-1.5">{t("admin.disputes.photosLabel")}</p>
                   <KycDocumentViewer
                     documents={selectedDispute.photos.map((url, i) => ({ label: `${t("admin.disputes.photoLabel")} ${i + 1}`, url })) satisfies KycDocumentItem[]}
                   />
@@ -315,13 +315,13 @@ export default function DisputesPage() {
               {!isFinal && actionMode === "resolve" && (
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-sm font-medium mb-1.5">{t("admin.disputes.resolutionNotesLabel")}</label>
+                    <label className="block text-xs font-medium mb-1.5">{t("admin.disputes.resolutionNotesLabel")}</label>
                     <Textarea value={resolutionText} onChange={(e) => setResolutionText(e.target.value)} placeholder={t("admin.disputes.resolutionPlaceholder")} className="min-h-[80px]" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1.5">{t("admin.disputes.refundAmountLabel")}</label>
+                    <label className="block text-xs font-medium mb-1.5">{t("admin.disputes.refundAmountLabel")}</label>
                     <Input type="number" value={refundAmount} onChange={(e) => setRefundAmount(e.target.value)} placeholder="0" />
-                    <p className="text-xs text-muted-foreground mt-1">{t("admin.disputes.refundHint")}</p>
+                    <p className="text-[11px] text-muted-foreground mt-1">{t("admin.disputes.refundHint")}</p>
                   </div>
                   <div className="flex gap-3">
                     <Button variant="outline" className="flex-1 bg-transparent" onClick={() => setActionMode("none")} disabled={isSubmitting}>{t("admin.disputes.back")}</Button>
@@ -335,7 +335,7 @@ export default function DisputesPage() {
               {!isFinal && actionMode === "close" && (
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-sm font-medium mb-1.5">{t("admin.disputes.reasonForClosingLabel")}</label>
+                    <label className="block text-xs font-medium mb-1.5">{t("admin.disputes.reasonForClosingLabel")}</label>
                     <Textarea value={resolutionText} onChange={(e) => setResolutionText(e.target.value)} placeholder={t("admin.disputes.closingPlaceholder")} className="min-h-[80px]" />
                   </div>
                   <div className="flex gap-3">

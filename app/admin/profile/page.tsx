@@ -97,22 +97,22 @@ export default function AdminProfilePage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-4xl font-bold text-gray-900 dark:text-white">{t("settings.title")}</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t("settings.title")}</h1>
         <p className="text-gray-600 dark:text-gray-400 mt-2">{t("admin.profile.subtitle")}</p>
       </div>
 
       <Card className="border-0 shadow-lg p-6 md:p-8">
         <div className="flex items-center gap-6">
-          <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-2xl font-bold flex-shrink-0">
+          <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
             {account.name.charAt(0).toUpperCase()}
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{account.name}</h2>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">{account.name}</h2>
               <CheckCircle2 size={20} className="text-emerald-500" />
             </div>
             <p className="text-gray-600 dark:text-gray-400">{account.email}</p>
-            <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">{t("admin.profile.administrator")}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">{t("admin.profile.administrator")}</p>
           </div>
         </div>
       </Card>
@@ -125,7 +125,7 @@ export default function AdminProfilePage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors whitespace-nowrap font-medium text-sm ${
+                className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors whitespace-nowrap font-medium text-xs ${
                   activeTab === tab.id
                     ? "border-blue-600 text-blue-600 dark:text-blue-400"
                     : "border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
@@ -143,10 +143,10 @@ export default function AdminProfilePage() {
         {activeTab === "profile" && (
           <div className="space-y-6">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t("admin.profile.personalInformation")}</h3>
+              <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">{t("admin.profile.personalInformation")}</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("admin.profile.fullName")}</label>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t("admin.profile.fullName")}</label>
                   <input
                     type="text"
                     value={profileForm.name}
@@ -155,17 +155,17 @@ export default function AdminProfilePage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("admin.profile.emailAddress")}</label>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t("admin.profile.emailAddress")}</label>
                   <input
                     type="email"
                     value={account.email}
                     disabled
                     className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 dark:text-gray-400 text-gray-600 cursor-not-allowed"
                   />
-                  <p className="text-xs text-gray-500 mt-1">{t("admin.profile.cannotBeChanged")}</p>
+                  <p className="text-[11px] text-gray-500 mt-1">{t("admin.profile.cannotBeChanged")}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("admin.profile.phoneNumber")}</label>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t("admin.profile.phoneNumber")}</label>
                   <input
                     type="tel"
                     value={profileForm.phone}
@@ -194,12 +194,12 @@ export default function AdminProfilePage() {
         {activeTab === "security" && (
           <div className="space-y-8">
             <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{t("admin.profile.changePassword")}</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">{t("admin.profile.changePasswordDesc")}</p>
+              <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-2">{t("admin.profile.changePassword")}</h3>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mb-6">{t("admin.profile.changePasswordDesc")}</p>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("admin.profile.currentPassword")}</label>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t("admin.profile.currentPassword")}</label>
                   <input
                     type="password"
                     value={currentPassword}
@@ -211,7 +211,7 @@ export default function AdminProfilePage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("admin.profile.newPassword")}</label>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t("admin.profile.newPassword")}</label>
                     <div className="relative">
                       <input
                         type={showPassword ? "text" : "password"}
@@ -231,7 +231,7 @@ export default function AdminProfilePage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("admin.profile.confirmPassword")}</label>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t("admin.profile.confirmPassword")}</label>
                     <input
                       type="password"
                       value={confirmPassword}
@@ -242,7 +242,7 @@ export default function AdminProfilePage() {
                   </div>
                 </div>
 
-                {passwordError && <p className="text-sm text-red-600">{passwordError}</p>}
+                {passwordError && <p className="text-xs text-red-600">{passwordError}</p>}
 
                 <Button onClick={handleChangePassword} disabled={isChangingPassword || !currentPassword || !newPassword} className="bg-blue-600 hover:bg-blue-700">
                   {isChangingPassword ? <Loader2 size={16} className="animate-spin" /> : t("admin.profile.updatePassword")}
@@ -255,7 +255,7 @@ export default function AdminProfilePage() {
         {activeTab === "appearance" && (
           <div className="space-y-6">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t("admin.profile.themePreference")}</h3>
+              <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">{t("admin.profile.themePreference")}</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[
                   { id: "light" as const, label: t("admin.profile.themeLight"), icon: "☀️", desc: t("admin.profile.themeLightDesc") },
@@ -270,15 +270,15 @@ export default function AdminProfilePage() {
                         : "border-gray-300 dark:border-gray-600 hover:border-blue-400"
                     }`}
                   >
-                    <span className="text-2xl">{mode.icon}</span>
+                    <span className="text-xl">{mode.icon}</span>
                     <div className="text-center">
                       <p className="font-medium text-gray-900 dark:text-white">{mode.label}</p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">{mode.desc}</p>
+                      <p className="text-[11px] text-gray-600 dark:text-gray-400">{mode.desc}</p>
                     </div>
                   </button>
                 ))}
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">{t("admin.profile.appliesImmediately")}</p>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-3">{t("admin.profile.appliesImmediately")}</p>
             </div>
           </div>
         )}
@@ -286,7 +286,7 @@ export default function AdminProfilePage() {
         {activeTab === "notifications" && (
           <div className="space-y-6">
             <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t("admin.profile.communicationPreferences")}</h3>
+              <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">{t("admin.profile.communicationPreferences")}</h3>
               <div className="space-y-3">
                 {([
                   { id: "jobEmail", label: t("admin.profile.emailNotifJobActivities") },
@@ -306,7 +306,7 @@ export default function AdminProfilePage() {
             </div>
 
             <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t("admin.profile.jobEvents")}</h3>
+              <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">{t("admin.profile.jobEvents")}</h3>
               <div className="space-y-3">
                 {([
                   { id: "newJobs", label: t("admin.profile.newJobSubmissions"), desc: t("admin.profile.newJobSubmissionsDesc") },
@@ -322,7 +322,7 @@ export default function AdminProfilePage() {
                     />
                     <div className="flex-1">
                       <p className="text-gray-900 dark:text-white font-medium">{item.label}</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">{item.desc}</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">{item.desc}</p>
                     </div>
                   </div>
                 ))}
@@ -330,7 +330,7 @@ export default function AdminProfilePage() {
             </div>
 
             <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t("admin.profile.paymentEvents")}</h3>
+              <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">{t("admin.profile.paymentEvents")}</h3>
               <div className="space-y-3">
                 {([
                   { id: "paymentEmail", label: t("admin.profile.emailNotifPayments") },
@@ -348,7 +348,7 @@ export default function AdminProfilePage() {
                     />
                     <div className="flex-1">
                       <p className="text-gray-900 dark:text-white font-medium">{item.label}</p>
-                      {item.desc && <p className="text-sm text-gray-600 dark:text-gray-400">{item.desc}</p>}
+                      {item.desc && <p className="text-xs text-gray-600 dark:text-gray-400">{item.desc}</p>}
                     </div>
                   </div>
                 ))}

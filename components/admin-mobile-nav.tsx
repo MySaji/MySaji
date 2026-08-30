@@ -49,7 +49,7 @@ export function AdminMobileNav() {
                   {item.badge}
                 </span>
               )}
-              <span className="text-xs font-semibold">{item.label}</span>
+              <span className="text-[11px] font-semibold">{item.label}</span>
             </Link>
           )
         })}
@@ -65,7 +65,7 @@ export function AdminMobileNav() {
             }`}
           >
             <MoreHorizontal size={24} />
-            <span className="text-xs font-semibold">More</span>
+            <span className="text-[11px] font-semibold">More</span>
           </button>
 
           {showMore && (
@@ -78,7 +78,7 @@ export function AdminMobileNav() {
                     key={item.href}
                     href={item.href}
                     onClick={() => setShowMore(false)}
-                    className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
+                    className={`flex items-center gap-3 px-4 py-2.5 text-xs transition-colors ${
                       active
                         ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-semibold"
                         : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"

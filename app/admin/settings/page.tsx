@@ -23,7 +23,7 @@ function SavedBadge({ show }: { show: boolean }) {
   const { t } = useLocalization()
   if (!show) return null
   return (
-    <div className="flex items-center gap-2 text-emerald-600 font-medium text-sm">
+    <div className="flex items-center gap-2 text-emerald-600 font-medium text-xs">
       <CheckCircle2 size={16} />
       {t("admin.settings.saved")}
     </div>
@@ -66,11 +66,11 @@ function PlatformTab() {
       <Card className="border-0 shadow-lg p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t("admin.settings.defaultPlatformFee")}</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{t("admin.settings.platformFeeDesc")}</p>
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white">{t("admin.settings.defaultPlatformFee")}</h3>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{t("admin.settings.platformFeeDesc")}</p>
           </div>
           <div className="text-right">
-            <div className="text-3xl font-bold text-primary">{preferences.platformFee}%</div>
+            <div className="text-2xl font-bold text-primary">{preferences.platformFee}%</div>
           </div>
         </div>
         <input
@@ -81,7 +81,7 @@ function PlatformTab() {
           onChange={(e) => setPreferences({ ...preferences, platformFee: parseInt(e.target.value) })}
           className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-primary"
         />
-        <div className="flex justify-between text-xs text-gray-500 mt-2">
+        <div className="flex justify-between text-[11px] text-gray-500 mt-2">
           <span>1%</span>
           <span>20%</span>
         </div>
@@ -89,11 +89,11 @@ function PlatformTab() {
 
       <Card className="border-0 shadow-lg p-6">
         <div className="mb-4">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t("admin.settings.cancellationDispatchFee")}</h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{t("admin.settings.cancellationDispatchFeeDesc")}</p>
+          <h3 className="text-base font-semibold text-gray-900 dark:text-white">{t("admin.settings.cancellationDispatchFee")}</h3>
+          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{t("admin.settings.cancellationDispatchFeeDesc")}</p>
         </div>
         <div className="flex items-center gap-2 max-w-xs">
-          <span className="text-sm text-gray-500 dark:text-gray-400">KES</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">KES</span>
           <Input
             type="number"
             min="0"
@@ -106,11 +106,11 @@ function PlatformTab() {
 
       <Card className="border-0 shadow-lg p-6">
         <div className="mb-4">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t("admin.settings.protectionCoverageLimit")}</h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{t("admin.settings.protectionCoverageLimitDesc")}</p>
+          <h3 className="text-base font-semibold text-gray-900 dark:text-white">{t("admin.settings.protectionCoverageLimit")}</h3>
+          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{t("admin.settings.protectionCoverageLimitDesc")}</p>
         </div>
         <div className="flex items-center gap-2 max-w-xs">
-          <span className="text-sm text-gray-500 dark:text-gray-400">KES</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">KES</span>
           <Input
             type="number"
             min="0"
@@ -123,11 +123,11 @@ function PlatformTab() {
 
       <Card className="border-0 shadow-lg p-6">
         <div className="mb-4">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t("admin.settings.providerProPrice")}</h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{t("admin.settings.providerProPriceDesc")}</p>
+          <h3 className="text-base font-semibold text-gray-900 dark:text-white">{t("admin.settings.providerProPrice")}</h3>
+          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{t("admin.settings.providerProPriceDesc")}</p>
         </div>
         <div className="flex items-center gap-2 max-w-xs">
-          <span className="text-sm text-gray-500 dark:text-gray-400">KES</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">KES</span>
           <Input
             type="number"
             min="0"
@@ -135,14 +135,14 @@ function PlatformTab() {
             value={preferences.providerProPriceKES}
             onChange={(e) => setPreferences({ ...preferences, providerProPriceKES: Number(e.target.value) || 0 })}
           />
-          <span className="text-sm text-gray-500 dark:text-gray-400">{t("admin.settings.perMonth")}</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">{t("admin.settings.perMonth")}</span>
         </div>
       </Card>
 
       <Card className="border-0 shadow-lg p-6">
         <div className="mb-4">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t("admin.settings.offerFreeTierCap")}</h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{t("admin.settings.offerFreeTierCapDesc")}</p>
+          <h3 className="text-base font-semibold text-gray-900 dark:text-white">{t("admin.settings.offerFreeTierCap")}</h3>
+          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{t("admin.settings.offerFreeTierCapDesc")}</p>
         </div>
         <div className="flex items-center gap-2 max-w-xs">
           <Input
@@ -152,7 +152,7 @@ function PlatformTab() {
             value={preferences.offerFreeTierCap}
             onChange={(e) => setPreferences({ ...preferences, offerFreeTierCap: Number(e.target.value) || 0 })}
           />
-          <span className="text-sm text-gray-500 dark:text-gray-400">{t("admin.settings.offersUnit")}</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">{t("admin.settings.offersUnit")}</span>
         </div>
       </Card>
 
@@ -161,7 +161,7 @@ function PlatformTab() {
           <AlertTriangle size={20} className="text-red-600 mt-0.5 flex-shrink-0" />
           <div>
             <p className="font-semibold text-gray-900 dark:text-white">{t("admin.settings.maintenanceMode")}</p>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{t("admin.settings.maintenanceModeDesc")}</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{t("admin.settings.maintenanceModeDesc")}</p>
           </div>
         </div>
         <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
@@ -180,7 +180,7 @@ function PlatformTab() {
           <Card key={item.id} className="border-0 shadow-lg p-6 flex items-center justify-between">
             <div>
               <p className="font-semibold text-gray-900 dark:text-white">{item.label}</p>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{item.desc}</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{item.desc}</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
@@ -250,8 +250,8 @@ function BrandingTab() {
   return (
     <div className="space-y-6 max-w-2xl">
       <Card className="border-0 shadow-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">{t("admin.settings.appLogo")}</h3>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+        <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1">{t("admin.settings.appLogo")}</h3>
+        <p className="text-xs text-gray-600 dark:text-gray-400 mb-4">
           {t("admin.settings.appLogoDesc")}
         </p>
 
@@ -275,7 +275,7 @@ function BrandingTab() {
             )}
           </div>
         </div>
-        {error && <p className="text-sm text-destructive mt-3">{error}</p>}
+        {error && <p className="text-xs text-destructive mt-3">{error}</p>}
       </Card>
 
       <div className="flex items-center gap-3">
@@ -326,8 +326,8 @@ function ContactTab() {
   return (
     <div className="space-y-6 max-w-2xl">
       <Card className="border-0 shadow-lg p-6 space-y-4">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t("admin.settings.supportContact")}</h3>
-        <p className="text-sm text-gray-600 dark:text-gray-400 -mt-2">{t("admin.settings.supportContactDesc")}</p>
+        <h3 className="text-base font-semibold text-gray-900 dark:text-white">{t("admin.settings.supportContact")}</h3>
+        <p className="text-xs text-gray-600 dark:text-gray-400 -mt-2">{t("admin.settings.supportContactDesc")}</p>
         <div className="space-y-2">
           <Label htmlFor="supportEmail">{t("admin.settings.supportEmail")}</Label>
           <Input id="supportEmail" type="email" value={contact.supportEmail} onChange={(e) => setContact({ ...contact, supportEmail: e.target.value })} />
@@ -343,8 +343,8 @@ function ContactTab() {
       </Card>
 
       <Card className="border-0 shadow-lg p-6 space-y-4">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t("admin.settings.socialMediaLinks")}</h3>
-        <p className="text-sm text-gray-600 dark:text-gray-400 -mt-2">{t("admin.settings.socialMediaLinksDesc")}</p>
+        <h3 className="text-base font-semibold text-gray-900 dark:text-white">{t("admin.settings.socialMediaLinks")}</h3>
+        <p className="text-xs text-gray-600 dark:text-gray-400 -mt-2">{t("admin.settings.socialMediaLinksDesc")}</p>
         {socialFields.map((f) => (
           <div key={f.id} className="space-y-2">
             <Label htmlFor={f.id}>{f.label}</Label>
@@ -353,7 +353,7 @@ function ContactTab() {
         ))}
       </Card>
 
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {error && <p className="text-xs text-destructive">{error}</p>}
       <div className="flex items-center gap-3">
         <Button onClick={handleSave} disabled={isSaving} className="gap-2">
           {isSaving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
@@ -394,7 +394,7 @@ function LegalTab() {
 
   return (
     <div className="space-y-6 max-w-3xl">
-      <div className="rounded-lg bg-muted/60 border border-border px-4 py-3 text-sm text-muted-foreground">
+      <div className="rounded-lg bg-muted/60 border border-border px-4 py-3 text-xs text-muted-foreground">
         {t("admin.settings.legalHintPrefix")} <code className="text-foreground font-mono">## </code> {t("admin.settings.legalHintMiddle")} <code className="text-foreground font-mono">- </code> {t("admin.settings.legalHintSuffix")}
       </div>
 
@@ -406,7 +406,7 @@ function LegalTab() {
           placeholder={t("admin.settings.termsPlaceholder")}
           value={legal.termsContent}
           onChange={(e) => setLegal({ ...legal, termsContent: e.target.value })}
-          className="font-mono text-sm"
+          className="font-mono text-xs"
         />
       </Card>
 
@@ -418,11 +418,11 @@ function LegalTab() {
           placeholder={t("admin.settings.privacyPlaceholder")}
           value={legal.privacyContent}
           onChange={(e) => setLegal({ ...legal, privacyContent: e.target.value })}
-          className="font-mono text-sm"
+          className="font-mono text-xs"
         />
       </Card>
 
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {error && <p className="text-xs text-destructive">{error}</p>}
       <div className="flex items-center gap-3">
         <Button onClick={handleSave} disabled={isSaving} className="gap-2">
           {isSaving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
@@ -471,8 +471,8 @@ function CurrencyTab() {
     <div className="space-y-6 max-w-2xl">
       <Card className="border-0 shadow-lg p-6 space-y-4">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t("admin.settings.exchangeRates")}</h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+          <h3 className="text-base font-semibold text-gray-900 dark:text-white">{t("admin.settings.exchangeRates")}</h3>
+          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
             {t("admin.settings.exchangeRatesDesc")}
           </p>
         </div>
@@ -480,7 +480,7 @@ function CurrencyTab() {
           <div key={r.code} className="flex items-center gap-4">
             <div className="w-32 flex-shrink-0">
               <p className="font-medium text-gray-900 dark:text-white">{r.code}</p>
-              <p className="text-xs text-gray-500">{r.name}</p>
+              <p className="text-[11px] text-gray-500">{r.name}</p>
             </div>
             <Input
               type="number"
@@ -490,10 +490,10 @@ function CurrencyTab() {
               onChange={(e) => handleRateChange(r.code, e.target.value)}
               className="max-w-[160px]"
             />
-            {r.isBase && <span className="text-xs text-gray-500">{t("admin.settings.baseCurrencyFixed")}</span>}
+            {r.isBase && <span className="text-[11px] text-gray-500">{t("admin.settings.baseCurrencyFixed")}</span>}
           </div>
         ))}
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {error && <p className="text-xs text-destructive">{error}</p>}
       </Card>
 
       <div className="flex items-center gap-3">
@@ -512,7 +512,7 @@ export default function SettingsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-4xl font-bold text-gray-900 dark:text-white">{t("admin.settings.title")}</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t("admin.settings.title")}</h1>
         <p className="text-gray-600 dark:text-gray-400 mt-2">{t("admin.settings.subtitle")}</p>
       </div>
 

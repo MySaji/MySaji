@@ -144,7 +144,7 @@ export default function AdminCategoriesPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white">{t("admin.categories.title")}</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t("admin.categories.title")}</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">{t("admin.categories.subtitle")}</p>
         </div>
         <Button onClick={openCreate} className="gap-2 bg-blue-600 hover:bg-blue-700">
@@ -160,7 +160,7 @@ export default function AdminCategoriesPage() {
             placeholder={t("admin.categories.searchPlaceholder")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs"
           />
         </div>
         <div className="flex gap-2">
@@ -168,7 +168,7 @@ export default function AdminCategoriesPage() {
             <button
               key={type}
               onClick={() => setTypeFilter(type)}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors text-sm ${
+              className={`px-4 py-2 rounded-lg font-medium transition-colors text-xs ${
                 typeFilter === type ? "bg-blue-600 text-white shadow-lg" : "border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
               }`}
             >
@@ -183,46 +183,46 @@ export default function AdminCategoriesPage() {
           <table className="w-full">
             <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
               <tr>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t("admin.categories.colName")}</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t("admin.categories.colType")}</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t("admin.categories.colTier")}</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t("admin.categories.colParent")}</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t("admin.categories.colEmergency")}</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t("admin.categories.colLicense")}</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t("admin.categories.colUsage")}</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t("common.status")}</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t("admin.categories.colActions")}</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 dark:text-white">{t("admin.categories.colName")}</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 dark:text-white">{t("admin.categories.colType")}</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 dark:text-white">{t("admin.categories.colTier")}</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 dark:text-white">{t("admin.categories.colParent")}</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 dark:text-white">{t("admin.categories.colEmergency")}</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 dark:text-white">{t("admin.categories.colLicense")}</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 dark:text-white">{t("admin.categories.colUsage")}</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 dark:text-white">{t("common.status")}</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 dark:text-white">{t("admin.categories.colActions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {filtered.length > 0 ? filtered.map((cat) => (
                 <tr key={cat.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                  <td className="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white">{cat.name}</td>
-                  <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{cat.type === "SERVICE" ? t("admin.categories.filterService") : t("admin.categories.filterProduct")}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{cat.tier ?? "—"}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{cat.parentName ?? "—"}</td>
-                  <td className="px-6 py-4 text-sm">
+                  <td className="px-6 py-4 text-xs font-semibold text-gray-900 dark:text-white">{cat.name}</td>
+                  <td className="px-6 py-4 text-xs text-gray-700 dark:text-gray-300">{cat.type === "SERVICE" ? t("admin.categories.filterService") : t("admin.categories.filterProduct")}</td>
+                  <td className="px-6 py-4 text-xs text-gray-600 dark:text-gray-400">{cat.tier ?? "—"}</td>
+                  <td className="px-6 py-4 text-xs text-gray-600 dark:text-gray-400">{cat.parentName ?? "—"}</td>
+                  <td className="px-6 py-4 text-xs">
                     {cat.type === "SERVICE" ? (
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${cat.isEmergencyEligible ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400" : "bg-gray-100 dark:bg-gray-800 text-gray-500"}`}>
+                      <span className={`px-3 py-1 rounded-full text-[11px] font-semibold ${cat.isEmergencyEligible ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400" : "bg-gray-100 dark:bg-gray-800 text-gray-500"}`}>
                         {cat.isEmergencyEligible ? t("admin.categories.emergencyYes") : t("admin.categories.emergencyNo")}
                       </span>
                     ) : "—"}
                   </td>
-                  <td className="px-6 py-4 text-sm">
+                  <td className="px-6 py-4 text-xs">
                     {cat.type === "SERVICE" && cat.requiresLicense ? (
-                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400" title={cat.licenseName ?? undefined}>
+                      <span className="px-3 py-1 rounded-full text-[11px] font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400" title={cat.licenseName ?? undefined}>
                         {t("admin.categories.licenseYes")}
                       </span>
                     ) : (
-                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-500">{t("admin.categories.licenseNo")}</span>
+                      <span className="px-3 py-1 rounded-full text-[11px] font-semibold bg-gray-100 dark:bg-gray-800 text-gray-500">{t("admin.categories.licenseNo")}</span>
                     )}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{cat.usageCount}</td>
+                  <td className="px-6 py-4 text-xs text-gray-600 dark:text-gray-400">{cat.usageCount}</td>
                   <td className="px-6 py-4">
                     <button
                       onClick={() => handleToggleActive(cat)}
                       disabled={busyId === cat.id}
-                      className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                      className={`px-3 py-1 rounded-full text-[11px] font-semibold ${
                         cat.isActive ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400" : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
                       }`}
                     >
@@ -276,7 +276,7 @@ export default function AdminCategoriesPage() {
             <div>
               <Label>{t("admin.categories.tierLabel")}</Label>
               <Input className="mt-1.5" value={form.tier} onChange={(e) => setForm({ ...form, tier: e.target.value })} placeholder={t("admin.categories.tierPlaceholder")} />
-              <p className="text-xs text-muted-foreground mt-1.5">{t("admin.categories.tierHint")}</p>
+              <p className="text-[11px] text-muted-foreground mt-1.5">{t("admin.categories.tierHint")}</p>
             </div>
             <div>
               <Label>{t("admin.categories.colParent")}</Label>
@@ -293,14 +293,14 @@ export default function AdminCategoriesPage() {
             {form.type === "SERVICE" && (
               <label className="flex items-center gap-2 cursor-pointer">
                 <Checkbox checked={form.isEmergencyEligible} onCheckedChange={(c) => setForm({ ...form, isEmergencyEligible: c === true })} />
-                <span className="text-sm text-gray-700 dark:text-gray-300">{t("admin.categories.emergencyEligibleLabel")}</span>
+                <span className="text-xs text-gray-700 dark:text-gray-300">{t("admin.categories.emergencyEligibleLabel")}</span>
               </label>
             )}
             {form.type === "SERVICE" && (
               <div className="space-y-2">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <Checkbox checked={form.requiresLicense} onCheckedChange={(c) => setForm({ ...form, requiresLicense: c === true })} />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">{t("admin.categories.requiresLicenseLabel")}</span>
+                  <span className="text-xs text-gray-700 dark:text-gray-300">{t("admin.categories.requiresLicenseLabel")}</span>
                 </label>
                 {form.requiresLicense && (
                   <div>
@@ -310,7 +310,7 @@ export default function AdminCategoriesPage() {
                 )}
               </div>
             )}
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            {error && <p className="text-xs text-red-600">{error}</p>}
             <div className="flex gap-3 pt-2">
               <Button variant="outline" className="flex-1 bg-transparent" onClick={() => setShowModal(false)} disabled={isSaving}>{t("common.cancel")}</Button>
               <Button className="flex-1 bg-blue-600 hover:bg-blue-700" onClick={handleSave} disabled={isSaving}>
@@ -326,7 +326,7 @@ export default function AdminCategoriesPage() {
           <DialogHeader>
             <DialogTitle>Offer Fields: {attrCategory?.name}</DialogTitle>
           </DialogHeader>
-          <p className="text-xs text-muted-foreground -mt-2">
+          <p className="text-[11px] text-muted-foreground -mt-2">
             These are the "Offer Details" fields providers see in Step 3 of Create Offer for this category. No rows means providers get a small generic fallback instead.
           </p>
           <div className="space-y-4 py-2">
@@ -334,12 +334,12 @@ export default function AdminCategoriesPage() {
               <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
             ) : (
               <div className="space-y-2">
-                {attrFields.length === 0 && <p className="text-sm text-muted-foreground">No custom fields yet, using the generic fallback.</p>}
+                {attrFields.length === 0 && <p className="text-xs text-muted-foreground">No custom fields yet, using the generic fallback.</p>}
                 {attrFields.map((f, i) => (
                   <div key={f.id} className="flex items-center justify-between gap-2 rounded-lg border border-border p-2.5">
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-foreground">{f.label} <span className="text-xs font-normal text-muted-foreground">({f.key} · {f.type.toLowerCase()})</span></p>
-                      {f.options.length > 0 && <p className="truncate text-xs text-muted-foreground">{f.options.join(", ")}</p>}
+                      <p className="text-xs font-medium text-foreground">{f.label} <span className="text-[11px] font-normal text-muted-foreground">({f.key} · {f.type.toLowerCase()})</span></p>
+                      {f.options.length > 0 && <p className="truncate text-[11px] text-muted-foreground">{f.options.join(", ")}</p>}
                     </div>
                     <div className="flex flex-shrink-0 items-center gap-1">
                       <button onClick={() => handleReorderAttribute(f.id, "up")} disabled={i === 0} className="rounded p-1 hover:bg-muted disabled:opacity-30"><ArrowUp size={14} /></button>
@@ -352,22 +352,22 @@ export default function AdminCategoriesPage() {
             )}
 
             <div className="space-y-2 rounded-lg border border-dashed border-border p-3">
-              <p className="text-xs font-semibold text-foreground">Add a field</p>
+              <p className="text-[11px] font-semibold text-foreground">Add a field</p>
               <div className="grid grid-cols-2 gap-2">
-                <Input value={attrForm.label} onChange={(e) => setAttrForm((p) => ({ ...p, label: e.target.value }))} placeholder="Label, e.g. Event Type" className="text-sm" />
-                <Input value={attrForm.key} onChange={(e) => setAttrForm((p) => ({ ...p, key: e.target.value }))} placeholder="Key, e.g. eventType" className="text-sm" />
+                <Input value={attrForm.label} onChange={(e) => setAttrForm((p) => ({ ...p, label: e.target.value }))} placeholder="Label, e.g. Event Type" className="text-xs" />
+                <Input value={attrForm.key} onChange={(e) => setAttrForm((p) => ({ ...p, key: e.target.value }))} placeholder="Key, e.g. eventType" className="text-xs" />
               </div>
               <Select value={attrForm.type} onValueChange={(v) => setAttrForm((p) => ({ ...p, type: v as CategoryAttributeFieldType }))}>
-                <SelectTrigger className="w-full text-sm"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-full text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {FIELD_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                 </SelectContent>
               </Select>
               {(attrForm.type === "SELECT" || attrForm.type === "TAGS") && (
-                <Input value={attrForm.options} onChange={(e) => setAttrForm((p) => ({ ...p, options: e.target.value }))} placeholder="Options, comma-separated" className="text-sm" />
+                <Input value={attrForm.options} onChange={(e) => setAttrForm((p) => ({ ...p, options: e.target.value }))} placeholder="Options, comma-separated" className="text-xs" />
               )}
-              <Input value={attrForm.placeholder} onChange={(e) => setAttrForm((p) => ({ ...p, placeholder: e.target.value }))} placeholder="Placeholder (optional)" className="text-sm" />
-              {attrError && <p className="text-xs text-red-600">{attrError}</p>}
+              <Input value={attrForm.placeholder} onChange={(e) => setAttrForm((p) => ({ ...p, placeholder: e.target.value }))} placeholder="Placeholder (optional)" className="text-xs" />
+              {attrError && <p className="text-[11px] text-red-600">{attrError}</p>}
               <Button size="sm" className="w-full gap-1.5" disabled={!attrForm.key.trim() || !attrForm.label.trim() || attrSaving} onClick={handleAddAttribute}>
                 {attrSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />} Add Field
               </Button>

@@ -74,7 +74,7 @@ export default function AdminCountiesPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white">{t("admin.counties.title")}</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t("admin.counties.title")}</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">{t("admin.counties.subtitle")}</p>
         </div>
         <Button onClick={openCreate} className="gap-2 bg-blue-600 hover:bg-blue-700">
@@ -89,7 +89,7 @@ export default function AdminCountiesPage() {
           placeholder={t("admin.counties.searchPlaceholder")}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+          className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs"
         />
       </div>
 
@@ -98,22 +98,22 @@ export default function AdminCountiesPage() {
           <table className="w-full">
             <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
               <tr>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t("admin.counties.colName")}</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t("common.status")}</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t("admin.counties.colActions")}</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 dark:text-white">{t("admin.counties.colName")}</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 dark:text-white">{t("common.status")}</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 dark:text-white">{t("admin.counties.colActions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {filtered.length > 0 ? filtered.map((county) => (
                 <tr key={county.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                  <td className="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                  <td className="px-6 py-4 text-xs font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                     <MapPin size={16} className="text-gray-400" /> {county.name}
                   </td>
                   <td className="px-6 py-4">
                     <button
                       onClick={() => handleToggleActive(county)}
                       disabled={busyId === county.id}
-                      className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                      className={`px-3 py-1 rounded-full text-[11px] font-semibold ${
                         county.isActive ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400" : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
                       }`}
                     >
@@ -149,7 +149,7 @@ export default function AdminCountiesPage() {
               <Label>{t("admin.counties.nameLabel")}</Label>
               <Input className="mt-1.5" value={name} onChange={(e) => setName(e.target.value)} placeholder={t("admin.counties.namePlaceholder")} />
             </div>
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            {error && <p className="text-xs text-red-600">{error}</p>}
             <div className="flex gap-3 pt-2">
               <Button variant="outline" className="flex-1 bg-transparent" onClick={() => setShowModal(false)} disabled={isSaving}>{t("common.cancel")}</Button>
               <Button className="flex-1 bg-blue-600 hover:bg-blue-700" onClick={handleSave} disabled={isSaving}>

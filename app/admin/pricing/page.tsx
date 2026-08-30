@@ -146,7 +146,7 @@ export default function PricingPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-4xl font-bold text-gray-900 dark:text-white">{t("admin.pricing.title")}</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t("admin.pricing.title")}</h1>
         <p className="text-gray-600 dark:text-gray-400 mt-1">{t("admin.pricing.subtitle")}</p>
       </div>
 
@@ -157,8 +157,8 @@ export default function PricingPage() {
             <Card key={i} className={`p-4 border-0 shadow-lg bg-gradient-to-br ${stat.color} dark:from-gray-800 dark:to-gray-800`}>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{stat.label}</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{stat.value}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">{stat.label}</p>
+                  <p className="text-xl font-bold text-gray-900 dark:text-white mt-1">{stat.value}</p>
                 </div>
                 <Icon className="w-5 h-5 text-gray-400" />
               </div>
@@ -175,7 +175,7 @@ export default function PricingPage() {
             placeholder={t("admin.pricing.searchPlaceholder")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs"
           />
         </div>
         <Button onClick={handleExportPricing} className="bg-green-600 hover:bg-green-700 gap-2">
@@ -189,14 +189,14 @@ export default function PricingPage() {
           <button
             key={filter.type}
             onClick={() => setActiveFilter(filter.type)}
-            className={`px-4 py-2 whitespace-nowrap rounded-lg font-medium transition-colors flex items-center gap-2 text-sm ${
+            className={`px-4 py-2 whitespace-nowrap rounded-lg font-medium transition-colors flex items-center gap-2 text-xs ${
               activeFilter === filter.type
                 ? "bg-blue-600 text-white shadow-lg"
                 : "border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
             }`}
           >
             {filter.label}
-            <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-200 dark:bg-gray-700">{filter.count}</span>
+            <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-gray-200 dark:bg-gray-700">{filter.count}</span>
           </button>
         ))}
       </div>
@@ -206,26 +206,26 @@ export default function PricingPage() {
           <table className="w-full">
             <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
               <tr>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t("admin.pricing.colService")}</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t("admin.pricing.providerLabel")}</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t("admin.pricing.colCategory")}</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t("admin.pricing.colBasePrice")}</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t("admin.pricing.colSkillLevel")}</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t("admin.pricing.colApproval")}</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t("common.status")}</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t("admin.pricing.colActions")}</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 dark:text-white">{t("admin.pricing.colService")}</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 dark:text-white">{t("admin.pricing.providerLabel")}</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 dark:text-white">{t("admin.pricing.colCategory")}</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 dark:text-white">{t("admin.pricing.colBasePrice")}</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 dark:text-white">{t("admin.pricing.colSkillLevel")}</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 dark:text-white">{t("admin.pricing.colApproval")}</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 dark:text-white">{t("common.status")}</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 dark:text-white">{t("admin.pricing.colActions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {filteredPricing.length > 0 ? filteredPricing.map((service) => (
                 <tr key={service.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                  <td className="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white">{service.name}</td>
-                  <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{service.provider}</td>
-                  <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{service.category}</td>
-                  <td className="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white">{formatMoney(service.basePrice)}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{service.skillLevel}</td>
+                  <td className="px-6 py-4 text-xs font-semibold text-gray-900 dark:text-white">{service.name}</td>
+                  <td className="px-6 py-4 text-xs text-gray-700 dark:text-gray-300">{service.provider}</td>
+                  <td className="px-6 py-4 text-xs text-gray-700 dark:text-gray-300">{service.category}</td>
+                  <td className="px-6 py-4 text-xs font-semibold text-gray-900 dark:text-white">{formatMoney(service.basePrice)}</td>
+                  <td className="px-6 py-4 text-xs text-gray-600 dark:text-gray-400">{service.skillLevel}</td>
                   <td className="px-6 py-4">
-                    <span title={service.rejectionReason ?? undefined} className={`px-3 py-1 rounded-full text-xs font-semibold ${APPROVAL_BADGE[service.approvalStatus]}`}>
+                    <span title={service.rejectionReason ?? undefined} className={`px-3 py-1 rounded-full text-[11px] font-semibold ${APPROVAL_BADGE[service.approvalStatus]}`}>
                       {APPROVAL_LABEL[service.approvalStatus] ?? service.approvalStatus}
                     </span>
                   </td>
@@ -233,7 +233,7 @@ export default function PricingPage() {
                     <button
                       onClick={() => handleToggleActive(service.id)}
                       disabled={busyId === service.id}
-                      className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                      className={`px-3 py-1 rounded-full text-[11px] font-semibold ${
                         service.status === "Active"
                           ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
                           : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
@@ -293,15 +293,15 @@ export default function PricingPage() {
             <div className="space-y-4 py-4">
               <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-3">
                 <div>
-                  <label className="text-xs text-muted-foreground">{t("admin.pricing.serviceNameLabel")}</label>
+                  <label className="text-[11px] text-muted-foreground">{t("admin.pricing.serviceNameLabel")}</label>
                   <p className="font-semibold mt-1">{selectedService.name}</p>
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground">{t("admin.pricing.providerLabel")}</label>
+                  <label className="text-[11px] text-muted-foreground">{t("admin.pricing.providerLabel")}</label>
                   <p className="font-semibold mt-1">{selectedService.provider}</p>
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground">{t("admin.pricing.basePriceKesLabel")}</label>
+                  <label className="text-[11px] text-muted-foreground">{t("admin.pricing.basePriceKesLabel")}</label>
                   <input
                     type="number"
                     value={editPrice}
@@ -328,7 +328,7 @@ export default function PricingPage() {
           </DialogHeader>
           {rejectTarget && (
             <div className="space-y-4 py-4">
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 {t("admin.pricing.rejectingNotice", { name: rejectTarget.name, provider: rejectTarget.provider })}
               </p>
               <Textarea

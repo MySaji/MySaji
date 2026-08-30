@@ -113,7 +113,7 @@ export default function JobsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-4xl font-bold text-gray-900 dark:text-white">{t("admin.jobs.title")}</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t("admin.jobs.title")}</h1>
         <p className="text-gray-600 dark:text-gray-400 mt-1">{t("admin.jobs.subtitle")}</p>
       </div>
 
@@ -124,8 +124,8 @@ export default function JobsPage() {
             <Card key={i} className={`p-4 border-0 shadow-lg bg-gradient-to-br ${stat.color} dark:from-gray-800 dark:to-gray-800`}>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{stat.label}</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{stat.value}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">{stat.label}</p>
+                  <p className="text-xl font-bold text-gray-900 dark:text-white mt-1">{stat.value}</p>
                 </div>
                 <Icon className="w-5 h-5 text-gray-400" />
               </div>
@@ -142,7 +142,7 @@ export default function JobsPage() {
             placeholder={t("admin.jobs.searchPlaceholder")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs"
           />
         </div>
         <Button onClick={handleExportJobs} className="bg-green-600 hover:bg-green-700 gap-2">
@@ -156,7 +156,7 @@ export default function JobsPage() {
           <button
             key={filter.type}
             onClick={() => setActiveFilter(filter.type)}
-            className={`px-4 py-2 whitespace-nowrap rounded-lg font-medium transition-colors flex items-center gap-2 text-sm ${
+            className={`px-4 py-2 whitespace-nowrap rounded-lg font-medium transition-colors flex items-center gap-2 text-xs ${
               activeFilter === filter.type
                 ? "bg-blue-600 text-white shadow-lg"
                 : "border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -173,12 +173,12 @@ export default function JobsPage() {
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">{job.title}</h3>
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${STATUS_COLOR[job.status]}`}>
+                  <h3 className="text-base font-bold text-gray-900 dark:text-white">{job.title}</h3>
+                  <span className={`px-3 py-1 rounded-full text-[11px] font-semibold ${STATUS_COLOR[job.status]}`}>
                     {STATUS_LABEL[job.status] ?? job.status}
                   </span>
                 </div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">{job.client} • {job.category}</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">{job.client} • {job.category}</p>
               </div>
               <button onClick={() => { setSelectedJob(job); setShowJobModal(true) }} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
                 <MoreVertical size={18} className="text-gray-600 dark:text-gray-400" />
@@ -186,15 +186,15 @@ export default function JobsPage() {
             </div>
 
             <div className="space-y-3 mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center justify-between text-xs">
                 <span className="text-gray-600 dark:text-gray-400">{t("admin.jobs.budget")}</span>
                 <span className="font-semibold text-gray-900 dark:text-white">{formatMoney(job.budget)}</span>
               </div>
-              <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center justify-between text-xs">
                 <span className="text-gray-600 dark:text-gray-400">{t("admin.jobs.scheduled")}</span>
                 <span className="font-semibold text-gray-900 dark:text-white">{new Date(job.deadline).toLocaleDateString()}</span>
               </div>
-              <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center justify-between text-xs">
                 <span className="text-gray-600 dark:text-gray-400">{t("common.provider")}</span>
                 <span className={`font-semibold ${!job.provider ? "text-orange-600" : "text-emerald-600"}`}>
                   {job.provider ?? t("admin.jobs.unassigned")}
@@ -222,27 +222,27 @@ export default function JobsPage() {
             <div className="space-y-6 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <p className="text-xs text-muted-foreground">{t("common.status")}</p>
+                  <p className="text-[11px] text-muted-foreground">{t("common.status")}</p>
                   <p className="font-semibold text-gray-900 dark:text-white mt-1">{STATUS_LABEL[selectedJob.status] ?? selectedJob.status}</p>
                 </div>
                 <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <p className="text-xs text-muted-foreground">{t("admin.jobs.category")}</p>
+                  <p className="text-[11px] text-muted-foreground">{t("admin.jobs.category")}</p>
                   <p className="font-semibold text-gray-900 dark:text-white mt-1">{selectedJob.category}</p>
                 </div>
                 <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <p className="text-xs text-muted-foreground">{t("admin.jobs.budget")}</p>
+                  <p className="text-[11px] text-muted-foreground">{t("admin.jobs.budget")}</p>
                   <p className="font-semibold text-gray-900 dark:text-white mt-1">{formatMoney(selectedJob.budget)}</p>
                 </div>
                 <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <p className="text-xs text-muted-foreground">{t("common.provider")}</p>
+                  <p className="text-[11px] text-muted-foreground">{t("common.provider")}</p>
                   <p className="font-semibold text-gray-900 dark:text-white mt-1">{selectedJob.provider ?? t("admin.jobs.unassigned")}</p>
                 </div>
                 <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <p className="text-xs text-muted-foreground">{t("admin.jobs.client")}</p>
+                  <p className="text-[11px] text-muted-foreground">{t("admin.jobs.client")}</p>
                   <p className="font-semibold text-gray-900 dark:text-white mt-1">{selectedJob.client}</p>
                 </div>
                 <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <p className="text-xs text-muted-foreground">{t("admin.jobs.scheduled")}</p>
+                  <p className="text-[11px] text-muted-foreground">{t("admin.jobs.scheduled")}</p>
                   <p className="font-semibold text-gray-900 dark:text-white mt-1">{new Date(selectedJob.deadline).toLocaleDateString()}</p>
                 </div>
               </div>

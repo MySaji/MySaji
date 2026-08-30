@@ -125,7 +125,7 @@ export default function PaymentsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-4xl font-bold text-gray-900 dark:text-white">{t("admin.payments.title")}</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t("admin.payments.title")}</h1>
         <p className="text-gray-600 dark:text-gray-400 mt-1">{t("admin.payments.subtitle")}</p>
       </div>
 
@@ -136,8 +136,8 @@ export default function PaymentsPage() {
             <Card key={i} className={`p-4 border-0 shadow-lg bg-gradient-to-br ${stat.color} dark:from-gray-800 dark:to-gray-800`}>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{stat.label}</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{stat.value}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">{stat.label}</p>
+                  <p className="text-xl font-bold text-gray-900 dark:text-white mt-1">{stat.value}</p>
                 </div>
                 <Icon className="w-5 h-5 text-gray-400" />
               </div>
@@ -154,7 +154,7 @@ export default function PaymentsPage() {
             placeholder={t("admin.payments.searchPlaceholder")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs"
           />
         </div>
         <Button onClick={handleExportPayments} className="bg-green-600 hover:bg-green-700 gap-2">
@@ -168,7 +168,7 @@ export default function PaymentsPage() {
           <button
             key={filter.type}
             onClick={() => setActiveFilter(filter.type)}
-            className={`px-4 py-2 whitespace-nowrap rounded-lg font-medium transition-colors flex items-center gap-2 text-sm ${
+            className={`px-4 py-2 whitespace-nowrap rounded-lg font-medium transition-colors flex items-center gap-2 text-xs ${
               activeFilter === filter.type
                 ? "bg-blue-600 text-white shadow-lg"
                 : "border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -184,23 +184,23 @@ export default function PaymentsPage() {
           <table className="w-full">
             <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
               <tr>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t("common.customer")}</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t("admin.payments.colContext")}</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t("admin.payments.colAmount")}</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t("admin.payments.colMethod")}</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t("common.status")}</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t("admin.disputes.colAction")}</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 dark:text-white">{t("common.customer")}</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 dark:text-white">{t("admin.payments.colContext")}</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 dark:text-white">{t("admin.payments.colAmount")}</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 dark:text-white">{t("admin.payments.colMethod")}</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 dark:text-white">{t("common.status")}</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 dark:text-white">{t("admin.disputes.colAction")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {filteredPayments.length > 0 ? filteredPayments.map((payment) => (
                 <tr key={payment.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                  <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{payment.user}</td>
-                  <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{payment.context}</td>
-                  <td className="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white">{formatMoney(payment.amount)}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{payment.method}</td>
+                  <td className="px-6 py-4 text-xs text-gray-700 dark:text-gray-300">{payment.user}</td>
+                  <td className="px-6 py-4 text-xs text-gray-700 dark:text-gray-300">{payment.context}</td>
+                  <td className="px-6 py-4 text-xs font-semibold text-gray-900 dark:text-white">{formatMoney(payment.amount)}</td>
+                  <td className="px-6 py-4 text-xs text-gray-600 dark:text-gray-400">{payment.method}</td>
                   <td className="px-6 py-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${STATUS_COLOR[payment.status]}`}>
+                    <span className={`px-3 py-1 rounded-full text-[11px] font-semibold ${STATUS_COLOR[payment.status]}`}>
                       {STATUS_LABEL[payment.status] ?? payment.status}
                     </span>
                   </td>
@@ -229,29 +229,29 @@ export default function PaymentsPage() {
             <div className="space-y-4 py-4">
               <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-3">
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">{t("admin.disputes.userLabel")}</span>
+                  <span className="text-xs text-muted-foreground">{t("admin.disputes.userLabel")}</span>
                   <span className="font-semibold">{selectedPayment.user}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">{t("admin.payments.contextLabel")}</span>
+                  <span className="text-xs text-muted-foreground">{t("admin.payments.contextLabel")}</span>
                   <span className="font-semibold">{selectedPayment.context}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">{t("admin.payments.amountLabel")}</span>
+                  <span className="text-xs text-muted-foreground">{t("admin.payments.amountLabel")}</span>
                   <span className="font-semibold">{formatMoney(selectedPayment.amount)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">{t("admin.payments.methodLabel")}</span>
+                  <span className="text-xs text-muted-foreground">{t("admin.payments.methodLabel")}</span>
                   <span className="font-semibold">{selectedPayment.method}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">{t("admin.payments.statusLabel")}</span>
+                  <span className="text-xs text-muted-foreground">{t("admin.payments.statusLabel")}</span>
                   <span className="font-semibold">{STATUS_LABEL[selectedPayment.status] ?? selectedPayment.status}</span>
                 </div>
                 {selectedPayment.externalRef && (
                   <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">{t("admin.payments.gatewayRefLabel")}</span>
-                    <span className="font-mono text-xs">{selectedPayment.externalRef}</span>
+                    <span className="text-xs text-muted-foreground">{t("admin.payments.gatewayRefLabel")}</span>
+                    <span className="font-mono text-[11px]">{selectedPayment.externalRef}</span>
                   </div>
                 )}
               </div>

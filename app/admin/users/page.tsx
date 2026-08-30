@@ -157,7 +157,7 @@ export default function UsersPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">{t("admin.users.title")}</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{t("admin.users.title")}</h1>
         <p className="text-gray-600 dark:text-gray-400">{t("admin.users.subtitle")}</p>
       </div>
 
@@ -165,8 +165,8 @@ export default function UsersPage() {
         <Card className="p-4 border-0 shadow-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">{t("admin.users.statTotalUsers")}</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{totalCount}</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">{t("admin.users.statTotalUsers")}</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-white mt-1">{totalCount}</p>
             </div>
             <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg"><Search className="w-5 h-5 text-blue-600" /></div>
           </div>
@@ -174,8 +174,8 @@ export default function UsersPage() {
         <Card className="p-4 border-0 shadow-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">{t("admin.users.statActiveThisPage")}</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{activeCount}</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">{t("admin.users.statActiveThisPage")}</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-white mt-1">{activeCount}</p>
             </div>
             <div className="p-3 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg"><CheckCircle2 className="w-5 h-5 text-emerald-600" /></div>
           </div>
@@ -183,8 +183,8 @@ export default function UsersPage() {
         <Card className="p-4 border-0 shadow-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">{t("admin.users.statDisputedThisPage")}</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{disputedCount}</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">{t("admin.users.statDisputedThisPage")}</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-white mt-1">{disputedCount}</p>
             </div>
             <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-lg"><AlertCircle className="w-5 h-5 text-red-600" /></div>
           </div>
@@ -192,8 +192,8 @@ export default function UsersPage() {
         <Card className="p-4 border-0 shadow-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">{t("admin.users.statEarningsThisPage")}</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{formatMoney(totalEarnings)}</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">{t("admin.users.statEarningsThisPage")}</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-white mt-1">{formatMoney(totalEarnings)}</p>
             </div>
             <div className="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg"><TrendingUp className="w-5 h-5 text-yellow-600" /></div>
           </div>
@@ -221,7 +221,7 @@ export default function UsersPage() {
           <button
             key={filter.type}
             onClick={() => { setActiveFilter(filter.type); setPage(1) }}
-            className={`px-4 py-2 whitespace-nowrap rounded-lg font-medium transition-colors flex items-center gap-2 text-sm ${
+            className={`px-4 py-2 whitespace-nowrap rounded-lg font-medium transition-colors flex items-center gap-2 text-xs ${
               activeFilter === filter.type
                 ? "bg-blue-600 text-white shadow-lg"
                 : "border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -240,13 +240,13 @@ export default function UsersPage() {
             <table className="w-full">
               <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                 <tr>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t("admin.users.colUser")}</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t("auth.email")}</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t("admin.users.colRole")}</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t("common.status")}</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t("admin.users.colEarnings")}</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t("admin.users.colOrders")}</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t("admin.users.colActions")}</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 dark:text-white">{t("admin.users.colUser")}</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 dark:text-white">{t("auth.email")}</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 dark:text-white">{t("admin.users.colRole")}</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 dark:text-white">{t("common.status")}</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 dark:text-white">{t("admin.users.colEarnings")}</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 dark:text-white">{t("admin.users.colOrders")}</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 dark:text-white">{t("admin.users.colActions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -255,21 +255,21 @@ export default function UsersPage() {
                     <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold text-sm">
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold text-xs">
                             {user.name.charAt(0).toUpperCase()}
                           </div>
-                          <span className="text-sm font-medium text-gray-900 dark:text-white">{user.name}</span>
+                          <span className="text-xs font-medium text-gray-900 dark:text-white">{user.name}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{user.email}</td>
-                      <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300 font-medium">{user.role}</td>
+                      <td className="px-6 py-4 text-xs text-gray-600 dark:text-gray-400">{user.email}</td>
+                      <td className="px-6 py-4 text-xs text-gray-700 dark:text-gray-300 font-medium">{user.role}</td>
                       <td className="px-6 py-4">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${STATUS_COLOR[user.status]}`}>
+                        <span className={`px-3 py-1 rounded-full text-[11px] font-semibold ${STATUS_COLOR[user.status]}`}>
                           {STATUS_LABEL[user.status]}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white">{formatMoney(user.earnings)}</td>
-                      <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{user.orders}</td>
+                      <td className="px-6 py-4 text-xs font-semibold text-gray-900 dark:text-white">{formatMoney(user.earnings)}</td>
+                      <td className="px-6 py-4 text-xs text-gray-700 dark:text-gray-300">{user.orders}</td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <button onClick={() => { setSelectedUser(user); setIsEditingUser(false); setShowUserModal(true) }} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors text-blue-600 dark:text-blue-400" title={t("admin.users.viewTitle")}>
@@ -300,7 +300,7 @@ export default function UsersPage() {
           </div>
         )}
 
-        <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
+        <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between text-xs text-gray-600 dark:text-gray-400">
           <span>{t("admin.users.pageOf", { page, totalPages, totalCount })}</span>
           <div className="flex gap-2">
             <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1 rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50">{t("admin.users.prevPage")}</button>
@@ -319,13 +319,13 @@ export default function UsersPage() {
           {selectedUser && !isEditingUser && (
             <div className="space-y-6 py-4">
               <div className="flex items-center gap-4 pb-4 border-b border-gray-200 dark:border-gray-700">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold text-xl">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold text-lg">
                   {selectedUser.name.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white">{selectedUser.name}</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{selectedUser.role}</p>
-                  <span className={`mt-2 inline-block px-3 py-1 rounded-full text-xs font-semibold ${STATUS_COLOR[selectedUser.status]}`}>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">{selectedUser.name}</h3>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">{selectedUser.role}</p>
+                  <span className={`mt-2 inline-block px-3 py-1 rounded-full text-[11px] font-semibold ${STATUS_COLOR[selectedUser.status]}`}>
                     {STATUS_LABEL[selectedUser.status]}
                   </span>
                 </div>
@@ -333,29 +333,29 @@ export default function UsersPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <p className="text-xs text-muted-foreground">{t("admin.users.joined")}</p>
+                  <p className="text-[11px] text-muted-foreground">{t("admin.users.joined")}</p>
                   <p className="font-semibold text-gray-900 dark:text-white mt-1">{new Date(selectedUser.joined).toLocaleDateString()}</p>
                 </div>
                 <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg flex items-center gap-2">
                   <Mail className="w-4 h-4 text-blue-600" />
                   <div>
-                    <p className="text-xs text-muted-foreground">{t("auth.email")}</p>
-                    <p className="font-semibold text-gray-900 dark:text-white text-sm mt-1">{selectedUser.email}</p>
+                    <p className="text-[11px] text-muted-foreground">{t("auth.email")}</p>
+                    <p className="font-semibold text-gray-900 dark:text-white text-xs mt-1">{selectedUser.email}</p>
                   </div>
                 </div>
                 <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg flex items-center gap-2">
                   <Phone className="w-4 h-4 text-emerald-600" />
                   <div>
-                    <p className="text-xs text-muted-foreground">{t("admin.users.phone")}</p>
-                    <p className="font-semibold text-gray-900 dark:text-white text-sm mt-1">{selectedUser.phone ?? t("admin.users.notSet")}</p>
+                    <p className="text-[11px] text-muted-foreground">{t("admin.users.phone")}</p>
+                    <p className="font-semibold text-gray-900 dark:text-white text-xs mt-1">{selectedUser.phone ?? t("admin.users.notSet")}</p>
                   </div>
                 </div>
                 <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <p className="text-xs text-muted-foreground">{t("admin.users.totalEarnings")}</p>
+                  <p className="text-[11px] text-muted-foreground">{t("admin.users.totalEarnings")}</p>
                   <p className="font-semibold text-gray-900 dark:text-white mt-1">{formatMoney(selectedUser.earnings)}</p>
                 </div>
                 <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <p className="text-xs text-muted-foreground">{t("admin.users.ordersDisputes")}</p>
+                  <p className="text-[11px] text-muted-foreground">{t("admin.users.ordersDisputes")}</p>
                   <p className="font-semibold text-gray-900 dark:text-white mt-1">{selectedUser.orders} / {selectedUser.disputes}</p>
                 </div>
               </div>
@@ -372,11 +372,11 @@ export default function UsersPage() {
           {selectedUser && isEditingUser && (
             <div className="space-y-4 py-2">
               <div>
-                <label className="block text-sm font-medium mb-1.5">{t("admin.users.nameLabel")}</label>
+                <label className="block text-xs font-medium mb-1.5">{t("admin.users.nameLabel")}</label>
                 <Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1.5">{t("admin.users.phone")}</label>
+                <label className="block text-xs font-medium mb-1.5">{t("admin.users.phone")}</label>
                 <Input value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} />
               </div>
               <div className="flex gap-3 pt-2">

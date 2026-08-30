@@ -30,8 +30,8 @@ export default function AdminAnalyticsPage() {
   return (
     <div className="space-y-6 pb-8">
       <div>
-        <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">{t("admin.analytics.title")}</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t("admin.analytics.subtitle")}</p>
+        <h1 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t("admin.analytics.title")}</h1>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t("admin.analytics.subtitle")}</p>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -43,12 +43,12 @@ export default function AdminAnalyticsPage() {
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600"><Icon size={16} /></div>
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{t(m.labelKey as Parameters<typeof t>[0])}</p>
-              <p className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{m.rawAmount != null ? formatMoney(m.rawAmount) : m.value}</p>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400">{t(m.labelKey as Parameters<typeof t>[0])}</p>
+              <p className="text-lg lg:text-xl font-bold text-gray-900 dark:text-white">{m.rawAmount != null ? formatMoney(m.rawAmount) : m.value}</p>
               {m.changePct !== 0 && (
                 <div className="flex items-center gap-1 mt-1">
                   {positive ? <ArrowUpRight size={14} className="text-emerald-600" /> : <ArrowDownRight size={14} className="text-red-600" />}
-                  <span className={`text-xs font-medium ${positive ? "text-emerald-600" : "text-red-600"}`}>{Math.abs(m.changePct)}%</span>
+                  <span className={`text-[11px] font-medium ${positive ? "text-emerald-600" : "text-red-600"}`}>{Math.abs(m.changePct)}%</span>
                 </div>
               )}
             </Card>
@@ -57,8 +57,8 @@ export default function AdminAnalyticsPage() {
       </div>
 
       <Card className="p-4 lg:p-6">
-        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-1">{t("admin.analytics.platformRevenue")}</h2>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{t("admin.analytics.monthlyRevenueDesc")}</p>
+        <h2 className="text-base font-bold text-gray-900 dark:text-white mb-1">{t("admin.analytics.platformRevenue")}</h2>
+        <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-4">{t("admin.analytics.monthlyRevenueDesc")}</p>
         <div className="h-64 lg:h-80">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={data.revenueData}>
@@ -80,7 +80,7 @@ export default function AdminAnalyticsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card className="p-4 lg:p-6">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{t("admin.analytics.newSignupsByRole")}</h2>
+          <h2 className="text-base font-bold text-gray-900 dark:text-white mb-4">{t("admin.analytics.newSignupsByRole")}</h2>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={data.userGrowthData}>
@@ -98,9 +98,9 @@ export default function AdminAnalyticsPage() {
         </Card>
 
         <Card className="p-4 lg:p-6">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{t("admin.analytics.userDistribution")}</h2>
+          <h2 className="text-base font-bold text-gray-900 dark:text-white mb-4">{t("admin.analytics.userDistribution")}</h2>
           {data.roleDistribution.length === 0 ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-12">{t("admin.analytics.noUsersYet")}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-12">{t("admin.analytics.noUsersYet")}</p>
           ) : (
             <>
               <div className="h-56">
@@ -116,7 +116,7 @@ export default function AdminAnalyticsPage() {
               </div>
               <div className="space-y-2 mt-2">
                 {data.roleDistribution.map((r, i) => (
-                  <div key={r.name} className="flex items-center justify-between text-sm">
+                  <div key={r.name} className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2">
                       <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
                       <span className="text-gray-600 dark:text-gray-400">{r.name}</span>
@@ -133,7 +133,7 @@ export default function AdminAnalyticsPage() {
       <Card className="p-4 lg:p-6">
         <div className="flex items-center gap-2 mb-4">
           <BarChart3 size={18} className="text-gray-500" />
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white">{t("admin.analytics.weeklyActivity")}</h2>
+          <h2 className="text-base font-bold text-gray-900 dark:text-white">{t("admin.analytics.weeklyActivity")}</h2>
         </div>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
@@ -151,25 +151,25 @@ export default function AdminAnalyticsPage() {
       </Card>
 
       <Card className="p-4 lg:p-6">
-        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{t("admin.analytics.topPerformingAgents")}</h2>
+        <h2 className="text-base font-bold text-gray-900 dark:text-white mb-4">{t("admin.analytics.topPerformingAgents")}</h2>
         {data.topAgents.length === 0 ? (
-          <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">{t("admin.analytics.noAgentActivity")}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-8">{t("admin.analytics.noAgentActivity")}</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700">
-                  <th className="text-left py-2.5 px-3 font-semibold text-gray-600 dark:text-gray-400 text-xs">{t("admin.analytics.colRank")}</th>
-                  <th className="text-left py-2.5 px-3 font-semibold text-gray-600 dark:text-gray-400 text-xs">{t("admin.analytics.colAgent")}</th>
-                  <th className="text-right py-2.5 px-3 font-semibold text-gray-600 dark:text-gray-400 text-xs">{t("admin.analytics.colResolved")}</th>
-                  <th className="text-right py-2.5 px-3 font-semibold text-gray-600 dark:text-gray-400 text-xs">{t("admin.analytics.colAssigned")}</th>
-                  <th className="text-right py-2.5 px-3 font-semibold text-gray-600 dark:text-gray-400 text-xs">{t("admin.analytics.colEarnings")}</th>
+                  <th className="text-left py-2.5 px-3 font-semibold text-gray-600 dark:text-gray-400 text-[11px]">{t("admin.analytics.colRank")}</th>
+                  <th className="text-left py-2.5 px-3 font-semibold text-gray-600 dark:text-gray-400 text-[11px]">{t("admin.analytics.colAgent")}</th>
+                  <th className="text-right py-2.5 px-3 font-semibold text-gray-600 dark:text-gray-400 text-[11px]">{t("admin.analytics.colResolved")}</th>
+                  <th className="text-right py-2.5 px-3 font-semibold text-gray-600 dark:text-gray-400 text-[11px]">{t("admin.analytics.colAssigned")}</th>
+                  <th className="text-right py-2.5 px-3 font-semibold text-gray-600 dark:text-gray-400 text-[11px]">{t("admin.analytics.colEarnings")}</th>
                 </tr>
               </thead>
               <tbody>
                 {data.topAgents.map(a => (
                   <tr key={a.rank} className="border-b border-gray-100 dark:border-gray-700/50">
-                    <td className="py-2.5 px-3"><span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${a.rank <= 3 ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400" : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400"}`}>{a.rank}</span></td>
+                    <td className="py-2.5 px-3"><span className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold ${a.rank <= 3 ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400" : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400"}`}>{a.rank}</span></td>
                     <td className="py-2.5 px-3 font-medium text-gray-900 dark:text-white">{a.name}</td>
                     <td className="py-2.5 px-3 text-right text-emerald-600 font-medium">{a.casesResolved}</td>
                     <td className="py-2.5 px-3 text-right text-gray-700 dark:text-gray-300">{a.casesAssigned}</td>

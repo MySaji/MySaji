@@ -103,10 +103,10 @@ export default function AdminAuditLogPage() {
     <div className="space-y-6 pb-24 lg:pb-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">{t("admin.auditLog.title")}</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t("admin.auditLog.subtitle")}</p>
+          <h1 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t("admin.auditLog.title")}</h1>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t("admin.auditLog.subtitle")}</p>
         </div>
-        <Button size="sm" onClick={handleExportCsv} className="bg-blue-600 hover:bg-blue-700 gap-1.5 text-xs w-fit rounded-lg"><Download size={14} />{t("admin.auditLog.exportCsv")}</Button>
+        <Button size="sm" onClick={handleExportCsv} className="bg-blue-600 hover:bg-blue-700 gap-1.5 text-[11px] w-fit rounded-lg"><Download size={14} />{t("admin.auditLog.exportCsv")}</Button>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
@@ -116,8 +116,8 @@ export default function AdminAuditLogPage() {
           { label: t("admin.auditLog.statActiveAdminsToday"), value: summary.activeAdmins.toString(), color: "text-emerald-600" },
         ].map((s, i) => (
           <Card key={i} className="p-4">
-            <p className="text-xs text-gray-500 dark:text-gray-400">{s.label}</p>
-            <p className={`text-2xl font-bold ${s.color} mt-1`}>{s.value}</p>
+            <p className="text-[11px] text-gray-500 dark:text-gray-400">{s.label}</p>
+            <p className={`text-xl font-bold ${s.color} mt-1`}>{s.value}</p>
           </Card>
         ))}
       </div>
@@ -125,13 +125,13 @@ export default function AdminAuditLogPage() {
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 flex-1">
           <Search size={16} className="text-gray-400" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t("admin.auditLog.searchPlaceholder")} className="bg-transparent text-sm outline-none flex-1 text-gray-700 dark:text-gray-200 placeholder:text-gray-400" />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t("admin.auditLog.searchPlaceholder")} className="bg-transparent text-xs outline-none flex-1 text-gray-700 dark:text-gray-200 placeholder:text-gray-400" />
         </div>
         <div className="flex gap-2 flex-wrap">
-          <select value={catFilter} onChange={e => setCatFilter(e.target.value)} className="text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-gray-700 dark:text-gray-200 outline-none">
+          <select value={catFilter} onChange={e => setCatFilter(e.target.value)} className="text-[11px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-gray-700 dark:text-gray-200 outline-none">
             {categories.map(c => <option key={c} value={c}>{c === "all" ? t("admin.auditLog.allCategories") : c}</option>)}
           </select>
-          <select value={sevFilter} onChange={e => setSevFilter(e.target.value)} className="text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-gray-700 dark:text-gray-200 outline-none">
+          <select value={sevFilter} onChange={e => setSevFilter(e.target.value)} className="text-[11px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-gray-700 dark:text-gray-200 outline-none">
             <option value="all">{t("admin.auditLog.allSeverity")}</option>
             <option value="info">{SEVERITY_LABEL.info}</option>
             <option value="warning">{SEVERITY_LABEL.warning}</option>
@@ -149,11 +149,11 @@ export default function AdminAuditLogPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                  <span className="text-sm font-medium text-gray-900 dark:text-white">{log.user}</span>
-                  <span className="text-xs text-gray-400 capitalize">{log.action}</span>
+                  <span className="text-xs font-medium text-gray-900 dark:text-white">{log.user}</span>
+                  <span className="text-[11px] text-gray-400 capitalize">{log.action}</span>
                   <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${sevBadge(log.severity)}`}>{SEVERITY_LABEL[log.severity] ?? log.severity}</span>
                 </div>
-                <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 truncate">{log.target}</p>
+                <p className="text-[11px] text-gray-600 dark:text-gray-400 mt-0.5 truncate">{log.target}</p>
                 <div className="flex items-center gap-3 mt-1">
                   <span className="text-[10px] text-gray-400">{formatRelative(log.timestamp)}</span>
                   {log.ip && <span className="text-[10px] text-gray-400 font-mono">{t("admin.auditLog.ipLabel", { ip: log.ip })}</span>}
@@ -167,7 +167,7 @@ export default function AdminAuditLogPage() {
             </div>
           ))}
         </div>
-        {filtered.length === 0 && <div className="p-8 text-center text-sm text-gray-400">{t("admin.auditLog.noEventsMatch")}</div>}
+        {filtered.length === 0 && <div className="p-8 text-center text-xs text-gray-400">{t("admin.auditLog.noEventsMatch")}</div>}
       </Card>
 
       <Dialog open={showDetailModal} onOpenChange={setShowDetailModal}>
@@ -183,7 +183,7 @@ export default function AdminAuditLogPage() {
                   {catIcon(selectedLog.category)}
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-gray-900 dark:text-white capitalize">{selectedLog.action}</h3>
+                  <h3 className="text-xs font-bold text-gray-900 dark:text-white capitalize">{selectedLog.action}</h3>
                   <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${sevBadge(selectedLog.severity)}`}>{SEVERITY_LABEL[selectedLog.severity] ?? selectedLog.severity}</span>
                 </div>
               </div>
@@ -201,7 +201,7 @@ export default function AdminAuditLogPage() {
                     <item.icon size={14} className="text-gray-400 mt-0.5 flex-shrink-0" />
                     <div className="min-w-0">
                       <p className="text-[10px] text-gray-400 uppercase tracking-wide">{item.label}</p>
-                      <p className="text-sm text-gray-900 dark:text-white break-words">{item.value}</p>
+                      <p className="text-xs text-gray-900 dark:text-white break-words">{item.value}</p>
                     </div>
                   </div>
                 ))}

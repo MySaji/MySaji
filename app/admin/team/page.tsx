@@ -134,7 +134,7 @@ export default function TeamPage() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t("admin.team.title")}</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t("admin.team.title")}</h1>
         <button
           onClick={() => setShowModal(true)}
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
@@ -151,8 +151,8 @@ export default function TeamPage() {
               {roleIcons[role]}
               <h3 className="font-semibold text-gray-900 dark:text-white">{roleLabels[role]}</h3>
             </div>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{roleDescriptions[role]}</p>
-            <p className="text-2xl font-bold text-blue-600">{teamMembers.filter((m) => m.role === role).length}</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mb-4">{roleDescriptions[role]}</p>
+            <p className="text-xl font-bold text-blue-600">{teamMembers.filter((m) => m.role === role).length}</p>
           </div>
         ))}
       </div>
@@ -162,13 +162,13 @@ export default function TeamPage() {
           <table className="w-full">
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("admin.team.colName")}</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("auth.email")}</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("admin.team.colRole")}</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("admin.team.colOrgInfo")}</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("common.status")}</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("admin.team.colJoined")}</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("admin.team.colActions")}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("admin.team.colName")}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("auth.email")}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("admin.team.colRole")}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("admin.team.colOrgInfo")}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("common.status")}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("admin.team.colJoined")}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("admin.team.colActions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -176,27 +176,27 @@ export default function TeamPage() {
                 <tr><td colSpan={7} className="px-6 py-12 text-center text-gray-600 dark:text-gray-400">{t("admin.team.noTeamMembers")}</td></tr>
               ) : teamMembers.map((member) => (
                 <tr key={member.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                  <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">{member.name}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{member.email}</td>
-                  <td className="px-6 py-4 text-sm">
-                    <span className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-full text-xs font-medium">
+                  <td className="px-6 py-4 text-xs text-gray-900 dark:text-white">{member.name}</td>
+                  <td className="px-6 py-4 text-xs text-gray-600 dark:text-gray-400">{member.email}</td>
+                  <td className="px-6 py-4 text-xs">
+                    <span className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-full text-[11px] font-medium">
                       {roleIcons[member.role]}
                       {roleLabels[member.role]}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
+                  <td className="px-6 py-4 text-xs text-gray-600 dark:text-gray-400">
                     {member.jobTitle || member.department ? (
                       <>
                         {member.jobTitle && <p className="text-gray-900 dark:text-white">{member.jobTitle}</p>}
-                        {member.department && <p className="text-xs">{member.department}</p>}
-                        {member.managerName && <p className="text-xs">{t("admin.team.reportsToLabel", { name: member.managerName })}</p>}
+                        {member.department && <p className="text-[11px]">{member.department}</p>}
+                        {member.managerName && <p className="text-[11px]">{t("admin.team.reportsToLabel", { name: member.managerName })}</p>}
                       </>
                     ) : (
-                      <span className="text-xs text-gray-400">{t("admin.team.notSetLabel")}</span>
+                      <span className="text-[11px] text-gray-400">{t("admin.team.notSetLabel")}</span>
                     )}
                   </td>
-                  <td className="px-6 py-4 text-sm">
-                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
+                  <td className="px-6 py-4 text-xs">
+                    <span className={`inline-block px-3 py-1 rounded-full text-[11px] font-medium ${
                         member.status === "active"
                           ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
                           : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
@@ -205,8 +205,8 @@ export default function TeamPage() {
                       {statusLabels[member.status] ?? member.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{new Date(member.joinedDate).toLocaleDateString()}</td>
-                  <td className="px-6 py-4 text-sm">
+                  <td className="px-6 py-4 text-xs text-gray-600 dark:text-gray-400">{new Date(member.joinedDate).toLocaleDateString()}</td>
+                  <td className="px-6 py-4 text-xs">
                     <div className="flex gap-2">
                       <button
                         onClick={() => openEdit(member)}
@@ -235,7 +235,7 @@ export default function TeamPage() {
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">{t("admin.team.addTeamMember")}</h2>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{t("admin.team.addTeamMember")}</h2>
             <div className="space-y-4">
               <input
                 type="text"
@@ -260,7 +260,7 @@ export default function TeamPage() {
                 <option value="secretary">{roleLabels.secretary}</option>
                 <option value="agent">{roleLabels.agent}</option>
               </select>
-              {addError && <p className="text-sm text-red-600 dark:text-red-400">{addError}</p>}
+              {addError && <p className="text-xs text-red-600 dark:text-red-400">{addError}</p>}
               <div className="flex gap-2">
                 <button
                   onClick={() => setShowModal(false)}
@@ -284,25 +284,25 @@ export default function TeamPage() {
       {showCredentialsModal && newlyCreated && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">{t("admin.team.credentialsModalTitle")}</h2>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{t("admin.team.credentialsModalTitle")}</h2>
             <div className="space-y-4 mb-6">
               <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg space-y-3">
                 <div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">{t("admin.team.colName")}</p>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">{newlyCreated.name}</p>
+                  <p className="text-[11px] text-gray-600 dark:text-gray-400 mb-1">{t("admin.team.colName")}</p>
+                  <p className="text-xs font-medium text-gray-900 dark:text-white">{newlyCreated.name}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">{t("auth.email")}</p>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">{newlyCreated.email}</p>
+                  <p className="text-[11px] text-gray-600 dark:text-gray-400 mb-1">{t("auth.email")}</p>
+                  <p className="text-xs font-medium text-gray-900 dark:text-white">{newlyCreated.email}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">{t("admin.team.roleLabel")}</p>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">{roleLabels[newlyCreated.role]}</p>
+                  <p className="text-[11px] text-gray-600 dark:text-gray-400 mb-1">{t("admin.team.roleLabel")}</p>
+                  <p className="text-xs font-medium text-gray-900 dark:text-white">{roleLabels[newlyCreated.role]}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">{t("admin.team.temporaryPassword")}</p>
+                  <p className="text-[11px] text-gray-600 dark:text-gray-400 mb-1">{t("admin.team.temporaryPassword")}</p>
                   <div className="flex items-center gap-2">
-                    <code className="flex-1 text-sm bg-white dark:bg-gray-600 p-2 rounded border border-gray-300 dark:border-gray-500 text-gray-900 dark:text-white break-all">
+                    <code className="flex-1 text-xs bg-white dark:bg-gray-600 p-2 rounded border border-gray-300 dark:border-gray-500 text-gray-900 dark:text-white break-all">
                       {newlyCreated.password}
                     </code>
                     <button
@@ -315,18 +315,18 @@ export default function TeamPage() {
                   </div>
                 </div>
                 <div className="pt-2 border-t border-gray-200 dark:border-gray-600">
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">{t("admin.team.loginUrlLabel")}</p>
+                  <p className="text-[11px] text-gray-600 dark:text-gray-400 mb-1">{t("admin.team.loginUrlLabel")}</p>
                   <a
                     href="/team-login"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-blue-600 dark:text-blue-400 hover:underline break-all"
+                    className="text-xs text-blue-600 dark:text-blue-400 hover:underline break-all"
                   >
                     {typeof window !== "undefined" ? window.location.origin : ""}/team-login
                   </a>
                 </div>
               </div>
-              <p className="text-xs text-gray-600 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/20 p-3 rounded">
+              <p className="text-[11px] text-gray-600 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/20 p-3 rounded">
                 {t("admin.team.shareCredentialsNote")}
               </p>
             </div>
@@ -352,11 +352,11 @@ export default function TeamPage() {
       {editing && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">{t("admin.team.editOrgInfoTitle")}</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{editing.name}</p>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-1">{t("admin.team.editOrgInfoTitle")}</h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{editing.name}</p>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t("admin.team.jobTitleLabel")}</label>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t("admin.team.jobTitleLabel")}</label>
                 <input
                   type="text"
                   value={editJobTitle}
@@ -366,7 +366,7 @@ export default function TeamPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t("admin.team.departmentLabel")}</label>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t("admin.team.departmentLabel")}</label>
                 <input
                   type="text"
                   value={editDepartment}
@@ -376,7 +376,7 @@ export default function TeamPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t("admin.team.managerLabel")}</label>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t("admin.team.managerLabel")}</label>
                 <select
                   value={editManagerId}
                   onChange={(e) => setEditManagerId(e.target.value)}
@@ -390,7 +390,7 @@ export default function TeamPage() {
                     ))}
                 </select>
               </div>
-              {editError && <p className="text-sm text-red-600 dark:text-red-400">{editError}</p>}
+              {editError && <p className="text-xs text-red-600 dark:text-red-400">{editError}</p>}
               <div className="flex gap-2">
                 <button
                   onClick={() => setEditing(null)}
