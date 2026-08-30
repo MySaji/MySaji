@@ -6,12 +6,13 @@ import { useState, useRef, useEffect } from "react"
 import {
   Store, Package, ShoppingCart, MessageCircle, Wallet, User, Settings, LogOut,
   X, Menu, BarChart3, Bell, Users, Star, Tag, Search, MoreHorizontal,
-  Lock, Clock, AlertTriangle, Truck, ImageIcon, UserCog, Megaphone
+  Lock, Clock, AlertTriangle, Truck, ImageIcon, UserCog, Megaphone, ChevronLeft, ChevronRight
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useAuthContext } from "@/lib/auth-context"
 import { useLocalization } from "@/lib/hooks/useLocalization"
+import { useSidebarCollapsed } from "@/lib/hooks/useSidebarCollapsed"
 import { LoadingScreen } from "@/components/loading-screen"
 import FloatingChatButton from "@/components/floating-chat-button"
 import { AccountMenu } from "@/components/account-menu"
@@ -60,6 +61,7 @@ function isExemptPath(path: string): boolean {
 
 export default function ShopkeeperLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { isCollapsed, toggle: toggleCollapsed } = useSidebarCollapsed()
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [moreMenuOpen, setMoreMenuOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -222,15 +224,24 @@ export default function ShopkeeperLayout({ children }: { children: React.ReactNo
       <aside
         className={`${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        } lg:translate-x-0 fixed lg:sticky left-0 top-0 w-64 h-dvh bg-gradient-to-b from-amber-600 to-orange-700 dark:from-amber-800 dark:to-orange-900 text-white transition-transform duration-300 z-40 flex flex-col overflow-hidden`}
+        } lg:translate-x-0 fixed lg:sticky left-0 top-0 ${isCollapsed ? "lg:w-20" : "lg:w-64"} w-64 h-dvh bg-gradient-to-b from-amber-600 to-orange-700 dark:from-amber-800 dark:to-orange-900 text-white transition-[transform,width] duration-300 z-40 flex flex-col overflow-hidden`}
       >
+        <button
+          onClick={toggleCollapsed}
+          aria-label={isCollapsed ? t("common.sidebar.expand") : t("common.sidebar.collapse")}
+          title={isCollapsed ? t("common.sidebar.expand") : t("common.sidebar.collapse")}
+          className="hidden lg:flex absolute -right-3 top-20 z-10 w-6 h-6 items-center justify-center rounded-full border border-amber-500/40 bg-amber-600 dark:bg-amber-800 text-white shadow-md hover:bg-amber-500 transition-colors"
+        >
+          {isCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
+        </button>
+
         {/* Brand Header */}
-        <div className="p-5 border-b border-amber-500/40 mt-14 lg:mt-0 flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+        <div className={`p-5 border-b border-amber-500/40 mt-14 lg:mt-0 flex-shrink-0 ${isCollapsed ? "lg:px-2" : ""}`}>
+          <div className={`flex items-center gap-3 ${isCollapsed ? "lg:justify-center" : ""}`}>
+            <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
               <Store className="w-5 h-5" />
             </div>
-            <div>
+            <div className={isCollapsed ? "lg:hidden" : ""}>
               <h2 className="text-base font-bold leading-tight">{t("shopkeeper.layout.brandName")}</h2>
               <p className="text-[11px] text-amber-200">{t("shopkeeper.layout.portalName")}</p>
             </div>
@@ -246,7 +257,7 @@ export default function ShopkeeperLayout({ children }: { children: React.ReactNo
               const locked = isShopLocked && !isExemptPath(item.href)
               const showGroupLabel = item.group && item.group !== menuItems[i - 1]?.group
               const groupLabel = showGroupLabel && (
-                <p className="px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-amber-200/70">
+                <p className={`px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-amber-200/70 ${isCollapsed ? "lg:hidden" : ""}`}>
                   {GROUP_LABEL[item.group as string]}
                 </p>
               )
@@ -257,11 +268,11 @@ export default function ShopkeeperLayout({ children }: { children: React.ReactNo
                     <div
                       title={t("shopkeeper.layout.lockedTooltip")}
                       aria-disabled="true"
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium opacity-40 cursor-not-allowed select-none"
+                      className={`flex items-center gap-3 py-2.5 rounded-lg text-xs font-medium opacity-40 cursor-not-allowed select-none ${isCollapsed ? "lg:justify-center px-2" : "px-3"}`}
                     >
                       <IconComponent className="w-[18px] h-[18px] flex-shrink-0" />
-                      <span className="flex-1">{item.label}</span>
-                      <Lock className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span className={`flex-1 ${isCollapsed ? "lg:hidden" : ""}`}>{item.label}</span>
+                      <Lock className={`w-3.5 h-3.5 flex-shrink-0 ${isCollapsed ? "lg:hidden" : ""}`} />
                     </div>
                   </div>
                 )
@@ -272,16 +283,17 @@ export default function ShopkeeperLayout({ children }: { children: React.ReactNo
                   <Link
                     href={item.href}
                     onClick={() => setSidebarOpen(false)}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-xs font-medium ${
+                    title={isCollapsed ? item.label : undefined}
+                    className={`relative flex items-center gap-3 py-2.5 rounded-lg transition-all text-xs font-medium ${isCollapsed ? "lg:justify-center px-2" : "px-3"} ${
                       active
                         ? "bg-white/20 shadow-lg"
                         : "hover:bg-white/10"
                     }`}
                   >
                     <IconComponent className="w-[18px] h-[18px] flex-shrink-0" />
-                    <span className="flex-1">{item.label}</span>
+                    <span className={`flex-1 ${isCollapsed ? "lg:hidden" : ""}`}>{item.label}</span>
                     {item.badge && (
-                      <span className="bg-red-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0">
+                      <span className={`bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center flex-shrink-0 ${isCollapsed ? "lg:absolute lg:top-1 lg:right-1 lg:w-4 lg:h-4" : "w-5 h-5"}`}>
                         {item.badge}
                       </span>
                     )}
@@ -295,17 +307,18 @@ export default function ShopkeeperLayout({ children }: { children: React.ReactNo
         {/* Footer */}
         <div className="p-3 border-t border-amber-500/40 flex-shrink-0 space-y-1.5">
           <Link href="/shopkeeper/settings" onClick={() => setSidebarOpen(false)}>
-            <button className="w-full flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white font-medium py-2.5 rounded-lg text-xs transition-colors">
-              <Settings size={16} />
-              {t("settings.title")}
+            <button title={isCollapsed ? t("settings.title") : undefined} className={`w-full flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white font-medium py-2.5 rounded-lg text-xs transition-colors ${isCollapsed ? "lg:gap-0" : ""}`}>
+              <Settings size={16} className="flex-shrink-0" />
+              <span className={isCollapsed ? "lg:hidden" : ""}>{t("settings.title")}</span>
             </button>
           </Link>
           <button
             onClick={handleLogout}
-            className="w-full bg-red-500/80 hover:bg-red-500 text-white font-medium py-2.5 rounded-lg text-xs flex items-center justify-center gap-2 transition-colors"
+            title={isCollapsed ? t("auth.logout") : undefined}
+            className={`w-full bg-red-500/80 hover:bg-red-500 text-white font-medium py-2.5 rounded-lg text-xs flex items-center justify-center gap-2 transition-colors ${isCollapsed ? "lg:gap-0" : ""}`}
           >
-            <LogOut size={16} />
-            {t("auth.logout")}
+            <LogOut size={16} className="flex-shrink-0" />
+            <span className={isCollapsed ? "lg:hidden" : ""}>{t("auth.logout")}</span>
           </button>
         </div>
       </aside>
