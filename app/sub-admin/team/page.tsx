@@ -76,7 +76,7 @@ export default function TeamManagementPage() {
   return (
     <div className="space-y-8 pb-8">
       <div>
-        <h1 className="text-4xl font-bold text-gray-900 dark:text-white">{t("subAdmin.team.title")}</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t("subAdmin.team.title")}</h1>
         <p className="text-gray-600 dark:text-gray-400 mt-2">{t("subAdmin.team.subtitle")}</p>
       </div>
 
@@ -85,46 +85,46 @@ export default function TeamManagementPage() {
           <Card key={idx} className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground mb-2">{stat.label}</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white">{stat.value}</p>
+                <p className="text-xs text-muted-foreground mb-2">{stat.label}</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stat.value}</p>
               </div>
-              <span className="text-4xl">{stat.icon}</span>
+              <span className="text-3xl">{stat.icon}</span>
             </div>
           </Card>
         ))}
       </div>
 
       <Card className="p-6">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">{t("subAdmin.team.agentsSectionTitle")}</h2>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">{t("subAdmin.team.agentsSectionTitle")}</h2>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200 dark:border-gray-700">
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("subAdmin.team.colName")}</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("subAdmin.team.colJobTitle")}</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("subAdmin.team.colDepartment")}</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("subAdmin.team.colReportsTo")}</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("subAdmin.team.colSupervises")}</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("common.status")}</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("subAdmin.common.actions")}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("subAdmin.team.colName")}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("subAdmin.team.colJobTitle")}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("subAdmin.team.colDepartment")}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("subAdmin.team.colReportsTo")}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("subAdmin.team.colSupervises")}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("common.status")}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("subAdmin.common.actions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {teamMembers.length === 0 ? (
-                <tr><td colSpan={7} className="px-6 py-8 text-center text-sm text-gray-500 dark:text-gray-400">{t("subAdmin.team.noAgentsYet")}</td></tr>
+                <tr><td colSpan={7} className="px-6 py-8 text-center text-xs text-gray-500 dark:text-gray-400">{t("subAdmin.team.noAgentsYet")}</td></tr>
               ) : teamMembers.map(member => (
                 <tr key={member.teamMemberProfileId} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">{member.name}</td>
-                  <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{member.jobTitle ?? "—"}</td>
-                  <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{member.department ?? "—"}</td>
-                  <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{member.managerName ?? "—"}</td>
-                  <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{member.reportsCount}</td>
-                  <td className="px-6 py-4 text-sm">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${member.status === "Active" ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400" : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-400"}`}>
+                  <td className="px-6 py-4 text-xs font-medium text-gray-900 dark:text-white">{member.name}</td>
+                  <td className="px-6 py-4 text-xs text-gray-700 dark:text-gray-300">{member.jobTitle ?? "—"}</td>
+                  <td className="px-6 py-4 text-xs text-gray-700 dark:text-gray-300">{member.department ?? "—"}</td>
+                  <td className="px-6 py-4 text-xs text-gray-700 dark:text-gray-300">{member.managerName ?? "—"}</td>
+                  <td className="px-6 py-4 text-xs text-gray-700 dark:text-gray-300">{member.reportsCount}</td>
+                  <td className="px-6 py-4 text-xs">
+                    <span className={`px-3 py-1 rounded-full text-[11px] font-medium ${member.status === "Active" ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400" : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-400"}`}>
                       {member.status === "Active" ? t("subAdmin.team.statusActive") : t("subAdmin.team.statusInactive")}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-sm flex gap-2">
+                  <td className="px-6 py-4 text-xs flex gap-2">
                     <Button size="sm" className="bg-blue-600 hover:bg-blue-700 gap-1" onClick={() => handleViewMember(member)}>
                       <Eye size={16} />
                     </Button>
@@ -144,7 +144,7 @@ export default function TeamManagementPage() {
           <Card className="w-full max-w-md">
             <div className="p-6 space-y-4">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                   {modalMode === "edit" ? t("subAdmin.team.modalTitleEdit") : t("subAdmin.team.modalTitleView")}
                 </h2>
                 <button onClick={() => setShowModal(false)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
@@ -155,13 +155,13 @@ export default function TeamManagementPage() {
               {modalMode === "view" ? (
                 <div className="space-y-3">
                   {[[t("subAdmin.team.detailName"), selectedMember.name], [t("auth.email"), selectedMember.email], [t("subAdmin.team.detailJobTitle"), selectedMember.jobTitle ?? t("subAdmin.common.notSet")], [t("subAdmin.team.detailDepartment"), selectedMember.department ?? t("subAdmin.common.notSet")], [t("subAdmin.team.detailReportsTo"), selectedMember.managerName ?? t("subAdmin.common.nobody")], [t("subAdmin.team.detailSupervises"), t("subAdmin.team.agentCount", { count: selectedMember.reportsCount })], [t("common.status"), selectedMember.status === "Active" ? t("subAdmin.team.statusActive") : t("subAdmin.team.statusInactive")]].map(([l, v]) => (
-                    <div key={l} className="flex justify-between text-sm"><span className="text-gray-500">{l}</span><span className="font-medium text-gray-900 dark:text-white">{v}</span></div>
+                    <div key={l} className="flex justify-between text-xs"><span className="text-gray-500">{l}</span><span className="font-medium text-gray-900 dark:text-white">{v}</span></div>
                   ))}
                 </div>
               ) : (
                 <div className="space-y-3">
                   <div>
-                    <label className="text-sm text-gray-600 dark:text-gray-400">{t("subAdmin.team.detailJobTitle")}</label>
+                    <label className="text-xs text-gray-600 dark:text-gray-400">{t("subAdmin.team.detailJobTitle")}</label>
                     <select
                       value={formData.jobTitle}
                       onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
@@ -175,7 +175,7 @@ export default function TeamManagementPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="text-sm text-gray-600 dark:text-gray-400">{t("subAdmin.team.detailDepartment")}</label>
+                    <label className="text-xs text-gray-600 dark:text-gray-400">{t("subAdmin.team.detailDepartment")}</label>
                     <input
                       type="text"
                       value={formData.department}
@@ -185,7 +185,7 @@ export default function TeamManagementPage() {
                     />
                   </div>
                   <div>
-                    <label className="text-sm text-gray-600 dark:text-gray-400">{t("subAdmin.team.detailReportsTo")}</label>
+                    <label className="text-xs text-gray-600 dark:text-gray-400">{t("subAdmin.team.detailReportsTo")}</label>
                     <select
                       value={formData.managerId}
                       onChange={(e) => setFormData({ ...formData, managerId: e.target.value })}
@@ -198,7 +198,7 @@ export default function TeamManagementPage() {
                 </div>
               )}
 
-              {formError && <p className="text-sm text-red-600">{formError}</p>}
+              {formError && <p className="text-xs text-red-600">{formError}</p>}
 
               <div className="flex gap-3 pt-4">
                 <Button variant="outline" className="flex-1 bg-transparent" onClick={() => setShowModal(false)} disabled={isSaving}>

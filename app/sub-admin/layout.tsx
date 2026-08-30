@@ -139,7 +139,7 @@ export default function SubAdminLayout({ children }: { children: React.ReactNode
             <Shield className="w-5 h-5 text-white" />
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-lg font-bold leading-tight">{t("subAdmin.layout.title")}</h1>
+            <h1 className="text-base font-bold leading-tight">{t("subAdmin.layout.title")}</h1>
             <p className="text-[10px] text-blue-200">{t("subAdmin.layout.subtitle")}</p>
           </div>
           <button
@@ -164,7 +164,7 @@ export default function SubAdminLayout({ children }: { children: React.ReactNode
                 <Link
                   href={item.href}
                   onClick={() => setMenuOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-colors ${
                     isActive(item.href)
                       ? "bg-white text-blue-700 shadow-sm"
                       : "text-blue-100 hover:bg-blue-600/50"
@@ -184,7 +184,7 @@ export default function SubAdminLayout({ children }: { children: React.ReactNode
               logout()
               setMenuOpen(false)
             }}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-blue-100 hover:bg-blue-600/50 transition-colors"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium text-blue-100 hover:bg-blue-600/50 transition-colors"
           >
             <LogOut size={18} />
             {t("auth.logout")}
@@ -207,7 +207,7 @@ export default function SubAdminLayout({ children }: { children: React.ReactNode
               <Search size={16} className="text-gray-400" />
               <input
                 placeholder={t("subAdmin.layout.searchPlaceholder")}
-                className="bg-transparent text-sm outline-none w-full text-gray-700 dark:text-gray-200"
+                className="bg-transparent text-xs outline-none w-full text-gray-700 dark:text-gray-200"
               />
             </div>
           </div>
@@ -224,7 +224,7 @@ export default function SubAdminLayout({ children }: { children: React.ReactNode
               {notifOpen && (
                 <div className="absolute right-0 top-12 w-80 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50">
                   <div className="p-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                    <h3 className="font-semibold text-sm text-gray-900 dark:text-white">
+                    <h3 className="font-semibold text-xs text-gray-900 dark:text-white">
                       {t("settings.notifications")}
                     </h3>
                     {unreadCount > 0 && (
@@ -235,21 +235,21 @@ export default function SubAdminLayout({ children }: { children: React.ReactNode
                   </div>
                   <div className="max-h-64 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700">
                     {notifications.length === 0 ? (
-                      <div className="px-3 py-6 text-center text-xs text-gray-500 dark:text-gray-400">{t("subAdmin.layout.noNotifications")}</div>
+                      <div className="px-3 py-6 text-center text-[11px] text-gray-500 dark:text-gray-400">{t("subAdmin.layout.noNotifications")}</div>
                     ) : notifications.map((n) => (
                       <button
                         key={n.id}
                         onClick={() => handleNotificationClick(n)}
                         className={`w-full text-left px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer ${!n.isRead ? "bg-blue-50/50 dark:bg-blue-900/10" : ""}`}
                       >
-                        <p className="text-xs text-gray-900 dark:text-white font-medium">{n.title}</p>
+                        <p className="text-[11px] text-gray-900 dark:text-white font-medium">{n.title}</p>
                         <p className="text-[10px] text-gray-500 mt-0.5">{formatRelativeTime(n.createdAt)}</p>
                       </button>
                     ))}
                   </div>
                   <button
                     onClick={() => { setNotifOpen(false); router.push("/sub-admin/notifications") }}
-                    className="block w-full px-3 py-2.5 text-center text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 border-t border-gray-100 dark:border-gray-700"
+                    className="block w-full px-3 py-2.5 text-center text-[11px] font-medium text-blue-600 dark:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 border-t border-gray-100 dark:border-gray-700"
                   >
                     {t("subAdmin.layout.viewAllNotifications")}
                   </button>
@@ -259,7 +259,7 @@ export default function SubAdminLayout({ children }: { children: React.ReactNode
             <div className="relative" ref={profileMenuRef}>
               <button
                 onClick={() => setShowProfileMenu(!showProfileMenu)}
-                className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold cursor-pointer hover:shadow-lg transition-shadow"
+                className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-[11px] font-bold cursor-pointer hover:shadow-lg transition-shadow"
               >
                 {(account?.name ?? "SA").split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase()}
               </button>
@@ -268,7 +268,7 @@ export default function SubAdminLayout({ children }: { children: React.ReactNode
                 <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-2 z-50">
                   <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
                     <p className="font-semibold text-gray-900 dark:text-white truncate">{account?.name ?? t("subAdmin.layout.title")}</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 truncate">{account?.email ?? ""}</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 truncate">{account?.email ?? ""}</p>
                   </div>
 
                   <Link
@@ -339,7 +339,7 @@ export default function SubAdminLayout({ children }: { children: React.ReactNode
                     key={item.href}
                     href={item.href}
                     onClick={() => setShowMore(false)}
-                    className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    className="flex items-center gap-2 px-3 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                   >
                     <item.icon size={16} />
                     {item.label}

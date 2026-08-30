@@ -50,26 +50,26 @@ export default function SubAdminProfilePage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{t("subAdmin.profile.title")}</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{t("subAdmin.profile.title")}</h1>
           <p className="text-gray-600 dark:text-gray-400">{t("subAdmin.profile.subtitle")}</p>
         </div>
 
         <Card className="p-6 bg-white dark:bg-gray-800 border-0 rounded-xl shadow-sm">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-6 mb-8 pb-8 border-b border-gray-200 dark:border-gray-700">
-            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center text-white text-3xl font-bold flex-shrink-0">
+            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center text-white text-2xl font-bold flex-shrink-0">
               {account.name.charAt(0).toUpperCase()}
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{account.name}</h2>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">{account.name}</h2>
               <p className="text-gray-600 dark:text-gray-400">{account.email}</p>
-              <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">{t("subAdmin.profile.roleLabel")}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">{t("subAdmin.profile.roleLabel")}</p>
             </div>
           </div>
 
           <div className="space-y-6">
             <div className="grid md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("subAdmin.profile.fullNameLabel")}</label>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t("subAdmin.profile.fullNameLabel")}</label>
                 <Input
                   type="text"
                   value={profileForm.name}
@@ -78,7 +78,7 @@ export default function SubAdminProfilePage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("auth.email")}</label>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t("auth.email")}</label>
                 <Input
                   type="email"
                   value={account.email}
@@ -87,7 +87,7 @@ export default function SubAdminProfilePage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("subAdmin.profile.phoneLabel")}</label>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t("subAdmin.profile.phoneLabel")}</label>
                 <Input
                   type="tel"
                   value={profileForm.phone}
@@ -100,9 +100,9 @@ export default function SubAdminProfilePage() {
               <Button onClick={handleSaveProfile} disabled={isSavingProfile} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold h-10 rounded-lg">
                 {isSavingProfile ? <Loader2 size={16} className="animate-spin" /> : t("subAdmin.profile.saveChanges")}
               </Button>
-              {saved && <span className="flex items-center gap-1 text-emerald-600 text-sm font-medium"><CheckCircle2 size={16} />{t("subAdmin.profile.saved")}</span>}
+              {saved && <span className="flex items-center gap-1 text-emerald-600 text-xs font-medium"><CheckCircle2 size={16} />{t("subAdmin.profile.saved")}</span>}
             </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
               {t("subAdmin.profile.settingsPointer")}{" "}
               <Link href="/sub-admin/settings" className="text-blue-600 hover:underline font-medium">{t("nav.settings")}</Link>
             </p>

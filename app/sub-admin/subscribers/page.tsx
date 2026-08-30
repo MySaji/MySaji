@@ -115,7 +115,7 @@ export default function SubAdminSubscribersPage() {
     <div className="space-y-6 p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             {t("subAdmin.subscribers.title")}
           </h1>
           <p className="mt-1 text-gray-600 dark:text-gray-400">
@@ -141,8 +141,8 @@ export default function SubAdminSubscribersPage() {
               <Mail className="h-6 w-6 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">{t("subAdmin.subscribers.statTotal")}</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">{subscribers.length}</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">{t("subAdmin.subscribers.statTotal")}</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-white">{subscribers.length}</p>
             </div>
           </div>
         </Card>
@@ -152,8 +152,8 @@ export default function SubAdminSubscribersPage() {
               <Mail className="h-6 w-6 text-green-600 dark:text-green-400" />
             </div>
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">{t("subAdmin.subscribers.statThisMonth")}</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              <p className="text-xs text-gray-600 dark:text-gray-400">{t("subAdmin.subscribers.statThisMonth")}</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-white">
                 {subscribers.filter((s) => new Date(s.subscribedAt).getMonth() === new Date().getMonth()).length}
               </p>
             </div>
@@ -165,8 +165,8 @@ export default function SubAdminSubscribersPage() {
               <Mail className="h-6 w-6 text-purple-600 dark:text-purple-400" />
             </div>
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">{t("subAdmin.subscribers.statNewToday")}</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              <p className="text-xs text-gray-600 dark:text-gray-400">{t("subAdmin.subscribers.statNewToday")}</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-white">
                 {subscribers.filter((s) => new Date(s.subscribedAt).toDateString() === new Date().toDateString()).length}
               </p>
             </div>
@@ -191,9 +191,9 @@ export default function SubAdminSubscribersPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">{t("auth.email")}</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">{t("subAdmin.subscribers.colSubscribed")}</th>
-                <th className="px-6 py-3 text-right text-sm font-semibold text-gray-900 dark:text-white">{t("subAdmin.common.actions")}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white">{t("auth.email")}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white">{t("subAdmin.subscribers.colSubscribed")}</th>
+                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-900 dark:text-white">{t("subAdmin.common.actions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -213,8 +213,8 @@ export default function SubAdminSubscribersPage() {
                     key={subscriber.email}
                     className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors"
                   >
-                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">{subscriber.email}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
+                    <td className="px-6 py-4 text-xs text-gray-900 dark:text-white">{subscriber.email}</td>
+                    <td className="px-6 py-4 text-xs text-gray-600 dark:text-gray-400">
                       {new Date(subscriber.subscribedAt).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 text-right">
@@ -261,7 +261,7 @@ export default function SubAdminSubscribersPage() {
 
           <div className="space-y-4">
             <div className="space-y-3">
-              <label className="text-sm font-medium text-gray-900 dark:text-white">{t("subAdmin.subscribers.recipientsLabel")}</label>
+              <label className="text-xs font-medium text-gray-900 dark:text-white">{t("subAdmin.subscribers.recipientsLabel")}</label>
               <div className="flex gap-3">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
@@ -271,7 +271,7 @@ export default function SubAdminSubscribersPage() {
                     checked={selectedRecipients === 'all'}
                     onChange={(e) => setSelectedRecipients(e.target.value as 'all' | 'individual')}
                   />
-                  <span className="text-sm">{t("subAdmin.subscribers.allSubscribersCount", { count: subscribers.length })}</span>
+                  <span className="text-xs">{t("subAdmin.subscribers.allSubscribersCount", { count: subscribers.length })}</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
@@ -281,7 +281,7 @@ export default function SubAdminSubscribersPage() {
                     checked={selectedRecipients === 'individual'}
                     onChange={(e) => setSelectedRecipients(e.target.value as 'all' | 'individual')}
                   />
-                  <span className="text-sm">{t("subAdmin.subscribers.individualLabel")}</span>
+                  <span className="text-xs">{t("subAdmin.subscribers.individualLabel")}</span>
                 </label>
               </div>
 
@@ -289,7 +289,7 @@ export default function SubAdminSubscribersPage() {
                 <select
                   value={selectedEmail}
                   onChange={(e) => setSelectedEmail(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs dark:border-gray-600 dark:bg-gray-800 dark:text-white"
                 >
                   <option value="">{t("subAdmin.subscribers.selectAnEmailOption")}</option>
                   {subscribers.map((s) => (
@@ -300,24 +300,24 @@ export default function SubAdminSubscribersPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-900 dark:text-white">{t("subAdmin.subscribers.subjectLabel")}</label>
+              <label className="text-xs font-medium text-gray-900 dark:text-white">{t("subAdmin.subscribers.subjectLabel")}</label>
               <Input placeholder={t("subAdmin.subscribers.emailSubjectPlaceholder")} value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} />
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-900 dark:text-white">{t("subAdmin.subscribers.messageLabel")}</label>
+              <label className="text-xs font-medium text-gray-900 dark:text-white">{t("subAdmin.subscribers.messageLabel")}</label>
               <textarea
                 placeholder={t("subAdmin.subscribers.emailContentPlaceholder")}
                 value={emailContent}
                 onChange={(e) => setEmailContent(e.target.value)}
                 rows={8}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
               />
             </div>
 
             {sendMessage && (
               <div
-                className={`rounded-lg px-4 py-2 text-sm font-medium ${
+                className={`rounded-lg px-4 py-2 text-xs font-medium ${
                   sendMessageIsError
                     ? 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400'
                     : 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400'

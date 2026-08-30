@@ -47,10 +47,10 @@ export default function SubAdminDashboard() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">{t("subAdmin.dashboard.title")}</h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{t("subAdmin.dashboard.subtitle")}</p>
+          <h1 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t("subAdmin.dashboard.title")}</h1>
+          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{t("subAdmin.dashboard.subtitle")}</p>
         </div>
-        <Button onClick={() => router.push("/sub-admin/reports")} className="bg-blue-600 hover:bg-blue-700 text-sm">{t("subAdmin.dashboard.generateReport")}</Button>
+        <Button onClick={() => router.push("/sub-admin/reports")} className="bg-blue-600 hover:bg-blue-700 text-xs">{t("subAdmin.dashboard.generateReport")}</Button>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
@@ -61,20 +61,20 @@ export default function SubAdminDashboard() {
                 <s.icon className={`w-5 h-5 ${s.iconColor}`} />
               </div>
               {s.change !== null && (
-                <span className={`text-xs font-semibold ${s.change >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                <span className={`text-[11px] font-semibold ${s.change >= 0 ? "text-emerald-600" : "text-red-600"}`}>
                   {s.change >= 0 ? "+" : ""}{s.change}%
                 </span>
               )}
             </div>
-            <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">{s.label}</p>
-            <p className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white mt-1">{s.value}</p>
+            <p className="text-[11px] text-gray-600 dark:text-gray-400 font-medium">{s.label}</p>
+            <p className="text-lg lg:text-xl font-bold text-gray-900 dark:text-white mt-1">{s.value}</p>
           </Card>
         ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Card className="lg:col-span-2 p-4 lg:p-5 border-0 shadow-sm">
-          <h2 className="text-base font-bold text-gray-900 dark:text-white mb-4">{t("subAdmin.dashboard.weeklyRegistrationsTitle")}</h2>
+          <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-4">{t("subAdmin.dashboard.weeklyRegistrationsTitle")}</h2>
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={data.weeklyData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -88,9 +88,9 @@ export default function SubAdminDashboard() {
         </Card>
 
         <Card className="p-4 lg:p-5 border-0 shadow-sm">
-          <h2 className="text-base font-bold text-gray-900 dark:text-white mb-4">{t("subAdmin.dashboard.userRoleDistributionTitle")}</h2>
+          <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-4">{t("subAdmin.dashboard.userRoleDistributionTitle")}</h2>
           {data.roleData.length === 0 ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">{t("subAdmin.dashboard.noUsersYet")}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-8">{t("subAdmin.dashboard.noUsersYet")}</p>
           ) : (
             <>
               <ResponsiveContainer width="100%" height={180}>
@@ -105,7 +105,7 @@ export default function SubAdminDashboard() {
               </ResponsiveContainer>
               <div className="space-y-2 mt-2">
                 {data.roleData.map((r) => (
-                  <div key={r.name} className="flex items-center justify-between text-xs">
+                  <div key={r.name} className="flex items-center justify-between text-[11px]">
                     <div className="flex items-center gap-2">
                       <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: ROLE_COLOR[r.name] ?? "#9ca3af" }} />
                       <span className="text-gray-600 dark:text-gray-300">{roleLabels[r.name] ?? r.name}</span>
@@ -122,11 +122,11 @@ export default function SubAdminDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card className="p-4 lg:p-5 border-0 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-bold text-gray-900 dark:text-white">{t("subAdmin.dashboard.pendingActionsTitle")}</h2>
-            <span className="text-xs bg-red-100 dark:bg-red-900/30 text-red-600 px-2 py-0.5 rounded-full font-medium">{data.pendingActions.length}</span>
+            <h2 className="text-sm font-bold text-gray-900 dark:text-white">{t("subAdmin.dashboard.pendingActionsTitle")}</h2>
+            <span className="text-[11px] bg-red-100 dark:bg-red-900/30 text-red-600 px-2 py-0.5 rounded-full font-medium">{data.pendingActions.length}</span>
           </div>
           {data.pendingActions.length === 0 ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">{t("subAdmin.dashboard.allCaughtUp")}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-8">{t("subAdmin.dashboard.allCaughtUp")}</p>
           ) : (
             <div className="space-y-2">
               {data.pendingActions.map((a) => (
@@ -137,7 +137,7 @@ export default function SubAdminDashboard() {
                 >
                   <div className={`w-2 h-2 rounded-full flex-shrink-0 ${a.urgency === "high" ? "bg-red-500" : a.urgency === "medium" ? "bg-amber-500" : "bg-blue-500"}`} />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{a.title}</p>
+                    <p className="text-xs font-medium text-gray-900 dark:text-white truncate">{a.title}</p>
                     <p className="text-[10px] text-gray-500">{new Date(a.time).toLocaleDateString()}</p>
                   </div>
                   <ArrowRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
@@ -148,9 +148,9 @@ export default function SubAdminDashboard() {
         </Card>
 
         <Card className="p-4 lg:p-5 border-0 shadow-sm">
-          <h2 className="text-base font-bold text-gray-900 dark:text-white mb-4">{t("subAdmin.dashboard.recentActivityTitle")}</h2>
+          <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-4">{t("subAdmin.dashboard.recentActivityTitle")}</h2>
           {data.recentActivity.length === 0 ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">{t("subAdmin.dashboard.noRecentActivity")}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-8">{t("subAdmin.dashboard.noRecentActivity")}</p>
           ) : (
             <div className="space-y-3">
               {data.recentActivity.map((a) => (
@@ -159,8 +159,8 @@ export default function SubAdminDashboard() {
                     <CheckCircle className={`w-4 h-4 ${a.kind === "success" ? "text-emerald-600" : a.kind === "warning" ? "text-amber-600" : "text-red-600"}`} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">{a.action}</p>
-                    <p className="text-xs text-gray-500">{a.detail}, {new Date(a.time).toLocaleDateString()}</p>
+                    <p className="text-xs font-medium text-gray-900 dark:text-white">{a.action}</p>
+                    <p className="text-[11px] text-gray-500">{a.detail}, {new Date(a.time).toLocaleDateString()}</p>
                   </div>
                 </div>
               ))}

@@ -86,24 +86,24 @@ export default function SubAdminVerificationsPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">{t("subAdmin.verifications.title")}</h1>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{t("subAdmin.verifications.subtitle")}</p>
+        <h1 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t("subAdmin.verifications.title")}</h1>
+        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{t("subAdmin.verifications.subtitle")}</p>
       </div>
 
       <div className="grid grid-cols-3 gap-3">
-        <Card className="p-3 border-0 shadow-sm"><p className="text-xs text-gray-500">{t("subAdmin.verifications.statusPending")}</p><p className="text-xl font-bold text-amber-600">{verifications.filter(v=>v.status==="Pending").length}</p></Card>
-        <Card className="p-3 border-0 shadow-sm"><p className="text-xs text-gray-500">{t("subAdmin.verifications.statusApproved")}</p><p className="text-xl font-bold text-emerald-600">{verifications.filter(v=>v.status==="Approved").length}</p></Card>
-        <Card className="p-3 border-0 shadow-sm"><p className="text-xs text-gray-500">{t("subAdmin.verifications.statusRejected")}</p><p className="text-xl font-bold text-red-600">{verifications.filter(v=>v.status==="Rejected").length}</p></Card>
+        <Card className="p-3 border-0 shadow-sm"><p className="text-[11px] text-gray-500">{t("subAdmin.verifications.statusPending")}</p><p className="text-lg font-bold text-amber-600">{verifications.filter(v=>v.status==="Pending").length}</p></Card>
+        <Card className="p-3 border-0 shadow-sm"><p className="text-[11px] text-gray-500">{t("subAdmin.verifications.statusApproved")}</p><p className="text-lg font-bold text-emerald-600">{verifications.filter(v=>v.status==="Approved").length}</p></Card>
+        <Card className="p-3 border-0 shadow-sm"><p className="text-[11px] text-gray-500">{t("subAdmin.verifications.statusRejected")}</p><p className="text-lg font-bold text-red-600">{verifications.filter(v=>v.status==="Rejected").length}</p></Card>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder={t("subAdmin.verifications.searchPlaceholder")} className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30" />
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder={t("subAdmin.verifications.searchPlaceholder")} className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30" />
         </div>
         <div className="flex gap-2 overflow-x-auto">
           {["All","Pending","Approved","Rejected"].map(f => (
-            <button key={f} onClick={()=>setFilter(f)} className={`px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap ${filter===f?"bg-blue-600 text-white":"bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700"}`}>{filterLabels[f]}</button>
+            <button key={f} onClick={()=>setFilter(f)} className={`px-3 py-2 rounded-lg text-[11px] font-medium whitespace-nowrap ${filter===f?"bg-blue-600 text-white":"bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700"}`}>{filterLabels[f]}</button>
           ))}
         </div>
       </div>
@@ -113,22 +113,22 @@ export default function SubAdminVerificationsPage() {
           <table className="w-full">
             <thead className="bg-gray-50 dark:bg-gray-800">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("subAdmin.users.colUser")}</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 hidden sm:table-cell">{t("subAdmin.verifications.colDocuments")}</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("common.status")}</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("subAdmin.common.actions")}</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-700 dark:text-gray-300">{t("subAdmin.users.colUser")}</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-700 dark:text-gray-300 hidden sm:table-cell">{t("subAdmin.verifications.colDocuments")}</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-700 dark:text-gray-300">{t("common.status")}</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-700 dark:text-gray-300">{t("subAdmin.common.actions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {filtered.length === 0 ? (
-                <tr><td colSpan={4} className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">{t("subAdmin.verifications.noVerificationsFound")}</td></tr>
+                <tr><td colSpan={4} className="px-4 py-8 text-center text-xs text-gray-500 dark:text-gray-400">{t("subAdmin.verifications.noVerificationsFound")}</td></tr>
               ) : filtered.map(v => (
                 <tr key={v.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                   <td className="px-4 py-3">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">{v.name}</p>
+                    <p className="text-xs font-medium text-gray-900 dark:text-white">{v.name}</p>
                     <p className="text-[10px] text-gray-500">{v.role} -- {new Date(v.submittedDate).toLocaleDateString()}</p>
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 hidden sm:table-cell">{v.documents}</td>
+                  <td className="px-4 py-3 text-[11px] text-gray-600 dark:text-gray-400 hidden sm:table-cell">{v.documents}</td>
                   <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${getColor(v.status)}`}>{statusLabels[v.status] ?? v.status}</span></td>
                   <td className="px-4 py-3">
                     <div className="flex gap-1">
@@ -151,12 +151,12 @@ export default function SubAdminVerificationsPage() {
           {selected && <div className="space-y-3 py-3">
             <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-2">
               {[[t("subAdmin.users.detailName"),selected.name],[t("subAdmin.users.detailRole"),selected.role],[t("subAdmin.verifications.documentTypeLabel"),selected.documentType],...(selected.documentNumber ? [[t("subAdmin.verifications.documentNumberLabel"),selected.documentNumber]] : []),[t("common.status"),statusLabels[selected.status] ?? selected.status],[t("subAdmin.verifications.submittedLabel"),new Date(selected.submittedDate).toLocaleDateString()],...(selected.rejectionReason ? [[t("subAdmin.verifications.rejectionReasonLabel"),selected.rejectionReason]] : [])].map(([l,v])=>(
-                <div key={l} className="flex justify-between text-sm"><span className="text-gray-500">{l}</span><span className="font-medium text-gray-900 dark:text-white">{v}</span></div>
+                <div key={l} className="flex justify-between text-xs"><span className="text-gray-500">{l}</span><span className="font-medium text-gray-900 dark:text-white">{v}</span></div>
               ))}
             </div>
 
             <div>
-              <p className="text-xs text-gray-500 mb-1.5">{t("subAdmin.verifications.submittedDocumentsLabel")}</p>
+              <p className="text-[11px] text-gray-500 mb-1.5">{t("subAdmin.verifications.submittedDocumentsLabel")}</p>
               <KycDocumentViewer
                 documents={[
                   { label: t("subAdmin.verifications.idFrontLabel"), url: selected.idFileUrl },
@@ -168,7 +168,7 @@ export default function SubAdminVerificationsPage() {
 
             {selected.status==="Pending" && showRejectReason && (
               <div>
-                <label className="block text-sm font-medium mb-1.5">{t("subAdmin.verifications.rejectionReasonInputLabel")}</label>
+                <label className="block text-xs font-medium mb-1.5">{t("subAdmin.verifications.rejectionReasonInputLabel")}</label>
                 <Textarea value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder={t("subAdmin.verifications.rejectReasonPlaceholder")} className="min-h-[80px]" />
               </div>
             )}

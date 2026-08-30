@@ -65,8 +65,8 @@ export default function SubAdminReportsPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">{t("subAdmin.reports.title")}</h1>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{t("subAdmin.reports.subtitle")}</p>
+        <h1 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t("subAdmin.reports.title")}</h1>
+        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{t("subAdmin.reports.subtitle")}</p>
       </div>
 
       <div className="space-y-3">
@@ -78,13 +78,13 @@ export default function SubAdminReportsPage() {
                   <FileText className="w-5 h-5 text-blue-600" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{r.title}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{r.desc}</p>
+                  <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{r.title}</p>
+                  <p className="text-[11px] text-gray-500 mt-0.5">{r.desc}</p>
                 </div>
               </div>
               <Button
                 size="sm"
-                className="bg-blue-600 hover:bg-blue-700 gap-1 text-xs h-8"
+                className="bg-blue-600 hover:bg-blue-700 gap-1 text-[11px] h-8"
                 onClick={() => handleGenerate(r.id)}
                 disabled={generatingId === r.id}
               >

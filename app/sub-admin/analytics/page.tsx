@@ -58,25 +58,25 @@ export default function SubAdminAnalyticsPage() {
     <div className="space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">{t("subAdmin.analytics.title")}</h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{t("subAdmin.analytics.subtitle")}</p>
+          <h1 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t("subAdmin.analytics.title")}</h1>
+          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{t("subAdmin.analytics.subtitle")}</p>
         </div>
-        <Button variant="outline" onClick={handleExport} className="bg-transparent gap-2 text-sm"><Download size={16} /> {t("subAdmin.common.export")}</Button>
+        <Button variant="outline" onClick={handleExport} className="bg-transparent gap-2 text-xs"><Download size={16} /> {t("subAdmin.common.export")}</Button>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {kpis.map((s, i) => (
           <Card key={i} className="p-4 border-0 shadow-sm">
             <s.icon className={`w-5 h-5 ${s.color} mb-2`} />
-            <p className="text-xs text-gray-500">{s.label}</p>
-            <p className="text-xl font-bold text-gray-900 dark:text-white mt-1">{s.value}</p>
+            <p className="text-[11px] text-gray-500">{s.label}</p>
+            <p className="text-lg font-bold text-gray-900 dark:text-white mt-1">{s.value}</p>
             <p className="text-[10px] text-gray-400">{s.sub}</p>
           </Card>
         ))}
       </div>
 
       <Card className="p-4 lg:p-5 border-0 shadow-sm">
-        <h2 className="text-base font-bold text-gray-900 dark:text-white mb-4">{t("subAdmin.analytics.platformGrowthTitle")}</h2>
+        <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-4">{t("subAdmin.analytics.platformGrowthTitle")}</h2>
         <ResponsiveContainer width="100%" height={280}>
           <AreaChart data={data.monthlyData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -91,7 +91,7 @@ export default function SubAdminAnalyticsPage() {
       </Card>
 
       <Card className="p-4 lg:p-5 border-0 shadow-sm">
-        <h2 className="text-base font-bold text-gray-900 dark:text-white mb-4">{t("subAdmin.analytics.weeklyModerationTitle")}</h2>
+        <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-4">{t("subAdmin.analytics.weeklyModerationTitle")}</h2>
         <ResponsiveContainer width="100%" height={250}>
           <BarChart data={data.weeklyModeration}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />

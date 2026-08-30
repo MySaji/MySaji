@@ -118,7 +118,7 @@ export default function AgentManagementPage() {
     <div className="space-y-8 pb-8">
       <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
         <div>
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white">{t("subAdmin.agents.title")}</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t("subAdmin.agents.title")}</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">{t("subAdmin.agents.subtitle")}</p>
         </div>
         <div className="flex gap-2">
@@ -151,31 +151,31 @@ export default function AgentManagementPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200 dark:border-gray-700">
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("subAdmin.agents.colName")}</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("auth.email")}</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("common.status")}</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("subAdmin.agents.colCases")}</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("subAdmin.agents.colCommissionTier")}</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">{t("subAdmin.common.actions")}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("subAdmin.agents.colName")}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("auth.email")}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("common.status")}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("subAdmin.agents.colCases")}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("subAdmin.agents.colCommissionTier")}</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">{t("subAdmin.common.actions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {filteredAgents.length === 0 ? (
-                <tr><td colSpan={6} className="px-6 py-8 text-center text-sm text-gray-500 dark:text-gray-400">{t("subAdmin.agents.noAgentsFound")}</td></tr>
+                <tr><td colSpan={6} className="px-6 py-8 text-center text-xs text-gray-500 dark:text-gray-400">{t("subAdmin.agents.noAgentsFound")}</td></tr>
               ) : filteredAgents.map(agent => (
                 <tr key={agent.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">{agent.name}</td>
-                  <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{agent.email}</td>
-                  <td className="px-6 py-4 text-sm">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                  <td className="px-6 py-4 text-xs font-medium text-gray-900 dark:text-white">{agent.name}</td>
+                  <td className="px-6 py-4 text-xs text-gray-700 dark:text-gray-300">{agent.email}</td>
+                  <td className="px-6 py-4 text-xs">
+                    <span className={`px-3 py-1 rounded-full text-[11px] font-medium ${
                       agent.status === "Active" ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400" :
                       "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-400"
                     }`}>
                       {agent.status === "Active" ? t("subAdmin.agents.statusActive") : t("subAdmin.agents.statusInactive")}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{agent.casesResolved}/{agent.casesAssigned}</td>
-                  <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{agent.commissionTierName ? `${agent.commissionTierName} (${agent.commissionRate}%)` : "—"}</td>
+                  <td className="px-6 py-4 text-xs text-gray-700 dark:text-gray-300">{agent.casesResolved}/{agent.casesAssigned}</td>
+                  <td className="px-6 py-4 text-xs text-gray-700 dark:text-gray-300">{agent.commissionTierName ? `${agent.commissionTierName} (${agent.commissionRate}%)` : "—"}</td>
                   <td className="px-6 py-4 flex gap-2">
                     <button onClick={() => handleViewAgent(agent)} className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors">
                       <Eye size={18} />
@@ -199,7 +199,7 @@ export default function AgentManagementPage() {
           <Card className="w-full max-w-md">
             <div className="p-6 space-y-4">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                   {modalMode === "add" ? t("subAdmin.agents.modalTitleAdd") : modalMode === "edit" ? t("subAdmin.agents.modalTitleEdit") : t("subAdmin.agents.modalTitleView")}
                 </h2>
                 <button onClick={() => setShowModal(false)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
@@ -209,7 +209,7 @@ export default function AgentManagementPage() {
 
               <div className="space-y-3">
                 <div>
-                  <label className="text-sm text-gray-600 dark:text-gray-400">{t("subAdmin.agents.fieldName")}</label>
+                  <label className="text-xs text-gray-600 dark:text-gray-400">{t("subAdmin.agents.fieldName")}</label>
                   <input
                     type="text"
                     value={formData.name}
@@ -219,7 +219,7 @@ export default function AgentManagementPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm text-gray-600 dark:text-gray-400">{t("auth.email")}</label>
+                  <label className="text-xs text-gray-600 dark:text-gray-400">{t("auth.email")}</label>
                   <input
                     type="email"
                     value={formData.email}
@@ -230,7 +230,7 @@ export default function AgentManagementPage() {
                 </div>
                 {modalMode !== "add" && (
                   <div>
-                    <label className="text-sm text-gray-600 dark:text-gray-400">{t("subAdmin.agents.fieldPhone")}</label>
+                    <label className="text-xs text-gray-600 dark:text-gray-400">{t("subAdmin.agents.fieldPhone")}</label>
                     <input
                       type="tel"
                       value={formData.phone}
@@ -242,13 +242,13 @@ export default function AgentManagementPage() {
                 )}
                 {modalMode === "view" && selectedAgent && (
                   <div>
-                    <label className="text-sm text-gray-600 dark:text-gray-400">{t("subAdmin.agents.casesResolvedAssignedLabel")}</label>
+                    <label className="text-xs text-gray-600 dark:text-gray-400">{t("subAdmin.agents.casesResolvedAssignedLabel")}</label>
                     <p className="text-gray-900 dark:text-white font-medium py-2">{selectedAgent.casesResolved}/{selectedAgent.casesAssigned}</p>
                   </div>
                 )}
               </div>
 
-              {formError && <p className="text-sm text-red-600">{formError}</p>}
+              {formError && <p className="text-xs text-red-600">{formError}</p>}
 
               <div className="flex gap-3 pt-4">
                 <Button variant="outline" className="flex-1 bg-transparent" onClick={() => setShowModal(false)} disabled={isSaving}>
@@ -269,23 +269,23 @@ export default function AgentManagementPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <Card className="w-full max-w-md">
             <div className="p-6 space-y-4">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t("subAdmin.agents.agentCreatedTitle")}</h2>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white">{t("subAdmin.agents.agentCreatedTitle")}</h2>
               <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg space-y-3">
                 <div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">{t("auth.email")}</p>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">{newCredentials.email}</p>
+                  <p className="text-[11px] text-gray-600 dark:text-gray-400 mb-1">{t("auth.email")}</p>
+                  <p className="text-xs font-medium text-gray-900 dark:text-white">{newCredentials.email}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">{t("subAdmin.agents.temporaryPasswordLabel")}</p>
+                  <p className="text-[11px] text-gray-600 dark:text-gray-400 mb-1">{t("subAdmin.agents.temporaryPasswordLabel")}</p>
                   <div className="flex items-center gap-2">
-                    <code className="flex-1 text-sm bg-white dark:bg-gray-600 p-2 rounded border border-gray-300 dark:border-gray-500 text-gray-900 dark:text-white break-all">{newCredentials.password}</code>
+                    <code className="flex-1 text-xs bg-white dark:bg-gray-600 p-2 rounded border border-gray-300 dark:border-gray-500 text-gray-900 dark:text-white break-all">{newCredentials.password}</code>
                     <button onClick={() => navigator.clipboard.writeText(newCredentials.password)} className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900 rounded">
                       <Copy size={16} />
                     </button>
                   </div>
                 </div>
               </div>
-              <p className="text-xs text-gray-600 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/20 p-3 rounded">
+              <p className="text-[11px] text-gray-600 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/20 p-3 rounded">
                 {t("subAdmin.agents.credentialsShareNotice", { path: "/team-login" })}
               </p>
               <Button className="w-full bg-blue-600 hover:bg-blue-700" onClick={() => setNewCredentials(null)}>{t("subAdmin.agents.doneButton")}</Button>
