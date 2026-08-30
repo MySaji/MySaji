@@ -26,7 +26,8 @@ import { AuthHeroIllustration } from "@/components/auth/auth-hero-illustration"
 const OTP_LENGTH = 6
 const RESEND_COOLDOWN_SECONDS = 25
 
-type SignupStep = "role" | "details" | "otp" | "password" | "success"
+type SignupStep = "role" | "professionalType" | "details" | "otp" | "password" | "success"
+type ProviderType = "solo" | "business"
 
 const ROLE_CARDS: { role: UserRole; icon: typeof User; iconBg: string; iconColor: string; titleKey: TranslationKey; descKey: TranslationKey }[] = [
   { role: "customer", icon: User, iconBg: "bg-emerald-100 dark:bg-emerald-900/30", iconColor: "text-emerald-600 dark:text-emerald-400", titleKey: "authPage.signup.roleCardCustomerTitle", descKey: "authPage.signup.roleCardCustomerDesc" },
@@ -51,6 +52,7 @@ export default function SignupPage() {
   const [signupMethod, setSignupMethod] = useState<"phone" | "email">("phone")
   const [formData, setFormData] = useState({
     role: "customer" as UserRole,
+    providerType: null as ProviderType | null,
     name: "", email: "", phone: "", password: "", confirmPassword: "",
     agreeTerms: false,
   })
@@ -76,7 +78,25 @@ export default function SignupPage() {
 
   const handleSelectRole = (role: UserRole) => {
     handleChange("role", role)
+    // A provider needs to say up front whether they're a Solo Pro or a
+    // Business before the rest of the form even makes sense to fill in —
+    // everyone else goes straight to details as before.
+    setStep(role === "provider" ? "professionalType" : "details")
+  }
+
+  const handleSelectProviderType = (type: ProviderType) => {
+    setFormData((prev) => ({ ...prev, providerType: type }))
     setStep("details")
+  }
+
+  // Once account creation succeeds, a provider carries their Solo/Business
+  // choice forward as a query param so /provider/onboarding can skip
+  // straight to the right step instead of asking again.
+  const resolveNextPath = (role: UserRole) => {
+    if (role === "provider" && formData.providerType) {
+      return `/provider/onboarding?type=${formData.providerType}`
+    }
+    return ROLE_NEXT_PATH[role]
   }
 
   const validateDetails = () => {
@@ -202,7 +222,7 @@ export default function SignupPage() {
         return
       }
 
-      setNextPath(ROLE_NEXT_PATH[loginResult.role])
+      setNextPath(resolveNextPath(loginResult.role))
       setStep("success")
     } catch {
       setError(t("authPage.signup.registrationError"))
@@ -220,11 +240,11 @@ export default function SignupPage() {
     // Which role card they picked. auth.ts validates this against a fixed
     // allowlist before using it, so a hand-edited cookie cannot grant a role.
     document.cookie = `oauth_role=${formData.role}; path=/; max-age=300; samesite=lax`
-    // ROLE_NEXT_PATH, not ROLE_HOME_PATH: a provider must reach
-    // /provider/onboarding to choose Solo vs Business, a shopkeeper
-    // /shopkeeper/register, and so on. Sending them to the dashboard skips
-    // account setup entirely, which is what this used to do.
-    const result = await loginWithGoogle(ROLE_NEXT_PATH[formData.role])
+    // resolveNextPath, not ROLE_HOME_PATH: a provider must reach
+    // /provider/onboarding (carrying the Solo/Business choice already made
+    // above), a shopkeeper /shopkeeper/register, and so on. Sending them to
+    // the dashboard skips account setup entirely, which is what this used to do.
+    const result = await loginWithGoogle(resolveNextPath(formData.role))
     setIsLoading(false)
     if (!result.success) {
       setError(result.error)
@@ -237,7 +257,7 @@ export default function SignupPage() {
     setError(t("authPage.signup.appleNotSetup"))
   }
 
-  const STEP_ORDER: SignupStep[] = ["role", "details", "otp", "password"]
+  const STEP_ORDER: SignupStep[] = ["role", "professionalType", "details", "otp", "password"]
   const stepIndex = STEP_ORDER.indexOf(step)
 
   return (
@@ -303,9 +323,11 @@ export default function SignupPage() {
 
           {step !== "success" && step !== "role" && (
             <div className="flex gap-2 mb-5">
-              {STEP_ORDER.slice(1).map((s) => (
-                <div key={s} className={`flex-1 h-1.5 rounded-full transition-colors ${STEP_ORDER.indexOf(step) >= STEP_ORDER.indexOf(s) ? "bg-primary" : "bg-muted"}`} />
-              ))}
+              {STEP_ORDER.slice(1)
+                .filter((s) => s !== "professionalType" || formData.role === "provider")
+                .map((s) => (
+                  <div key={s} className={`flex-1 h-1.5 rounded-full transition-colors ${STEP_ORDER.indexOf(step) >= STEP_ORDER.indexOf(s) ? "bg-primary" : "bg-muted"}`} />
+                ))}
             </div>
           )}
 
@@ -339,6 +361,45 @@ export default function SignupPage() {
               <p className="text-center text-sm text-muted-foreground mt-6">
                 {t("authPage.signup.alreadyHaveAccount")} <Link href="/auth/login" className="font-semibold text-primary hover:underline">{t("authPage.signup.signIn")}</Link>
               </p>
+            </>
+          )}
+
+          {/* Step: professionalType (Solo Pro vs Business, provider role only) */}
+          {step === "professionalType" && (
+            <>
+              <button onClick={() => setStep("role")} className="text-sm text-muted-foreground hover:text-foreground mb-4 flex items-center gap-1">
+                &larr; {t("authPage.back")}
+              </button>
+              <h2 className="text-2xl font-bold text-foreground mb-1">{t("provider.onboarding.title")}</h2>
+              <p className="text-sm text-muted-foreground mb-6">{t("provider.onboarding.subtitle")}</p>
+              <div className="space-y-3">
+                <button
+                  onClick={() => handleSelectProviderType("solo")}
+                  className="w-full flex items-center gap-4 p-4 rounded-2xl border border-border bg-card hover:border-primary hover:shadow-sm transition-all text-left"
+                >
+                  <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 bg-blue-100 dark:bg-blue-900/30">
+                    <HardHat className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-foreground text-sm">{t("provider.onboarding.soloTitle")}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{t("provider.onboarding.soloDesc")}</p>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                </button>
+                <button
+                  onClick={() => handleSelectProviderType("business")}
+                  className="w-full flex items-center gap-4 p-4 rounded-2xl border border-border bg-card hover:border-primary hover:shadow-sm transition-all text-left"
+                >
+                  <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 bg-purple-100 dark:bg-purple-900/30">
+                    <Building2 className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-foreground text-sm">{t("provider.onboarding.businessTitle")}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{t("provider.onboarding.businessDesc")}</p>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                </button>
+              </div>
             </>
           )}
 
@@ -390,7 +451,7 @@ export default function SignupPage() {
                   {signupMethod === "phone" ? t("authPage.signup.otpWillGoToPhone") : t("authPage.signup.otpWillGoToEmail")}
                 </p>
                 <div className="flex gap-3">
-                  <Button type="button" onClick={() => setStep("role")} disabled={isLoading} variant="outline" className="h-10 rounded-xl bg-transparent gap-1 px-4">
+                  <Button type="button" onClick={() => setStep(formData.role === "provider" ? "professionalType" : "role")} disabled={isLoading} variant="outline" className="h-10 rounded-xl bg-transparent gap-1 px-4">
                     <ArrowLeft className="w-4 h-4" />
                   </Button>
                   <Button type="submit" disabled={isLoading} className="flex-1 h-10 rounded-xl font-semibold gap-2">

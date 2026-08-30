@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { HardHat, Building2, ArrowRight, Loader2, Upload, Globe, MapPin, Shuffle } from "lucide-react"
 import { completeBusinessOnboarding } from "@/lib/actions/provider-business"
 import { submitBusinessPermitDocument } from "@/lib/actions/kyc"
@@ -25,7 +25,17 @@ function fileToDataUrl(file: File): Promise<string> {
 export default function ProviderOnboardingPage() {
   const router = useRouter()
   const { t } = useLocalization()
-  const [step, setStep] = useState<OnboardingStep>("choice")
+  // A Solo/Business choice already made on the signup page (see
+  // app/auth/signup/page.tsx's professionalType step) arrives here as
+  // ?type=solo|business, so this page can skip straight past "choice"
+  // instead of asking the same question twice. Missing/invalid values
+  // (e.g. an old bookmark, or reaching this page some other way) fall back
+  // to asking here, same as before that step existed.
+  const searchParams = useSearchParams()
+  const initialType = searchParams.get("type")
+  const [step, setStep] = useState<OnboardingStep>(
+    initialType === "solo" ? "professional" : initialType === "business" ? "business-details" : "choice"
+  )
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
 
