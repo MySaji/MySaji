@@ -8,13 +8,14 @@ import { Card } from "@/components/ui/card"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import {
   ArrowRight, Zap, Lock, CheckCircle, ShieldCheck, Smartphone, MessageCircle, Star,
-  Menu, X, Briefcase, Download,
+  Menu, X, Download,
   Plug, Droplets, Hammer, Wind, Truck, Paintbrush, BriefcaseBusiness,
   Search, CalendarCheck, CreditCard, ThumbsUp, Home, Wrench, Store,
 } from "lucide-react"
 import { getServiceCategories, getLandingStats, type HomeServiceCategory, type LandingStats } from "@/lib/actions/home"
 import { usePwaInstall } from "@/lib/hooks/usePwaInstall"
 import PublicChatButton from "@/components/public-chat-button"
+import { BrandLogo } from "@/components/brand-logo"
 
 const CATEGORY_ICON: Record<string, ComponentType<{ className?: string }>> = {
   electricians: Plug,
@@ -336,9 +337,7 @@ export function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center">
-                <Briefcase className="w-5 h-5 text-primary-foreground" />
-              </div>
+              <BrandLogo size="small" />
               <Link href="/">
                 <span className="font-bold text-lg text-foreground">SAJI</span>
               </Link>
