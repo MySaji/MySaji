@@ -161,7 +161,7 @@ export default function DistributorLocationsPage() {
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-3">
           <div>
-            <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">{t("distributor.locations.title")}</h1>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{t("distributor.locations.title")}</h1>
             <p className="text-gray-600 dark:text-gray-400">{t("distributor.locations.subtitle")}</p>
           </div>
           <div className="flex gap-3">
@@ -187,7 +187,7 @@ export default function DistributorLocationsPage() {
             <button
               key={tab.value}
               onClick={() => setActiveTab(tab.value)}
-              className={`px-4 py-2 whitespace-nowrap rounded-lg font-medium transition-colors text-sm ${
+              className={`px-4 py-2 whitespace-nowrap rounded-lg font-medium transition-colors text-xs ${
                 activeTab === tab.value
                   ? "bg-teal-600 text-white shadow-lg"
                   : "border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -232,9 +232,9 @@ export default function DistributorLocationsPage() {
                   <Link href={`/distributor/locations/${loc.id}`} className="block mb-1">
                     <h3 className="font-bold text-gray-900 dark:text-white hover:text-teal-600 dark:hover:text-teal-400 transition-colors">{loc.name}</h3>
                   </Link>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">{t(TYPE_LABEL_KEY[loc.type])}</p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-3">{t(TYPE_LABEL_KEY[loc.type])}</p>
 
-                  <div className="space-y-1.5 mb-4 text-sm text-gray-600 dark:text-gray-400">
+                  <div className="space-y-1.5 mb-4 text-xs text-gray-600 dark:text-gray-400">
                     <div className="flex items-start gap-1.5">
                       <MapPin className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
                       <span className="truncate">{[loc.address, loc.city].filter(Boolean).join(", ")}</span>
@@ -248,14 +248,14 @@ export default function DistributorLocationsPage() {
                   </div>
 
                   <div className="flex items-center gap-4 mb-4 pt-3 border-t border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center gap-1.5 text-sm">
+                    <div className="flex items-center gap-1.5 text-xs">
                       <Package className="w-4 h-4 text-gray-400" />
                       <span className="font-semibold text-gray-900 dark:text-white">{loc.itemCount}</span>
-                      <span className="text-gray-500 dark:text-gray-400 text-xs">{t("distributor.locations.itemsLabel")}</span>
+                      <span className="text-gray-500 dark:text-gray-400 text-[11px]">{t("distributor.locations.itemsLabel")}</span>
                     </div>
-                    <div className="text-sm">
+                    <div className="text-xs">
                       <span className="font-semibold text-gray-900 dark:text-white">{loc.totalStock}</span>
-                      <span className="text-gray-500 dark:text-gray-400 text-xs"> {t("distributor.locations.unitsLabel")}</span>
+                      <span className="text-gray-500 dark:text-gray-400 text-[11px]"> {t("distributor.locations.unitsLabel")}</span>
                     </div>
                   </div>
 
@@ -277,20 +277,20 @@ export default function DistributorLocationsPage() {
         )}
 
         <Card className="p-6 border-0 shadow-lg">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{t("distributor.locations.recentStockTransfers")}</h2>
+          <h2 className="text-base font-bold text-gray-900 dark:text-white mb-4">{t("distributor.locations.recentStockTransfers")}</h2>
           {transfers.length === 0 ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-6">{t("distributor.locations.noStockTransfersYet")}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-6">{t("distributor.locations.noStockTransfersYet")}</p>
           ) : (
             <div className="space-y-3">
               {transfers.slice(0, 8).map((transfer) => (
-                <div key={transfer.id} className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg text-sm">
+                <div key={transfer.id} className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg text-xs">
                   <div>
                     <p className="font-medium text-gray-900 dark:text-white">{transfer.productName}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{transfer.fromLocationName} <ArrowRightLeft className="inline w-3 h-3 mx-1" /> {transfer.toLocationName} · {t("distributor.locations.transferByLabel", { name: transfer.initiatedByName })}</p>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400">{transfer.fromLocationName} <ArrowRightLeft className="inline w-3 h-3 mx-1" /> {transfer.toLocationName} · {t("distributor.locations.transferByLabel", { name: transfer.initiatedByName })}</p>
                   </div>
                   <div className="text-right">
                     <p className="font-semibold text-gray-900 dark:text-white">{t("distributor.locations.unitsSuffix", { count: transfer.quantity })}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{new Date(transfer.createdAt).toLocaleDateString()}</p>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400">{new Date(transfer.createdAt).toLocaleDateString()}</p>
                   </div>
                 </div>
               ))}
@@ -337,7 +337,7 @@ export default function DistributorLocationsPage() {
             <div>
               <Label>{t("distributor.locations.deliveryFeeLabel")}</Label>
               <div className="relative mt-1.5">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">KES</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">KES</span>
                 <Input
                   type="number"
                   min="0"
@@ -347,14 +347,14 @@ export default function DistributorLocationsPage() {
                   className="pl-12"
                 />
               </div>
-              <p className="text-xs text-muted-foreground mt-1.5">{t("distributor.locations.deliveryFeeHint")}</p>
+              <p className="text-[11px] text-muted-foreground mt-1.5">{t("distributor.locations.deliveryFeeHint")}</p>
             </div>
             <label className="flex items-center gap-2 cursor-pointer">
               <Checkbox checked={locationForm.isPrimary} onCheckedChange={(c) => setLocationForm({ ...locationForm, isPrimary: c === true })} />
-              <span className="text-sm text-gray-700 dark:text-gray-300">{t("distributor.locations.setPrimaryLabel")}</span>
+              <span className="text-xs text-gray-700 dark:text-gray-300">{t("distributor.locations.setPrimaryLabel")}</span>
             </label>
 
-            {locationError && <p className="text-sm text-red-600">{locationError}</p>}
+            {locationError && <p className="text-xs text-red-600">{locationError}</p>}
 
             <div className="flex gap-2 pt-2">
               <Button onClick={handleSaveLocation} disabled={isSavingLocation || !locationForm.name.trim() || !locationForm.address.trim()} className="flex-1 bg-teal-600 hover:bg-teal-700">
@@ -373,7 +373,7 @@ export default function DistributorLocationsPage() {
           </DialogHeader>
           <div className="space-y-4 mt-2">
             {productOptions.length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400">{t("distributor.locations.noProductsForTransfer")}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t("distributor.locations.noProductsForTransfer")}</p>
             ) : (
               <>
                 <div>
@@ -420,7 +420,7 @@ export default function DistributorLocationsPage() {
                   <Input value={transferForm.notes} onChange={(e) => setTransferForm({ ...transferForm, notes: e.target.value })} placeholder={t("distributor.locations.notesPlaceholder")} className="mt-1.5" />
                 </div>
 
-                {transferError && <p className="text-sm text-red-600">{transferError}</p>}
+                {transferError && <p className="text-xs text-red-600">{transferError}</p>}
 
                 <div className="flex gap-2 pt-2">
                   <Button

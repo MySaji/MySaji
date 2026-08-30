@@ -85,38 +85,38 @@ export default function DistributorOrderDetailPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-8">
       <div className="max-w-3xl mx-auto">
-        <button onClick={() => router.push("/distributor/orders")} className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-4">
+        <button onClick={() => router.push("/distributor/orders")} className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-4">
           <ArrowLeft className="w-4 h-4" /> {t("distributor.orderDetail.backToOrders")}
         </button>
 
         <Card className="p-6 border-0 shadow-lg mb-6">
           <div className="flex items-start justify-between mb-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{order.orderNumber}</h1>
-              <p className="text-sm text-gray-600 dark:text-gray-400">{order.buyerShopName} · <Truck className="inline w-3.5 h-3.5" /> {order.locationName}</p>
+              <h1 className="text-xl font-bold text-gray-900 dark:text-white">{order.orderNumber}</h1>
+              <p className="text-xs text-gray-600 dark:text-gray-400">{order.buyerShopName} · <Truck className="inline w-3.5 h-3.5" /> {order.locationName}</p>
             </div>
-            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${STATUS_COLOR[order.status]}`}>
+            <span className={`px-3 py-1 rounded-full text-[11px] font-semibold ${STATUS_COLOR[order.status]}`}>
               {t(STATUS_KEY[order.status] ?? "distributor.common.statusPending")}
             </span>
           </div>
 
           <div className="space-y-2 mb-4">
             {order.items.map((it) => (
-              <div key={it.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm">
+              <div key={it.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-xs">
                 <span className="text-gray-900 dark:text-white">{it.productName} × {it.quantity}</span>
                 <span className="text-gray-600 dark:text-gray-400">{t("distributor.orderDetail.priceEach", { price: formatMoney(it.unitPrice), total: formatMoney(it.totalPrice) })}</span>
               </div>
             ))}
           </div>
 
-          <div className="space-y-1 text-sm border-t border-gray-200 dark:border-gray-700 pt-4">
+          <div className="space-y-1 text-xs border-t border-gray-200 dark:border-gray-700 pt-4">
             <div className="flex justify-between text-gray-600 dark:text-gray-400"><span>{t("distributor.orderDetail.subtotalLabel")}</span><span>{formatMoney(order.subtotal)}</span></div>
             <div className="flex justify-between text-gray-600 dark:text-gray-400"><span>{t("distributor.orderDetail.deliveryFeeLabel")}</span><span>{formatMoney(order.deliveryFee)}</span></div>
-            <div className="flex justify-between font-bold text-gray-900 dark:text-white text-base"><span>{t("payment.total")}</span><span>{formatMoney(order.total)}</span></div>
+            <div className="flex justify-between font-bold text-gray-900 dark:text-white text-sm"><span>{t("payment.total")}</span><span>{formatMoney(order.total)}</span></div>
           </div>
 
           {order.notes && (
-            <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm text-gray-600 dark:text-gray-400">
+            <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-xs text-gray-600 dark:text-gray-400">
               <span className="font-medium text-gray-900 dark:text-white">{t("distributor.orderDetail.notesLabel")} </span>{order.notes}
             </div>
           )}
@@ -124,7 +124,7 @@ export default function DistributorOrderDetailPage() {
 
         {next && (
           <Card className="p-6 border-0 shadow-lg flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+            <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
               {order.status === "SHIPPED" ? <CheckCircle2 className="w-5 h-5 text-teal-600" /> : <Clock className="w-5 h-5 text-teal-600" />}
               {t("distributor.orderDetail.advanceOrderPrompt")}
             </div>
@@ -135,12 +135,12 @@ export default function DistributorOrderDetailPage() {
         )}
 
         {order.status === "DELIVERED" && (
-          <Card className="p-4 border-0 shadow-lg bg-emerald-50 dark:bg-emerald-900/20 flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-400">
+          <Card className="p-4 border-0 shadow-lg bg-emerald-50 dark:bg-emerald-900/20 flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-400">
             <Package className="w-4 h-4" /> {t("distributor.orderDetail.deliveredNotice")}
           </Card>
         )}
         {(order.status === "CANCELLED" || order.status === "REFUNDED") && (
-          <Card className="p-4 border-0 shadow-lg bg-red-50 dark:bg-red-900/20 flex items-center gap-2 text-sm text-red-700 dark:text-red-400">
+          <Card className="p-4 border-0 shadow-lg bg-red-50 dark:bg-red-900/20 flex items-center gap-2 text-xs text-red-700 dark:text-red-400">
             <AlertCircle className="w-4 h-4" /> {t("distributor.orderDetail.cancelledNotice")}
           </Card>
         )}

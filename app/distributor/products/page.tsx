@@ -199,8 +199,8 @@ export default function DistributorProductsPage() {
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-3xl font-bold">{t("distributor.products.title")}</h1>
-              <p className="text-teal-100 text-sm">{t("distributor.products.subtitle")}</p>
+              <h1 className="text-2xl font-bold">{t("distributor.products.title")}</h1>
+              <p className="text-teal-100 text-xs">{t("distributor.products.subtitle")}</p>
             </div>
             <Button onClick={openAddModal} className="bg-white text-teal-700 hover:bg-teal-50" disabled={categories.length === 0}>
               <Plus className="w-4 h-4 mr-2" />
@@ -209,20 +209,20 @@ export default function DistributorProductsPage() {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
-              <p className="text-3xl font-bold">{productsList.length}</p>
-              <p className="text-xs text-teal-100">{t("distributor.products.totalProducts")}</p>
+              <p className="text-2xl font-bold">{productsList.length}</p>
+              <p className="text-[11px] text-teal-100">{t("distributor.products.totalProducts")}</p>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
-              <p className="text-3xl font-bold">{productsList.filter((p) => p.isActive).length}</p>
-              <p className="text-xs text-teal-100">{t("distributor.common.active")}</p>
+              <p className="text-2xl font-bold">{productsList.filter((p) => p.isActive).length}</p>
+              <p className="text-[11px] text-teal-100">{t("distributor.common.active")}</p>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
-              <p className="text-3xl font-bold">{productsList.reduce((sum, p) => sum + p.totalStock, 0)}</p>
-              <p className="text-xs text-teal-100">{t("distributor.products.totalStock")}</p>
+              <p className="text-2xl font-bold">{productsList.reduce((sum, p) => sum + p.totalStock, 0)}</p>
+              <p className="text-[11px] text-teal-100">{t("distributor.products.totalStock")}</p>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
-              <p className="text-3xl font-bold">{productsList.reduce((sum, p) => sum + p.totalSoldWholesale, 0)}</p>
-              <p className="text-xs text-teal-100">{t("distributor.products.totalSold")}</p>
+              <p className="text-2xl font-bold">{productsList.reduce((sum, p) => sum + p.totalSoldWholesale, 0)}</p>
+              <p className="text-[11px] text-teal-100">{t("distributor.products.totalSold")}</p>
             </div>
           </div>
         </div>
@@ -238,7 +238,7 @@ export default function DistributorProductsPage() {
 
         {categories.length === 0 && (
           <Card className="p-4 mb-6 border-0 shadow-lg bg-amber-50 dark:bg-amber-900/20">
-            <p className="text-sm text-amber-800 dark:text-amber-300">{t("distributor.products.noCategoriesWarning")}</p>
+            <p className="text-xs text-amber-800 dark:text-amber-300">{t("distributor.products.noCategoriesWarning")}</p>
           </Card>
         )}
 
@@ -253,18 +253,18 @@ export default function DistributorProductsPage() {
               <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-all border-0">
                 <div className="relative overflow-hidden bg-gray-200 dark:bg-gray-700 aspect-square">
                   <Image src={product.images[0] || "/placeholder.svg"} alt={product.name} fill className="object-cover hover:scale-105 transition-transform" />
-                  <div className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-semibold ${product.isActive ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"}`}>
+                  <div className={`absolute top-3 right-3 px-3 py-1 rounded-full text-[11px] font-semibold ${product.isActive ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"}`}>
                     {product.isActive ? t("distributor.common.active") : t("distributor.products.hiddenLabel")}
                   </div>
-                  <div className="absolute top-3 left-3 bg-black/60 text-white px-2 py-1 rounded text-xs font-medium">
+                  <div className="absolute top-3 left-3 bg-black/60 text-white px-2 py-1 rounded text-[11px] font-medium">
                     {t("distributor.products.soldBadge", { count: product.totalSoldWholesale })}
                   </div>
                 </div>
                 <div className="p-4">
                   <h3 className="font-semibold text-gray-900 dark:text-white mb-1 line-clamp-2">{product.name}</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{t("distributor.products.skuLabel", { sku: product.sku })}</p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-2">{t("distributor.products.skuLabel", { sku: product.sku })}</p>
 
-                  <div className="grid grid-cols-2 gap-2 mb-3 text-sm">
+                  <div className="grid grid-cols-2 gap-2 mb-3 text-xs">
                     <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-2">
                       <p className="text-[10px] text-gray-500 dark:text-gray-400">{t("distributor.products.retailLabel")}</p>
                       <p className="font-bold text-gray-900 dark:text-white">{formatMoney(product.retailPrice)}</p>
@@ -275,7 +275,7 @@ export default function DistributorProductsPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center justify-between text-[11px] text-gray-600 dark:text-gray-400 mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
                     <span>{t("distributor.products.totalStockLabel")} <span className="font-semibold text-gray-900 dark:text-white">{product.totalStock}</span></span>
                     <button onClick={() => openStockModal(product)} className="flex items-center gap-1 text-teal-600 hover:underline">
                       <Warehouse className="w-3 h-3" /> {t("distributor.products.adjustStock")}
@@ -302,10 +302,10 @@ export default function DistributorProductsPage() {
 
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle className="text-xl font-semibold">{t("distributor.products.addModalTitle")}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="text-lg font-semibold">{t("distributor.products.addModalTitle")}</DialogTitle></DialogHeader>
           <div className="space-y-5 py-2">
             <div className="rounded-xl border border-dashed border-teal-300 bg-teal-50/70 p-4 dark:border-teal-700 dark:bg-teal-950/20">
-              <label className="mb-2 block text-sm font-medium">{t("distributor.products.productPhotosLabel")}</label>
+              <label className="mb-2 block text-xs font-medium">{t("distributor.products.productPhotosLabel")}</label>
               <div className="rounded-lg border border-dashed border-gray-300 bg-white p-4 text-center transition-colors hover:border-teal-500 dark:border-gray-600 dark:bg-gray-900">
                 <input type="file" accept="image/*" multiple onChange={(e) => handleImageUpload(e, true)} className="hidden" id="new-image-input" />
                 <label htmlFor="new-image-input" className="cursor-pointer">
@@ -320,7 +320,7 @@ export default function DistributorProductsPage() {
                   ) : (
                     <div className="py-4">
                       <Upload className="mx-auto mb-2 h-8 w-8 text-teal-500" />
-                      <p className="text-sm font-medium text-gray-700 dark:text-gray-200">{t("distributor.products.uploadPhotosPrompt")}</p>
+                      <p className="text-xs font-medium text-gray-700 dark:text-gray-200">{t("distributor.products.uploadPhotosPrompt")}</p>
                     </div>
                   )}
                 </label>
@@ -328,32 +328,32 @@ export default function DistributorProductsPage() {
             </div>
 
             <div className="md:col-span-2">
-              <label className="mb-2 block text-sm font-medium">{t("distributor.products.productNameLabel")}</label>
+              <label className="mb-2 block text-xs font-medium">{t("distributor.products.productNameLabel")}</label>
               <Input value={newProductForm.name} onChange={(e) => setNewProductForm({ ...newProductForm, name: e.target.value })} placeholder={t("distributor.products.productNamePlaceholder")} />
             </div>
 
             <div className="grid gap-4 md:grid-cols-3">
               <div>
-                <label className="mb-2 block text-sm font-medium">{t("distributor.products.retailPriceLabel")}</label>
+                <label className="mb-2 block text-xs font-medium">{t("distributor.products.retailPriceLabel")}</label>
                 <Input type="number" value={newProductForm.retailPrice} onChange={(e) => setNewProductForm({ ...newProductForm, retailPrice: e.target.value })} placeholder="0" />
               </div>
               <div>
-                <label className="mb-2 block text-sm font-medium">{t("distributor.products.wholesalePriceLabel")}</label>
+                <label className="mb-2 block text-xs font-medium">{t("distributor.products.wholesalePriceLabel")}</label>
                 <Input type="number" value={newProductForm.wholesalePrice} onChange={(e) => setNewProductForm({ ...newProductForm, wholesalePrice: e.target.value })} placeholder="0" />
               </div>
               <div>
-                <label className="mb-2 block text-sm font-medium">{t("distributor.products.minWholesaleQtyLabel")}</label>
+                <label className="mb-2 block text-xs font-medium">{t("distributor.products.minWholesaleQtyLabel")}</label>
                 <Input type="number" value={newProductForm.minWholesaleQty} onChange={(e) => setNewProductForm({ ...newProductForm, minWholesaleQty: e.target.value })} placeholder={t("distributor.products.minWholesaleQtyPlaceholder")} />
               </div>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
               <div>
-                <label className="mb-2 block text-sm font-medium">{t("distributor.products.unitLabel")}</label>
+                <label className="mb-2 block text-xs font-medium">{t("distributor.products.unitLabel")}</label>
                 <Input value={newProductForm.unit} onChange={(e) => setNewProductForm({ ...newProductForm, unit: e.target.value })} placeholder={t("distributor.products.unitPlaceholder")} />
               </div>
               <div>
-                <label className="mb-2 block text-sm font-medium">{t("distributor.products.categoryLabel")}</label>
+                <label className="mb-2 block text-xs font-medium">{t("distributor.products.categoryLabel")}</label>
                 <select value={newProductForm.categoryId} onChange={(e) => setNewProductForm({ ...newProductForm, categoryId: e.target.value })} className="w-full rounded-md border border-input bg-background px-3 py-2 h-10">
                   {categories.map((cat) => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
                 </select>
@@ -361,17 +361,17 @@ export default function DistributorProductsPage() {
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium">{t("distributor.products.descriptionLabel")}</label>
+              <label className="mb-2 block text-xs font-medium">{t("distributor.products.descriptionLabel")}</label>
               <textarea value={newProductForm.description} onChange={(e) => setNewProductForm({ ...newProductForm, description: e.target.value })} placeholder={t("distributor.products.descriptionPlaceholder")} className="h-24 w-full resize-none rounded-md border border-input bg-background px-3 py-2" />
             </div>
 
             {locations.length > 0 && (
               <div>
-                <label className="mb-2 block text-sm font-medium">{t("distributor.products.initialStockLabel")}</label>
+                <label className="mb-2 block text-xs font-medium">{t("distributor.products.initialStockLabel")}</label>
                 <div className="space-y-2">
                   {locations.map((loc) => (
                     <div key={loc.id} className="flex items-center gap-3">
-                      <span className="text-sm text-gray-600 dark:text-gray-400 flex-1">{loc.name}</span>
+                      <span className="text-xs text-gray-600 dark:text-gray-400 flex-1">{loc.name}</span>
                       <Input
                         type="number"
                         placeholder="0"
@@ -385,7 +385,7 @@ export default function DistributorProductsPage() {
               </div>
             )}
 
-            {formError && <p className="text-sm text-red-600">{formError}</p>}
+            {formError && <p className="text-xs text-red-600">{formError}</p>}
 
             <div className="flex gap-3 pt-2">
               <Button variant="outline" onClick={() => setShowAddModal(false)} className="flex-1 bg-transparent" disabled={isSaving}>{t("common.cancel")}</Button>
@@ -403,44 +403,44 @@ export default function DistributorProductsPage() {
 
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle className="text-xl font-semibold">{t("distributor.products.editModalTitle")}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="text-lg font-semibold">{t("distributor.products.editModalTitle")}</DialogTitle></DialogHeader>
           <div className="space-y-5 py-2">
             <div className="md:col-span-2">
-              <label className="mb-2 block text-sm font-medium">{t("distributor.products.productNameLabelPlain")}</label>
+              <label className="mb-2 block text-xs font-medium">{t("distributor.products.productNameLabelPlain")}</label>
               <Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
             </div>
             <div className="grid gap-4 md:grid-cols-3">
               <div>
-                <label className="mb-2 block text-sm font-medium">{t("distributor.products.retailPriceLabelPlain")}</label>
+                <label className="mb-2 block text-xs font-medium">{t("distributor.products.retailPriceLabelPlain")}</label>
                 <Input type="number" value={editForm.retailPrice} onChange={(e) => setEditForm({ ...editForm, retailPrice: e.target.value })} />
               </div>
               <div>
-                <label className="mb-2 block text-sm font-medium">{t("distributor.products.wholesalePriceLabelPlain")}</label>
+                <label className="mb-2 block text-xs font-medium">{t("distributor.products.wholesalePriceLabelPlain")}</label>
                 <Input type="number" value={editForm.wholesalePrice} onChange={(e) => setEditForm({ ...editForm, wholesalePrice: e.target.value })} />
               </div>
               <div>
-                <label className="mb-2 block text-sm font-medium">{t("distributor.products.minWholesaleQtyLabelPlain")}</label>
+                <label className="mb-2 block text-xs font-medium">{t("distributor.products.minWholesaleQtyLabelPlain")}</label>
                 <Input type="number" value={editForm.minWholesaleQty} onChange={(e) => setEditForm({ ...editForm, minWholesaleQty: e.target.value })} />
               </div>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               <div>
-                <label className="mb-2 block text-sm font-medium">{t("distributor.products.unitLabelPlain")}</label>
+                <label className="mb-2 block text-xs font-medium">{t("distributor.products.unitLabelPlain")}</label>
                 <Input value={editForm.unit} onChange={(e) => setEditForm({ ...editForm, unit: e.target.value })} />
               </div>
               <div>
-                <label className="mb-2 block text-sm font-medium">{t("distributor.products.categoryLabelPlain")}</label>
+                <label className="mb-2 block text-xs font-medium">{t("distributor.products.categoryLabelPlain")}</label>
                 <select value={editForm.categoryId} onChange={(e) => setEditForm({ ...editForm, categoryId: e.target.value })} className="w-full rounded-md border border-input bg-background px-3 py-2 h-10">
                   {categories.map((cat) => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
                 </select>
               </div>
             </div>
             <div>
-              <label className="mb-2 block text-sm font-medium">{t("distributor.products.descriptionLabelPlain")}</label>
+              <label className="mb-2 block text-xs font-medium">{t("distributor.products.descriptionLabelPlain")}</label>
               <textarea value={editForm.description} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} className="h-24 w-full resize-none rounded-md border border-input bg-background px-3 py-2" />
             </div>
 
-            {formError && <p className="text-sm text-red-600">{formError}</p>}
+            {formError && <p className="text-xs text-red-600">{formError}</p>}
 
             <div className="flex gap-3 pt-2">
               <Button variant="outline" onClick={() => setShowEditModal(false)} className="flex-1 bg-transparent" disabled={isSaving}>{t("common.cancel")}</Button>
@@ -457,11 +457,11 @@ export default function DistributorProductsPage() {
           <DialogHeader><DialogTitle>{t("distributor.products.adjustStockModalTitle", { name: stockProduct?.name ?? "" })}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
             {locations.length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400">{t("distributor.products.noLocationsForStock")}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t("distributor.products.noLocationsForStock")}</p>
             ) : (
               locations.map((loc) => (
                 <div key={loc.id} className="flex items-center gap-3">
-                  <span className="text-sm text-gray-600 dark:text-gray-400 flex-1">{loc.name}</span>
+                  <span className="text-xs text-gray-600 dark:text-gray-400 flex-1">{loc.name}</span>
                   <Input
                     type="number"
                     className="w-28"

@@ -51,12 +51,12 @@ export default function DistributorProcurementPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="flex items-center gap-2 text-3xl font-bold text-foreground"><Handshake className="h-7 w-7" /> Procurement Requests</h1>
+        <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground"><Handshake className="h-7 w-7" /> Procurement Requests</h1>
         <p className="mt-1 text-muted-foreground">Businesses looking for suppliers. Quote to be considered.</p>
       </div>
 
       {requests.length === 0 ? (
-        <Card className="border-0 p-10 text-center shadow-lg"><p className="text-sm text-muted-foreground">No open requests right now.</p></Card>
+        <Card className="border-0 p-10 text-center shadow-lg"><p className="text-xs text-muted-foreground">No open requests right now.</p></Card>
       ) : (
         <div className="space-y-3">
           {requests.map((r) => (
@@ -64,10 +64,10 @@ export default function DistributorProcurementPage() {
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <p className="font-semibold text-foreground">{r.productName} × {r.quantity}</p>
-                  <p className="text-sm text-muted-foreground">{r.businessName}</p>
-                  <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground"><MapPin className="h-3.5 w-3.5" /> {r.deliveryLocation}{r.recurrenceDays ? ` · every ${r.recurrenceDays} days` : ""}</p>
-                  {r.budgetMax != null && <p className="text-xs text-muted-foreground">Budget up to {formatMoney(r.budgetMax)}</p>}
-                  {r.requirements && <p className="mt-1 text-sm text-foreground">{r.requirements}</p>}
+                  <p className="text-xs text-muted-foreground">{r.businessName}</p>
+                  <p className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground"><MapPin className="h-3.5 w-3.5" /> {r.deliveryLocation}{r.recurrenceDays ? ` · every ${r.recurrenceDays} days` : ""}</p>
+                  {r.budgetMax != null && <p className="text-[11px] text-muted-foreground">Budget up to {formatMoney(r.budgetMax)}</p>}
+                  {r.requirements && <p className="mt-1 text-xs text-foreground">{r.requirements}</p>}
                 </div>
                 <Button size="sm" className="flex-shrink-0 gap-1.5" onClick={() => openQuote(r)}><Send className="h-3.5 w-3.5" />Submit Quote</Button>
               </div>
@@ -80,12 +80,12 @@ export default function DistributorProcurementPage() {
         <DialogContent className="max-w-sm rounded-xl" showCloseButton={false}>
           {quoting && (
             <div className="space-y-4">
-              <h2 className="text-lg font-bold text-foreground">Quote: {quoting.productName}</h2>
-              <div><label className="mb-1 block text-sm text-muted-foreground">Price per unit (KES)</label><Input type="number" value={form.price} onChange={(e) => setForm((p) => ({ ...p, price: e.target.value }))} /></div>
-              <div><label className="mb-1 block text-sm text-muted-foreground">Availability</label><Input value={form.availability} onChange={(e) => setForm((p) => ({ ...p, availability: e.target.value }))} placeholder="e.g. In stock" /></div>
-              <div><label className="mb-1 block text-sm text-muted-foreground">Delivery time</label><Input value={form.deliveryTime} onChange={(e) => setForm((p) => ({ ...p, deliveryTime: e.target.value }))} placeholder="e.g. 2 business days" /></div>
-              <div><label className="mb-1 block text-sm text-muted-foreground">Terms (optional)</label><Input value={form.terms} onChange={(e) => setForm((p) => ({ ...p, terms: e.target.value }))} /></div>
-              {error && <p className="text-sm text-red-600">{error}</p>}
+              <h2 className="text-base font-bold text-foreground">Quote: {quoting.productName}</h2>
+              <div><label className="mb-1 block text-xs text-muted-foreground">Price per unit (KES)</label><Input type="number" value={form.price} onChange={(e) => setForm((p) => ({ ...p, price: e.target.value }))} /></div>
+              <div><label className="mb-1 block text-xs text-muted-foreground">Availability</label><Input value={form.availability} onChange={(e) => setForm((p) => ({ ...p, availability: e.target.value }))} placeholder="e.g. In stock" /></div>
+              <div><label className="mb-1 block text-xs text-muted-foreground">Delivery time</label><Input value={form.deliveryTime} onChange={(e) => setForm((p) => ({ ...p, deliveryTime: e.target.value }))} placeholder="e.g. 2 business days" /></div>
+              <div><label className="mb-1 block text-xs text-muted-foreground">Terms (optional)</label><Input value={form.terms} onChange={(e) => setForm((p) => ({ ...p, terms: e.target.value }))} /></div>
+              {error && <p className="text-xs text-red-600">{error}</p>}
               <div className="flex gap-2 pt-2">
                 <Button variant="outline" className="flex-1 rounded-xl bg-transparent" onClick={() => setQuoting(null)} disabled={isSaving}>Cancel</Button>
                 <Button className="flex-1 rounded-xl" onClick={handleSubmit} disabled={isSaving || !form.price}>{isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send Quote"}</Button>

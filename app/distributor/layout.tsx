@@ -196,8 +196,8 @@ export default function DistributorLayout({ children }: { children: React.ReactN
               <Building2 className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-bold leading-tight">SAJI Wholesale</h2>
-              <p className="text-xs text-teal-200">{t("distributor.layout.portalTagline")}</p>
+              <h2 className="text-base font-bold leading-tight">SAJI Wholesale</h2>
+              <p className="text-[11px] text-teal-200">{t("distributor.layout.portalTagline")}</p>
             </div>
           </div>
         </div>
@@ -214,7 +214,7 @@ export default function DistributorLayout({ children }: { children: React.ReactN
                     key={item.href}
                     title={t("distributor.layout.lockedTooltip")}
                     aria-disabled="true"
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium opacity-40 cursor-not-allowed select-none"
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium opacity-40 cursor-not-allowed select-none"
                   >
                     <IconComponent className="w-[18px] h-[18px] flex-shrink-0" />
                     <span className="flex-1">{item.label}</span>
@@ -227,7 +227,7 @@ export default function DistributorLayout({ children }: { children: React.ReactN
                   key={item.href}
                   href={item.href}
                   onClick={() => setSidebarOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm font-medium ${
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-xs font-medium ${
                     active ? "bg-white/20 shadow-lg" : "hover:bg-white/10"
                   }`}
                 >
@@ -246,14 +246,14 @@ export default function DistributorLayout({ children }: { children: React.ReactN
 
         <div className="p-3 border-t border-teal-500/40 flex-shrink-0 space-y-1.5">
           <Link href="/distributor/settings" onClick={() => setSidebarOpen(false)}>
-            <button className="w-full flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">
+            <button className="w-full flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white font-medium py-2.5 rounded-lg text-xs transition-colors">
               <Settings size={16} />
               {t("settings.title")}
             </button>
           </Link>
           <button
             onClick={handleLogout}
-            className="w-full bg-red-500/80 hover:bg-red-500 text-white font-medium py-2.5 rounded-lg text-sm flex items-center justify-center gap-2 transition-colors"
+            className="w-full bg-red-500/80 hover:bg-red-500 text-white font-medium py-2.5 rounded-lg text-xs flex items-center justify-center gap-2 transition-colors"
           >
             <LogOut size={16} />
             {t("auth.logout")}
@@ -275,7 +275,7 @@ export default function DistributorLayout({ children }: { children: React.ReactN
                 <input
                   type="text"
                   placeholder={t("distributor.layout.searchPlaceholder")}
-                  className="bg-transparent text-sm outline-none flex-1 text-gray-700 dark:text-gray-200 placeholder:text-gray-400"
+                  className="bg-transparent text-xs outline-none flex-1 text-gray-700 dark:text-gray-200 placeholder:text-gray-400"
                 />
               </div>
             </div>
@@ -300,14 +300,14 @@ export default function DistributorLayout({ children }: { children: React.ReactN
                     <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                       <h3 className="font-semibold text-gray-900 dark:text-white">{t("settings.notifications")}</h3>
                       {unreadCount > 0 && (
-                        <button onClick={handleMarkAllRead} className="text-xs text-teal-600 hover:text-teal-700 font-medium">
+                        <button onClick={handleMarkAllRead} className="text-[11px] text-teal-600 hover:text-teal-700 font-medium">
                           {t("distributor.layout.markAllRead")}
                         </button>
                       )}
                     </div>
                     <div className="max-h-80 overflow-y-auto">
                       {notifications.length === 0 ? (
-                        <div className="p-6 text-center text-sm text-gray-500 dark:text-gray-400">{t("distributor.layout.noNotifications")}</div>
+                        <div className="p-6 text-center text-xs text-gray-500 dark:text-gray-400">{t("distributor.layout.noNotifications")}</div>
                       ) : (
                         notifications.map((notif) => {
                           const Icon = NOTIF_ICON[notif.type] ?? Bell
@@ -324,14 +324,14 @@ export default function DistributorLayout({ children }: { children: React.ReactN
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-start justify-between gap-2">
-                                  <p className={`text-sm ${!notif.isRead ? "font-semibold text-gray-900 dark:text-white" : "text-gray-700 dark:text-gray-300"}`}>
+                                  <p className={`text-xs ${!notif.isRead ? "font-semibold text-gray-900 dark:text-white" : "text-gray-700 dark:text-gray-300"}`}>
                                     {notif.title}
                                   </p>
                                   {!notif.isRead && (
                                     <span className="w-2 h-2 bg-teal-500 rounded-full flex-shrink-0 mt-1.5" />
                                   )}
                                 </div>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{notif.message}</p>
+                                <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">{notif.message}</p>
                                 <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">{formatRelativeTime(notif.createdAt)}</p>
                               </div>
                             </button>
@@ -341,7 +341,7 @@ export default function DistributorLayout({ children }: { children: React.ReactN
                     </div>
                     <button
                       onClick={() => { setNotificationsOpen(false); router.push("/distributor/notifications") }}
-                      className="block w-full p-3 text-center text-sm text-teal-600 dark:text-teal-400 font-medium hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors border-t border-gray-100 dark:border-gray-700/50"
+                      className="block w-full p-3 text-center text-xs text-teal-600 dark:text-teal-400 font-medium hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors border-t border-gray-100 dark:border-gray-700/50"
                     >
                       {t("distributor.layout.viewAllNotifications")}
                     </button>
@@ -361,12 +361,12 @@ export default function DistributorLayout({ children }: { children: React.ReactN
                       <Image src={logoUrl} alt={companyName} fill className="object-cover" />
                     </div>
                   ) : (
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-500 to-cyan-700 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-500 to-cyan-700 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                       {companyName.charAt(0).toUpperCase()}
                     </div>
                   )}
                   <div className="hidden md:block text-left">
-                    <p className="text-sm font-medium text-gray-800 dark:text-gray-200 leading-tight">{companyName}</p>
+                    <p className="text-xs font-medium text-gray-800 dark:text-gray-200 leading-tight">{companyName}</p>
                     <p className="text-[10px] text-gray-500 dark:text-gray-400">{isVerified ? t("distributor.common.verifiedDistributor") : t("distributor.layout.companyOwner")}</p>
                   </div>
                   <ChevronDown className={`w-3.5 h-3.5 text-gray-400 hidden md:block transition-transform ${profileMenuOpen ? "rotate-180" : ""}`} />
@@ -375,14 +375,14 @@ export default function DistributorLayout({ children }: { children: React.ReactN
                 {profileMenuOpen && (
                   <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
                     <div className="px-3.5 py-3 border-b border-gray-100 dark:border-gray-700/50">
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{companyName}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{isVerified ? t("distributor.common.verifiedDistributor") : t("distributor.layout.companyOwner")}</p>
+                      <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{companyName}</p>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">{isVerified ? t("distributor.common.verifiedDistributor") : t("distributor.layout.companyOwner")}</p>
                     </div>
                     <div className="p-1.5">
                       <Link
                         href="/distributor/profile"
                         onClick={() => setProfileMenuOpen(false)}
-                        className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                       >
                         <User className="w-4 h-4 flex-shrink-0" />
                         {t("distributor.nav.profile")}
@@ -390,14 +390,14 @@ export default function DistributorLayout({ children }: { children: React.ReactN
                       <Link
                         href="/distributor/settings"
                         onClick={() => setProfileMenuOpen(false)}
-                        className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                       >
                         <Settings className="w-4 h-4 flex-shrink-0" />
                         {t("settings.title")}
                       </Link>
                       <button
                         onClick={() => { setProfileMenuOpen(false); handleLogout() }}
-                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                       >
                         <LogOut className="w-4 h-4 flex-shrink-0" />
                         {t("auth.logout")}
@@ -419,14 +419,14 @@ export default function DistributorLayout({ children }: { children: React.ReactN
                 <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 dark:border-red-900/50 dark:bg-red-900/20 p-4">
                   <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-red-800 dark:text-red-300">{t("distributor.layout.rejectedTitle")}</p>
-                    <p className="text-xs text-red-700 dark:text-red-400 mt-0.5">
+                    <p className="text-xs font-semibold text-red-800 dark:text-red-300">{t("distributor.layout.rejectedTitle")}</p>
+                    <p className="text-[11px] text-red-700 dark:text-red-400 mt-0.5">
                       {rejectionReason ?? t("distributor.layout.rejectedFallbackReason")} {t("distributor.layout.rejectedReviewPrompt")}
                     </p>
                   </div>
                   <Link
                     href="/distributor/register"
-                    className="flex-shrink-0 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                    className="flex-shrink-0 bg-red-600 hover:bg-red-700 text-white text-[11px] font-semibold px-3 py-1.5 rounded-lg transition-colors"
                   >
                     {t("distributor.layout.resubmit")}
                   </Link>
@@ -435,8 +435,8 @@ export default function DistributorLayout({ children }: { children: React.ReactN
                 <div className="flex items-start gap-3 rounded-xl border border-teal-200 bg-teal-50 dark:border-teal-900/50 dark:bg-teal-900/20 p-4">
                   <Clock className="w-5 h-5 text-teal-600 dark:text-teal-400 flex-shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-teal-800 dark:text-teal-300">{t("distributor.layout.underReviewTitle")}</p>
-                    <p className="text-xs text-teal-700 dark:text-teal-400 mt-0.5">
+                    <p className="text-xs font-semibold text-teal-800 dark:text-teal-300">{t("distributor.layout.underReviewTitle")}</p>
+                    <p className="text-[11px] text-teal-700 dark:text-teal-400 mt-0.5">
                       {t("distributor.layout.underReviewBody")}
                     </p>
                   </div>
@@ -445,14 +445,14 @@ export default function DistributorLayout({ children }: { children: React.ReactN
                 <div className="flex items-start gap-3 rounded-xl border border-teal-200 bg-teal-50 dark:border-teal-900/50 dark:bg-teal-900/20 p-4">
                   <Lock className="w-5 h-5 text-teal-600 dark:text-teal-400 flex-shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-teal-800 dark:text-teal-300">{t("distributor.layout.completeRegistrationTitle")}</p>
-                    <p className="text-xs text-teal-700 dark:text-teal-400 mt-0.5">
+                    <p className="text-xs font-semibold text-teal-800 dark:text-teal-300">{t("distributor.layout.completeRegistrationTitle")}</p>
+                    <p className="text-[11px] text-teal-700 dark:text-teal-400 mt-0.5">
                       {t("distributor.layout.completeRegistrationBody")}
                     </p>
                   </div>
                   <Link
                     href="/distributor/register"
-                    className="flex-shrink-0 bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                    className="flex-shrink-0 bg-teal-600 hover:bg-teal-700 text-white text-[11px] font-semibold px-3 py-1.5 rounded-lg transition-colors"
                   >
                     {t("distributor.layout.getStarted")}
                   </Link>
@@ -533,7 +533,7 @@ export default function DistributorLayout({ children }: { children: React.ReactN
                           key={item.href}
                           title={t("distributor.layout.lockedTooltip")}
                           aria-disabled="true"
-                          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-400 dark:text-gray-600 cursor-not-allowed select-none"
+                          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs text-gray-400 dark:text-gray-600 cursor-not-allowed select-none"
                         >
                           <IconComponent className="w-4 h-4 flex-shrink-0" />
                           <span className="flex-1">{item.label}</span>
@@ -546,7 +546,7 @@ export default function DistributorLayout({ children }: { children: React.ReactN
                         key={item.href}
                         href={item.href}
                         onClick={() => setMoreMenuOpen(false)}
-                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-sm ${
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-xs ${
                           active
                             ? "bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400 font-semibold"
                             : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
@@ -566,7 +566,7 @@ export default function DistributorLayout({ children }: { children: React.ReactN
                     <Link
                       href="/distributor/settings"
                       onClick={() => setMoreMenuOpen(false)}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                     >
                       <Settings className="w-4 h-4 flex-shrink-0" />
                       <span>{t("settings.title")}</span>

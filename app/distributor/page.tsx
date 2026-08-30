@@ -75,7 +75,7 @@ export default function DistributorDashboard() {
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8">
           <div>
-            <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">{t("distributor.dashboard.title")}</h1>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{t("distributor.dashboard.title")}</h1>
             <p className="text-gray-600 dark:text-gray-400">{t("distributor.dashboard.subtitle")}</p>
           </div>
           <div className="flex gap-3 mt-4 md:mt-0">
@@ -99,14 +99,14 @@ export default function DistributorDashboard() {
                     <Icon className="w-6 h-6 text-white" />
                   </div>
                   {kpi.change !== null && (
-                    <div className={`flex items-center gap-1 px-2 py-1 rounded text-sm font-semibold ${isPositive ? "text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30" : "text-red-600 bg-red-100 dark:bg-red-900/30"}`}>
+                    <div className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold ${isPositive ? "text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30" : "text-red-600 bg-red-100 dark:bg-red-900/30"}`}>
                       {isPositive ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
                       {Math.abs(kpi.change)}%
                     </div>
                   )}
                 </div>
-                <p className="text-gray-600 dark:text-gray-400 text-sm font-medium mb-1">{kpi.label}</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white">{kpi.value}</p>
+                <p className="text-gray-600 dark:text-gray-400 text-xs font-medium mb-1">{kpi.label}</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{kpi.value}</p>
               </Card>
             )
           })}
@@ -116,7 +116,7 @@ export default function DistributorDashboard() {
           <div className="lg:col-span-2">
             <Card className="p-6 border-0 shadow-lg">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t("distributor.dashboard.recentOrders")}</h2>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white">{t("distributor.dashboard.recentOrders")}</h2>
                 <Link href="/distributor/orders">
                   <Button variant="outline" size="sm" className="bg-transparent">
                     {t("distributor.dashboard.viewAll")}
@@ -125,7 +125,7 @@ export default function DistributorDashboard() {
               </div>
 
               {data.recentOrders.length === 0 ? (
-                <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">{t("distributor.dashboard.noOrdersYet")}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-8">{t("distributor.dashboard.noOrdersYet")}</p>
               ) : (
                 <div className="space-y-3">
                   {data.recentOrders.map((order) => {
@@ -134,13 +134,13 @@ export default function DistributorDashboard() {
                       <div key={order.id} className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                         <div className="flex-1">
                           <p className="font-semibold text-gray-900 dark:text-white">{order.orderNumber}</p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">{order.buyer} • {tn("distributor.common.itemCount", order.itemCount)}</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">{order.buyer} • {tn("distributor.common.itemCount", order.itemCount)}</p>
                         </div>
                         <div className="text-right mr-4">
                           <p className="font-bold text-gray-900 dark:text-white">{formatMoney(order.amount)}</p>
-                          <p className="text-xs text-gray-600 dark:text-gray-400">{formatRelative(order.createdAt)}</p>
+                          <p className="text-[11px] text-gray-600 dark:text-gray-400">{formatRelative(order.createdAt)}</p>
                         </div>
-                        <div className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${STATUS_COLOR[order.status]}`}>
+                        <div className={`px-3 py-1 rounded-full text-[11px] font-semibold flex items-center gap-1 ${STATUS_COLOR[order.status]}`}>
                           <StatusIcon className="w-4 h-4" />
                           {t(STATUS_KEY[order.status] ?? "distributor.common.statusPending")}
                         </div>
@@ -154,7 +154,7 @@ export default function DistributorDashboard() {
 
           <Card className="p-6 border-0 shadow-lg">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t("distributor.dashboard.topProducts")}</h2>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white">{t("distributor.dashboard.topProducts")}</h2>
               <Link href="/distributor/products">
                 <Button variant="outline" size="sm" className="bg-transparent">
                   <Eye className="w-4 h-4" />
@@ -163,19 +163,19 @@ export default function DistributorDashboard() {
             </div>
 
             {data.topProducts.length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">{t("distributor.dashboard.noSalesYet")}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-8">{t("distributor.dashboard.noSalesYet")}</p>
             ) : (
               <div className="space-y-4">
                 {data.topProducts.map((product, idx) => (
                   <div key={product.id} className="pb-4 border-b border-gray-200 dark:border-gray-700 last:border-0">
                     <div className="flex items-center gap-3 mb-2">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-500 to-cyan-700 flex items-center justify-center text-white font-bold text-sm">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-500 to-cyan-700 flex items-center justify-center text-white font-bold text-xs">
                         {idx + 1}
                       </div>
                       <p className="font-semibold text-gray-900 dark:text-white truncate">{product.name}</p>
                     </div>
                     <div className="ml-11">
-                      <p className="text-sm text-gray-600 dark:text-gray-400">{t("distributor.dashboard.productSoldSummary", { sold: product.totalSold, revenue: formatMoney(product.revenue) })}</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">{t("distributor.dashboard.productSoldSummary", { sold: product.totalSold, revenue: formatMoney(product.revenue) })}</p>
                     </div>
                   </div>
                 ))}
@@ -188,8 +188,8 @@ export default function DistributorDashboard() {
           <Card className="p-6 border-0 shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white">
             <div className="flex items-start justify-between mb-4">
               <div>
-                <p className="text-blue-100 text-sm font-medium mb-1">{t("distributor.dashboard.processingOrders")}</p>
-                <p className="text-4xl font-bold">{data.processingOrders}</p>
+                <p className="text-blue-100 text-xs font-medium mb-1">{t("distributor.dashboard.processingOrders")}</p>
+                <p className="text-3xl font-bold">{data.processingOrders}</p>
               </div>
               <Clock className="w-8 h-8 text-blue-200" />
             </div>
@@ -203,8 +203,8 @@ export default function DistributorDashboard() {
           <Card className="p-6 border-0 shadow-lg bg-gradient-to-br from-amber-500 to-orange-600 text-white">
             <div className="flex items-start justify-between mb-4">
               <div>
-                <p className="text-amber-100 text-sm font-medium mb-1">{t("distributor.dashboard.lowStockItems")}</p>
-                <p className="text-4xl font-bold">{data.lowStockCount}</p>
+                <p className="text-amber-100 text-xs font-medium mb-1">{t("distributor.dashboard.lowStockItems")}</p>
+                <p className="text-3xl font-bold">{data.lowStockCount}</p>
               </div>
               <AlertCircle className="w-8 h-8 text-amber-200" />
             </div>
@@ -218,8 +218,8 @@ export default function DistributorDashboard() {
           <Card className="p-6 border-0 shadow-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
             <div className="flex items-start justify-between mb-4">
               <div>
-                <p className="text-emerald-100 text-sm font-medium mb-1">{t("distributor.dashboard.todaysRevenue")}</p>
-                <p className="text-3xl font-bold">{formatMoney(data.todaysRevenue)}</p>
+                <p className="text-emerald-100 text-xs font-medium mb-1">{t("distributor.dashboard.todaysRevenue")}</p>
+                <p className="text-2xl font-bold">{formatMoney(data.todaysRevenue)}</p>
               </div>
               <TrendingUp className="w-8 h-8 text-emerald-200" />
             </div>

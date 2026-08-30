@@ -120,7 +120,7 @@ export default function DistributorSettingsPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 lg:p-8">
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">{t("settings.title")}</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{t("settings.title")}</h1>
           <p className="text-gray-600 dark:text-gray-400">{t("distributor.settings.subtitle")}</p>
         </div>
 
@@ -130,7 +130,7 @@ export default function DistributorSettingsPage() {
               <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
               <div>
                 <p className="font-semibold text-emerald-900 dark:text-emerald-100">{t("distributor.settings.savedSuccessTitle")}</p>
-                <p className="text-sm text-emerald-800 dark:text-emerald-200">{t("distributor.settings.savedSuccessBody")}</p>
+                <p className="text-xs text-emerald-800 dark:text-emerald-200">{t("distributor.settings.savedSuccessBody")}</p>
               </div>
             </div>
           </Card>
@@ -158,11 +158,11 @@ export default function DistributorSettingsPage() {
 
           <TabsContent value="account" className="space-y-6 mt-6">
             <Card className="p-6 border-0 shadow-lg">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-6">{t("distributor.settings.companyInformation")}</h2>
+              <h2 className="text-base font-bold text-gray-900 dark:text-white mb-6">{t("distributor.settings.companyInformation")}</h2>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("distributor.settings.companyNameLabel")}</label>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t("distributor.settings.companyNameLabel")}</label>
                   <Input
                     value={accountForm.companyName}
                     onChange={(e) => setAccountForm({ ...accountForm, companyName: e.target.value })}
@@ -171,7 +171,7 @@ export default function DistributorSettingsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("distributor.settings.businessRegistrationLabel")}</label>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t("distributor.settings.businessRegistrationLabel")}</label>
                   <Input
                     value={accountForm.businessLicense}
                     onChange={(e) => setAccountForm({ ...accountForm, businessLicense: e.target.value })}
@@ -179,7 +179,7 @@ export default function DistributorSettingsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("distributor.settings.companyDescriptionLabel")}</label>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t("distributor.settings.companyDescriptionLabel")}</label>
                   <textarea
                     value={accountForm.description}
                     onChange={(e) => setAccountForm({ ...accountForm, description: e.target.value })}
@@ -188,12 +188,12 @@ export default function DistributorSettingsPage() {
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">{t("distributor.settings.contactInformation")}</h3>
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">{t("distributor.settings.contactInformation")}</h3>
                   <div className="space-y-4">
                     <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                       <Mail className="w-5 h-5 text-teal-600 flex-shrink-0" />
                       <div className="flex-1">
-                        <p className="text-sm text-muted-foreground">{t("distributor.settings.emailLabel")}</p>
+                        <p className="text-xs text-muted-foreground">{t("distributor.settings.emailLabel")}</p>
                         <p className="mt-1 font-medium text-gray-900 dark:text-white">{account.email}</p>
                       </div>
                     </div>
@@ -201,7 +201,7 @@ export default function DistributorSettingsPage() {
                     <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                       <Phone className="w-5 h-5 text-teal-600 flex-shrink-0" />
                       <div className="flex-1">
-                        <p className="text-sm text-muted-foreground">{t("distributor.settings.phoneLabel")}</p>
+                        <p className="text-xs text-muted-foreground">{t("distributor.settings.phoneLabel")}</p>
                         <Input
                           value={accountForm.phone}
                           onChange={(e) => setAccountForm({ ...accountForm, phone: e.target.value })}
@@ -213,7 +213,7 @@ export default function DistributorSettingsPage() {
                     <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                       <MapPin className="w-5 h-5 text-teal-600 flex-shrink-0" />
                       <div className="flex-1">
-                        <p className="text-sm text-muted-foreground">{t("distributor.settings.companyHqLocationLabel")}</p>
+                        <p className="text-xs text-muted-foreground">{t("distributor.settings.companyHqLocationLabel")}</p>
                         <Input
                           value={accountForm.location}
                           onChange={(e) => setAccountForm({ ...accountForm, location: e.target.value })}
@@ -225,7 +225,7 @@ export default function DistributorSettingsPage() {
                 </div>
               </div>
 
-              {accountError && <p className="text-sm text-red-600 mt-4">{accountError}</p>}
+              {accountError && <p className="text-xs text-red-600 mt-4">{accountError}</p>}
 
               <div className="flex gap-3 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
                 <Button onClick={handleSaveAccount} className="bg-teal-600 hover:bg-teal-700" disabled={isSavingAccount}>
@@ -238,7 +238,7 @@ export default function DistributorSettingsPage() {
 
           <TabsContent value="notifications" className="space-y-6 mt-6">
             <Card className="p-6 border-0 shadow-lg">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-6">{t("distributor.settings.notificationPreferences")}</h2>
+              <h2 className="text-base font-bold text-gray-900 dark:text-white mb-6">{t("distributor.settings.notificationPreferences")}</h2>
 
               <div className="space-y-4">
                 {([
@@ -251,7 +251,7 @@ export default function DistributorSettingsPage() {
                   <div key={item.key} className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                     <div>
                       <p className="font-medium text-gray-900 dark:text-white">{item.label}</p>
-                      <p className="text-sm text-muted-foreground">{item.description}</p>
+                      <p className="text-xs text-muted-foreground">{item.description}</p>
                     </div>
                     <button
                       onClick={() => toggleNotifSetting(item.key)}
@@ -282,7 +282,7 @@ export default function DistributorSettingsPage() {
 
           <TabsContent value="security" className="space-y-6 mt-6">
             <Card className="p-6 border-0 shadow-lg">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-6">{t("distributor.settings.securitySettings")}</h2>
+              <h2 className="text-base font-bold text-gray-900 dark:text-white mb-6">{t("distributor.settings.securitySettings")}</h2>
 
               <div className="space-y-4">
                 <Button
@@ -293,7 +293,7 @@ export default function DistributorSettingsPage() {
                     <Lock className="w-5 h-5 text-teal-600 flex-shrink-0" />
                     <div>
                       <p className="font-medium">{t("distributor.settings.changePasswordTitle")}</p>
-                      <p className="text-sm text-muted-foreground">{t("distributor.settings.changePasswordDesc")}</p>
+                      <p className="text-xs text-muted-foreground">{t("distributor.settings.changePasswordDesc")}</p>
                     </div>
                   </div>
                   <ChevronRight className="w-5 h-5 text-muted-foreground" />
@@ -305,7 +305,7 @@ export default function DistributorSettingsPage() {
                   <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
                   <div>
                     <p className="font-medium text-blue-900 dark:text-blue-100">{t("distributor.settings.securityRecommendationTitle")}</p>
-                    <p className="text-sm text-blue-800 dark:text-blue-200 mt-1">{t("distributor.settings.securityRecommendationBody")}</p>
+                    <p className="text-xs text-blue-800 dark:text-blue-200 mt-1">{t("distributor.settings.securityRecommendationBody")}</p>
                   </div>
                 </div>
               </div>
@@ -314,10 +314,10 @@ export default function DistributorSettingsPage() {
 
           <TabsContent value="language" className="space-y-6 mt-6">
             <Card className="p-6 border-0 shadow-lg">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-6">{t("distributor.settings.languageAndRegion")}</h2>
+              <h2 className="text-base font-bold text-gray-900 dark:text-white mb-6">{t("distributor.settings.languageAndRegion")}</h2>
               <div className="grid sm:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">{t("settings.language")}</label>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-3">{t("settings.language")}</label>
                   <div className="space-y-1.5">
                     {languages.map((lang) => (
                       <button
@@ -327,7 +327,7 @@ export default function DistributorSettingsPage() {
                       >
                         <div className="flex items-center gap-2.5">
                           <span className="w-7 h-5 bg-gray-100 dark:bg-gray-700 rounded text-[10px] font-bold flex items-center justify-center text-gray-500 dark:text-gray-400">{lang.flag}</span>
-                          <span className="font-medium text-sm text-gray-900 dark:text-white">{lang.name}</span>
+                          <span className="font-medium text-xs text-gray-900 dark:text-white">{lang.name}</span>
                         </div>
                         {language === lang.code && <CheckCircle2 className="w-4 h-4 text-teal-600" />}
                       </button>
@@ -335,7 +335,7 @@ export default function DistributorSettingsPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">{t("settings.currency")}</label>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-3">{t("settings.currency")}</label>
                   <div className="space-y-1.5">
                     {currencies.map((curr) => (
                       <button
@@ -344,8 +344,8 @@ export default function DistributorSettingsPage() {
                         className={`w-full flex items-center justify-between p-3 rounded-xl border-2 transition-all ${currency === curr.code ? "border-teal-600 bg-teal-50 dark:bg-teal-900/20" : "border-gray-200 dark:border-gray-700 hover:border-teal-300"}`}
                       >
                         <div className="text-left">
-                          <p className="font-medium text-sm text-gray-900 dark:text-white">{curr.symbol} {curr.code}</p>
-                          <p className="text-[11px] text-muted-foreground">{curr.name}</p>
+                          <p className="font-medium text-xs text-gray-900 dark:text-white">{curr.symbol} {curr.code}</p>
+                          <p className="text-[10px] text-muted-foreground">{curr.name}</p>
                         </div>
                         {currency === curr.code && <CheckCircle2 className="w-4 h-4 text-teal-600" />}
                       </button>
@@ -366,7 +366,7 @@ export default function DistributorSettingsPage() {
 
           <div className="space-y-4 py-4">
             <div>
-              <label className="block text-sm font-medium mb-2">{t("distributor.settings.currentPasswordLabel")}</label>
+              <label className="block text-xs font-medium mb-2">{t("distributor.settings.currentPasswordLabel")}</label>
               <div className="relative">
                 <Input
                   type={showPassword ? "text" : "password"}
@@ -381,16 +381,16 @@ export default function DistributorSettingsPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">{t("distributor.settings.newPasswordLabel")}</label>
+              <label className="block text-xs font-medium mb-2">{t("distributor.settings.newPasswordLabel")}</label>
               <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder={t("distributor.settings.newPasswordPlaceholder")} />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">{t("distributor.settings.confirmPasswordLabel")}</label>
+              <label className="block text-xs font-medium mb-2">{t("distributor.settings.confirmPasswordLabel")}</label>
               <Input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder={t("distributor.settings.confirmPasswordPlaceholder")} />
             </div>
 
-            {passwordError && <p className="text-sm text-red-600">{passwordError}</p>}
+            {passwordError && <p className="text-xs text-red-600">{passwordError}</p>}
 
             <div className="flex gap-3 pt-4">
               <Button variant="outline" onClick={() => setShowPasswordDialog(false)} className="flex-1 bg-transparent" disabled={isChangingPassword}>{t("common.cancel")}</Button>

@@ -102,23 +102,23 @@ export default function DistributorRegistrationPage() {
           <div className="w-20 h-20 bg-teal-100 dark:bg-teal-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
             <Clock className="w-10 h-10 text-teal-600" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">{t("distributor.register.submittedTitle")}</h1>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-3">{t("distributor.register.submittedTitle")}</h1>
           <p className="text-muted-foreground mb-6">
             {t("distributor.register.submittedBody")}
           </p>
           <div className="bg-teal-50 dark:bg-teal-900/20 rounded-xl p-4 mb-6 text-left">
             <h3 className="font-medium text-teal-900 dark:text-teal-200 mb-2">{t("distributor.register.whatsNext")}</h3>
-            <ul className="space-y-2 text-sm text-teal-800 dark:text-teal-300">
+            <ul className="space-y-2 text-xs text-teal-800 dark:text-teal-300">
               <li className="flex items-start gap-2">
-                <span className="bg-teal-200 dark:bg-teal-800 text-teal-800 dark:text-teal-200 rounded-full w-5 h-5 flex items-center justify-center text-xs flex-shrink-0 mt-0.5">1</span>
+                <span className="bg-teal-200 dark:bg-teal-800 text-teal-800 dark:text-teal-200 rounded-full w-5 h-5 flex items-center justify-center text-[11px] flex-shrink-0 mt-0.5">1</span>
                 {t("distributor.register.step1")}
               </li>
               <li className="flex items-start gap-2">
-                <span className="bg-teal-200 dark:bg-teal-800 text-teal-800 dark:text-teal-200 rounded-full w-5 h-5 flex items-center justify-center text-xs flex-shrink-0 mt-0.5">2</span>
+                <span className="bg-teal-200 dark:bg-teal-800 text-teal-800 dark:text-teal-200 rounded-full w-5 h-5 flex items-center justify-center text-[11px] flex-shrink-0 mt-0.5">2</span>
                 {t("distributor.register.step2")}
               </li>
               <li className="flex items-start gap-2">
-                <span className="bg-teal-200 dark:bg-teal-800 text-teal-800 dark:text-teal-200 rounded-full w-5 h-5 flex items-center justify-center text-xs flex-shrink-0 mt-0.5">3</span>
+                <span className="bg-teal-200 dark:bg-teal-800 text-teal-800 dark:text-teal-200 rounded-full w-5 h-5 flex items-center justify-center text-[11px] flex-shrink-0 mt-0.5">3</span>
                 {t("distributor.register.step3")}
               </li>
             </ul>
@@ -137,7 +137,7 @@ export default function DistributorRegistrationPage() {
     <div className="min-h-screen bg-gradient-to-br from-teal-50 to-cyan-50 dark:from-gray-900 dark:to-gray-800">
       <div className="bg-gradient-to-r from-teal-700 to-cyan-700 text-white p-6">
         <div className="max-w-2xl mx-auto">
-          <Link href="/" className="inline-flex items-center text-teal-100 hover:text-white mb-4 text-sm">
+          <Link href="/" className="inline-flex items-center text-teal-100 hover:text-white mb-4 text-xs">
             <ChevronLeft className="w-4 h-4 mr-1" />
             {t("distributor.register.backToHome")}
           </Link>
@@ -146,8 +146,8 @@ export default function DistributorRegistrationPage() {
               <Building2 className="w-7 h-7" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">{t("distributor.register.headerTitle")}</h1>
-              <p className="text-teal-100 text-sm">{t("distributor.register.headerSubtitle")}</p>
+              <h1 className="text-xl font-bold">{t("distributor.register.headerTitle")}</h1>
+              <p className="text-teal-100 text-xs">{t("distributor.register.headerSubtitle")}</p>
             </div>
           </div>
         </div>
@@ -164,7 +164,7 @@ export default function DistributorRegistrationPage() {
             ].map((s, idx) => (
               <div key={s.num} className="flex items-center">
                 <div className={`flex flex-col items-center ${idx > 0 ? 'ml-2' : ''}`}>
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-colors ${
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs transition-colors ${
                     step > s.num
                       ? 'bg-green-500 text-white'
                       : step === s.num
@@ -173,7 +173,7 @@ export default function DistributorRegistrationPage() {
                   }`}>
                     {step > s.num ? <CheckCircle2 className="w-5 h-5" /> : s.num}
                   </div>
-                  <span className={`text-xs mt-1 hidden sm:block ${step >= s.num ? 'text-teal-600 font-medium' : 'text-muted-foreground'}`}>
+                  <span className={`text-[11px] mt-1 hidden sm:block ${step >= s.num ? 'text-teal-600 font-medium' : 'text-muted-foreground'}`}>
                     {s.label}
                   </span>
                 </div>
@@ -186,7 +186,7 @@ export default function DistributorRegistrationPage() {
         </Card>
 
         {error && (
-          <div className="mb-6 p-4 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/30 text-red-700 dark:text-red-400 text-sm">
+          <div className="mb-6 p-4 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/30 text-red-700 dark:text-red-400 text-xs">
             {error}
           </div>
         )}
@@ -195,8 +195,8 @@ export default function DistributorRegistrationPage() {
           {step === 1 && (
             <div className="space-y-4">
               <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">{t("distributor.register.stepCompanyDetails")}</h2>
-                <p className="text-sm text-muted-foreground">{t("distributor.register.companyDetailsSubtitle")}</p>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-1">{t("distributor.register.stepCompanyDetails")}</h2>
+                <p className="text-xs text-muted-foreground">{t("distributor.register.companyDetailsSubtitle")}</p>
               </div>
 
               <div>
@@ -232,7 +232,7 @@ export default function DistributorRegistrationPage() {
                       />
                       <button
                         onClick={() => setFormData(prev => ({ ...prev, logo: null }))}
-                        className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs"
+                        className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-[11px]"
                       >
                         ×
                       </button>
@@ -240,7 +240,7 @@ export default function DistributorRegistrationPage() {
                   ) : (
                     <label className="flex flex-col items-center justify-center w-32 h-32 border-2 border-dashed border-muted-foreground/30 rounded-xl cursor-pointer hover:border-teal-500 transition-colors">
                       <Camera className="w-8 h-8 text-muted-foreground mb-2" />
-                      <span className="text-xs text-muted-foreground">{t("distributor.register.uploadLogo")}</span>
+                      <span className="text-[11px] text-muted-foreground">{t("distributor.register.uploadLogo")}</span>
                       <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload('logo')} />
                     </label>
                   )}
@@ -252,8 +252,8 @@ export default function DistributorRegistrationPage() {
           {step === 2 && (
             <div className="space-y-4">
               <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">{t("distributor.register.locationTitle")}</h2>
-                <p className="text-sm text-muted-foreground">{t("distributor.register.locationSubtitle")}</p>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-1">{t("distributor.register.locationTitle")}</h2>
+                <p className="text-xs text-muted-foreground">{t("distributor.register.locationSubtitle")}</p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -303,8 +303,8 @@ export default function DistributorRegistrationPage() {
               <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 flex items-start gap-3">
                 <MapPin className="w-5 h-5 text-blue-600 mt-0.5" />
                 <div>
-                  <p className="font-medium text-blue-900 dark:text-blue-200 text-sm">{t("distributor.register.locationVerificationTitle")}</p>
-                  <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                  <p className="font-medium text-blue-900 dark:text-blue-200 text-xs">{t("distributor.register.locationVerificationTitle")}</p>
+                  <p className="text-[11px] text-blue-700 dark:text-blue-300 mt-1">
                     {t("distributor.register.locationVerificationBody")}
                   </p>
                 </div>
@@ -315,8 +315,8 @@ export default function DistributorRegistrationPage() {
           {step === 3 && (
             <div className="space-y-4">
               <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">{t("distributor.register.documentsTitle")}</h2>
-                <p className="text-sm text-muted-foreground">{t("distributor.register.documentsSubtitle")}</p>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-1">{t("distributor.register.documentsTitle")}</h2>
+                <p className="text-xs text-muted-foreground">{t("distributor.register.documentsSubtitle")}</p>
               </div>
 
               <div>
@@ -331,7 +331,7 @@ export default function DistributorRegistrationPage() {
 
               <div>
                 <Label>{t("distributor.register.idPhotosLabel")}</Label>
-                <p className="text-xs text-muted-foreground mb-2">{t("distributor.register.idPhotosHint")}</p>
+                <p className="text-[11px] text-muted-foreground mb-2">{t("distributor.register.idPhotosHint")}</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <KycPhotoUpload label={t("distributor.register.idFrontLabel")} value={formData.idFront ?? ""} onChange={(v) => setFormData(prev => ({ ...prev, idFront: v || null }))} />
                   <KycPhotoUpload label={t("distributor.register.idBackLabel")} value={formData.idBack ?? ""} onChange={(v) => setFormData(prev => ({ ...prev, idBack: v || null }))} />
@@ -355,8 +355,8 @@ export default function DistributorRegistrationPage() {
                     <div className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
                       <FileText className="w-8 h-8 text-green-600" />
                       <div className="flex-1">
-                        <p className="font-medium text-green-900 dark:text-green-200 text-sm">{t("distributor.register.documentUploaded")}</p>
-                        <p className="text-xs text-green-700 dark:text-green-300">{t("distributor.register.clickToReplace")}</p>
+                        <p className="font-medium text-green-900 dark:text-green-200 text-xs">{t("distributor.register.documentUploaded")}</p>
+                        <p className="text-[11px] text-green-700 dark:text-green-300">{t("distributor.register.clickToReplace")}</p>
                       </div>
                       <button
                         onClick={() => setFormData(prev => ({ ...prev, businessPermit: null }))}
@@ -368,7 +368,7 @@ export default function DistributorRegistrationPage() {
                   ) : (
                     <label className="flex items-center justify-center gap-3 p-4 border-2 border-dashed border-muted-foreground/30 rounded-lg cursor-pointer hover:border-teal-500 transition-colors">
                       <Upload className="w-6 h-6 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">{t("distributor.register.uploadPermitPrompt")}</span>
+                      <span className="text-xs text-muted-foreground">{t("distributor.register.uploadPermitPrompt")}</span>
                       <input type="file" accept="image/*,.pdf" className="hidden" onChange={handleImageUpload('businessPermit')} />
                     </label>
                   )}
@@ -378,8 +378,8 @@ export default function DistributorRegistrationPage() {
               <div className="bg-teal-50 dark:bg-teal-900/20 rounded-xl p-4 flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 text-teal-600 mt-0.5" />
                 <div>
-                  <p className="font-medium text-teal-900 dark:text-teal-200 text-sm">{t("distributor.register.importantTitle")}</p>
-                  <p className="text-xs text-teal-700 dark:text-teal-300 mt-1">
+                  <p className="font-medium text-teal-900 dark:text-teal-200 text-xs">{t("distributor.register.importantTitle")}</p>
+                  <p className="text-[11px] text-teal-700 dark:text-teal-300 mt-1">
                     {t("distributor.register.documentsImportantBody")}
                   </p>
                 </div>
@@ -390,8 +390,8 @@ export default function DistributorRegistrationPage() {
           {step === 4 && (
             <div className="space-y-4">
               <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">{t("distributor.register.selfieTitle")}</h2>
-                <p className="text-sm text-muted-foreground">{t("distributor.register.selfieSubtitle")}</p>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-1">{t("distributor.register.selfieTitle")}</h2>
+                <p className="text-xs text-muted-foreground">{t("distributor.register.selfieSubtitle")}</p>
               </div>
 
               <SelfieCapture value={formData.selfie ?? ""} onChange={(v) => setFormData(prev => ({ ...prev, selfie: v || null }))} />
@@ -399,8 +399,8 @@ export default function DistributorRegistrationPage() {
               <div className="bg-teal-50 dark:bg-teal-900/20 rounded-xl p-4 flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 text-teal-600 mt-0.5" />
                 <div>
-                  <p className="font-medium text-teal-900 dark:text-teal-200 text-sm">{t("distributor.register.importantTitle")}</p>
-                  <p className="text-xs text-teal-700 dark:text-teal-300 mt-1">
+                  <p className="font-medium text-teal-900 dark:text-teal-200 text-xs">{t("distributor.register.importantTitle")}</p>
+                  <p className="text-[11px] text-teal-700 dark:text-teal-300 mt-1">
                     {t("distributor.register.selfieImportantBody")}
                   </p>
                 </div>
@@ -441,34 +441,34 @@ export default function DistributorRegistrationPage() {
         </Card>
 
         <Card className="p-6 mb-8 border-0 shadow-sm bg-gradient-to-br from-teal-700 to-cyan-700 text-white">
-          <h3 className="font-bold text-lg mb-4">{t("distributor.register.whyDistributeTitle")}</h3>
+          <h3 className="font-bold text-base mb-4">{t("distributor.register.whyDistributeTitle")}</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex items-start gap-2">
               <CheckCircle2 className="w-5 h-5 text-teal-200 mt-0.5" />
               <div>
-                <p className="font-medium text-sm">{t("distributor.register.benefit1Title")}</p>
-                <p className="text-xs text-teal-100">{t("distributor.register.benefit1Desc")}</p>
+                <p className="font-medium text-xs">{t("distributor.register.benefit1Title")}</p>
+                <p className="text-[11px] text-teal-100">{t("distributor.register.benefit1Desc")}</p>
               </div>
             </div>
             <div className="flex items-start gap-2">
               <CheckCircle2 className="w-5 h-5 text-teal-200 mt-0.5" />
               <div>
-                <p className="font-medium text-sm">{t("distributor.register.benefit2Title")}</p>
-                <p className="text-xs text-teal-100">{t("distributor.register.benefit2Desc")}</p>
+                <p className="font-medium text-xs">{t("distributor.register.benefit2Title")}</p>
+                <p className="text-[11px] text-teal-100">{t("distributor.register.benefit2Desc")}</p>
               </div>
             </div>
             <div className="flex items-start gap-2">
               <CheckCircle2 className="w-5 h-5 text-teal-200 mt-0.5" />
               <div>
-                <p className="font-medium text-sm">{t("distributor.register.benefit3Title")}</p>
-                <p className="text-xs text-teal-100">{t("distributor.register.benefit3Desc")}</p>
+                <p className="font-medium text-xs">{t("distributor.register.benefit3Title")}</p>
+                <p className="text-[11px] text-teal-100">{t("distributor.register.benefit3Desc")}</p>
               </div>
             </div>
             <div className="flex items-start gap-2">
               <CheckCircle2 className="w-5 h-5 text-teal-200 mt-0.5" />
               <div>
-                <p className="font-medium text-sm">{t("distributor.register.benefit4Title")}</p>
-                <p className="text-xs text-teal-100">{t("distributor.register.benefit4Desc")}</p>
+                <p className="font-medium text-xs">{t("distributor.register.benefit4Title")}</p>
+                <p className="text-[11px] text-teal-100">{t("distributor.register.benefit4Desc")}</p>
               </div>
             </div>
           </div>

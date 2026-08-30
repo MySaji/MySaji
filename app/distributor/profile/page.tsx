@@ -82,7 +82,7 @@ export default function DistributorProfilePage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 lg:p-8">
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">{t("distributor.profile.title")}</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{t("distributor.profile.title")}</h1>
           <p className="text-gray-600 dark:text-gray-400">{t("distributor.profile.subtitle")}</p>
         </div>
 
@@ -105,15 +105,15 @@ export default function DistributorProfilePage() {
 
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
-                <h2 className="text-3xl font-bold text-gray-900 dark:text-white">{profile.companyName}</h2>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{profile.companyName}</h2>
                 {profile.isVerified && (
-                  <span className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs px-3 py-1 rounded-full font-semibold">
+                  <span className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[11px] px-3 py-1 rounded-full font-semibold">
                     {t("distributor.common.verifiedDistributor")}
                   </span>
                 )}
               </div>
               {profile.reviewCount > 0 && (
-                <div className="flex items-center gap-2 mb-3 text-lg">
+                <div className="flex items-center gap-2 mb-3 text-base">
                   <div className="flex">
                     {[...Array(5)].map((_, i) => (
                       <Star key={i} className={`w-5 h-5 ${i < Math.round(profile.rating) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`} />
@@ -140,8 +140,8 @@ export default function DistributorProfilePage() {
               return (
                 <div key={idx} className={`p-4 rounded-lg bg-gradient-to-br ${stat.color} text-white`}>
                   <Icon className="w-6 h-6 mb-2 opacity-80" />
-                  <p className="text-sm opacity-90">{stat.label}</p>
-                  <p className="text-2xl font-bold">{stat.value}</p>
+                  <p className="text-xs opacity-90">{stat.label}</p>
+                  <p className="text-xl font-bold">{stat.value}</p>
                 </div>
               )
             })}
@@ -150,12 +150,12 @@ export default function DistributorProfilePage() {
 
         {isEditing && (
           <Card className="p-8 border-0 shadow-lg mb-6">
-            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">{t("distributor.profile.editProfileInfoTitle")}</h3>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">{t("distributor.profile.editProfileInfoTitle")}</h3>
 
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">{t("distributor.profile.companyNameLabel")}</label>
+                  <label className="block text-xs font-medium text-gray-900 dark:text-white mb-2">{t("distributor.profile.companyNameLabel")}</label>
                   <Input
                     value={editForm.companyName}
                     onChange={(e) => setEditForm({ ...editForm, companyName: e.target.value })}
@@ -163,7 +163,7 @@ export default function DistributorProfilePage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">{t("distributor.profile.phoneLabel")}</label>
+                  <label className="block text-xs font-medium text-gray-900 dark:text-white mb-2">{t("distributor.profile.phoneLabel")}</label>
                   <Input
                     value={editForm.phone}
                     onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
@@ -174,7 +174,7 @@ export default function DistributorProfilePage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">{t("distributor.profile.locationLabel")}</label>
+                <label className="block text-xs font-medium text-gray-900 dark:text-white mb-2">{t("distributor.profile.locationLabel")}</label>
                 <Input
                   value={editForm.location}
                   onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
@@ -183,7 +183,7 @@ export default function DistributorProfilePage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">{t("distributor.profile.descriptionLabel")}</label>
+                <label className="block text-xs font-medium text-gray-900 dark:text-white mb-2">{t("distributor.profile.descriptionLabel")}</label>
                 <textarea
                   value={editForm.description}
                   onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
@@ -192,7 +192,7 @@ export default function DistributorProfilePage() {
                 />
               </div>
 
-              {formError && <p className="text-sm text-red-600">{formError}</p>}
+              {formError && <p className="text-xs text-red-600">{formError}</p>}
 
               <div className="flex gap-3 pt-4">
                 <Button
@@ -217,26 +217,26 @@ export default function DistributorProfilePage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <Card className="p-6 border-0 shadow-lg">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t("distributor.profile.contactInformation")}</h3>
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">{t("distributor.profile.contactInformation")}</h3>
             <div className="space-y-4">
               <div className="flex items-start gap-3">
                 <Mail className="w-5 h-5 text-teal-600 mt-1" />
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{t("distributor.profile.emailLabel")}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">{t("distributor.profile.emailLabel")}</p>
                   <p className="font-semibold text-gray-900 dark:text-white">{profile.email}</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <Phone className="w-5 h-5 text-teal-600 mt-1" />
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{t("distributor.profile.phoneLabel")}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">{t("distributor.profile.phoneLabel")}</p>
                   <p className="font-semibold text-gray-900 dark:text-white">{profile.phone || t("distributor.profile.notSet")}</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <MapPin className="w-5 h-5 text-teal-600 mt-1" />
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{t("distributor.profile.locationLabel")}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">{t("distributor.profile.locationLabel")}</p>
                   <p className="font-semibold text-gray-900 dark:text-white">{profile.location || t("distributor.profile.notSet")}</p>
                 </div>
               </div>
@@ -244,23 +244,23 @@ export default function DistributorProfilePage() {
           </Card>
 
           <Card className="p-6 border-0 shadow-lg">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t("distributor.profile.accountStatus")}</h3>
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">{t("distributor.profile.accountStatus")}</h3>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-gray-700 dark:text-gray-300">{t("distributor.profile.accountStatus")}</span>
-                <span className="px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-sm font-semibold rounded-full">
+                <span className="px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs font-semibold rounded-full">
                   {t("distributor.common.active")}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-gray-700 dark:text-gray-300">{t("distributor.profile.verificationStatus")}</span>
                 {profile.isVerified ? (
-                  <span className="px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-sm font-semibold rounded-full flex items-center gap-1">
+                  <span className="px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs font-semibold rounded-full flex items-center gap-1">
                     <CheckCircle2 className="w-4 h-4" />
                     {t("distributor.profile.verifiedLabel")}
                   </span>
                 ) : (
-                  <span className="px-3 py-1 bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400 text-sm font-semibold rounded-full">
+                  <span className="px-3 py-1 bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400 text-xs font-semibold rounded-full">
                     {t("distributor.common.statusPending")}
                   </span>
                 )}
@@ -276,9 +276,9 @@ export default function DistributorProfilePage() {
         </div>
 
         <Card className="p-6 border-0 shadow-lg">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t("distributor.profile.badgesTitle")}</h3>
+          <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">{t("distributor.profile.badgesTitle")}</h3>
           {badges.length === 0 ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400">{t("distributor.profile.noBadgesYet")}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{t("distributor.profile.noBadgesYet")}</p>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {badges.map((badge) => {
@@ -286,8 +286,8 @@ export default function DistributorProfilePage() {
                 return (
                   <div key={badge.label} className={`text-center p-4 rounded-lg ${badgeColors[badge.color]}`}>
                     <Icon className="w-8 h-8 mx-auto mb-2" />
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{badge.label}</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">{badge.sub}</p>
+                    <p className="text-xs font-semibold text-gray-900 dark:text-white">{badge.label}</p>
+                    <p className="text-[11px] text-gray-600 dark:text-gray-400">{badge.sub}</p>
                   </div>
                 )
               })}
