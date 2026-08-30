@@ -38,8 +38,8 @@ export function CustomerOrdersPage() {
     <div className="min-h-screen bg-background">
       <div className="max-w-4xl mx-auto px-4 py-6 lg:py-8">
         <div className="mb-6">
-          <h1 className="text-xl lg:text-2xl font-bold text-foreground">{t("customer.orders.title")}</h1>
-          <p className="text-sm text-muted-foreground mt-1">{t("customer.orders.subtitle")}</p>
+          <h1 className="text-lg lg:text-xl font-bold text-foreground">{t("customer.orders.title")}</h1>
+          <p className="text-xs text-muted-foreground mt-1">{t("customer.orders.subtitle")}</p>
         </div>
 
         {isLoading ? (
@@ -48,8 +48,8 @@ export function CustomerOrdersPage() {
           <Card className="p-10 text-center border-0 shadow-sm rounded-2xl">
             <Package className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
             <p className="font-semibold text-foreground mb-1">{t("customer.orders.emptyTitle")}</p>
-            <p className="text-sm text-muted-foreground mb-4">{t("customer.orders.emptySubtitle")}</p>
-            <Link href="/customer/products" className="text-sm font-medium text-primary hover:underline">
+            <p className="text-xs text-muted-foreground mb-4">{t("customer.orders.emptySubtitle")}</p>
+            <Link href="/customer/products" className="text-xs font-medium text-primary hover:underline">
               {t("customer.orders.browseProducts")}
             </Link>
           </Card>
@@ -67,14 +67,14 @@ export function CustomerOrdersPage() {
                           <Package className="w-5 h-5 text-primary" />
                         </div>
                         <div className="min-w-0">
-                          <p className="font-semibold text-sm text-foreground truncate">{order.itemSummary}</p>
-                          <p className="text-xs text-muted-foreground">{order.shopName} &middot; #{order.orderNumber}</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">{new Date(order.createdAt).toLocaleDateString()}</p>
+                          <p className="font-semibold text-xs text-foreground truncate">{order.itemSummary}</p>
+                          <p className="text-[11px] text-muted-foreground">{order.shopName} &middot; #{order.orderNumber}</p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">{new Date(order.createdAt).toLocaleDateString()}</p>
                         </div>
                       </div>
                       <div className="text-right flex-shrink-0">
-                        <p className="font-bold text-sm text-foreground">{formatMoney(order.total)}</p>
-                        <div className={`mt-1.5 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold ${status.className}`}>
+                        <p className="font-bold text-xs text-foreground">{formatMoney(order.total)}</p>
+                        <div className={`mt-1.5 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold ${status.className}`}>
                           <StatusIcon className="w-3 h-3" />
                           {status.label}
                         </div>

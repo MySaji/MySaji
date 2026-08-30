@@ -119,8 +119,8 @@ export function CustomerOrderDetailPage({ orderId }: { orderId: string }) {
   if (!order) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-background px-4 text-center">
-        <p className="text-lg font-semibold text-foreground">{t("customer.orderDetail.notFound")}</p>
-        <Link href="/customer/orders" className="text-sm font-medium text-primary hover:underline">{t("customer.orderDetail.backToOrders")}</Link>
+        <p className="text-base font-semibold text-foreground">{t("customer.orderDetail.notFound")}</p>
+        <Link href="/customer/orders" className="text-xs font-medium text-primary hover:underline">{t("customer.orderDetail.backToOrders")}</Link>
       </div>
     )
   }
@@ -138,26 +138,26 @@ export function CustomerOrderDetailPage({ orderId }: { orderId: string }) {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-2xl mx-auto px-4 py-6 lg:py-8">
-        <button onClick={() => router.push("/customer/orders")} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-4">
+        <button onClick={() => router.push("/customer/orders")} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground mb-4">
           <ArrowLeft className="w-4 h-4" /> {t("customer.orderDetail.backToOrders")}
         </button>
 
         <div className="mb-6">
-          <h1 className="text-xl lg:text-2xl font-bold text-foreground">#{order.orderNumber}</h1>
-          <p className="text-sm text-muted-foreground mt-1">{t("customer.orderDetail.shopLabel", { shop: order.shopName })}</p>
+          <h1 className="text-lg lg:text-xl font-bold text-foreground">#{order.orderNumber}</h1>
+          <p className="text-xs text-muted-foreground mt-1">{t("customer.orderDetail.shopLabel", { shop: order.shopName })}</p>
         </div>
 
         {/* Timeline */}
         <Card className="p-5 border-0 shadow-sm rounded-2xl mb-4">
-          <h2 className="text-sm font-bold text-foreground mb-4">{t("customer.orderDetail.timelineTitle")}</h2>
+          <h2 className="text-xs font-bold text-foreground mb-4">{t("customer.orderDetail.timelineTitle")}</h2>
           {isCancelled ? (
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
                 <XCircle className="w-5 h-5 text-muted-foreground" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-foreground">{t("customer.orderDetail.cancelled")}</p>
-                {order.cancelledAt && <p className="text-xs text-muted-foreground">{new Date(order.cancelledAt).toLocaleString()}</p>}
+                <p className="text-xs font-semibold text-foreground">{t("customer.orderDetail.cancelled")}</p>
+                {order.cancelledAt && <p className="text-[11px] text-muted-foreground">{new Date(order.cancelledAt).toLocaleString()}</p>}
               </div>
             </div>
           ) : (
@@ -175,8 +175,8 @@ export function CustomerOrderDetailPage({ orderId }: { orderId: string }) {
                       {!isLast && <div className={`w-0.5 flex-1 min-h-6 ${reached ? "bg-primary" : "bg-border"}`} />}
                     </div>
                     <div className={isLast ? "pb-0" : "pb-6"}>
-                      <p className={`text-sm font-semibold ${reached ? "text-foreground" : "text-muted-foreground"}`}>{step.label}</p>
-                      <p className="text-xs text-muted-foreground">{step.at ? new Date(step.at).toLocaleString() : "—"}</p>
+                      <p className={`text-xs font-semibold ${reached ? "text-foreground" : "text-muted-foreground"}`}>{step.label}</p>
+                      <p className="text-[11px] text-muted-foreground">{step.at ? new Date(step.at).toLocaleString() : "—"}</p>
                     </div>
                   </div>
                 )
@@ -187,7 +187,7 @@ export function CustomerOrderDetailPage({ orderId }: { orderId: string }) {
 
         {/* Items */}
         <Card className="p-5 border-0 shadow-sm rounded-2xl mb-4">
-          <h2 className="text-sm font-bold text-foreground mb-3">{t("customer.orderDetail.itemsTitle")}</h2>
+          <h2 className="text-xs font-bold text-foreground mb-3">{t("customer.orderDetail.itemsTitle")}</h2>
           <div className="space-y-3">
             {order.items.map((item) => (
               <div key={item.id} className="flex items-center gap-3">
@@ -195,10 +195,10 @@ export function CustomerOrderDetailPage({ orderId }: { orderId: string }) {
                   <Image src={item.image || "/placeholder.svg"} alt={item.name} fill className="object-cover" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{item.name}</p>
-                  <p className="text-xs text-muted-foreground">x{item.quantity}</p>
+                  <p className="text-xs font-medium text-foreground truncate">{item.name}</p>
+                  <p className="text-[11px] text-muted-foreground">x{item.quantity}</p>
                 </div>
-                <p className="text-sm font-semibold text-foreground flex-shrink-0">{formatMoney(item.totalPrice)}</p>
+                <p className="text-xs font-semibold text-foreground flex-shrink-0">{formatMoney(item.totalPrice)}</p>
               </div>
             ))}
           </div>
@@ -206,8 +206,8 @@ export function CustomerOrderDetailPage({ orderId }: { orderId: string }) {
 
         {/* Summary */}
         <Card className="p-5 border-0 shadow-sm rounded-2xl mb-4">
-          <h2 className="text-sm font-bold text-foreground mb-3">{t("customer.orderDetail.summaryTitle")}</h2>
-          <div className="space-y-1.5 text-sm">
+          <h2 className="text-xs font-bold text-foreground mb-3">{t("customer.orderDetail.summaryTitle")}</h2>
+          <div className="space-y-1.5 text-xs">
             <div className="flex justify-between"><span className="text-muted-foreground">{t("customer.orderDetail.subtotalLabel")}</span><span className="text-foreground">{formatMoney(order.subtotal)}</span></div>
             {order.discount > 0 && <div className="flex justify-between"><span className="text-muted-foreground">{t("customer.orderDetail.discountLabel")}</span><span className="text-emerald-600">-{formatMoney(order.discount)}</span></div>}
             <div className="flex justify-between"><span className="text-muted-foreground">{t("customer.orderDetail.shippingLabel")}</span><span className="text-foreground">{formatMoney(order.shippingCost)}</span></div>
@@ -216,8 +216,8 @@ export function CustomerOrderDetailPage({ orderId }: { orderId: string }) {
           </div>
           {order.addressLabel && (
             <div className="mt-3 pt-3 border-t border-border">
-              <p className="text-xs text-muted-foreground">{t("customer.orderDetail.deliveryAddressLabel")}</p>
-              <p className="text-sm text-foreground mt-0.5">{order.addressLabel}</p>
+              <p className="text-[11px] text-muted-foreground">{t("customer.orderDetail.deliveryAddressLabel")}</p>
+              <p className="text-xs text-foreground mt-0.5">{order.addressLabel}</p>
             </div>
           )}
         </Card>
@@ -225,9 +225,9 @@ export function CustomerOrderDetailPage({ orderId }: { orderId: string }) {
         {/* Existing dispute / return request */}
         {order.existingDispute && (
           <Card className="p-5 border-0 shadow-sm rounded-2xl mb-4 bg-amber-50 dark:bg-amber-900/20">
-            <p className="text-sm font-semibold text-amber-900 dark:text-amber-300">{t("customer.orderDetail.existingRequestLabel")} #{order.existingDispute.disputeNumber}</p>
-            <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">{order.existingDispute.reason} &middot; {DISPUTE_STATUS_LABEL[order.existingDispute.status] ?? order.existingDispute.status}</p>
-            {order.existingDispute.resolution && <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">{order.existingDispute.resolution}</p>}
+            <p className="text-xs font-semibold text-amber-900 dark:text-amber-300">{t("customer.orderDetail.existingRequestLabel")} #{order.existingDispute.disputeNumber}</p>
+            <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-1">{order.existingDispute.reason} &middot; {DISPUTE_STATUS_LABEL[order.existingDispute.status] ?? order.existingDispute.status}</p>
+            {order.existingDispute.resolution && <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-1">{order.existingDispute.resolution}</p>}
           </Card>
         )}
 
@@ -249,14 +249,14 @@ export function CustomerOrderDetailPage({ orderId }: { orderId: string }) {
         <DialogContent className="max-w-md rounded-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{t("customer.orderDetail.returnModalTitle")}</DialogTitle></DialogHeader>
           {submitted ? (
-            <p className="text-sm text-emerald-600 py-4">{t("customer.orderDetail.returnSubmitted")}</p>
+            <p className="text-xs text-emerald-600 py-4">{t("customer.orderDetail.returnSubmitted")}</p>
           ) : (
             <div className="space-y-4 py-2">
               <div>
-                <label className="text-sm font-medium mb-2 block">{t("customer.orderDetail.reasonLabel")}</label>
+                <label className="text-xs font-medium mb-2 block">{t("customer.orderDetail.reasonLabel")}</label>
                 <div className="space-y-1.5">
                   {RETURN_REASONS.map((r) => (
-                    <label key={r} className="flex items-center gap-2 text-sm cursor-pointer">
+                    <label key={r} className="flex items-center gap-2 text-xs cursor-pointer">
                       <input type="radio" name="return-reason" checked={reason === r} onChange={() => setReason(r)} className="accent-primary" />
                       {REASON_LABEL[r]}
                     </label>
@@ -264,11 +264,11 @@ export function CustomerOrderDetailPage({ orderId }: { orderId: string }) {
                 </div>
               </div>
               <div>
-                <label className="text-sm font-medium mb-2 block">{t("customer.orderDetail.descriptionLabel")}</label>
+                <label className="text-xs font-medium mb-2 block">{t("customer.orderDetail.descriptionLabel")}</label>
                 <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t("customer.orderDetail.descriptionPlaceholder")} className="min-h-[80px]" />
               </div>
               <div>
-                <label className="text-sm font-medium mb-2 block">{t("customer.orderDetail.photosLabel")}</label>
+                <label className="text-xs font-medium mb-2 block">{t("customer.orderDetail.photosLabel")}</label>
                 <div className="flex gap-2 flex-wrap">
                   {photos.map((p, i) => (
                     <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden border border-border">
@@ -298,7 +298,7 @@ export function CustomerOrderDetailPage({ orderId }: { orderId: string }) {
                   )}
                 </div>
               </div>
-              {formError && <p className="text-xs text-red-600">{formError}</p>}
+              {formError && <p className="text-[11px] text-red-600">{formError}</p>}
               <Button className="w-full rounded-xl" onClick={handleSubmitReturn} disabled={description.trim().length < 10 || isSubmitting}>
                 {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : t("customer.orderDetail.submitReturn")}
               </Button>
@@ -311,21 +311,21 @@ export function CustomerOrderDetailPage({ orderId }: { orderId: string }) {
         <DialogContent className="max-w-md rounded-2xl">
           <DialogHeader><DialogTitle>{t("customer.orderDetail.cancelModalTitle")}</DialogTitle></DialogHeader>
           {cancelSubmitted ? (
-            <p className="text-sm text-emerald-600 py-4">{t("customer.orderDetail.cancelSubmitted")}</p>
+            <p className="text-xs text-emerald-600 py-4">{t("customer.orderDetail.cancelSubmitted")}</p>
           ) : (
             <div className="space-y-4 py-2">
               <div>
-                <label className="text-sm font-medium mb-2 block">{t("customer.orderDetail.reasonLabel")}</label>
+                <label className="text-xs font-medium mb-2 block">{t("customer.orderDetail.reasonLabel")}</label>
                 <div className="space-y-1.5">
                   {CANCEL_REASONS.map((r) => (
-                    <label key={r} className="flex items-center gap-2 text-sm cursor-pointer">
+                    <label key={r} className="flex items-center gap-2 text-xs cursor-pointer">
                       <input type="radio" name="cancel-reason" checked={cancelReason === r} onChange={() => setCancelReason(r)} className="accent-primary" />
                       {CANCEL_REASON_LABEL[r]}
                     </label>
                   ))}
                 </div>
               </div>
-              {cancelError && <p className="text-xs text-red-600">{cancelError}</p>}
+              {cancelError && <p className="text-[11px] text-red-600">{cancelError}</p>}
               <Button className="w-full rounded-xl bg-red-600 hover:bg-red-700" onClick={handleSubmitCancel} disabled={isCancelling}>
                 {isCancelling ? <Loader2 className="w-4 h-4 animate-spin" /> : t("customer.orderDetail.submitCancel")}
               </Button>

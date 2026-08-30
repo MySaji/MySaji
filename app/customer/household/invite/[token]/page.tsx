@@ -63,9 +63,9 @@ export default function HouseholdInviteAcceptPage() {
       <div className="flex min-h-screen items-center justify-center p-4">
         <Card className="w-full max-w-md border-0 p-8 text-center shadow-sm">
           <ShieldAlert className="mx-auto mb-4 h-10 w-10 text-red-500" />
-          <h1 className="mb-2 text-lg font-bold text-foreground">Invite not available</h1>
-          <p className="mb-6 text-sm text-muted-foreground">{invalidReason}</p>
-          <Link href="/customer/home" className="text-sm font-medium text-primary">Back to Saji</Link>
+          <h1 className="mb-2 text-base font-bold text-foreground">Invite not available</h1>
+          <p className="mb-6 text-xs text-muted-foreground">{invalidReason}</p>
+          <Link href="/customer/home" className="text-xs font-medium text-primary">Back to Saji</Link>
         </Card>
       </div>
     )
@@ -75,8 +75,8 @@ export default function HouseholdInviteAcceptPage() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-3 px-4 text-center">
         <CheckCircle2 className="h-10 w-10 text-emerald-600" />
-        <p className="text-lg font-semibold text-foreground">You've joined {householdName}</p>
-        <p className="text-sm text-muted-foreground">Taking you to your household…</p>
+        <p className="text-base font-semibold text-foreground">You've joined {householdName}</p>
+        <p className="text-xs text-muted-foreground">Taking you to your household…</p>
       </div>
     )
   }
@@ -87,13 +87,13 @@ export default function HouseholdInviteAcceptPage() {
         <div className="mb-6 flex justify-center"><BrandLogo /></div>
         <div className="mb-6 flex flex-col items-center gap-3 text-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10"><Home className="h-6 w-6 text-primary" /></div>
-          <h1 className="text-xl font-bold text-foreground">Join {householdName}</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-lg font-bold text-foreground">Join {householdName}</h1>
+          <p className="text-xs text-muted-foreground">
             {inviterName} invited you to join their household on SAJI as a <span className="font-semibold text-foreground">{ROLE_LABEL[role]}</span>, sharing bookings and service history.
           </p>
         </div>
 
-        {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
+        {error && <p className="mb-4 text-xs text-red-600">{error}</p>}
 
         {isAuthenticated ? (
           <Button className="w-full rounded-xl" onClick={handleAccept} disabled={isAccepting}>
@@ -101,7 +101,7 @@ export default function HouseholdInviteAcceptPage() {
           </Button>
         ) : (
           <div className="space-y-3">
-            <p className="text-center text-xs text-muted-foreground">Log in or create a SAJI account first, then come back to this link to accept.</p>
+            <p className="text-center text-[11px] text-muted-foreground">Log in or create a SAJI account first, then come back to this link to accept.</p>
             <Button asChild className="w-full rounded-xl"><Link href="/auth/login">Log in</Link></Button>
             <Button asChild variant="outline" className="w-full rounded-xl bg-transparent"><Link href="/auth/signup">Create an account</Link></Button>
           </div>

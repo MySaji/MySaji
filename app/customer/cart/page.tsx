@@ -129,10 +129,10 @@ export default function CustomerCartPage() {
       <div className="mx-auto max-w-7xl px-4 py-6 lg:px-6">
         <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">{t("customer.cart.title")}</h1>
-            <p className="text-sm text-muted-foreground">{t("customer.cart.subtitle")}</p>
+            <h1 className="text-xl font-bold text-foreground">{t("customer.cart.title")}</h1>
+            <p className="text-xs text-muted-foreground">{t("customer.cart.subtitle")}</p>
           </div>
-          <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary">
+          <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary">
             <Wallet className="h-4 w-4" />
             {t("customer.cart.walletLabel")}: {formatMoney(walletBalance)}
           </div>
@@ -140,8 +140,8 @@ export default function CustomerCartPage() {
 
         {checkoutState === "ordered" ? (
           <Card className="border-emerald-200 bg-emerald-50 p-6 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/20 dark:text-emerald-400">
-            <h2 className="text-xl font-semibold">{t("customer.cart.orderPlacedTitle")}</h2>
-            <p className="mt-2 text-sm">{t("customer.cart.orderPlacedBody", { amount: formatMoney(total) })}</p>
+            <h2 className="text-lg font-semibold">{t("customer.cart.orderPlacedTitle")}</h2>
+            <p className="mt-2 text-xs">{t("customer.cart.orderPlacedBody", { amount: formatMoney(total) })}</p>
             <Link href="/customer/services" className="mt-4 inline-flex items-center gap-2 font-medium text-emerald-700 dark:text-emerald-300">
               {t("customer.cart.continueShopping")} <ArrowRight className="h-4 w-4" />
             </Link>
@@ -152,7 +152,7 @@ export default function CustomerCartPage() {
               {vacationingShops.length > 0 && (
                 <div className="space-y-2">
                   {vacationingShops.map(([shopName, note]) => (
-                    <div key={shopName} className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-900/20 dark:text-red-300">
+                    <div key={shopName} className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-800 dark:border-red-900/50 dark:bg-red-900/20 dark:text-red-300">
                       <Clock className="h-4 w-4 flex-shrink-0 mt-0.5" />
                       <p>
                         <strong>{shopName}</strong> {t("customer.cart.shopOnVacationNotice")}{note ? <> <strong>{note}</strong></> : ""}
@@ -164,7 +164,7 @@ export default function CustomerCartPage() {
               {closedShops.length > 0 && (
                 <div className="space-y-2">
                   {closedShops.map(([shopName, nextOpening]) => (
-                    <div key={shopName} className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-900/20 dark:text-amber-300">
+                    <div key={shopName} className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-900/50 dark:bg-amber-900/20 dark:text-amber-300">
                       <Clock className="h-4 w-4 flex-shrink-0 mt-0.5" />
                       <p>
                         <strong>{shopName}</strong> {t("customer.cart.shopClosedNotice")}{nextOpening ? <> <strong>{nextOpening}</strong></> : ""}.
@@ -176,9 +176,9 @@ export default function CustomerCartPage() {
               {cart.length === 0 ? (
                 <Card className="p-8 text-center">
                   <ShoppingCart className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-                  <h2 className="text-lg font-semibold">{t("customer.cart.emptyTitle")}</h2>
-                  <p className="mt-2 text-sm text-muted-foreground">{t("customer.cart.emptySubtitle")}</p>
-                  <Link href="/customer/services" className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-primary">
+                  <h2 className="text-base font-semibold">{t("customer.cart.emptyTitle")}</h2>
+                  <p className="mt-2 text-xs text-muted-foreground">{t("customer.cart.emptySubtitle")}</p>
+                  <Link href="/customer/services" className="mt-4 inline-flex items-center gap-2 text-xs font-medium text-primary">
                     {t("customer.cart.browseProducts")} <ArrowRight className="h-4 w-4" />
                   </Link>
                 </Card>
@@ -194,7 +194,7 @@ export default function CustomerCartPage() {
                           <div className="flex items-start justify-between gap-3">
                             <div>
                               <h3 className="font-semibold text-foreground">{item.name}</h3>
-                              <p className="text-sm text-muted-foreground">{item.shop}</p>
+                              <p className="text-xs text-muted-foreground">{item.shop}</p>
                             </div>
                             <Button variant="ghost" size="icon" onClick={() => removeItem(item.productId)} aria-label={t("common.removeItem")}>
                               <Trash2 className="h-4 w-4 text-red-500" />
@@ -205,14 +205,14 @@ export default function CustomerCartPage() {
                               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => updateQuantity(item.productId, item.quantity - 1)} aria-label={t("common.decreaseQuantity")}>
                                 <Minus className="h-4 w-4" />
                               </Button>
-                              <span className="min-w-10 text-center text-sm font-medium">{item.quantity}</span>
+                              <span className="min-w-10 text-center text-xs font-medium">{item.quantity}</span>
                               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => updateQuantity(item.productId, item.quantity + 1)} disabled={item.quantity >= item.stock} aria-label={t("common.increaseQuantity")}>
                                 <Plus className="h-4 w-4" />
                               </Button>
                             </div>
                             <div className="text-right">
-                              <p className="text-sm text-muted-foreground">{formatMoney(item.price * item.quantity)}</p>
-                              <p className="text-xs text-muted-foreground">{t("customer.cart.priceEach", { amount: formatMoney(item.price) })}</p>
+                              <p className="text-xs text-muted-foreground">{formatMoney(item.price * item.quantity)}</p>
+                              <p className="text-[11px] text-muted-foreground">{t("customer.cart.priceEach", { amount: formatMoney(item.price) })}</p>
                             </div>
                           </div>
                         </div>
@@ -227,24 +227,24 @@ export default function CustomerCartPage() {
                         <div className="flex-1">
                           <div className="flex items-start justify-between gap-3">
                             <div>
-                              <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                              <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
                                 <Wrench className="h-3 w-3" /> {t("customer.cart.serviceBadge")}
                               </span>
                               <h3 className="mt-1 font-semibold text-foreground">{item.name}</h3>
-                              <p className="text-sm text-muted-foreground">{item.providerName}</p>
+                              <p className="text-xs text-muted-foreground">{item.providerName}</p>
                             </div>
                             <Button variant="ghost" size="icon" onClick={() => removeService(item.cartItemId)} aria-label={t("common.removeItem")}>
                               <Trash2 className="h-4 w-4 text-red-500" />
                             </Button>
                           </div>
                           <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                               <CalendarClock className="h-3.5 w-3.5" />
                               {t("customer.cart.scheduledFor", { date: new Date(item.scheduledDate).toLocaleString() })}
                             </div>
                             <div className="text-right">
-                              <p className="text-sm text-muted-foreground">{formatMoney(item.price * item.quantity)}</p>
-                              {item.quantity > 1 && <p className="text-xs text-muted-foreground">{t("customer.cart.priceEach", { amount: formatMoney(item.price) })}</p>}
+                              <p className="text-xs text-muted-foreground">{formatMoney(item.price * item.quantity)}</p>
+                              {item.quantity > 1 && <p className="text-[11px] text-muted-foreground">{t("customer.cart.priceEach", { amount: formatMoney(item.price) })}</p>}
                             </div>
                           </div>
                         </div>
@@ -257,9 +257,9 @@ export default function CustomerCartPage() {
 
             <div className="space-y-4">
               <Card className="p-5">
-                <h2 className="text-lg font-semibold">{t("customer.cart.shippingDetails")}</h2>
+                <h2 className="text-base font-semibold">{t("customer.cart.shippingDetails")}</h2>
                 <div className="mt-4 space-y-3">
-                  <div className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
                     <MapPin className="h-4 w-4" />
                     {t("customer.cart.deliveryNotice")}
                   </div>
@@ -270,11 +270,11 @@ export default function CustomerCartPage() {
               </Card>
 
               <Card className="p-5">
-                <h2 className="text-lg font-semibold">{t("customer.cart.orderSummary")}</h2>
+                <h2 className="text-base font-semibold">{t("customer.cart.orderSummary")}</h2>
 
                 <div className="mt-4">
                   {appliedPromo ? (
-                    <div className="flex items-center justify-between rounded-lg bg-emerald-50 dark:bg-emerald-900/20 px-3 py-2 text-sm">
+                    <div className="flex items-center justify-between rounded-lg bg-emerald-50 dark:bg-emerald-900/20 px-3 py-2 text-xs">
                       <span className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400">
                         <Tag className="h-3.5 w-3.5" />
                         {t("customer.cart.promoApplied", { shop: appliedPromo.shopName })}
@@ -291,27 +291,27 @@ export default function CustomerCartPage() {
                       </Button>
                     </div>
                   )}
-                  {promoError && <p className="mt-1.5 text-xs text-red-600">{promoError}</p>}
+                  {promoError && <p className="mt-1.5 text-[11px] text-red-600">{promoError}</p>}
                 </div>
 
-                <div className="mt-4 space-y-2 text-sm">
+                <div className="mt-4 space-y-2 text-xs">
                   <div className="flex justify-between"><span className="text-muted-foreground">{t("customer.cart.subtotal")}</span><span>{formatMoney(subtotal)}</span></div>
                   {discount > 0 && (
                     <div className="flex justify-between"><span className="text-muted-foreground">{t("customer.orderDetail.discountLabel")}</span><span className="text-emerald-600">-{formatMoney(discount)}</span></div>
                   )}
                   <div className="flex justify-between"><span className="text-muted-foreground">{t("customer.cart.shipping")}</span><span>{formatMoney(shipping)}</span></div>
-                  <div className="flex justify-between border-t border-border pt-3 text-base font-semibold">
+                  <div className="flex justify-between border-t border-border pt-3 text-sm font-semibold">
                     <span>{t("payment.total")}</span>
                     <span>{formatMoney(total)}</span>
                   </div>
                 </div>
                 {!canPay && cart.length > 0 && (
-                  <p className="mt-3 text-sm text-red-600">{t("customer.cart.insufficientBalance")}</p>
+                  <p className="mt-3 text-xs text-red-600">{t("customer.cart.insufficientBalance")}</p>
                 )}
                 {vacationingShops.length > 0 && (
-                  <p className="mt-3 text-sm text-red-600">{t("customer.cart.vacationingShopsNotice")}</p>
+                  <p className="mt-3 text-xs text-red-600">{t("customer.cart.vacationingShopsNotice")}</p>
                 )}
-                {checkoutError && <p className="mt-3 text-sm text-red-600">{checkoutError}</p>}
+                {checkoutError && <p className="mt-3 text-xs text-red-600">{checkoutError}</p>}
                 <Button className="mt-4 w-full" onClick={handleCheckout} disabled={cart.length === 0 || !canCheckout || !shippingAddress || !shippingPhone || isSubmitting}>
                   {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : t("customer.cart.payFromWallet")}
                 </Button>

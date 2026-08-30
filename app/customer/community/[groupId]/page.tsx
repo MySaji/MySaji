@@ -142,7 +142,7 @@ export default function GroupDetailPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 bg-background min-h-screen">
-      <button onClick={() => router.push("/customer/community")} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-4">
+      <button onClick={() => router.push("/customer/community")} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground mb-4">
         <ArrowLeft className="w-4 h-4" /> {t("customer.groupDetail.backToCommunity")}
       </button>
 
@@ -153,8 +153,8 @@ export default function GroupDetailPage() {
         <div className="p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <h1 className="text-xl font-bold text-foreground truncate">{group.name}</h1>
-              <button onClick={openMembers} className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1.5 mt-0.5">
+              <h1 className="text-lg font-bold text-foreground truncate">{group.name}</h1>
+              <button onClick={openMembers} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1.5 mt-0.5">
                 <Users className="w-3.5 h-3.5" /> {tn("customer.community.membersCount", group.memberCount)}
               </button>
             </div>
@@ -169,7 +169,7 @@ export default function GroupDetailPage() {
               </Button>
             </div>
           </div>
-          {group.description && <p className="text-sm text-muted-foreground mt-3">{group.description}</p>}
+          {group.description && <p className="text-xs text-muted-foreground mt-3">{group.description}</p>}
         </div>
       </Card>
 
@@ -194,7 +194,7 @@ export default function GroupDetailPage() {
             </div>
           )}
           <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
-            <label className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground cursor-pointer text-sm">
+            <label className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground cursor-pointer text-xs">
               <ImagePlus className="w-4 h-4" /> {t("customer.community.photo")}
               <input type="file" accept="image/*" multiple className="hidden" onChange={handleImageUpload} disabled={postImages.length >= 4} />
             </label>
@@ -204,7 +204,7 @@ export default function GroupDetailPage() {
           </div>
         </Card>
       ) : (
-        <Card className="p-4 mb-4 text-center text-sm text-muted-foreground">
+        <Card className="p-4 mb-4 text-center text-xs text-muted-foreground">
           {t("customer.groupDetail.joinToPost")}
         </Card>
       )}
@@ -214,7 +214,7 @@ export default function GroupDetailPage() {
           <Card className="p-10 text-center">
             <Users className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
             <p className="text-foreground font-medium">{t("customer.groupDetail.noPostsYet")}</p>
-            <p className="text-sm text-muted-foreground mt-1">{t("customer.groupDetail.beFirstToShare")}</p>
+            <p className="text-xs text-muted-foreground mt-1">{t("customer.groupDetail.beFirstToShare")}</p>
           </Card>
         ) : posts.map((post) => (
           <Card key={post.id} className="overflow-hidden">
@@ -224,8 +224,8 @@ export default function GroupDetailPage() {
                   <Image src={post.authorAvatar || "/placeholder.svg"} alt={post.authorName} fill className="object-cover" />
                 </div>
                 <div>
-                  <p className="font-semibold text-foreground text-sm">{post.authorName}</p>
-                  <p className="text-xs text-muted-foreground">{formatRelativeTime(post.createdAt)}</p>
+                  <p className="font-semibold text-foreground text-xs">{post.authorName}</p>
+                  <p className="text-[11px] text-muted-foreground">{formatRelativeTime(post.createdAt)}</p>
                 </div>
               </div>
               {post.isMine && (
@@ -250,11 +250,11 @@ export default function GroupDetailPage() {
             <div className="p-4 flex items-center gap-6 border-t border-border">
               <button onClick={() => handleToggleLike(post.id)} className="flex items-center gap-2 text-muted-foreground hover:text-red-500 transition-colors">
                 <Heart className={`w-5 h-5 ${post.isLiked ? "fill-red-500 text-red-500" : ""}`} />
-                <span className="text-sm">{post.likeCount}</span>
+                <span className="text-xs">{post.likeCount}</span>
               </button>
               <button onClick={() => openComments(post.id)} className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors">
                 <MessageCircle className="w-5 h-5" />
-                <span className="text-sm">{post.commentCount}</span>
+                <span className="text-xs">{post.commentCount}</span>
               </button>
             </div>
           </Card>
@@ -271,8 +271,8 @@ export default function GroupDetailPage() {
                 <div className="relative w-9 h-9 rounded-full overflow-hidden bg-muted flex-shrink-0">
                   <Image src={m.avatar || "/placeholder.svg"} alt={m.name} fill className="object-cover" />
                 </div>
-                <p className="flex-1 text-sm font-medium text-foreground truncate">{m.name}</p>
-                {m.isAdmin && <span className="flex items-center gap-1 text-xs text-primary font-medium"><Shield className="w-3 h-3" /> {t("customer.groupDetail.admin")}</span>}
+                <p className="flex-1 text-xs font-medium text-foreground truncate">{m.name}</p>
+                {m.isAdmin && <span className="flex items-center gap-1 text-[11px] text-primary font-medium"><Shield className="w-3 h-3" /> {t("customer.groupDetail.admin")}</span>}
               </div>
             ))}
           </div>
@@ -290,7 +290,7 @@ export default function GroupDetailPage() {
             {isLoadingComments ? (
               <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
             ) : comments.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">{t("customer.community.noComments")}</p>
+              <p className="text-xs text-muted-foreground text-center py-4">{t("customer.community.noComments")}</p>
             ) : comments.map((comment) => (
               <div key={comment.id} className="flex gap-3">
                 <div className="relative w-10 h-10 rounded-full bg-muted flex-shrink-0 overflow-hidden">
@@ -298,10 +298,10 @@ export default function GroupDetailPage() {
                 </div>
                 <div className="flex-1">
                   <div className="bg-muted rounded-xl p-3">
-                    <p className="font-medium text-sm text-foreground">{comment.authorName}</p>
-                    <p className="text-sm text-muted-foreground mt-1">{comment.content}</p>
+                    <p className="font-medium text-xs text-foreground">{comment.authorName}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{comment.content}</p>
                   </div>
-                  <span className="text-xs text-muted-foreground px-2">{formatRelativeTime(comment.createdAt)}</span>
+                  <span className="text-[11px] text-muted-foreground px-2">{formatRelativeTime(comment.createdAt)}</span>
                 </div>
               </div>
             ))}

@@ -129,7 +129,7 @@ export default function FindSpecialistsPage() {
   }, [selectedSpecialist])
 
   const renderBadge = (badge: string) => (
-    <span key={badge} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${BADGE_STYLE[badge] ?? "bg-muted text-muted-foreground"}`}>
+    <span key={badge} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${BADGE_STYLE[badge] ?? "bg-muted text-muted-foreground"}`}>
       {BADGE_LABEL[badge] ?? badge}
     </span>
   )
@@ -152,8 +152,8 @@ export default function FindSpecialistsPage() {
               <ArrowLeft className="w-5 h-5 text-foreground" />
             </button>
             <div className="flex-1 min-w-0">
-              <h1 className="text-lg font-bold text-foreground">{t("customer.layout.navFindSpecialists")}</h1>
-              <p className="text-xs text-muted-foreground flex items-center gap-1 truncate">
+              <h1 className="text-base font-bold text-foreground">{t("customer.layout.navFindSpecialists")}</h1>
+              <p className="text-[11px] text-muted-foreground flex items-center gap-1 truncate">
                 <LocateFixed className="w-3 h-3 flex-shrink-0" /> <span className="truncate">{selectedLocation || t("customer.findSpecialists.detecting")} -- {tn("customer.findSpecialists.specialistsFound", filtered.length)}</span>
               </p>
             </div>
@@ -170,7 +170,7 @@ export default function FindSpecialistsPage() {
               placeholder={t("customer.findSpecialists.searchPlaceholder")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-10 rounded-xl border-0 bg-muted text-sm"
+              className="pl-9 h-10 rounded-xl border-0 bg-muted text-xs"
             />
             {searchQuery && (
               <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -185,7 +185,7 @@ export default function FindSpecialistsPage() {
               <button
                 key={skill}
                 onClick={() => setSelectedSkill(skill)}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
+                className={`px-3.5 py-1.5 rounded-full text-[11px] font-medium whitespace-nowrap transition-all ${
                   selectedSkill === skill
                     ? "bg-primary text-primary-foreground shadow-sm"
                     : "bg-muted text-muted-foreground hover:bg-muted/80"
@@ -201,7 +201,7 @@ export default function FindSpecialistsPage() {
             <div className="flex flex-wrap gap-3 pt-3 border-t border-border/50 mt-3">
               <button
                 onClick={() => setAvailableOnly(!availableOnly)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition-all ${
                   availableOnly ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300" : "bg-muted text-muted-foreground"
                 }`}
               >
@@ -210,7 +210,7 @@ export default function FindSpecialistsPage() {
               </button>
               <button
                 onClick={() => setVettedOnly(!vettedOnly)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition-all ${
                   vettedOnly ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300" : "bg-muted text-muted-foreground"
                 }`}
               >
@@ -228,7 +228,7 @@ export default function FindSpecialistsPage() {
           <Card className="p-10 text-center border-0 shadow-sm">
             <Search className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
             <p className="font-semibold text-foreground mb-1">{t("customer.findSpecialists.noneFound")}</p>
-            <p className="text-sm text-muted-foreground">{t("customer.findSpecialists.adjustFilters")}</p>
+            <p className="text-xs text-muted-foreground">{t("customer.findSpecialists.adjustFilters")}</p>
           </Card>
         ) : (
           <div className="grid gap-3 lg:grid-cols-2">
@@ -236,7 +236,7 @@ export default function FindSpecialistsPage() {
               <Card
                 key={s.providerId}
                 onClick={() => openSpecialist(s.providerId)}
-                className="p-4 border-0 shadow-sm hover:shadow-md transition-all cursor-pointer group"
+                className="min-w-0 p-4 border-0 shadow-sm hover:shadow-md transition-all cursor-pointer group"
               >
                 <div className="flex gap-3.5">
                   {/* Avatar */}
@@ -255,11 +255,11 @@ export default function FindSpecialistsPage() {
                   {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 mb-0.5">
-                      <h3 className="font-bold text-foreground text-sm lg:text-base truncate">{s.name}</h3>
+                      <h3 className="font-bold text-foreground text-xs lg:text-sm truncate">{s.name}</h3>
                       {s.verified && <CheckCircle className="w-4 h-4 text-blue-500 fill-blue-500 flex-shrink-0" />}
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground mb-1.5">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground mb-1.5">
                       <span className="flex items-center gap-1 flex-shrink-0">
                         <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                         <span className="font-semibold text-foreground">{s.rating.toFixed(1)}</span>
@@ -274,9 +274,9 @@ export default function FindSpecialistsPage() {
                       {STATUS_STYLE[s.status].label}
                     </span>
 
-                    <div className="flex flex-wrap gap-1 mb-2">
+                    <div className="flex min-w-0 flex-wrap gap-1 mb-2">
                       {s.skills.map((sk, i) => (
-                        <span key={i} className="text-[11px] bg-muted text-muted-foreground px-2 py-0.5 rounded-md font-medium">{sk}</span>
+                        <span key={i} className="max-w-full truncate text-[10px] bg-muted text-muted-foreground px-2 py-0.5 rounded-md font-medium">{sk}</span>
                       ))}
                     </div>
 
@@ -289,8 +289,8 @@ export default function FindSpecialistsPage() {
 
                   {/* Price */}
                   <div className="text-right flex-shrink-0">
-                    <p className="font-bold text-foreground text-base lg:text-lg">{formatMoney(s.hourlyRate)}</p>
-                    <p className="text-[11px] text-muted-foreground">{t("customer.findSpecialists.perHour")}</p>
+                    <p className="font-bold text-foreground text-sm lg:text-base">{formatMoney(s.hourlyRate)}</p>
+                    <p className="text-[10px] text-muted-foreground">{t("customer.findSpecialists.perHour")}</p>
                   </div>
                 </div>
               </Card>
@@ -335,7 +335,7 @@ export default function FindSpecialistsPage() {
                   <div className="w-24 h-24 rounded-2xl overflow-hidden ring-4 ring-card shadow-lg">
                     <NextImage src={selectedSpecialist.avatar || "/placeholder.svg"} alt={selectedSpecialist.name} width={96} height={96} className="object-cover" />
                   </div>
-                  <span className={`inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full font-medium mb-1 ${STATUS_STYLE[selectedSpecialist.status].pill}`}>
+                  <span className={`inline-flex items-center gap-1.5 text-[11px] px-3 py-1 rounded-full font-medium mb-1 ${STATUS_STYLE[selectedSpecialist.status].pill}`}>
                     <span className={`w-2 h-2 rounded-full ${STATUS_STYLE[selectedSpecialist.status].dot} ${selectedSpecialist.status === "available" ? "animate-pulse" : ""}`} />
                     {STATUS_STYLE[selectedSpecialist.status].label}
                   </span>
@@ -348,7 +348,7 @@ export default function FindSpecialistsPage() {
                   {/* Name & Stats */}
                   <div>
                     <div className="flex items-center gap-2 mb-0.5">
-                      <h2 className="text-xl font-bold text-foreground">{selectedSpecialist.name}</h2>
+                      <h2 className="text-lg font-bold text-foreground">{selectedSpecialist.name}</h2>
                       {selectedSpecialist.verified && (
                         <span className="flex items-center gap-1 bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">
                           <CheckCircle className="w-3.5 h-3.5 text-blue-600 fill-blue-600" />
@@ -356,19 +356,19 @@ export default function FindSpecialistsPage() {
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-muted-foreground font-medium">{selectedSpecialist.skills.join(" | ")}</p>
+                    <p className="text-xs text-muted-foreground font-medium">{selectedSpecialist.skills.join(" | ")}</p>
                     <div className="flex flex-wrap items-center gap-3 mt-2.5">
-                      <span className="flex items-center gap-1 bg-amber-50 dark:bg-amber-900/20 px-2.5 py-1 rounded-lg text-sm">
+                      <span className="flex items-center gap-1 bg-amber-50 dark:bg-amber-900/20 px-2.5 py-1 rounded-lg text-xs">
                         <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
                         <span className="font-bold text-foreground">{selectedSpecialist.rating.toFixed(1)}</span>
-                        <span className="text-xs text-muted-foreground">({selectedSpecialist.reviewCount})</span>
+                        <span className="text-[11px] text-muted-foreground">({selectedSpecialist.reviewCount})</span>
                       </span>
-                      <span className="text-xs text-muted-foreground flex items-center gap-1"><Briefcase className="w-3.5 h-3.5" />{tn("customer.favorites.jobsCount", selectedSpecialist.completedJobs)}</span>
-                      {selectedSpecialist.yearsExperience !== null && (<span className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{t("customer.findSpecialists.yearsExperience", { count: selectedSpecialist.yearsExperience })}</span>)}
-                      <span className="text-xs text-muted-foreground flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{selectedSpecialist.location}</span>
+                      <span className="text-[11px] text-muted-foreground flex items-center gap-1"><Briefcase className="w-3.5 h-3.5" />{tn("customer.favorites.jobsCount", selectedSpecialist.completedJobs)}</span>
+                      {selectedSpecialist.yearsExperience !== null && (<span className="text-[11px] text-muted-foreground flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{t("customer.findSpecialists.yearsExperience", { count: selectedSpecialist.yearsExperience })}</span>)}
+                      <span className="text-[11px] text-muted-foreground flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{selectedSpecialist.location}</span>
                     </div>
-                    <p className="text-lg font-bold text-primary mt-2.5">
-                      {formatMoney(selectedSpecialist.hourlyRate)} <span className="text-xs font-normal text-muted-foreground">{t("customer.findSpecialists.perHourSpaced")}</span>
+                    <p className="text-base font-bold text-primary mt-2.5">
+                      {formatMoney(selectedSpecialist.hourlyRate)} <span className="text-[11px] font-normal text-muted-foreground">{t("customer.findSpecialists.perHourSpaced")}</span>
                     </p>
                   </div>
 
@@ -388,7 +388,7 @@ export default function FindSpecialistsPage() {
                             <div className={`w-9 h-9 ${action.iconBg} rounded-full flex items-center justify-center`}>
                               <Icon className="w-4 h-4 text-white" />
                             </div>
-                            <span className={`text-[11px] font-medium ${action.textColor}`}>{action.label}</span>
+                            <span className={`text-[10px] font-medium ${action.textColor}`}>{action.label}</span>
                           </Link>
                         )
                       }
@@ -397,7 +397,7 @@ export default function FindSpecialistsPage() {
                           <div className={`w-9 h-9 ${action.iconBg} rounded-full flex items-center justify-center`}>
                             <Icon className="w-4 h-4 text-white" />
                           </div>
-                          <span className={`text-[11px] font-medium ${action.textColor}`}>{action.label}</span>
+                          <span className={`text-[10px] font-medium ${action.textColor}`}>{action.label}</span>
                         </button>
                       )
                     })}
@@ -406,35 +406,35 @@ export default function FindSpecialistsPage() {
                   {/* Tabs */}
                   <Tabs value={profileTab} onValueChange={setProfileTab} className="w-full">
                     <TabsList className="w-full grid grid-cols-4 h-10 bg-muted rounded-xl p-1">
-                      <TabsTrigger value="overview" className="rounded-lg text-xs">{t("customer.findSpecialists.tabOverview")}</TabsTrigger>
-                      <TabsTrigger value="portfolio" className="rounded-lg text-xs">{t("customer.findSpecialists.tabPortfolio")}</TabsTrigger>
-                      <TabsTrigger value="videos" className="rounded-lg text-xs">{t("customer.findSpecialists.tabVideos")}</TabsTrigger>
-                      <TabsTrigger value="shop" className="rounded-lg text-xs">{t("customer.findSpecialists.tabShop")}</TabsTrigger>
+                      <TabsTrigger value="overview" className="rounded-lg text-[11px]">{t("customer.findSpecialists.tabOverview")}</TabsTrigger>
+                      <TabsTrigger value="portfolio" className="rounded-lg text-[11px]">{t("customer.findSpecialists.tabPortfolio")}</TabsTrigger>
+                      <TabsTrigger value="videos" className="rounded-lg text-[11px]">{t("customer.findSpecialists.tabVideos")}</TabsTrigger>
+                      <TabsTrigger value="shop" className="rounded-lg text-[11px]">{t("customer.findSpecialists.tabShop")}</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="overview" className="mt-3 space-y-3">
                       <div className="bg-muted/50 rounded-xl p-4">
-                        <h3 className="font-semibold text-foreground text-sm mb-1.5">{t("customer.findSpecialists.about")}</h3>
-                        <p className="text-sm text-muted-foreground leading-relaxed">{selectedSpecialist.bio || t("customer.findSpecialists.noBio")}</p>
+                        <h3 className="font-semibold text-foreground text-xs mb-1.5">{t("customer.findSpecialists.about")}</h3>
+                        <p className="text-xs text-muted-foreground leading-relaxed">{selectedSpecialist.bio || t("customer.findSpecialists.noBio")}</p>
                       </div>
                       {selectedSpecialist.badges.length > 0 && (
                         <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-xl p-4">
-                          <h3 className="font-semibold text-foreground text-sm mb-2 flex items-center gap-1.5"><Award className="w-4 h-4 text-amber-500" />{t("customer.findSpecialists.badgesLabel")}</h3>
+                          <h3 className="font-semibold text-foreground text-xs mb-2 flex items-center gap-1.5"><Award className="w-4 h-4 text-amber-500" />{t("customer.findSpecialists.badgesLabel")}</h3>
                           <div className="flex flex-wrap gap-1.5">{selectedSpecialist.badges.map((b) => renderBadge(b))}</div>
                         </div>
                       )}
                       {selectedSpecialist.endorsements.length > 0 && (
                         <div className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-xl p-4">
-                          <h3 className="font-semibold text-foreground text-sm mb-2 flex items-center gap-1.5"><Store className="w-4 h-4 text-emerald-600" />{t("customer.findSpecialists.endorsements")}</h3>
+                          <h3 className="font-semibold text-foreground text-xs mb-2 flex items-center gap-1.5"><Store className="w-4 h-4 text-emerald-600" />{t("customer.findSpecialists.endorsements")}</h3>
                           {selectedSpecialist.endorsements.map((e) => (
                             <div key={e.id} className="flex gap-2.5">
                               <div className="relative w-10 h-10 rounded-xl overflow-hidden flex-shrink-0">
                                 <NextImage src={e.avatar || "/placeholder.svg"} alt={e.ownerName} fill className="object-cover" />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-foreground text-sm truncate">{e.shopName}</p>
-                                <p className="text-[11px] text-muted-foreground mb-1 truncate">{t("customer.findSpecialists.byOwner", { name: e.ownerName })}</p>
-                                <p className="text-sm text-foreground italic leading-relaxed">{`"${e.message}"`}</p>
+                                <p className="font-semibold text-foreground text-xs truncate">{e.shopName}</p>
+                                <p className="text-[10px] text-muted-foreground mb-1 truncate">{t("customer.findSpecialists.byOwner", { name: e.ownerName })}</p>
+                                <p className="text-xs text-foreground italic leading-relaxed">{`"${e.message}"`}</p>
                               </div>
                             </div>
                           ))}
@@ -449,14 +449,14 @@ export default function FindSpecialistsPage() {
                             <div key={sample.id} className="relative aspect-video rounded-xl overflow-hidden group cursor-pointer">
                               <NextImage src={sample.imageUrl} alt={sample.title} fill className="object-cover group-hover:scale-105 transition-transform" />
                               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-                              <p className="absolute bottom-2 left-2 right-2 text-white text-xs font-medium truncate">{sample.title}</p>
+                              <p className="absolute bottom-2 left-2 right-2 text-white text-[11px] font-medium truncate">{sample.title}</p>
                             </div>
                           ))}
                         </div>
                       ) : (
                         <div className="text-center py-8 bg-muted/50 rounded-xl">
                           <ImageIcon className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
-                          <p className="text-sm text-muted-foreground">{t("customer.findSpecialists.noSamples")}</p>
+                          <p className="text-xs text-muted-foreground">{t("customer.findSpecialists.noSamples")}</p>
                         </div>
                       )}
                     </TabsContent>
@@ -467,14 +467,14 @@ export default function FindSpecialistsPage() {
                           {selectedSpecialist.portfolio.filter((p) => p.videoUrl).map((item) => (
                             <div key={item.id}>
                               <video src={item.videoUrl!} controls className="w-full rounded-xl aspect-video object-cover" />
-                              <p className="text-xs font-medium text-foreground mt-1.5">{item.title}</p>
+                              <p className="text-[11px] font-medium text-foreground mt-1.5">{item.title}</p>
                             </div>
                           ))}
                         </div>
                       ) : (
                         <div className="text-center py-8 bg-muted/50 rounded-xl">
                           <Video className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
-                          <p className="text-sm text-muted-foreground">{t("customer.findSpecialists.noVideos")}</p>
+                          <p className="text-xs text-muted-foreground">{t("customer.findSpecialists.noVideos")}</p>
                         </div>
                       )}
                     </TabsContent>
@@ -487,8 +487,8 @@ export default function FindSpecialistsPage() {
                         className="mb-3 flex items-center justify-between gap-3 rounded-xl bg-muted/50 p-4 transition-colors hover:bg-muted"
                       >
                         <span className="min-w-0">
-                          <span className="block text-sm font-medium">View full profile</span>
-                          <span className="block text-xs text-muted-foreground">Services, products, portfolio and reviews</span>
+                          <span className="block text-xs font-medium">View full profile</span>
+                          <span className="block text-[11px] text-muted-foreground">Services, products, portfolio and reviews</span>
                         </span>
                         <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                       </Link>
@@ -508,8 +508,8 @@ export default function FindSpecialistsPage() {
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-foreground text-sm truncate">{selectedSpecialist.shop.name}</p>
-                            <span className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                            <p className="font-semibold text-foreground text-xs truncate">{selectedSpecialist.shop.name}</p>
+                            <span className="flex items-center gap-1 text-[11px] text-muted-foreground mt-0.5">
                               <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />{selectedSpecialist.shop.rating.toFixed(1)}
                             </span>
                           </div>
@@ -517,7 +517,7 @@ export default function FindSpecialistsPage() {
                       ) : (
                         <div className="text-center py-8 bg-muted/50 rounded-xl">
                           <Store className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
-                          <p className="text-sm text-muted-foreground">{t("customer.findSpecialists.noShopLinked")}</p>
+                          <p className="text-xs text-muted-foreground">{t("customer.findSpecialists.noShopLinked")}</p>
                         </div>
                       )}
                     </TabsContent>
@@ -528,10 +528,10 @@ export default function FindSpecialistsPage() {
               {/* Fixed Bottom Actions */}
               <div className="flex-shrink-0 p-4 border-t border-border bg-card">
                 <div className="flex gap-2.5">
-                  <Button variant="outline" className="flex-1 h-11 gap-2 bg-transparent rounded-xl text-sm" onClick={handleBookNow} disabled={!selectedSpecialist.bookableCategoryId}>
+                  <Button variant="outline" className="flex-1 h-11 gap-2 bg-transparent rounded-xl text-xs" onClick={handleBookNow} disabled={!selectedSpecialist.bookableCategoryId}>
                     <Calendar className="w-4 h-4" /> {t("customer.findSpecialists.schedule")}
                   </Button>
-                  <Button className="flex-1 h-11 gap-2 rounded-xl shadow-lg shadow-primary/20 text-sm" onClick={handleBookNow} disabled={!selectedSpecialist.bookableCategoryId}>
+                  <Button className="flex-1 h-11 gap-2 rounded-xl shadow-lg shadow-primary/20 text-xs" onClick={handleBookNow} disabled={!selectedSpecialist.bookableCategoryId}>
                     <Briefcase className="w-4 h-4" /> {t("customer.serviceDetail.bookNow")}
                   </Button>
                 </div>

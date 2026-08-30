@@ -60,7 +60,7 @@ function EmptyOrErrorState({
 }) {
   return (
     <Card className="p-8 text-center border-0 shadow-sm">
-      <p className="text-sm text-muted-foreground">{failed ? errorMessage : emptyMessage}</p>
+      <p className="text-xs text-muted-foreground">{failed ? errorMessage : emptyMessage}</p>
     </Card>
   )
 }
@@ -441,8 +441,8 @@ export function CustomerServicesPage() {
         <div className="mb-6">
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
             <div>
-              <h1 className="text-2xl lg:text-3xl font-bold text-foreground tracking-tight text-balance">{t("customer.layout.navMarketplace")}</h1>
-              <div className="flex items-center gap-2 mt-1.5 text-sm text-muted-foreground">
+              <h1 className="text-xl lg:text-2xl font-bold text-foreground tracking-tight text-balance">{t("customer.layout.navMarketplace")}</h1>
+              <div className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground">
                 <MapPin className="w-3.5 h-3.5" />
                 {isLocating ? (
                   <span className="flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> {t("common.loading")}</span>
@@ -460,9 +460,9 @@ export function CustomerServicesPage() {
                   <Navigation className="w-3.5 h-3.5" />
                 </button>
               </div>
-              {locateError && <p className="mt-1 text-xs text-red-600">{locateError}</p>}
+              {locateError && <p className="mt-1 text-[11px] text-red-600">{locateError}</p>}
             </div>
-            <div className="flex items-center gap-2 text-sm">
+            <div className="flex items-center gap-2 text-xs">
               <Link href="/customer/wallet" className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary rounded-full">
                 <Wallet className="w-3.5 h-3.5" />
                 <span className="font-semibold">{formatMoney(walletBalance)}</span>
@@ -479,8 +479,8 @@ export function CustomerServicesPage() {
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-bold text-base">{t("customer.services.emergencyService")}</h3>
-                <p className="text-sm text-white/80">{t("customer.services.emergencyServiceHint", { amount: formatMoney(EMERGENCY_FEE) })}</p>
+                <h3 className="font-bold text-sm">{t("customer.services.emergencyService")}</h3>
+                <p className="text-xs text-white/80">{t("customer.services.emergencyServiceHint", { amount: formatMoney(EMERGENCY_FEE) })}</p>
               </div>
             </div>
             <Button
@@ -553,7 +553,7 @@ export function CustomerServicesPage() {
 
         {/* Categories - Icon Grid */}
         <div className="mb-8">
-          <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+          <h2 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
               <Grid3X3 className="w-4 h-4 text-primary" />
             </div>
@@ -573,7 +573,7 @@ export function CustomerServicesPage() {
               }`}>
                 <Grid3X3 className="w-5 h-5 lg:w-6 lg:h-6" />
               </div>
-              <p className="text-xs font-semibold leading-tight">{t("customer.services.allServices")}</p>
+              <p className="text-[11px] font-semibold leading-tight">{t("customer.services.allServices")}</p>
             </button>
             {(showAllCategories ? categories : categories.slice(0, CATEGORY_PREVIEW_COUNT)).map((cat) => {
               const style = CATEGORY_STYLE[cat.slug] ?? DEFAULT_CATEGORY_STYLE
@@ -590,7 +590,7 @@ export function CustomerServicesPage() {
                   <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl bg-white/60 dark:bg-white/10 flex items-center justify-center">
                     <Icon className="w-5 h-5 lg:w-6 lg:h-6" />
                   </div>
-                  <p className="text-xs font-semibold leading-tight">{cat.name}</p>
+                  <p className="text-[11px] font-semibold leading-tight">{cat.name}</p>
                 </button>
               )
             })}
@@ -602,7 +602,7 @@ export function CustomerServicesPage() {
                 <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl bg-white/60 dark:bg-white/10 flex items-center justify-center">
                   {showAllCategories ? <ChevronUp className="w-5 h-5 lg:w-6 lg:h-6" /> : <ChevronDown className="w-5 h-5 lg:w-6 lg:h-6" />}
                 </div>
-                <p className="text-xs font-semibold leading-tight">
+                <p className="text-[11px] font-semibold leading-tight">
                   {showAllCategories ? t("customer.services.showLess") : t("customer.services.showMore")}
                 </p>
               </button>
@@ -613,13 +613,13 @@ export function CustomerServicesPage() {
         {/* Trending Products */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+            <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
                 <ShoppingBag className="w-4 h-4 text-primary" />
               </div>
               {t("customer.services.trendingProducts")}
             </h2>
-            <Link href="/customer/products" className="text-sm text-primary font-medium flex items-center gap-0.5 hover:gap-1.5 transition-all">
+            <Link href="/customer/products" className="text-xs text-primary font-medium flex items-center gap-0.5 hover:gap-1.5 transition-all">
               {t("customer.services.viewAll")} <ChevronRight className="w-4 h-4" />
             </Link>
           </div>
@@ -640,24 +640,24 @@ export function CustomerServicesPage() {
                   <div className="relative aspect-square bg-muted/30">
                     <Image src={product.image || "/placeholder.svg"} alt={product.name} fill className="object-cover transition-transform duration-300 group-hover:scale-105" />
                     {product.discountPercent != null && (
-                      <span className="absolute left-2 top-2 rounded-md bg-red-500 px-2 py-0.5 text-[11px] font-bold text-white">-{product.discountPercent}%</span>
+                      <span className="absolute left-2 top-2 rounded-md bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">-{product.discountPercent}%</span>
                     )}
                     {product.isFeatured && (
-                      <span className="absolute right-2 top-2 rounded-md bg-amber-500 px-2 py-0.5 text-[11px] font-bold text-white">{t("customer.services.featuredBadge")}</span>
+                      <span className="absolute right-2 top-2 rounded-md bg-amber-500 px-2 py-0.5 text-[10px] font-bold text-white">{t("customer.services.featuredBadge")}</span>
                     )}
-                    <div className="absolute bottom-2 left-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] sm:text-[11px] font-medium text-white">
+                    <div className="absolute bottom-2 left-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] sm:text-[10px] font-medium text-white">
                       {t("customer.products.stockLeft", { count: product.stock })}
                     </div>
                   </div>
                   <div className="p-3 sm:p-4">
                     <button onClick={() => openProduct(product)} className="text-left w-full">
-                      <p className="truncate text-sm sm:text-base font-semibold text-foreground">{product.name}</p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">{product.shop}</p>
+                      <p className="truncate text-xs sm:text-sm font-semibold text-foreground">{product.name}</p>
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">{product.shop}</p>
                     </button>
                     <div className="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                       <div className="min-w-0 flex-1">
-                        <p className="text-primary font-bold text-sm sm:text-base truncate">{formatMoney(product.discountPrice ?? product.price)}</p>
-                        <p className="text-[11px] text-muted-foreground hidden sm:block">{t("customer.services.freeDelivery")}</p>
+                        <p className="text-primary font-bold text-xs sm:text-sm truncate">{formatMoney(product.discountPrice ?? product.price)}</p>
+                        <p className="text-[10px] text-muted-foreground hidden sm:block">{t("customer.services.freeDelivery")}</p>
                       </div>
                       <Button
                         size="sm"
@@ -682,13 +682,13 @@ export function CustomerServicesPage() {
             search/filter state below (same pattern as Trending Products). */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+            <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
                 <TrendingUp className="w-4 h-4 text-primary" />
               </div>
               {t("customer.services.popularServices")}
             </h2>
-            <Link href="/customer/services/more" className="text-sm text-primary font-medium flex items-center gap-0.5 hover:gap-1.5 transition-all">
+            <Link href="/customer/services/more" className="text-xs text-primary font-medium flex items-center gap-0.5 hover:gap-1.5 transition-all">
               {t("customer.services.viewAll")} <ChevronRight className="w-4 h-4" />
             </Link>
           </div>
@@ -713,14 +713,14 @@ export function CustomerServicesPage() {
                     </span>
                   </div>
                   <div className="p-3 sm:p-4">
-                    <p className="truncate text-sm sm:text-base font-semibold text-foreground">{service.title}</p>
-                    <p className="mt-0.5 text-xs text-muted-foreground truncate">{service.providerName}</p>
-                    <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
+                    <p className="truncate text-xs sm:text-sm font-semibold text-foreground">{service.title}</p>
+                    <p className="mt-0.5 text-[11px] text-muted-foreground truncate">{service.providerName}</p>
+                    <div className="mt-2 flex items-center gap-1 text-[11px] text-muted-foreground">
                       <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                       <span className="font-semibold text-foreground">{service.rating.toFixed(1)}</span>
                     </div>
                     <div className="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                      <p className="text-primary font-bold text-sm sm:text-base truncate min-w-0 flex-1">{formatMoney(service.price)}</p>
+                      <p className="text-primary font-bold text-xs sm:text-sm truncate min-w-0 flex-1">{formatMoney(service.price)}</p>
                       <Button
                         size="sm"
                         onClick={(event) => {
@@ -749,7 +749,7 @@ export function CustomerServicesPage() {
             <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
               <Package className="w-4 h-4 text-primary" />
             </div>
-            <h2 className="text-lg font-semibold text-foreground">{t("customer.services.allProducts")}</h2>
+            <h2 className="text-base font-semibold text-foreground">{t("customer.services.allProducts")}</h2>
           </div>
           <ProductMarketplace />
         </div>
@@ -757,15 +757,15 @@ export function CustomerServicesPage() {
         {/* All Services — the full, searchable/filterable/sortable catalog. */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+            <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
                 <Grid3X3 className="w-4 h-4 text-primary" />
               </div>
               {t("customer.services.allServices")}
             </h2>
             <div className="flex items-center gap-3">
-              <p className="text-sm text-muted-foreground">{t("customer.services.foundCount", { count: filteredServices.length })}</p>
-              <Link href="/customer/services/more" className="text-sm font-medium text-primary hover:underline">
+              <p className="text-xs text-muted-foreground">{t("customer.services.foundCount", { count: filteredServices.length })}</p>
+              <Link href="/customer/services/more" className="text-xs font-medium text-primary hover:underline">
                 {t("customer.services.viewMore")}
               </Link>
             </div>
@@ -783,8 +783,8 @@ export function CustomerServicesPage() {
                 <div className="w-16 h-16 bg-muted rounded-2xl flex items-center justify-center mx-auto mb-4">
                   <Search className="w-7 h-7 text-muted-foreground" />
                 </div>
-                <p className="text-lg font-semibold text-foreground mb-1">{t("customer.services.noServicesFound")}</p>
-                <p className="text-sm text-muted-foreground">{t("customer.services.adjustSearchOrFilters")}</p>
+                <p className="text-base font-semibold text-foreground mb-1">{t("customer.services.noServicesFound")}</p>
+                <p className="text-xs text-muted-foreground">{t("customer.services.adjustSearchOrFilters")}</p>
               </div>
             )
           ) : (
@@ -822,7 +822,7 @@ export function CustomerServicesPage() {
                     >
                       <Heart className={`w-3.5 h-3.5 lg:w-4 lg:h-4 ${favorites.includes(service.serviceId) ? 'fill-red-500 text-red-500' : 'text-muted-foreground'}`} />
                     </button>
-                    <span className={`absolute bottom-2 left-2 px-1.5 py-0.5 text-[10px] font-semibold rounded-md backdrop-blur-sm lg:bottom-2.5 lg:left-2.5 lg:px-2 lg:text-[11px] ${STATUS_STYLE[service.status].badge}`}>
+                    <span className={`absolute bottom-2 left-2 px-1.5 py-0.5 text-[10px] font-semibold rounded-md backdrop-blur-sm lg:bottom-2.5 lg:left-2.5 lg:px-2 ${STATUS_STYLE[service.status].badge}`}>
                       {STATUS_STYLE[service.status].label}
                     </span>
                   </div>
@@ -838,14 +838,14 @@ export function CustomerServicesPage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1 lg:gap-1.5">
-                            <p className="font-semibold text-xs lg:text-sm text-foreground truncate">{service.providerName}</p>
+                            <p className="font-semibold text-[11px] lg:text-xs text-foreground truncate">{service.providerName}</p>
                             {service.verified && <CheckCircle className="w-3 h-3 lg:w-3.5 lg:h-3.5 text-blue-500 flex-shrink-0" />}
                           </div>
-                          <p className="text-[11px] lg:text-xs text-muted-foreground line-clamp-2 lg:line-clamp-1">{service.title}</p>
+                          <p className="text-[10px] lg:text-[11px] text-muted-foreground line-clamp-2 lg:line-clamp-1">{service.title}</p>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-1.5 mb-1.5 text-[10px] text-muted-foreground lg:gap-3 lg:mb-2.5 lg:text-xs">
+                      <div className="flex items-center gap-1.5 mb-1.5 text-[10px] text-muted-foreground lg:gap-3 lg:mb-2.5 lg:text-[11px]">
                         <div className="flex items-center gap-0.5 shrink-0 lg:gap-1">
                           <Star className="w-3 h-3 fill-amber-400 text-amber-400 lg:w-3.5 lg:h-3.5" />
                           <span className="font-semibold text-foreground">{service.rating.toFixed(1)}</span>
@@ -870,7 +870,7 @@ export function CustomerServicesPage() {
                         // 179px card past its height budget.
                         <div className="flex gap-1 overflow-hidden mb-2 lg:gap-1.5 lg:mb-3">
                           {service.badges.map((badge, idx) => (
-                            <span key={idx} className="truncate px-1.5 py-0.5 bg-primary/10 text-primary text-[10px] font-medium rounded-md lg:px-2 lg:text-[11px]">{badge}</span>
+                            <span key={idx} className="truncate px-1.5 py-0.5 bg-primary/10 text-primary text-[10px] font-medium rounded-md lg:px-2">{badge}</span>
                           ))}
                         </div>
                       )}
@@ -879,9 +879,9 @@ export function CustomerServicesPage() {
                     {/* Stacked on a phone, side by side once there is room. */}
                     <div className="mt-auto flex flex-col gap-2 pt-2 border-t border-border/50 lg:flex-row lg:items-center lg:justify-between lg:pt-3">
                       <div>
-                        <p className="text-[10px] text-muted-foreground lg:text-[11px]">{t("customer.services.fromLabel")}</p>
-                        <p className="text-sm font-bold text-foreground lg:text-base">
-                          {formatMoney(service.price)}<span className="text-[10px] font-normal text-muted-foreground lg:text-xs">{t("customer.favorites.perHour")}</span>
+                        <p className="text-[10px] text-muted-foreground">{t("customer.services.fromLabel")}</p>
+                        <p className="text-xs font-bold text-foreground lg:text-sm">
+                          {formatMoney(service.price)}<span className="text-[10px] font-normal text-muted-foreground lg:text-[11px]">{t("customer.favorites.perHour")}</span>
                         </p>
                       </div>
                       <Button
@@ -891,7 +891,7 @@ export function CustomerServicesPage() {
                         }}
                         disabled={!service.isActive}
                         size="sm"
-                        className="w-full rounded-lg h-9 px-2 text-[11px] font-medium lg:w-auto lg:px-4 lg:text-sm"
+                        className="w-full rounded-lg h-9 px-2 text-[10px] font-medium lg:w-auto lg:px-4 lg:text-xs"
                       >
                         {t("customer.serviceDetail.bookNow")}
                       </Button>
@@ -910,7 +910,7 @@ export function CustomerServicesPage() {
           <DialogHeader><DialogTitle>{t("customer.services.filterServices")}</DialogTitle></DialogHeader>
           <div className="space-y-5 py-4">
             <div>
-              <label className="text-sm font-medium text-foreground mb-2 block">{t("customer.services.priceRange")}</label>
+              <label className="text-xs font-medium text-foreground mb-2 block">{t("customer.services.priceRange")}</label>
               <Select value={priceRange} onValueChange={setPriceRange}>
                 <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -922,7 +922,7 @@ export function CustomerServicesPage() {
               </Select>
             </div>
             <div>
-              <label className="text-sm font-medium text-foreground mb-2 block">{t("customer.services.minimumRating")}</label>
+              <label className="text-xs font-medium text-foreground mb-2 block">{t("customer.services.minimumRating")}</label>
               <Select value={rating} onValueChange={setRating}>
                 <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -934,7 +934,7 @@ export function CustomerServicesPage() {
               </Select>
             </div>
             <div>
-              <label className="text-sm font-medium text-foreground mb-2 block">{t("customer.services.availabilityLabel")}</label>
+              <label className="text-xs font-medium text-foreground mb-2 block">{t("customer.services.availabilityLabel")}</label>
               <Select value={availability} onValueChange={setAvailability}>
                 <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -957,7 +957,7 @@ export function CustomerServicesPage() {
           {selectedService && (
             <>
               <DialogHeader>
-                <DialogTitle className="text-lg">
+                <DialogTitle className="text-base">
                   {bookingStep === 1 && t("customer.services.selectDateTime")}
                   {bookingStep === 2 && t("customer.services.serviceDetails")}
                   {bookingStep === 3 && t("customer.services.confirmAndPay")}
@@ -968,7 +968,7 @@ export function CustomerServicesPage() {
               <div className="flex items-center gap-2 mb-5">
                 {[1, 2, 3].map((step) => (
                   <div key={step} className="flex items-center flex-1">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-colors ${
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold transition-colors ${
                       bookingStep >= step ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
                     }`}>{step}</div>
                     {step < 3 && <div className={`flex-1 h-0.5 mx-2 rounded transition-colors ${bookingStep > step ? 'bg-primary' : 'bg-muted'}`} />}
@@ -982,16 +982,16 @@ export function CustomerServicesPage() {
                   <Image src={selectedService.providerAvatar || "/placeholder.svg"} alt="" width={40} height={40} className="object-cover" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm text-foreground truncate">{selectedService.providerName}</p>
-                  <p className="text-xs text-muted-foreground">{selectedService.title}</p>
+                  <p className="font-semibold text-xs text-foreground truncate">{selectedService.providerName}</p>
+                  <p className="text-[11px] text-muted-foreground">{selectedService.title}</p>
                 </div>
-                <p className="font-bold text-sm text-primary">{formatMoney(selectedService.price)}{t("customer.favorites.perHour")}</p>
+                <p className="font-bold text-xs text-primary">{formatMoney(selectedService.price)}{t("customer.favorites.perHour")}</p>
               </div>
 
               {bookingStep === 1 && (
                 <div className="space-y-4">
                   <div>
-                    <label className="text-sm font-medium text-foreground mb-2 block">{t("customer.services.dateLabel")}</label>
+                    <label className="text-xs font-medium text-foreground mb-2 block">{t("customer.services.dateLabel")}</label>
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button variant="outline" className="w-full justify-start text-left font-normal bg-transparent rounded-xl h-11">
@@ -1003,11 +1003,11 @@ export function CustomerServicesPage() {
                     </Popover>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-foreground mb-2 block">{t("customer.services.timeLabel")}</label>
+                    <label className="text-xs font-medium text-foreground mb-2 block">{t("customer.services.timeLabel")}</label>
                     <div className="grid grid-cols-4 gap-2">
                       {timeSlots.map((time) => (
                         <button key={time} onClick={() => setBookingTime(time)}
-                          className={`p-2 text-xs font-medium rounded-lg border transition-all ${
+                          className={`p-2 text-[11px] font-medium rounded-lg border transition-all ${
                             bookingTime === time ? 'bg-primary text-primary-foreground border-primary shadow-sm' : 'border-border hover:border-primary/50'
                           }`}
                         >{time}</button>
@@ -1020,7 +1020,7 @@ export function CustomerServicesPage() {
               {bookingStep === 2 && (
                 <div className="space-y-4">
                   <div>
-                    <label className="text-sm font-medium text-foreground mb-2 block">{t("customer.bookingConfirmation.location")}</label>
+                    <label className="text-xs font-medium text-foreground mb-2 block">{t("customer.bookingConfirmation.location")}</label>
                     <div className="flex items-center gap-2">
                       <Input value={bookingLocation} onChange={(e) => setBookingLocation(e.target.value)} placeholder={t("customer.services.enterYourAddress")} className="flex-1 rounded-xl" />
                       <Button
@@ -1034,10 +1034,10 @@ export function CustomerServicesPage() {
                         {isLocating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4" />}
                       </Button>
                     </div>
-                    {locateError && <p className="mt-1.5 text-xs text-red-600">{locateError}</p>}
+                    {locateError && <p className="mt-1.5 text-[11px] text-red-600">{locateError}</p>}
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-foreground mb-2 block">{t("customer.services.notesLabel")}</label>
+                    <label className="text-xs font-medium text-foreground mb-2 block">{t("customer.services.notesLabel")}</label>
                     <Textarea value={bookingNotes} onChange={(e) => setBookingNotes(e.target.value)} placeholder={t("customer.services.describeIssueOrRequirements")} className="min-h-[80px] rounded-xl" />
                   </div>
                 </div>
@@ -1045,25 +1045,25 @@ export function CustomerServicesPage() {
 
               {bookingStep === 3 && (
                 <div className="space-y-4">
-                  <div className="p-4 rounded-xl bg-muted/50 space-y-2 text-sm">
+                  <div className="p-4 rounded-xl bg-muted/50 space-y-2 text-xs">
                     <div className="flex justify-between"><span className="text-muted-foreground">{t("customer.wallet.csvDate")}</span><span className="text-foreground font-medium">{bookingDate ? format(bookingDate, "PPP") : "-"}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">{t("customer.services.timeLabel")}</span><span className="text-foreground font-medium">{bookingTime || "-"}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">{t("customer.bookingConfirmation.location")}</span><span className="text-foreground font-medium">{bookingLocation || currentLocation}</span></div>
                   </div>
 
                   <div className="p-4 rounded-xl border-2 border-primary/20 space-y-2">
-                    <h4 className="font-semibold text-foreground flex items-center gap-2 text-sm">
+                    <h4 className="font-semibold text-foreground flex items-center gap-2 text-xs">
                       <Wallet className="w-4 h-4 text-primary" />{t("customer.services.totalDue")}
                     </h4>
-                    <div className="flex justify-between text-sm">
+                    <div className="flex justify-between text-xs">
                       <span className="text-muted-foreground">{t("customer.services.servicePrice")}</span>
-                      <span className="text-primary font-bold text-base">{formatMoney(getBookingTotal())}</span>
+                      <span className="text-primary font-bold text-sm">{formatMoney(getBookingTotal())}</span>
                     </div>
-                    {bookingError && <p className="text-xs text-red-600 dark:text-red-400">{bookingError}</p>}
+                    {bookingError && <p className="text-[11px] text-red-600 dark:text-red-400">{bookingError}</p>}
                   </div>
 
                   <div className="p-3 rounded-xl bg-muted/50 border border-border">
-                    <p className="text-xs text-muted-foreground leading-relaxed">{t("customer.booking.cancellationPolicy")}</p>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">{t("customer.booking.cancellationPolicy")}</p>
                   </div>
 
                   {createdJobId ? (
@@ -1104,7 +1104,7 @@ export function CustomerServicesPage() {
               <div className="flex items-center gap-2 mb-4">
                 {[1, 2, 3].map((step) => (
                   <div key={step} className="flex items-center flex-1">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold ${emergencyStep >= step ? 'bg-red-600 text-white' : 'bg-muted text-muted-foreground'}`}>{step}</div>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold ${emergencyStep >= step ? 'bg-red-600 text-white' : 'bg-muted text-muted-foreground'}`}>{step}</div>
                     {step < 3 && <div className={`flex-1 h-0.5 mx-2 rounded ${emergencyStep > step ? 'bg-red-600' : 'bg-muted'}`} />}
                   </div>
                 ))}
@@ -1112,14 +1112,14 @@ export function CustomerServicesPage() {
 
               <div className="flex items-start gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/30 mb-4">
                 <Info className="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-                <p className="text-xs text-red-700 dark:text-red-400 leading-relaxed">
+                <p className="text-[11px] text-red-700 dark:text-red-400 leading-relaxed">
                   {t("customer.services.emergencySurchargeNotice", { amount: formatMoney(EMERGENCY_FEE) })}
                 </p>
               </div>
 
               {emergencyStep === 1 && (
                 emergencyCategories.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-8">{t("customer.services.noEmergencyCategories")}</p>
+                  <p className="text-xs text-muted-foreground text-center py-8">{t("customer.services.noEmergencyCategories")}</p>
                 ) : (
                   <div className="grid grid-cols-2 gap-3">
                     {emergencyCategories.map((cat) => {
@@ -1129,8 +1129,8 @@ export function CustomerServicesPage() {
                           className={`p-4 rounded-xl border-2 text-left transition-all ${emergencyCategory === cat.id ? "border-red-500 bg-red-50 dark:bg-red-950/20 shadow-sm" : "border-border hover:border-red-300 dark:hover:border-red-700"}`}
                         >
                           <Icon className={`w-5 h-5 mb-2 ${emergencyCategory === cat.id ? "text-red-600" : "text-muted-foreground"}`} />
-                          <p className="font-semibold text-foreground text-sm">{cat.name}</p>
-                          <p className="text-xs text-muted-foreground mt-1">~{formatMoney(cat.avgPrice)} <span className="text-red-500">+ {formatMoney(EMERGENCY_FEE)}</span></p>
+                          <p className="font-semibold text-foreground text-xs">{cat.name}</p>
+                          <p className="text-[11px] text-muted-foreground mt-1">~{formatMoney(cat.avgPrice)} <span className="text-red-500">+ {formatMoney(EMERGENCY_FEE)}</span></p>
                         </button>
                       )
                     })}
@@ -1141,11 +1141,11 @@ export function CustomerServicesPage() {
               {emergencyStep === 2 && (
                 <div className="space-y-4">
                   <div>
-                    <label className="text-sm font-medium text-foreground mb-2 block">{t("customer.services.describeEmergency")}</label>
+                    <label className="text-xs font-medium text-foreground mb-2 block">{t("customer.services.describeEmergency")}</label>
                     <Textarea value={emergencyDescription} onChange={(e) => setEmergencyDescription(e.target.value)} placeholder={t("customer.services.whatHappenedPlaceholder")} className="min-h-[80px] rounded-xl" />
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-foreground mb-2 block">{t("customer.services.yourLocation")}</label>
+                    <label className="text-xs font-medium text-foreground mb-2 block">{t("customer.services.yourLocation")}</label>
                     <div className="flex items-center gap-2">
                       <Input value={emergencyLocation} onChange={(e) => setEmergencyLocation(e.target.value)} placeholder={t("customer.services.enterYourAddress")} className="flex-1 rounded-xl" />
                       <Button
@@ -1165,16 +1165,16 @@ export function CustomerServicesPage() {
 
               {emergencyStep === 3 && (
                 <div className="space-y-4">
-                  <div className="p-4 rounded-xl bg-muted/50 space-y-2 text-sm">
+                  <div className="p-4 rounded-xl bg-muted/50 space-y-2 text-xs">
                     <div className="flex justify-between"><span className="text-muted-foreground">{t("customer.services.typeLabel")}</span><span className="font-medium">{getSelectedEmergency()?.name}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">{t("customer.bookingConfirmation.location")}</span><span className="font-medium truncate ml-4">{emergencyLocation || currentLocation}</span></div>
                   </div>
-                  <div className="p-4 rounded-xl border-2 border-red-200 dark:border-red-900/30 space-y-2 text-sm">
+                  <div className="p-4 rounded-xl border-2 border-red-200 dark:border-red-900/30 space-y-2 text-xs">
                     <div className="flex justify-between"><span className="text-muted-foreground">{t("customer.jobs.serviceCost")}</span><span className="font-medium">~{formatMoney(getSelectedEmergency()?.avgPrice || 0)}</span></div>
                     <div className="flex justify-between text-red-600 dark:text-red-400"><span>{t("customer.services.emergencySurcharge")}</span><span className="font-medium">+ {formatMoney(EMERGENCY_FEE)}</span></div>
-                    <div className="flex justify-between border-t border-border pt-2"><span className="font-semibold">{t("customer.services.totalDue")}</span><span className="font-bold text-base">{formatMoney(getEmergencyTotal())}</span></div>
+                    <div className="flex justify-between border-t border-border pt-2"><span className="font-semibold">{t("customer.services.totalDue")}</span><span className="font-bold text-sm">{formatMoney(getEmergencyTotal())}</span></div>
                   </div>
-                  {emergencyError && <p className="text-xs text-red-600">{emergencyError}</p>}
+                  {emergencyError && <p className="text-[11px] text-red-600">{emergencyError}</p>}
 
                   {createdJobId ? (
                     <PaymentMethods jobId={createdJobId} amount={getEmergencyTotal()} onSuccess={handleEmergencyPaymentSuccess} />
@@ -1202,11 +1202,11 @@ export function CustomerServicesPage() {
               <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CheckCircle className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
               </div>
-              <h3 className="text-xl font-bold text-foreground mb-2">{t("customer.services.emergencyBooked")}</h3>
-              <p className="text-muted-foreground mb-1 text-sm">
+              <h3 className="text-lg font-bold text-foreground mb-2">{t("customer.services.emergencyBooked")}</h3>
+              <p className="text-muted-foreground mb-1 text-xs">
                 {emergencyAssigned ? t("customer.services.providerDispatched") : t("customer.services.requestSubmitted")}
               </p>
-              <p className="text-xs text-muted-foreground mb-6">{t("customer.services.paymentReceivedInFull", { amount: formatMoney(getEmergencyTotal()) })}</p>
+              <p className="text-[11px] text-muted-foreground mb-6">{t("customer.services.paymentReceivedInFull", { amount: formatMoney(getEmergencyTotal()) })}</p>
               <Button onClick={resetEmergencyWizard} className="rounded-xl">{t("customer.services.doneButton")}</Button>
             </div>
           )}

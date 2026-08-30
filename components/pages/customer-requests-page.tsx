@@ -142,8 +142,8 @@ export function CustomerRequestsPage() {
       <div className="max-w-3xl mx-auto px-4 py-6 lg:py-8">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground">{t("customer.requests.title")}</h1>
-            <p className="text-sm text-muted-foreground mt-1">{t("customer.requests.subtitle")}</p>
+            <h1 className="text-lg sm:text-xl font-bold text-foreground">{t("customer.requests.title")}</h1>
+            <p className="text-xs text-muted-foreground mt-1">{t("customer.requests.subtitle")}</p>
           </div>
           <Button onClick={openPostModal} className="gap-1.5 rounded-xl flex-shrink-0">
             <Plus className="w-4 h-4" /> {t("customer.requests.postButton")}
@@ -152,7 +152,7 @@ export function CustomerRequestsPage() {
 
         {requests.length === 0 ? (
           <Card className="p-8 text-center border-0 shadow-sm">
-            <p className="text-sm text-muted-foreground">{t("customer.requests.noRequests")}</p>
+            <p className="text-xs text-muted-foreground">{t("customer.requests.noRequests")}</p>
           </Card>
         ) : (
           <div className="space-y-3">
@@ -160,14 +160,14 @@ export function CustomerRequestsPage() {
               <Card key={r.id} className="p-4 border-0 shadow-sm hover:shadow-md transition-shadow cursor-pointer" onClick={() => openDetail(r.id)}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-sm text-foreground truncate">{r.title}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{r.categoryName}</p>
+                    <p className="font-semibold text-xs text-foreground truncate">{r.title}</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">{r.categoryName}</p>
                   </div>
-                  <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${STATUS_STYLE[r.status] ?? STATUS_STYLE.OPEN}`}>
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${STATUS_STYLE[r.status] ?? STATUS_STYLE.OPEN}`}>
                     {STATUS_LABEL[r.status] ?? r.status}
                   </span>
                 </div>
-                <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
+                <div className="flex items-center gap-4 mt-3 text-[11px] text-muted-foreground">
                   <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{r.location}</span>
                   <span className="flex items-center gap-1"><MessageSquare className="w-3 h-3" />{t("customer.requests.responseCount", { count: r.responseCount })}</span>
                 </div>
@@ -183,15 +183,15 @@ export function CustomerRequestsPage() {
           <DialogHeader><DialogTitle>{t("customer.requests.postModalTitle")}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <div>
-              <label className="text-sm font-medium mb-1.5 block">{t("customer.requests.titleLabel")}</label>
+              <label className="text-xs font-medium mb-1.5 block">{t("customer.requests.titleLabel")}</label>
               <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("customer.requests.titlePlaceholder")} />
             </div>
             <div>
-              <label className="text-sm font-medium mb-1.5 block">{t("customer.requests.descriptionLabel")}</label>
+              <label className="text-xs font-medium mb-1.5 block">{t("customer.requests.descriptionLabel")}</label>
               <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t("customer.requests.descriptionPlaceholder")} className="min-h-[90px]" />
             </div>
             <div>
-              <label className="text-sm font-medium mb-2 block">{t("customer.requests.categoryLabel")}</label>
+              <label className="text-xs font-medium mb-2 block">{t("customer.requests.categoryLabel")}</label>
               <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
                 {categories.map((cat) => (
                   <button
@@ -200,7 +200,7 @@ export function CustomerRequestsPage() {
                     onClick={() => setCategoryId(cat.id)}
                     className={`p-2.5 rounded-xl border-2 text-left transition-all ${categoryId === cat.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}
                   >
-                    <p className="text-xs font-semibold text-foreground truncate">{cat.name}</p>
+                    <p className="text-[11px] font-semibold text-foreground truncate">{cat.name}</p>
                     <p className="text-[10px] text-muted-foreground">{cat.type === "SERVICE" ? t("customer.requests.typeService") : t("customer.requests.typeProduct")}</p>
                   </button>
                 ))}
@@ -208,19 +208,19 @@ export function CustomerRequestsPage() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-sm font-medium mb-1.5 block">{t("customer.requests.budgetMinLabel")}</label>
+                <label className="text-xs font-medium mb-1.5 block">{t("customer.requests.budgetMinLabel")}</label>
                 <Input type="number" value={budgetMin} onChange={(e) => setBudgetMin(e.target.value)} placeholder="0" />
               </div>
               <div>
-                <label className="text-sm font-medium mb-1.5 block">{t("customer.requests.budgetMaxLabel")}</label>
+                <label className="text-xs font-medium mb-1.5 block">{t("customer.requests.budgetMaxLabel")}</label>
                 <Input type="number" value={budgetMax} onChange={(e) => setBudgetMax(e.target.value)} placeholder="0" />
               </div>
             </div>
             <div>
-              <label className="text-sm font-medium mb-1.5 block">{t("customer.requests.locationLabel")}</label>
+              <label className="text-xs font-medium mb-1.5 block">{t("customer.requests.locationLabel")}</label>
               <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder={t("customer.requests.locationPlaceholder")} />
             </div>
-            {postError && <p className="text-xs text-red-600">{postError}</p>}
+            {postError && <p className="text-[11px] text-red-600">{postError}</p>}
             <Button
               className="w-full rounded-xl"
               onClick={handlePost}
@@ -241,8 +241,8 @@ export function CustomerRequestsPage() {
             <>
               <DialogHeader><DialogTitle>{detail.title}</DialogTitle></DialogHeader>
               <div className="space-y-4 py-2">
-                <p className="text-sm text-muted-foreground">{detail.description}</p>
-                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground">{detail.description}</p>
+                <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
                   <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{detail.location}</span>
                   {(detail.budgetMin != null || detail.budgetMax != null) && (
                     <span>
@@ -258,9 +258,9 @@ export function CustomerRequestsPage() {
                 )}
 
                 <div>
-                  <h4 className="text-sm font-semibold text-foreground mb-2">{t("customer.requests.responsesTitle")}</h4>
+                  <h4 className="text-xs font-semibold text-foreground mb-2">{t("customer.requests.responsesTitle")}</h4>
                   {detail.responses.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">{t("customer.requests.noResponsesYet")}</p>
+                    <p className="text-xs text-muted-foreground">{t("customer.requests.noResponsesYet")}</p>
                   ) : (
                     <div className="space-y-2">
                       {detail.responses.map((resp) => (
@@ -270,18 +270,18 @@ export function CustomerRequestsPage() {
                               <Image src={resp.responderAvatar || "/placeholder.svg"} alt={resp.responderName} fill className="object-cover" />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-foreground truncate">{resp.responderName}</p>
-                              <p className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" />{new Date(resp.createdAt).toLocaleDateString()}</p>
+                              <p className="text-xs font-semibold text-foreground truncate">{resp.responderName}</p>
+                              <p className="text-[11px] text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" />{new Date(resp.createdAt).toLocaleDateString()}</p>
                             </div>
-                            <p className="text-sm font-bold text-primary flex-shrink-0">{formatMoney(resp.price)}</p>
+                            <p className="text-xs font-bold text-primary flex-shrink-0">{formatMoney(resp.price)}</p>
                           </div>
-                          <p className="text-xs text-muted-foreground mt-2">{resp.message}</p>
+                          <p className="text-[11px] text-muted-foreground mt-2">{resp.message}</p>
                           {resp.status === "ACCEPTED" ? (
-                            <span className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-emerald-600"><CheckCircle2 className="w-3.5 h-3.5" />{t("customer.requests.accepted")}</span>
+                            <span className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600"><CheckCircle2 className="w-3.5 h-3.5" />{t("customer.requests.accepted")}</span>
                           ) : resp.status === "DECLINED" ? (
-                            <span className="mt-2 inline-block text-xs text-muted-foreground">{t("customer.requests.declined")}</span>
+                            <span className="mt-2 inline-block text-[11px] text-muted-foreground">{t("customer.requests.declined")}</span>
                           ) : detail.status === "OPEN" ? (
-                            <Button size="sm" className="mt-2 rounded-lg h-7 text-xs" onClick={() => handleAccept(resp.id)} disabled={acceptingResponseId === resp.id}>
+                            <Button size="sm" className="mt-2 rounded-lg h-7 text-[11px]" onClick={() => handleAccept(resp.id)} disabled={acceptingResponseId === resp.id}>
                               {acceptingResponseId === resp.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : t("customer.requests.acceptButton")}
                             </Button>
                           ) : null}
@@ -289,7 +289,7 @@ export function CustomerRequestsPage() {
                       ))}
                     </div>
                   )}
-                  {acceptError && <p className="text-xs text-red-600 mt-2">{acceptError}</p>}
+                  {acceptError && <p className="text-[11px] text-red-600 mt-2">{acceptError}</p>}
                 </div>
               </div>
             </>

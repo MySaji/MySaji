@@ -96,35 +96,35 @@ export default function CustomerServiceRequestsPage() {
         <div className="sticky top-0 z-30 bg-gradient-to-r from-primary to-primary/90 px-4 py-4 text-primary-foreground">
           <div className="mx-auto flex max-w-2xl items-center gap-4">
             <button onClick={() => setSelectedId(null)} className="rounded-lg p-2 hover:bg-white/20"><ArrowLeft className="h-6 w-6" /></button>
-            <h1 className="text-lg font-bold truncate">{detail.title}</h1>
+            <h1 className="text-base font-bold truncate">{detail.title}</h1>
           </div>
         </div>
 
         <div className="mx-auto max-w-2xl space-y-4 px-4 py-6">
           <Card className="border-0 p-5 shadow-sm space-y-3">
             <div className="flex items-center justify-between">
-              <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${status.className}`}>{status.label}</span>
-              {detail.jobId && <Link href="/customer/jobs" className="text-sm font-medium text-primary">View Job</Link>}
+              <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${status.className}`}>{status.label}</span>
+              {detail.jobId && <Link href="/customer/jobs" className="text-xs font-medium text-primary">View Job</Link>}
             </div>
-            <p className="text-sm text-muted-foreground">{detail.requestDescription}</p>
-            <p className="flex items-center gap-1 text-xs text-muted-foreground"><MapPin className="h-3.5 w-3.5" /> {detail.location}</p>
-            <p className="text-sm text-foreground">Provider: <span className="font-semibold">{detail.providerName}</span></p>
+            <p className="text-xs text-muted-foreground">{detail.requestDescription}</p>
+            <p className="flex items-center gap-1 text-[11px] text-muted-foreground"><MapPin className="h-3.5 w-3.5" /> {detail.location}</p>
+            <p className="text-xs text-foreground">Provider: <span className="font-semibold">{detail.providerName}</span></p>
           </Card>
 
           {(detail.status === "QUOTED" || detail.quotedPrice != null) && (
             <Card className="border-0 p-5 shadow-sm space-y-2">
               <h3 className="font-semibold text-foreground">Quote</h3>
-              <p className="text-2xl font-bold text-primary">{detail.quotedPrice != null ? formatMoney(detail.quotedPrice) : "—"}</p>
-              {detail.scopeOfWork && <div><p className="text-xs font-medium text-muted-foreground">Scope of work</p><p className="text-sm text-foreground">{detail.scopeOfWork}</p></div>}
-              {detail.estimatedDuration && <div><p className="text-xs font-medium text-muted-foreground">Estimated timeline</p><p className="text-sm text-foreground">{detail.estimatedDuration}</p></div>}
-              {detail.materials && <div><p className="text-xs font-medium text-muted-foreground">Materials</p><p className="text-sm text-foreground">{detail.materials}</p></div>}
-              {detail.labourNotes && <div><p className="text-xs font-medium text-muted-foreground">Labour</p><p className="text-sm text-foreground">{detail.labourNotes}</p></div>}
-              {detail.terms && <div><p className="text-xs font-medium text-muted-foreground">Terms</p><p className="text-sm text-foreground">{detail.terms}</p></div>}
-              {detail.declineReason && <p className="text-xs text-red-600">Declined: {detail.declineReason}</p>}
+              <p className="text-xl font-bold text-primary">{detail.quotedPrice != null ? formatMoney(detail.quotedPrice) : "—"}</p>
+              {detail.scopeOfWork && <div><p className="text-[11px] font-medium text-muted-foreground">Scope of work</p><p className="text-xs text-foreground">{detail.scopeOfWork}</p></div>}
+              {detail.estimatedDuration && <div><p className="text-[11px] font-medium text-muted-foreground">Estimated timeline</p><p className="text-xs text-foreground">{detail.estimatedDuration}</p></div>}
+              {detail.materials && <div><p className="text-[11px] font-medium text-muted-foreground">Materials</p><p className="text-xs text-foreground">{detail.materials}</p></div>}
+              {detail.labourNotes && <div><p className="text-[11px] font-medium text-muted-foreground">Labour</p><p className="text-xs text-foreground">{detail.labourNotes}</p></div>}
+              {detail.terms && <div><p className="text-[11px] font-medium text-muted-foreground">Terms</p><p className="text-xs text-foreground">{detail.terms}</p></div>}
+              {detail.declineReason && <p className="text-[11px] text-red-600">Declined: {detail.declineReason}</p>}
 
               {detail.status === "QUOTED" && (
                 <div className="pt-2 space-y-2">
-                  {error && <p className="text-sm text-red-600">{error}</p>}
+                  {error && <p className="text-xs text-red-600">{error}</p>}
                   {showDecline ? (
                     <div className="space-y-2">
                       <Textarea value={declineReason} onChange={(e) => setDeclineReason(e.target.value)} placeholder="Optional reason" className="min-h-[70px]" />
@@ -150,15 +150,15 @@ export default function CustomerServiceRequestsPage() {
               {detail.milestones.map((m) => (
                 <div key={m.id} className="flex items-center justify-between gap-3 rounded-xl border border-border/70 p-3">
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-foreground">{m.title}</p>
-                    {m.amount != null && <p className="text-xs text-muted-foreground">{formatMoney(m.amount)}</p>}
+                    <p className="text-xs font-medium text-foreground">{m.title}</p>
+                    {m.amount != null && <p className="text-[11px] text-muted-foreground">{formatMoney(m.amount)}</p>}
                   </div>
                   {m.status === "APPROVED" ? (
-                    <span className="flex items-center gap-1 text-xs font-medium text-emerald-600"><CheckCircle2 className="h-3.5 w-3.5" /> Approved</span>
+                    <span className="flex items-center gap-1 text-[11px] font-medium text-emerald-600"><CheckCircle2 className="h-3.5 w-3.5" /> Approved</span>
                   ) : m.status === "COMPLETED" ? (
                     <Button size="sm" className="rounded-lg" onClick={() => handleApproveMilestone(m.id)}>Approve</Button>
                   ) : (
-                    <span className="text-xs text-muted-foreground">In progress</span>
+                    <span className="text-[11px] text-muted-foreground">In progress</span>
                   )}
                 </div>
               ))}
@@ -170,9 +170,9 @@ export default function CustomerServiceRequestsPage() {
               <h3 className="mb-3 font-semibold text-foreground">Timeline</h3>
               <div className="space-y-3">
                 {timeline.map((e) => (
-                  <div key={e.id} className="text-sm">
+                  <div key={e.id} className="text-xs">
                     <p className="font-medium text-foreground">{e.description}</p>
-                    <p className="text-xs text-muted-foreground">{new Date(e.createdAt).toLocaleString()}</p>
+                    <p className="text-[11px] text-muted-foreground">{new Date(e.createdAt).toLocaleString()}</p>
                   </div>
                 ))}
               </div>
@@ -188,13 +188,13 @@ export default function CustomerServiceRequestsPage() {
       <div className="mx-auto max-w-2xl px-4 py-6">
         <div className="mb-4 flex items-center gap-3">
           <Button variant="ghost" size="icon" asChild className="rounded-full"><Link href="/customer/home"><ArrowLeft className="h-4 w-4" /></Link></Button>
-          <div><h1 className="text-xl font-bold text-foreground">My Service Requests</h1><p className="text-sm text-muted-foreground">Quotes you've requested from providers</p></div>
+          <div><h1 className="text-lg font-bold text-foreground">My Service Requests</h1><p className="text-xs text-muted-foreground">Quotes you've requested from providers</p></div>
         </div>
 
         {requests.length === 0 ? (
           <Card className="border-dashed p-10 text-center">
             <FileText className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">No requests yet. Find a provider and tap "Get Quote" to start one.</p>
+            <p className="text-xs text-muted-foreground">No requests yet. Find a provider and tap "Get Quote" to start one.</p>
           </Card>
         ) : (
           <div className="space-y-3">
@@ -205,10 +205,10 @@ export default function CustomerServiceRequestsPage() {
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <p className="truncate font-semibold text-foreground">{r.title}</p>
-                      <p className="text-xs text-muted-foreground">{r.otherPartyName}</p>
+                      <p className="text-[11px] text-muted-foreground">{r.otherPartyName}</p>
                     </div>
                     <div className="flex-shrink-0 text-right">
-                      {r.quotedPrice != null && <p className="text-sm font-bold text-foreground">{formatMoney(r.quotedPrice)}</p>}
+                      {r.quotedPrice != null && <p className="text-xs font-bold text-foreground">{formatMoney(r.quotedPrice)}</p>}
                       <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${status.className}`}>{status.label}</span>
                     </div>
                   </div>

@@ -74,8 +74,8 @@ export function HomeHeroSection({ categories, location, compact = false }: { cat
       <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/35 to-transparent" />
 
       <div className={`relative ${compact ? "flex h-full flex-col justify-center p-5 sm:p-8" : "p-5 sm:p-8 lg:p-10"}`}>
-        <h1 className={`line-clamp-2 font-extrabold tracking-tight text-white text-balance max-w-md ${compact ? "text-2xl sm:text-3xl" : "text-3xl sm:text-4xl lg:text-5xl xl:text-6xl"}`}>{heroTitle}</h1>
-        <p className="mt-2 line-clamp-2 text-sm sm:text-base text-white/85 max-w-md text-balance">{heroSubtitle}</p>
+        <h1 className={`line-clamp-2 font-extrabold tracking-tight text-white text-balance max-w-md ${compact ? "text-xl sm:text-2xl" : "text-2xl sm:text-3xl lg:text-4xl xl:text-5xl"}`}>{heroTitle}</h1>
+        <p className="mt-2 line-clamp-2 text-xs sm:text-sm text-white/85 max-w-md text-balance">{heroSubtitle}</p>
 
         {!compact && (
           <form onSubmit={submitSearch} className="mt-5 sm:mt-6 flex flex-col sm:flex-row gap-2 max-w-xl">
@@ -91,7 +91,7 @@ export function HomeHeroSection({ categories, location, compact = false }: { cat
             {location && (
               <Link
                 href="/customer/saved-addresses"
-                className="hidden sm:flex items-center gap-1.5 px-4 h-12 rounded-xl bg-white text-sm text-foreground shadow-lg whitespace-nowrap hover:bg-white/90 transition-colors"
+                className="hidden sm:flex items-center gap-1.5 px-4 h-12 rounded-xl bg-white text-xs text-foreground shadow-lg whitespace-nowrap hover:bg-white/90 transition-colors"
               >
                 <MapPin className="w-4 h-4 text-primary flex-shrink-0" />
                 <span className="truncate max-w-[10rem]">{location}</span>
@@ -106,12 +106,12 @@ export function HomeHeroSection({ categories, location, compact = false }: { cat
 
         {!compact && popularCategories.length > 0 && (
           <div className="mt-4 flex items-center gap-2 flex-wrap">
-            <span className="text-xs text-white/70 font-medium flex-shrink-0">{t("customer.home.popularLabel")}</span>
+            <span className="text-[11px] text-white/70 font-medium flex-shrink-0">{t("customer.home.popularLabel")}</span>
             {popularCategories.map((cat) => (
               <Link
                 key={cat.id}
                 href={`/customer/services?category=${cat.slug}`}
-                className="px-3 py-1 rounded-full bg-white/15 hover:bg-white/25 text-white text-xs font-medium transition-colors backdrop-blur-sm"
+                className="px-3 py-1 rounded-full bg-white/15 hover:bg-white/25 text-white text-[11px] font-medium transition-colors backdrop-blur-sm"
               >
                 {cat.name}
               </Link>

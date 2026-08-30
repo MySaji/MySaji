@@ -46,17 +46,17 @@ export function CustomerFavoritesPage() {
     <div className="min-h-screen bg-background">
       <div className="max-w-3xl mx-auto px-4 py-6 lg:py-8">
         <div className="mb-6">
-          <h1 className="text-2xl lg:text-3xl font-bold text-foreground flex items-center gap-2">
+          <h1 className="text-xl lg:text-2xl font-bold text-foreground flex items-center gap-2">
             <Heart className="w-6 h-6 text-red-500" /> {t("customer.favorites.title")}
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">{tn("customer.favorites.savedCount", favorites.length)}</p>
+          <p className="text-xs text-muted-foreground mt-1">{tn("customer.favorites.savedCount", favorites.length)}</p>
         </div>
 
         {/* Undo bar */}
         {lastRemoved && (
           <div className="flex items-center justify-between bg-muted/50 p-3 rounded-xl mb-4">
-            <p className="text-sm text-muted-foreground">{t("customer.favorites.removed", { name: lastRemoved.name })}</p>
-            <Button size="sm" variant="ghost" onClick={restoreFavorite} className="gap-1.5 text-xs">
+            <p className="text-xs text-muted-foreground">{t("customer.favorites.removed", { name: lastRemoved.name })}</p>
+            <Button size="sm" variant="ghost" onClick={restoreFavorite} className="gap-1.5 text-[11px]">
               {t("customer.favorites.undo")}
             </Button>
           </div>
@@ -86,19 +86,19 @@ export function CustomerFavoritesPage() {
                       <X className="w-4 h-4 text-muted-foreground hover:text-red-500" />
                     </button>
                   </div>
-                  <p className="text-sm text-muted-foreground mb-2">{provider.bio || t("customer.favorites.defaultBio")}</p>
-                  <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mb-3">
+                  <p className="text-xs text-muted-foreground mb-2">{provider.bio || t("customer.favorites.defaultBio")}</p>
+                  <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground mb-3">
                     <span className="flex items-center gap-1"><Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" /><strong className="text-foreground">{provider.rating.toFixed(1)}</strong> ({provider.reviewCount})</span>
                     <span className="flex items-center gap-1"><Briefcase className="w-3 h-3" />{tn("customer.favorites.jobsCount", provider.completedJobs)}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <p className="font-bold text-foreground">{formatMoney(provider.hourlyRate ?? 0)}<span className="text-xs font-normal text-muted-foreground">{t("customer.favorites.perHour")}</span></p>
+                    <p className="font-bold text-foreground">{formatMoney(provider.hourlyRate ?? 0)}<span className="text-[11px] font-normal text-muted-foreground">{t("customer.favorites.perHour")}</span></p>
                     <div className="flex gap-2">
                       <Link href={`/customer/find-specialists`}>
-                        <Button size="sm" variant="outline" className="rounded-xl bg-transparent text-xs h-8">{t("common.viewDetails")}</Button>
+                        <Button size="sm" variant="outline" className="rounded-xl bg-transparent text-[11px] h-8">{t("common.viewDetails")}</Button>
                       </Link>
                       <Link href="/customer/services">
-                        <Button size="sm" className="rounded-xl text-xs h-8">{t("customer.favorites.rebook")}</Button>
+                        <Button size="sm" className="rounded-xl text-[11px] h-8">{t("customer.favorites.rebook")}</Button>
                       </Link>
                     </div>
                   </div>
@@ -110,8 +110,8 @@ export function CustomerFavoritesPage() {
               <div className="w-14 h-14 bg-muted rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <Heart className="w-6 h-6 text-muted-foreground" />
               </div>
-              <p className="text-base font-semibold text-foreground mb-1">{t("customer.favorites.emptyTitle")}</p>
-              <p className="text-sm text-muted-foreground mb-4">{t("customer.favorites.emptySubtitle")}</p>
+              <p className="text-sm font-semibold text-foreground mb-1">{t("customer.favorites.emptyTitle")}</p>
+              <p className="text-xs text-muted-foreground mb-4">{t("customer.favorites.emptySubtitle")}</p>
               <Link href="/customer/find-specialists"><Button className="rounded-xl">{t("customer.favorites.findProviders")}</Button></Link>
             </Card>
           )}

@@ -31,7 +31,7 @@ export function CustomerSearchPage() {
       <div className="max-w-4xl mx-auto px-4 py-6 lg:py-8">
         <div className="mb-6 flex items-center gap-2">
           <Search className="w-5 h-5 text-muted-foreground" />
-          <h1 className="text-xl font-bold text-foreground">{t("customer.search.resultsFor", { query })}</h1>
+          <h1 className="text-lg font-bold text-foreground">{t("customer.search.resultsFor", { query })}</h1>
         </div>
 
         {isLoading ? (
@@ -40,13 +40,13 @@ export function CustomerSearchPage() {
           </div>
         ) : !hasAnyResults ? (
           <Card className="p-8 text-center border-0 shadow-sm">
-            <p className="text-sm text-muted-foreground">{t("customer.search.noResults")}</p>
+            <p className="text-xs text-muted-foreground">{t("customer.search.noResults")}</p>
           </Card>
         ) : (
           <div className="space-y-8">
             {result.products.length > 0 && (
               <section>
-                <h2 className="flex items-center gap-2 text-sm font-bold text-foreground mb-3">
+                <h2 className="flex items-center gap-2 text-xs font-bold text-foreground mb-3">
                   <Package className="w-4 h-4 text-primary" /> {t("customer.search.productsSection")}
                 </h2>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -57,9 +57,9 @@ export function CustomerSearchPage() {
                           <Image src={p.image || "/placeholder.svg"} alt={p.name} fill className="object-cover" />
                         </div>
                         <div className="p-2.5">
-                          <p className="text-sm font-medium text-foreground truncate">{p.name}</p>
-                          <p className="text-xs text-muted-foreground truncate">{p.shopName}</p>
-                          <p className="text-sm font-semibold text-foreground mt-1">{formatMoney(p.discountPrice ?? p.price)}</p>
+                          <p className="text-xs font-medium text-foreground truncate">{p.name}</p>
+                          <p className="text-[11px] text-muted-foreground truncate">{p.shopName}</p>
+                          <p className="text-xs font-semibold text-foreground mt-1">{formatMoney(p.discountPrice ?? p.price)}</p>
                         </div>
                       </Card>
                     </Link>
@@ -70,7 +70,7 @@ export function CustomerSearchPage() {
 
             {result.services.length > 0 && (
               <section>
-                <h2 className="flex items-center gap-2 text-sm font-bold text-foreground mb-3">
+                <h2 className="flex items-center gap-2 text-xs font-bold text-foreground mb-3">
                   <Wrench className="w-4 h-4 text-primary" /> {t("customer.search.servicesSection")}
                 </h2>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -81,11 +81,11 @@ export function CustomerSearchPage() {
                           <Image src={s.image || "/placeholder.svg"} alt={s.title} fill className="object-cover" />
                         </div>
                         <div className="p-2.5">
-                          <p className="text-sm font-medium text-foreground truncate">{s.title}</p>
-                          <p className="text-xs text-muted-foreground truncate">{s.providerName}</p>
+                          <p className="text-xs font-medium text-foreground truncate">{s.title}</p>
+                          <p className="text-[11px] text-muted-foreground truncate">{s.providerName}</p>
                           <div className="flex items-center justify-between mt-1">
-                            <span className="text-sm font-semibold text-foreground">{formatMoney(s.price)}</span>
-                            <span className="flex items-center gap-0.5 text-xs text-muted-foreground"><Star className="w-3 h-3 fill-amber-400 text-amber-400" />{s.rating.toFixed(1)}</span>
+                            <span className="text-xs font-semibold text-foreground">{formatMoney(s.price)}</span>
+                            <span className="flex items-center gap-0.5 text-[11px] text-muted-foreground"><Star className="w-3 h-3 fill-amber-400 text-amber-400" />{s.rating.toFixed(1)}</span>
                           </div>
                         </div>
                       </Card>
@@ -97,7 +97,7 @@ export function CustomerSearchPage() {
 
             {result.offers.length > 0 && (
               <section>
-                <h2 className="flex items-center gap-2 text-sm font-bold text-foreground mb-3">
+                <h2 className="flex items-center gap-2 text-xs font-bold text-foreground mb-3">
                   <Crown className="w-4 h-4 text-amber-500" /> Saji Pro Offers
                 </h2>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -111,10 +111,10 @@ export function CustomerSearchPage() {
                           </span>
                         </div>
                         <div className="p-2.5">
-                          <p className="text-sm font-medium text-foreground truncate">{o.title}</p>
-                          <p className="text-xs text-muted-foreground truncate">{o.providerName}</p>
+                          <p className="text-xs font-medium text-foreground truncate">{o.title}</p>
+                          <p className="text-[11px] text-muted-foreground truncate">{o.providerName}</p>
                           <div className="flex items-center justify-between mt-1">
-                            <span className="text-sm font-semibold text-foreground">{o.price != null ? formatMoney(o.price) : o.actionLabel}</span>
+                            <span className="text-xs font-semibold text-foreground">{o.price != null ? formatMoney(o.price) : o.actionLabel}</span>
                           </div>
                         </div>
                       </Card>
@@ -126,7 +126,7 @@ export function CustomerSearchPage() {
 
             {result.rentals.length > 0 && (
               <section>
-                <h2 className="flex items-center gap-2 text-sm font-bold text-foreground mb-3">
+                <h2 className="flex items-center gap-2 text-xs font-bold text-foreground mb-3">
                   <Package className="w-4 h-4 text-sky-600" /> Rentals
                 </h2>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -137,9 +137,9 @@ export function CustomerSearchPage() {
                           <Image src={r.image || "/placeholder.svg"} alt={r.title} fill className="object-cover" />
                         </div>
                         <div className="p-2.5">
-                          <p className="text-sm font-medium text-foreground truncate">{r.title}</p>
-                          <p className="text-xs text-muted-foreground truncate">{r.providerName}</p>
-                          <p className="text-sm font-semibold text-foreground mt-1">{formatMoney(r.pricePerDay)}<span className="text-xs font-normal text-muted-foreground">/day</span></p>
+                          <p className="text-xs font-medium text-foreground truncate">{r.title}</p>
+                          <p className="text-[11px] text-muted-foreground truncate">{r.providerName}</p>
+                          <p className="text-xs font-semibold text-foreground mt-1">{formatMoney(r.pricePerDay)}<span className="text-[11px] font-normal text-muted-foreground">/day</span></p>
                         </div>
                       </Card>
                     </Link>
@@ -150,7 +150,7 @@ export function CustomerSearchPage() {
 
             {result.shops.length > 0 && (
               <section>
-                <h2 className="flex items-center gap-2 text-sm font-bold text-foreground mb-3">
+                <h2 className="flex items-center gap-2 text-xs font-bold text-foreground mb-3">
                   <Store className="w-4 h-4 text-primary" /> {t("customer.search.shopsSection")}
                 </h2>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -161,8 +161,8 @@ export function CustomerSearchPage() {
                           <Image src={s.image || "/placeholder.svg"} alt={s.name} fill className="object-cover" />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-foreground truncate">{s.name}</p>
-                          <span className="flex items-center gap-0.5 text-xs text-muted-foreground"><Star className="w-3 h-3 fill-amber-400 text-amber-400" />{s.rating.toFixed(1)}</span>
+                          <p className="text-xs font-medium text-foreground truncate">{s.name}</p>
+                          <span className="flex items-center gap-0.5 text-[11px] text-muted-foreground"><Star className="w-3 h-3 fill-amber-400 text-amber-400" />{s.rating.toFixed(1)}</span>
                         </div>
                       </Card>
                     </Link>

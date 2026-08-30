@@ -93,9 +93,9 @@ export function HomeSearchBar() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="What do you need today?"
-            className="w-full bg-transparent text-base font-semibold text-foreground placeholder:text-foreground placeholder:font-semibold outline-none"
+            className="w-full bg-transparent text-sm font-semibold text-foreground placeholder:text-foreground placeholder:font-semibold outline-none"
           />
-          <p className="truncate text-xs text-muted-foreground">
+          <p className="truncate text-[11px] text-muted-foreground">
             {isListening ? "Listening…" : 'Try "fix leaking sink", "buy tools", "rent equipment", or "find a plumber near me"'}
           </p>
         </div>

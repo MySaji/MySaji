@@ -145,7 +145,7 @@ export function ProductMarketplace() {
   const filterBody = (
     <>
       <div className="mb-5">
-        <p className="text-xs font-semibold text-muted-foreground mb-3">{t("customer.marketplace.priceRangeLabel")}</p>
+        <p className="text-[11px] font-semibold text-muted-foreground mb-3">{t("customer.marketplace.priceRangeLabel")}</p>
         {priceRange && (
           <>
             <Slider
@@ -155,7 +155,7 @@ export function ProductMarketplace() {
               value={priceRange}
               onValueChange={(v) => setPriceRange([v[0], v[1]])}
             />
-            <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+            <div className="flex items-center justify-between mt-2 text-[11px] text-muted-foreground">
               <span>{formatMoney(priceRange[0])}</span>
               <span>{formatMoney(priceRange[1])}</span>
             </div>
@@ -165,13 +165,13 @@ export function ProductMarketplace() {
 
       {shops.length > 0 && (
         <div className="mb-5">
-          <p className="text-xs font-semibold text-muted-foreground mb-3">{t("customer.marketplace.shopsLabel")}</p>
+          <p className="text-[11px] font-semibold text-muted-foreground mb-3">{t("customer.marketplace.shopsLabel")}</p>
           <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
             {shops.map((shop) => (
-              <label key={shop.id} className="flex items-center gap-2 text-sm cursor-pointer">
+              <label key={shop.id} className="flex items-center gap-2 text-xs cursor-pointer">
                 <input type="checkbox" checked={selectedShopIds.includes(shop.id)} onChange={() => toggleShop(shop.id)} className="rounded border-border accent-primary" />
                 <span className="text-foreground truncate flex-1">{shop.name}</span>
-                <span className="text-xs text-muted-foreground">({shop.productCount})</span>
+                <span className="text-[11px] text-muted-foreground">({shop.productCount})</span>
               </label>
             ))}
           </div>
@@ -179,10 +179,10 @@ export function ProductMarketplace() {
       )}
 
       <div>
-        <p className="text-xs font-semibold text-muted-foreground mb-3">{t("customer.marketplace.ratingLabel")}</p>
+        <p className="text-[11px] font-semibold text-muted-foreground mb-3">{t("customer.marketplace.ratingLabel")}</p>
         <div className="space-y-2">
           {RATING_TIERS.map((tier) => (
-            <label key={tier} className="flex items-center gap-2 text-sm cursor-pointer">
+            <label key={tier} className="flex items-center gap-2 text-xs cursor-pointer">
               <input type="radio" name="rating-tier" checked={minRating === tier} onChange={() => setMinRating(tier)} className="accent-primary" />
               {tier > 0 ? (
                 <span className="flex items-center gap-1 text-foreground">
@@ -203,11 +203,11 @@ export function ProductMarketplace() {
       {/* Desktop sidebar — mobile uses the category chip row + Filters sheet below instead */}
       <aside className="hidden lg:block space-y-5">
         <div>
-          <h3 className="text-sm font-bold text-foreground mb-3">{t("customer.marketplace.categoriesTitle")}</h3>
+          <h3 className="text-xs font-bold text-foreground mb-3">{t("customer.marketplace.categoriesTitle")}</h3>
           <div className="space-y-0.5">
             <button
               onClick={() => setSelectedCategory("all")}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm text-left transition-colors ${selectedCategory === "all" ? "bg-primary/10 text-primary font-medium" : "text-foreground hover:bg-muted"}`}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs text-left transition-colors ${selectedCategory === "all" ? "bg-primary/10 text-primary font-medium" : "text-foreground hover:bg-muted"}`}
             >
               {t("customer.marketplace.allCategories")} <ChevronRight className="w-3.5 h-3.5 opacity-50" />
             </button>
@@ -217,7 +217,7 @@ export function ProductMarketplace() {
                 <button
                   key={cat.id}
                   onClick={() => setSelectedCategory(cat.slug)}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-left transition-colors ${selectedCategory === cat.slug ? "bg-primary/10 text-primary font-medium" : "text-foreground hover:bg-muted"}`}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-left transition-colors ${selectedCategory === cat.slug ? "bg-primary/10 text-primary font-medium" : "text-foreground hover:bg-muted"}`}
                 >
                   <span className={`w-2 h-2 rounded-full flex-shrink-0 ${dotColor}`} />
                   {cat.name}
@@ -229,8 +229,8 @@ export function ProductMarketplace() {
 
         <Card className="p-4 border border-border rounded-2xl">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-bold text-foreground">{t("customer.marketplace.filtersTitle")}</h3>
-            <button onClick={clearFilters} className="text-xs text-primary font-medium">
+            <h3 className="text-xs font-bold text-foreground">{t("customer.marketplace.filtersTitle")}</h3>
+            <button onClick={clearFilters} className="text-[11px] text-primary font-medium">
               {t("customer.marketplace.clearAll")}
             </button>
           </div>
@@ -244,7 +244,7 @@ export function ProductMarketplace() {
         <div className="lg:hidden -mx-4 mb-3 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <button
             onClick={() => setSelectedCategory("all")}
-            className={`flex-shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${selectedCategory === "all" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
+            className={`flex-shrink-0 rounded-full px-3.5 py-1.5 text-[11px] font-medium whitespace-nowrap transition-colors ${selectedCategory === "all" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
           >
             {t("customer.marketplace.allCategories")}
           </button>
@@ -252,7 +252,7 @@ export function ProductMarketplace() {
             <button
               key={cat.id}
               onClick={() => setSelectedCategory(cat.slug)}
-              className={`flex-shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${selectedCategory === cat.slug ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
+              className={`flex-shrink-0 rounded-full px-3.5 py-1.5 text-[11px] font-medium whitespace-nowrap transition-colors ${selectedCategory === cat.slug ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
             >
               {cat.name}
             </button>
@@ -314,8 +314,8 @@ export function ProductMarketplace() {
           </div>
         ) : products.length === 0 ? (
           <Card className="border-dashed p-10 text-center">
-            <p className="text-lg font-semibold text-foreground">{t("customer.marketplace.noMatch")}</p>
-            <p className="mt-2 text-sm text-muted-foreground">{t("customer.marketplace.noMatchHint")}</p>
+            <p className="text-base font-semibold text-foreground">{t("customer.marketplace.noMatch")}</p>
+            <p className="mt-2 text-xs text-muted-foreground">{t("customer.marketplace.noMatchHint")}</p>
           </Card>
         ) : (
           <div className={viewMode === "grid" ? "grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4 lg:gap-4" : "space-y-3"}>
@@ -342,18 +342,18 @@ export function ProductMarketplace() {
                   <div className="p-2.5 sm:p-4 flex-1 min-w-0">
                     <p className="truncate text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{product.shop}</p>
                     <Link href={`/customer/products/${product.id}`}>
-                      <h3 className="mt-0.5 line-clamp-2 text-xs font-semibold text-foreground sm:text-sm">{product.name}</h3>
+                      <h3 className="mt-0.5 line-clamp-2 text-[11px] font-semibold text-foreground sm:text-xs">{product.name}</h3>
                     </Link>
-                    <div className="mt-1.5 flex items-center gap-1 text-[11px] text-muted-foreground">
+                    <div className="mt-1.5 flex items-center gap-1 text-[10px] text-muted-foreground">
                       <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
                       <span className="font-medium text-foreground">{product.rating.toFixed(1)}</span>
                       <span>({product.reviewCount})</span>
                     </div>
                     <div className="mt-2 flex items-baseline gap-1.5">
-                      <p className="text-sm font-bold text-primary sm:text-base">{formatMoney(displayPrice)}</p>
-                      {product.discountPrice != null && <p className="text-[11px] text-muted-foreground line-through">{formatMoney(product.price)}</p>}
+                      <p className="text-xs font-bold text-primary sm:text-sm">{formatMoney(displayPrice)}</p>
+                      {product.discountPrice != null && <p className="text-[10px] text-muted-foreground line-through">{formatMoney(product.price)}</p>}
                     </div>
-                    <Button className="mt-3 w-full rounded-xl text-xs sm:text-sm" size="sm" onClick={() => handleAddToCart(product)} disabled={product.stock === 0}>
+                    <Button className="mt-3 w-full rounded-xl text-[11px] sm:text-xs" size="sm" onClick={() => handleAddToCart(product)} disabled={product.stock === 0}>
                       <Plus className="mr-1 h-3.5 w-3.5" />
                       {product.stock === 0 ? t("customer.products.outOfStock") : t("common.addToCart")}
                     </Button>
@@ -366,7 +366,7 @@ export function ProductMarketplace() {
 
         {totalCount > 0 && (
           <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="text-xs text-muted-foreground">{tn("customer.marketplace.resultCount", totalCount)}</p>
+            <p className="text-[11px] text-muted-foreground">{tn("customer.marketplace.resultCount", totalCount)}</p>
             {totalPages > 1 && (
               <Pagination className="mx-0 w-auto">
                 <PaginationContent>

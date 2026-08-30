@@ -85,10 +85,10 @@ export function CustomerHelpPage() {
       <div className="max-w-3xl mx-auto px-4 py-6 lg:py-8">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl lg:text-3xl font-bold text-foreground flex items-center gap-2">
+          <h1 className="text-xl lg:text-2xl font-bold text-foreground flex items-center gap-2">
             <HelpCircle className="w-6 h-6 text-primary" />{t("customer.help.title")}
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">{t("customer.help.subtitle")}</p>
+          <p className="text-xs text-muted-foreground mt-1">{t("customer.help.subtitle")}</p>
         </div>
 
         {/* Search */}
@@ -98,7 +98,7 @@ export function CustomerHelpPage() {
             placeholder={t("customer.help.searchPlaceholder")}
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="pl-12 h-12 rounded-xl border-0 bg-muted/50 text-base"
+            className="pl-12 h-12 rounded-xl border-0 bg-muted/50 text-sm"
           />
         </div>
 
@@ -112,7 +112,7 @@ export function CustomerHelpPage() {
             <button
               key={tab.id}
               onClick={() => setActiveView(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium transition-all ${
                 activeView === tab.id ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted text-muted-foreground hover:bg-muted/80"
               }`}
             >
@@ -130,15 +130,15 @@ export function CustomerHelpPage() {
                 <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center mb-3">
                   <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
                 </div>
-                <p className="font-semibold text-sm text-foreground">{t("customer.help.fileDispute")}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{t("customer.help.fileDisputeDesc")}</p>
+                <p className="font-semibold text-xs text-foreground">{t("customer.help.fileDispute")}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">{t("customer.help.fileDisputeDesc")}</p>
               </Card>
               <Card className="p-4 border-0 shadow-sm hover:shadow-md transition-all cursor-pointer" onClick={() => setActiveView("faq")}>
                 <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-3">
                   <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                 </div>
-                <p className="font-semibold text-sm text-foreground">{t("customer.help.browseFaq")}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{t("customer.help.browseFaqDesc")}</p>
+                <p className="font-semibold text-xs text-foreground">{t("customer.help.browseFaq")}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">{t("customer.help.browseFaqDesc")}</p>
               </Card>
             </div>
 
@@ -148,17 +148,17 @@ export function CustomerHelpPage() {
               <div className="space-y-3">
                 <button onClick={() => setShowNewTicket(true)} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-muted transition-colors">
                   <div className="w-9 h-9 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center"><MessageCircle className="w-4 h-4 text-emerald-600" /></div>
-                  <div className="flex-1 text-left"><p className="text-sm font-medium text-foreground">{t("customer.help.fileTicket")}</p><p className="text-xs text-muted-foreground">{t("customer.help.fileTicketDesc")}</p></div>
+                  <div className="flex-1 text-left"><p className="text-xs font-medium text-foreground">{t("customer.help.fileTicket")}</p><p className="text-[11px] text-muted-foreground">{t("customer.help.fileTicketDesc")}</p></div>
                   <ChevronRight className="w-4 h-4 text-muted-foreground" />
                 </button>
                 <a href="tel:+254700072547" className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-muted transition-colors">
                   <div className="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center"><Phone className="w-4 h-4 text-blue-600" /></div>
-                  <div className="flex-1 text-left"><p className="text-sm font-medium text-foreground">{t("customer.help.callUs")}</p><p className="text-xs text-muted-foreground">+254 700 072 547</p></div>
+                  <div className="flex-1 text-left"><p className="text-xs font-medium text-foreground">{t("customer.help.callUs")}</p><p className="text-[11px] text-muted-foreground">+254 700 072 547</p></div>
                   <ChevronRight className="w-4 h-4 text-muted-foreground" />
                 </a>
                 <a href="mailto:support@saji.co.ke" className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-muted transition-colors">
                   <div className="w-9 h-9 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center"><Mail className="w-4 h-4 text-amber-600" /></div>
-                  <div className="flex-1 text-left"><p className="text-sm font-medium text-foreground">{t("customer.help.email")}</p><p className="text-xs text-muted-foreground">support@saji.co.ke</p></div>
+                  <div className="flex-1 text-left"><p className="text-xs font-medium text-foreground">{t("customer.help.email")}</p><p className="text-[11px] text-muted-foreground">support@saji.co.ke</p></div>
                   <ChevronRight className="w-4 h-4 text-muted-foreground" />
                 </a>
               </div>
@@ -171,7 +171,7 @@ export function CustomerHelpPage() {
                 {quickLinks.map((link, i) => (
                   <a key={i} href={link.href} className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted transition-colors">
                     <link.icon className="w-4 h-4 text-primary" />
-                    <div><p className="text-sm font-medium text-foreground">{link.label}</p><p className="text-[11px] text-muted-foreground">{link.desc}</p></div>
+                    <div><p className="text-xs font-medium text-foreground">{link.label}</p><p className="text-[10px] text-muted-foreground">{link.desc}</p></div>
                   </a>
                 ))}
               </div>
@@ -185,11 +185,11 @@ export function CustomerHelpPage() {
             {filteredFaqs.map((faq, idx) => (
               <Card key={idx} className="border-0 shadow-sm overflow-hidden">
                 <button onClick={() => setExpandedFaq(expandedFaq === idx ? null : idx)} className="w-full p-4 text-left flex items-center justify-between gap-3">
-                  <p className="font-medium text-sm text-foreground">{faq.question}</p>
+                  <p className="font-medium text-xs text-foreground">{faq.question}</p>
                   <ChevronDown className={`w-4 h-4 text-muted-foreground flex-shrink-0 transition-transform ${expandedFaq === idx ? "rotate-180" : ""}`} />
                 </button>
                 {expandedFaq === idx && (
-                  <div className="px-4 pb-4 -mt-1"><p className="text-sm text-muted-foreground leading-relaxed">{faq.answer}</p></div>
+                  <div className="px-4 pb-4 -mt-1"><p className="text-xs text-muted-foreground leading-relaxed">{faq.answer}</p></div>
                 )}
               </Card>
             ))}
@@ -197,7 +197,7 @@ export function CustomerHelpPage() {
               <Card className="p-8 text-center border-0 shadow-sm">
                 <Search className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
                 <p className="font-medium text-foreground">{t("customer.help.noResults")}</p>
-                <p className="text-sm text-muted-foreground mt-1">{t("customer.help.noResultsHint")}</p>
+                <p className="text-xs text-muted-foreground mt-1">{t("customer.help.noResultsHint")}</p>
               </Card>
             )}
           </div>
@@ -207,14 +207,14 @@ export function CustomerHelpPage() {
         {activeView === "tickets" && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">{tn("customer.help.ticketCount", tickets.length)}</p>
+              <p className="text-xs text-muted-foreground">{tn("customer.help.ticketCount", tickets.length)}</p>
               <Button size="sm" onClick={() => setShowNewTicket(true)} className="rounded-xl gap-1.5"><Plus className="w-3.5 h-3.5" />{t("customer.help.newTicket")}</Button>
             </div>
             {isLoading ? (
               <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
             ) : tickets.length === 0 ? (
               <Card className="p-8 text-center border-0 shadow-sm">
-                <p className="text-sm text-muted-foreground">{t("customer.help.noTickets")}</p>
+                <p className="text-xs text-muted-foreground">{t("customer.help.noTickets")}</p>
               </Card>
             ) : tickets.map(ticket => {
               const uiStatus = ticket.status.toLowerCase().replace("_", "-")
@@ -224,12 +224,12 @@ export function CustomerHelpPage() {
                 <Card key={ticket.id} className="p-4 border-0 shadow-sm hover:shadow-md transition-all">
                   <div className="flex items-start justify-between gap-3 mb-2">
                     <div>
-                      <p className="font-semibold text-sm text-foreground">{ticket.subject}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{t("customer.help.ticketFiled", { id: ticket.id.slice(-8).toUpperCase(), time: formatRelativeTime(ticket.createdAt) })}</p>
+                      <p className="font-semibold text-xs text-foreground">{ticket.subject}</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">{t("customer.help.ticketFiled", { id: ticket.id.slice(-8).toUpperCase(), time: formatRelativeTime(ticket.createdAt) })}</p>
                     </div>
-                    <span className={`px-2.5 py-1 rounded-full text-[11px] font-semibold ${sc.bg} ${sc.text}`}>{statusLabel}</span>
+                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-semibold ${sc.bg} ${sc.text}`}>{statusLabel}</span>
                   </div>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
                     <Clock className="w-3 h-3" /> {t("customer.help.lastUpdated", { time: formatRelativeTime(ticket.updatedAt) })}
                   </div>
                 </Card>
@@ -245,11 +245,11 @@ export function CustomerHelpPage() {
               <>
                 <DialogHeader><DialogTitle>{t("customer.help.fileSupportTicket")}</DialogTitle></DialogHeader>
                 <div className="space-y-4 py-2">
-                  <div><label className="text-sm font-medium mb-2 block">{t("customer.help.category")}</label>
+                  <div><label className="text-xs font-medium mb-2 block">{t("customer.help.category")}</label>
                     <Select value={ticketCategory} onValueChange={setTicketCategory}><SelectTrigger className="rounded-xl"><SelectValue placeholder={t("customer.help.selectCategory")} /></SelectTrigger><SelectContent><SelectItem value="dispute">{t("customer.help.categoryDispute")}</SelectItem><SelectItem value="billing">{t("customer.help.categoryBilling")}</SelectItem><SelectItem value="account">{t("customer.help.categoryAccount")}</SelectItem><SelectItem value="safety">{t("customer.help.categorySafety")}</SelectItem><SelectItem value="other">{t("customer.savedAddresses.typeOther")}</SelectItem></SelectContent></Select>
                   </div>
-                  <div><label className="text-sm font-medium mb-2 block">{t("customer.help.subject")}</label><Input value={ticketSubject} onChange={e => setTicketSubject(e.target.value)} placeholder={t("customer.help.briefDescription")} className="rounded-xl" /></div>
-                  <div><label className="text-sm font-medium mb-2 block">{t("customer.help.details")}</label><Textarea value={ticketDetails} onChange={e => setTicketDetails(e.target.value)} placeholder={t("customer.help.describeIssue")} className="min-h-[120px] rounded-xl" /></div>
+                  <div><label className="text-xs font-medium mb-2 block">{t("customer.help.subject")}</label><Input value={ticketSubject} onChange={e => setTicketSubject(e.target.value)} placeholder={t("customer.help.briefDescription")} className="rounded-xl" /></div>
+                  <div><label className="text-xs font-medium mb-2 block">{t("customer.help.details")}</label><Textarea value={ticketDetails} onChange={e => setTicketDetails(e.target.value)} placeholder={t("customer.help.describeIssue")} className="min-h-[120px] rounded-xl" /></div>
                 </div>
                 <div className="flex gap-3">
                   <Button variant="outline" onClick={() => setShowNewTicket(false)} className="flex-1 rounded-xl bg-transparent" disabled={isSubmittingTicket}>{t("common.cancel")}</Button>
@@ -263,8 +263,8 @@ export function CustomerHelpPage() {
                 <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
                   <CheckCircle className="w-8 h-8 text-emerald-600" />
                 </div>
-                <h3 className="text-xl font-bold text-foreground mb-1">{t("customer.help.ticketSubmitted")}</h3>
-                <p className="text-sm text-muted-foreground">{t("customer.help.respondWithin")}</p>
+                <h3 className="text-lg font-bold text-foreground mb-1">{t("customer.help.ticketSubmitted")}</h3>
+                <p className="text-xs text-muted-foreground">{t("customer.help.respondWithin")}</p>
               </div>
             )}
           </DialogContent>

@@ -245,7 +245,7 @@ export function CustomerJobsPage() {
     return (
       <div className="min-h-screen bg-background">
         <div className="max-w-3xl mx-auto px-4 py-6 lg:py-8">
-          <button onClick={() => setSelectedJobId(null)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors">
+          <button onClick={() => setSelectedJobId(null)} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground mb-6 transition-colors">
             <ChevronLeft className="w-4 h-4" /> {t("customer.jobs.backToJobs")}
           </button>
 
@@ -255,10 +255,10 @@ export function CustomerJobsPage() {
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
             <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between">
               <div>
-                <h1 className="text-xl lg:text-2xl font-bold text-white mb-0.5">{selectedJob.title}</h1>
-                <p className="text-white/80 text-sm">{selectedJob.description}</p>
+                <h1 className="text-lg lg:text-xl font-bold text-white mb-0.5">{selectedJob.title}</h1>
+                <p className="text-white/80 text-xs">{selectedJob.description}</p>
               </div>
-              <span className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 backdrop-blur-sm ${config.bg} ${config.text}`}>
+              <span className={`px-3 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 backdrop-blur-sm ${config.bg} ${config.text}`}>
                 <StatusIcon className="w-3.5 h-3.5" />{config.label}
               </span>
             </div>
@@ -274,11 +274,11 @@ export function CustomerJobsPage() {
                     <Navigation className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                   </div>
                   <div>
-                    <p className="font-semibold text-sm text-foreground flex items-center gap-2">
+                    <p className="font-semibold text-xs text-foreground flex items-center gap-2">
                       {t("customer.jobs.providerEnRoute")}
-                      <span className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400"><Radio className="w-3 h-3 animate-pulse" />{t("customer.live.liveBadge")}</span>
+                      <span className="flex items-center gap-1 text-[11px] text-blue-600 dark:text-blue-400"><Radio className="w-3 h-3 animate-pulse" />{t("customer.live.liveBadge")}</span>
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-[11px] text-muted-foreground">
                       {selectedJob.distanceKm != null
                         ? <>~<strong className="text-foreground">{t("customer.jobs.minAway", { min: estimateTravelMinutes(selectedJob.distanceKm) })}</strong> ({selectedJob.distanceKm.toFixed(1)} km)</>
                         : t("customer.jobs.distanceUnavailableLong")}
@@ -296,19 +296,19 @@ export function CustomerJobsPage() {
           <div className="grid grid-cols-2 gap-3 mb-4">
             <Card className="p-4 border-0 shadow-sm">
               <CalendarIcon className="w-4 h-4 text-muted-foreground mb-2" />
-              <p className="font-semibold text-sm text-foreground">{selectedJob.date}</p>
-              <p className="text-xs text-muted-foreground">{selectedJob.time}</p>
+              <p className="font-semibold text-xs text-foreground">{selectedJob.date}</p>
+              <p className="text-[11px] text-muted-foreground">{selectedJob.time}</p>
             </Card>
             <Card className="p-4 border-0 shadow-sm">
               <MapPin className="w-4 h-4 text-muted-foreground mb-2" />
-              <p className="font-semibold text-sm text-foreground">{selectedJob.location}</p>
-              <p className="text-xs text-muted-foreground">{t("customer.jobs.serviceLocation")}</p>
+              <p className="font-semibold text-xs text-foreground">{selectedJob.location}</p>
+              <p className="text-[11px] text-muted-foreground">{t("customer.jobs.serviceLocation")}</p>
             </Card>
           </div>
 
           {/* Provider */}
           <Card className="p-4 mb-4 border-0 shadow-sm">
-            <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">{t("customer.jobs.serviceProvider")}</p>
+            <p className="text-[11px] font-medium text-muted-foreground mb-3 uppercase tracking-wider">{t("customer.jobs.serviceProvider")}</p>
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-full overflow-hidden ring-2 ring-background">
                 <Image src={selectedJob.providerAvatar || "/placeholder.svg"} alt={selectedJob.provider} width={48} height={48} className="object-cover" />
@@ -318,17 +318,17 @@ export function CustomerJobsPage() {
                 {selectedJob.rating && (
                   <div className="flex items-center gap-1 mt-0.5">
                     <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                    <span className="text-sm font-medium">{selectedJob.rating}</span>
+                    <span className="text-xs font-medium">{selectedJob.rating}</span>
                   </div>
                 )}
               </div>
             </div>
             <div className="flex gap-2 mt-3">
-              <Button variant="outline" className="flex-1 gap-2 rounded-xl bg-transparent h-9 text-sm" disabled={!selectedJob.providerPhone} onClick={() => selectedJob.providerPhone && (window.location.href = `tel:${selectedJob.providerPhone}`)}>
+              <Button variant="outline" className="flex-1 gap-2 rounded-xl bg-transparent h-9 text-xs" disabled={!selectedJob.providerPhone} onClick={() => selectedJob.providerPhone && (window.location.href = `tel:${selectedJob.providerPhone}`)}>
                 <Phone className="w-3.5 h-3.5" />{t("customer.serviceDetail.call")}
               </Button>
               <Link href="/customer/messages" className="flex-1">
-                <Button variant="outline" className="w-full gap-2 rounded-xl bg-transparent h-9 text-sm">
+                <Button variant="outline" className="w-full gap-2 rounded-xl bg-transparent h-9 text-xs">
                   <MessageCircle className="w-3.5 h-3.5" />{t("customer.serviceDetail.message")}
                 </Button>
               </Link>
@@ -339,8 +339,8 @@ export function CustomerJobsPage() {
           <Card className="p-4 mb-4 border-0 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground">{t("customer.jobs.serviceCost")}</p>
-                <p className="text-2xl font-bold text-foreground">{formatMoney(selectedJob.price)}</p>
+                <p className="text-[11px] text-muted-foreground">{t("customer.jobs.serviceCost")}</p>
+                <p className="text-xl font-bold text-foreground">{formatMoney(selectedJob.price)}</p>
               </div>
               {selectedJob.status === "completed" && !selectedJob.reviewed && (
                 <Button size="sm" className="rounded-xl gap-1.5" onClick={() => setShowReviewModal(true)}>
@@ -353,7 +353,7 @@ export function CustomerJobsPage() {
                 </Button>
               )}
               {selectedJob.status === "completed" && selectedJob.reviewed && (
-                <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30 px-3 py-1.5 rounded-full flex items-center gap-1">
+                <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30 px-3 py-1.5 rounded-full flex items-center gap-1">
                   <CheckCircle className="w-3 h-3" />{t("customer.jobs.reviewed")}
                 </span>
               )}
@@ -377,15 +377,15 @@ export function CustomerJobsPage() {
           {/* Extra cost approvals — Gap 1 */}
           {jobExpenses.some((e) => e.status === "PENDING") && (
             <Card className="p-4 mb-4 border-0 shadow-sm border-l-4 border-l-amber-500 bg-amber-50 dark:bg-amber-950/20">
-              <p className="text-xs font-medium text-amber-800 dark:text-amber-400 mb-3 uppercase tracking-wider">{t("customer.jobs.expenseApprovalTitle")}</p>
-              {expenseResponseError && <p className="text-sm text-red-600 mb-2">{expenseResponseError}</p>}
+              <p className="text-[11px] font-medium text-amber-800 dark:text-amber-400 mb-3 uppercase tracking-wider">{t("customer.jobs.expenseApprovalTitle")}</p>
+              {expenseResponseError && <p className="text-xs text-red-600 mb-2">{expenseResponseError}</p>}
               <div className="space-y-3">
                 {jobExpenses.filter((e) => e.status === "PENDING").map((expense) => (
                   <div key={expense.id} className="space-y-2">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="font-medium text-sm text-foreground">{expense.description}</p>
-                        <p className="text-lg font-bold text-foreground">{formatMoney(expense.amount)}</p>
+                        <p className="font-medium text-xs text-foreground">{expense.description}</p>
+                        <p className="text-base font-bold text-foreground">{formatMoney(expense.amount)}</p>
                       </div>
                       {expense.receiptPhotoUrl && (
                         <Image src={expense.receiptPhotoUrl} alt={expense.description} width={56} height={56} className="rounded-lg object-cover" />
@@ -440,13 +440,13 @@ export function CustomerJobsPage() {
         <Dialog open={showCancelConfirm} onOpenChange={setShowCancelConfirm}>
           <DialogContent className="max-w-sm rounded-2xl">
             <DialogHeader><DialogTitle>{t("customer.jobs.cancelConfirmTitle")}</DialogTitle></DialogHeader>
-            <p className="text-sm text-muted-foreground">{t("customer.jobs.cancelConfirmBody")}</p>
+            <p className="text-xs text-muted-foreground">{t("customer.jobs.cancelConfirmBody")}</p>
             {selectedJob && selectedJob.rawStatus === "ACCEPTED" && isWithinLateCancellationWindow(selectedJob.scheduledDate) && (
-              <p className="text-xs font-medium text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 rounded-lg px-3 py-2">
+              <p className="text-[11px] font-medium text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 rounded-lg px-3 py-2">
                 {t("customer.jobs.lateCancelFeeWarning")}
               </p>
             )}
-            {cancelError && <p className="text-xs text-red-600">{cancelError}</p>}
+            {cancelError && <p className="text-[11px] text-red-600">{cancelError}</p>}
             <div className="flex gap-3 pt-2">
               <Button variant="outline" className="flex-1 rounded-xl bg-transparent" onClick={() => setShowCancelConfirm(false)} disabled={isCancelling}>
                 {t("customer.jobs.keepBooking")}
@@ -475,21 +475,21 @@ export function CustomerJobsPage() {
                 </div>
                 <div className="flex-1">
                   <p className="font-semibold text-foreground">{selectedJob?.provider}</p>
-                  <p className="text-sm text-muted-foreground">{selectedJob?.title}</p>
+                  <p className="text-xs text-muted-foreground">{selectedJob?.title}</p>
                 </div>
                 <div className="text-right">
                   {selectedJob?.distanceKm != null ? (
                     <>
-                      <p className="text-2xl font-bold text-primary">~{estimateTravelMinutes(selectedJob.distanceKm)}</p>
-                      <p className="text-xs text-muted-foreground">{t("customer.jobs.minAwayShort", { km: selectedJob.distanceKm.toFixed(1) })}</p>
+                      <p className="text-xl font-bold text-primary">~{estimateTravelMinutes(selectedJob.distanceKm)}</p>
+                      <p className="text-[11px] text-muted-foreground">{t("customer.jobs.minAwayShort", { km: selectedJob.distanceKm.toFixed(1) })}</p>
                     </>
                   ) : (
-                    <p className="text-xs text-muted-foreground">{t("customer.jobs.distanceUnavailable")}</p>
+                    <p className="text-[11px] text-muted-foreground">{t("customer.jobs.distanceUnavailable")}</p>
                   )}
                 </div>
               </div>
               {selectedJob?.providerLocationUpdatedAt && (
-                <p className="text-[11px] text-muted-foreground mb-4">
+                <p className="text-[10px] text-muted-foreground mb-4">
                   {t("customer.help.lastUpdated", { time: new Date(selectedJob.providerLocationUpdatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) })}
                 </p>
               )}
@@ -502,9 +502,9 @@ export function CustomerJobsPage() {
                 ].map((step, i) => (
                   <div key={i} className="flex-1 text-center">
                     <div className={`w-8 h-8 rounded-full mx-auto mb-1 flex items-center justify-center ${step.done ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
-                      {step.done ? <CheckCircle className="w-4 h-4" /> : <span className="text-xs font-bold">{i + 1}</span>}
+                      {step.done ? <CheckCircle className="w-4 h-4" /> : <span className="text-[11px] font-bold">{i + 1}</span>}
                     </div>
-                    <p className={`text-[11px] font-medium ${step.done ? "text-primary" : "text-muted-foreground"}`}>{step.label}</p>
+                    <p className={`text-[10px] font-medium ${step.done ? "text-primary" : "text-muted-foreground"}`}>{step.label}</p>
                   </div>
                 ))}
               </div>
@@ -533,14 +533,14 @@ export function CustomerJobsPage() {
                       <Image src={selectedJob?.providerAvatar || "/placeholder.svg"} alt="" width={40} height={40} className="object-cover" />
                     </div>
                     <div>
-                      <p className="font-semibold text-sm text-foreground">{selectedJob?.provider}</p>
-                      <p className="text-xs text-muted-foreground">{selectedJob?.title}</p>
+                      <p className="font-semibold text-xs text-foreground">{selectedJob?.provider}</p>
+                      <p className="text-[11px] text-muted-foreground">{selectedJob?.title}</p>
                     </div>
                   </div>
 
                   {/* Star Rating */}
                   <div className="text-center">
-                    <p className="text-sm font-medium text-muted-foreground mb-3">{t("customer.jobs.howWasService")}</p>
+                    <p className="text-xs font-medium text-muted-foreground mb-3">{t("customer.jobs.howWasService")}</p>
                     <div className="flex justify-center gap-2">
                       {[1, 2, 3, 4, 5].map(star => (
                         <button
@@ -556,7 +556,7 @@ export function CustomerJobsPage() {
                       ))}
                     </div>
                     {reviewRating > 0 && (
-                      <p className="text-sm font-medium mt-2 text-foreground">
+                      <p className="text-xs font-medium mt-2 text-foreground">
                         {reviewRating === 5 ? t("customer.jobs.ratingExcellent") : reviewRating === 4 ? t("customer.jobs.ratingGreat") : reviewRating === 3 ? t("customer.jobs.ratingGood") : reviewRating === 2 ? t("customer.jobs.ratingFair") : t("customer.jobs.ratingPoor")}
                       </p>
                     )}
@@ -564,13 +564,13 @@ export function CustomerJobsPage() {
 
                   {/* Quick Tags */}
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground mb-2">{t("customer.jobs.whatStoodOut")}</p>
+                    <p className="text-xs font-medium text-muted-foreground mb-2">{t("customer.jobs.whatStoodOut")}</p>
                     <div className="flex flex-wrap gap-2">
                       {reviewQuickTags.map(tag => (
                         <button
                           key={tag}
                           onClick={() => toggleTag(tag)}
-                          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                          className={`px-3 py-1.5 rounded-full text-[11px] font-medium transition-all ${
                             reviewTags.includes(tag)
                               ? "bg-primary text-primary-foreground"
                               : "bg-muted text-muted-foreground hover:bg-muted/80"
@@ -584,7 +584,7 @@ export function CustomerJobsPage() {
 
                   {/* Comment */}
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground mb-2">{t("customer.jobs.additionalComments")}</p>
+                    <p className="text-xs font-medium text-muted-foreground mb-2">{t("customer.jobs.additionalComments")}</p>
                     <Textarea
                       value={reviewComment}
                       onChange={e => setReviewComment(e.target.value)}
@@ -593,7 +593,7 @@ export function CustomerJobsPage() {
                     />
                   </div>
                 </div>
-                {reviewError && <p className="text-xs text-red-600">{reviewError}</p>}
+                {reviewError && <p className="text-[11px] text-red-600">{reviewError}</p>}
                 <div className="flex gap-3">
                   <Button variant="outline" className="flex-1 rounded-xl bg-transparent" onClick={() => setShowReviewModal(false)} disabled={isSubmittingReview}>{t("customer.jobs.skip")}</Button>
                   <Button className="flex-1 rounded-xl" onClick={handleReviewSubmit} disabled={reviewRating === 0 || isSubmittingReview}>
@@ -606,8 +606,8 @@ export function CustomerJobsPage() {
                 <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
                   <ThumbsUp className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
                 </div>
-                <h3 className="text-xl font-bold text-foreground mb-1">{t("customer.jobs.thankYou")}</h3>
-                <p className="text-sm text-muted-foreground">{t("customer.jobs.reviewHelpsCommunity")}</p>
+                <h3 className="text-lg font-bold text-foreground mb-1">{t("customer.jobs.thankYou")}</h3>
+                <p className="text-xs text-muted-foreground">{t("customer.jobs.reviewHelpsCommunity")}</p>
               </div>
             )}
           </DialogContent>
@@ -618,8 +618,8 @@ export function CustomerJobsPage() {
           <DialogContent className="max-w-md rounded-2xl" aria-describedby={undefined}>
             <DialogHeader><DialogTitle>{t("customer.jobs.reportAnIssue")}</DialogTitle></DialogHeader>
             <div className="space-y-4 py-2">
-              <div><label className="text-sm font-medium mb-2 block">{t("customer.jobs.issueType")}</label><Select value={reportReason} onValueChange={setReportReason}><SelectTrigger className="rounded-xl"><SelectValue placeholder={t("customer.jobs.selectIssueType")} /></SelectTrigger><SelectContent><SelectItem value="quality">{t("customer.jobs.issuePoorQuality")}</SelectItem><SelectItem value="late">{t("customer.jobs.issueProviderLate")}</SelectItem><SelectItem value="incomplete">{t("customer.jobs.issueIncompleteWork")}</SelectItem><SelectItem value="damage">{t("customer.jobs.issuePropertyDamage")}</SelectItem><SelectItem value="behavior">{t("customer.jobs.issueUnprofessional")}</SelectItem><SelectItem value="other">{t("customer.savedAddresses.typeOther")}</SelectItem></SelectContent></Select></div>
-              <div><label className="text-sm font-medium mb-2 block">{t("customer.help.details")}</label><Textarea value={reportDetails} onChange={e => setReportDetails(e.target.value)} placeholder={t("customer.jobs.describeIssue")} className="min-h-[100px] rounded-xl" /></div>
+              <div><label className="text-xs font-medium mb-2 block">{t("customer.jobs.issueType")}</label><Select value={reportReason} onValueChange={setReportReason}><SelectTrigger className="rounded-xl"><SelectValue placeholder={t("customer.jobs.selectIssueType")} /></SelectTrigger><SelectContent><SelectItem value="quality">{t("customer.jobs.issuePoorQuality")}</SelectItem><SelectItem value="late">{t("customer.jobs.issueProviderLate")}</SelectItem><SelectItem value="incomplete">{t("customer.jobs.issueIncompleteWork")}</SelectItem><SelectItem value="damage">{t("customer.jobs.issuePropertyDamage")}</SelectItem><SelectItem value="behavior">{t("customer.jobs.issueUnprofessional")}</SelectItem><SelectItem value="other">{t("customer.savedAddresses.typeOther")}</SelectItem></SelectContent></Select></div>
+              <div><label className="text-xs font-medium mb-2 block">{t("customer.help.details")}</label><Textarea value={reportDetails} onChange={e => setReportDetails(e.target.value)} placeholder={t("customer.jobs.describeIssue")} className="min-h-[100px] rounded-xl" /></div>
             </div>
             <div className="flex gap-3"><Button variant="outline" className="flex-1 rounded-xl bg-transparent" onClick={() => setShowReportModal(false)}>{t("common.cancel")}</Button><Button className="flex-1 rounded-xl bg-red-600 hover:bg-red-700" onClick={handleReport} disabled={!reportReason}>{t("customer.help.submit")}</Button></div>
           </DialogContent>
@@ -630,8 +630,8 @@ export function CustomerJobsPage() {
           <DialogContent className="max-w-md rounded-2xl" aria-describedby={undefined}>
             <DialogHeader><DialogTitle>{t("customer.jobs.rescheduleService")}</DialogTitle></DialogHeader>
             <div className="space-y-4 py-2">
-              <div><label className="text-sm font-medium mb-2 block">{t("customer.jobs.newDate")}</label><Popover><PopoverTrigger asChild><Button variant="outline" className="w-full justify-start text-left font-normal bg-transparent rounded-xl"><CalendarIcon className="mr-2 h-4 w-4" />{rescheduleDate ? format(rescheduleDate, "PPP") : t("customer.jobs.pickADate")}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={rescheduleDate} onSelect={setRescheduleDate} disabled={(date) => date < new Date()} /></PopoverContent></Popover></div>
-              <div><label className="text-sm font-medium mb-2 block">{t("customer.jobs.newTime")}</label><div className="grid grid-cols-4 gap-2">{timeSlots.map(time => (<button key={time} onClick={() => setRescheduleTime(time)} className={`p-2 text-xs font-medium rounded-lg border transition-all ${rescheduleTime === time ? 'bg-primary text-primary-foreground border-primary' : 'border-border hover:border-primary/50'}`}>{time}</button>))}</div></div>
+              <div><label className="text-xs font-medium mb-2 block">{t("customer.jobs.newDate")}</label><Popover><PopoverTrigger asChild><Button variant="outline" className="w-full justify-start text-left font-normal bg-transparent rounded-xl"><CalendarIcon className="mr-2 h-4 w-4" />{rescheduleDate ? format(rescheduleDate, "PPP") : t("customer.jobs.pickADate")}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={rescheduleDate} onSelect={setRescheduleDate} disabled={(date) => date < new Date()} /></PopoverContent></Popover></div>
+              <div><label className="text-xs font-medium mb-2 block">{t("customer.jobs.newTime")}</label><div className="grid grid-cols-4 gap-2">{timeSlots.map(time => (<button key={time} onClick={() => setRescheduleTime(time)} className={`p-2 text-[11px] font-medium rounded-lg border transition-all ${rescheduleTime === time ? 'bg-primary text-primary-foreground border-primary' : 'border-border hover:border-primary/50'}`}>{time}</button>))}</div></div>
             </div>
             <div className="flex gap-3"><Button variant="outline" className="flex-1 rounded-xl bg-transparent" onClick={() => setShowRescheduleModal(false)}>{t("common.cancel")}</Button><Button className="flex-1 rounded-xl" onClick={handleReschedule} disabled={!rescheduleDate || !rescheduleTime}>{t("customer.jobs.confirmButton")}</Button></div>
           </DialogContent>
@@ -644,14 +644,14 @@ export function CustomerJobsPage() {
             {recurringSaved ? (
               <div className="space-y-3 py-2 text-center">
                 <CheckCircle className="mx-auto h-8 w-8 text-emerald-600" />
-                <p className="text-sm text-foreground">Set up. Find it under Recurring Maintenance.</p>
+                <p className="text-xs text-foreground">Set up. Find it under Recurring Maintenance.</p>
                 <Button className="w-full rounded-xl" onClick={() => setShowRecurringDialog(false)}>Done</Button>
               </div>
             ) : (
               <div className="space-y-4 py-2">
                 <div>
-                  <label className="mb-2 block text-sm font-medium">How often?</label>
-                  <select value={recurringFrequency} onChange={(e) => setRecurringFrequency(e.target.value)} className="w-full h-10 rounded-xl border border-border bg-background px-3 text-sm">
+                  <label className="mb-2 block text-xs font-medium">How often?</label>
+                  <select value={recurringFrequency} onChange={(e) => setRecurringFrequency(e.target.value)} className="w-full h-10 rounded-xl border border-border bg-background px-3 text-xs">
                     <option value="30">Every month</option>
                     <option value="90">Every 3 months</option>
                     <option value="180">Every 6 months</option>
@@ -679,9 +679,9 @@ export function CustomerJobsPage() {
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-1">
             <Briefcase className="w-5 h-5 text-primary" />
-            <h1 className="text-2xl lg:text-3xl font-bold text-foreground tracking-tight">{t("nav.myJobs")}</h1>
+            <h1 className="text-xl lg:text-2xl font-bold text-foreground tracking-tight">{t("nav.myJobs")}</h1>
           </div>
-          <p className="text-sm text-muted-foreground">{t("customer.jobs.subtitle")}</p>
+          <p className="text-xs text-muted-foreground">{t("customer.jobs.subtitle")}</p>
         </div>
 
         {/* Stats */}
@@ -693,8 +693,8 @@ export function CustomerJobsPage() {
               <button key={tab} onClick={() => setActiveTab(tab)}
                 className={`p-3 rounded-xl text-center transition-all ${activeTab === tab ? `${config.bg} ${config.text} shadow-sm` : "bg-muted/50 text-muted-foreground hover:bg-muted"}`}
               >
-                <p className="text-xl font-bold">{count}</p>
-                <p className="text-[11px] font-medium">{config.label}</p>
+                <p className="text-lg font-bold">{count}</p>
+                <p className="text-[10px] font-medium">{config.label}</p>
               </button>
             )
           })}
@@ -719,19 +719,19 @@ export function CustomerJobsPage() {
                     <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
                       <div>
                         <div className="flex items-start justify-between gap-2 mb-1">
-                          <h3 className="font-semibold text-foreground text-sm">{job.title}</h3>
+                          <h3 className="font-semibold text-foreground text-xs">{job.title}</h3>
                           {job.isAwaitingPayment ? (
-                            <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold flex items-center gap-1 flex-shrink-0 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold flex items-center gap-1 flex-shrink-0 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
                               <StatusIcon className="w-3 h-3" /><span className="hidden sm:inline">{t("customer.jobs.awaitingPayment")}</span>
                             </span>
                           ) : (
-                            <span className={`px-2 py-0.5 rounded-md text-[11px] font-semibold flex items-center gap-1 flex-shrink-0 ${config.bg} ${config.text}`}>
+                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold flex items-center gap-1 flex-shrink-0 ${config.bg} ${config.text}`}>
                               <StatusIcon className="w-3 h-3" /><span className="hidden sm:inline">{config.label}</span>
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-muted-foreground mb-1.5">{job.provider}</p>
-                        <div className="flex flex-wrap gap-1.5 text-[11px] text-muted-foreground">
+                        <p className="text-[11px] text-muted-foreground mb-1.5">{job.provider}</p>
+                        <div className="flex flex-wrap gap-1.5 text-[10px] text-muted-foreground">
                           <span className="flex items-center gap-1 bg-muted/60 px-1.5 py-0.5 rounded"><Clock className="w-2.5 h-2.5" />{job.date}</span>
                           <span className="flex items-center gap-1 bg-muted/60 px-1.5 py-0.5 rounded"><MapPin className="w-2.5 h-2.5" />{job.location}</span>
                           {job.providerLatitude != null && (job.rawStatus === "ACCEPTED" || job.rawStatus === "IN_PROGRESS") && (
@@ -742,14 +742,14 @@ export function CustomerJobsPage() {
                         </div>
                       </div>
                       <div className="flex items-center justify-between mt-1.5">
-                        <p className="font-bold text-sm text-foreground">{formatMoney(job.price)}</p>
+                        <p className="font-bold text-xs text-foreground">{formatMoney(job.price)}</p>
                         {job.isAwaitingPayment ? (
-                          <span className="text-[11px] font-medium text-primary">{t("customer.jobs.completePayment")}</span>
+                          <span className="text-[10px] font-medium text-primary">{t("customer.jobs.completePayment")}</span>
                         ) : (
                           <>
-                            {job.rating && <div className="flex items-center gap-1"><Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" /><span className="text-xs font-semibold">{job.rating}</span></div>}
+                            {job.rating && <div className="flex items-center gap-1"><Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" /><span className="text-[11px] font-semibold">{job.rating}</span></div>}
                             {job.status === "completed" && !job.reviewed && !job.rating && (
-                              <span className="text-[11px] font-medium text-primary">{t("customer.jobs.needsReview")}</span>
+                              <span className="text-[10px] font-medium text-primary">{t("customer.jobs.needsReview")}</span>
                             )}
                           </>
                         )}
@@ -762,8 +762,8 @@ export function CustomerJobsPage() {
           ) : (
             <Card className="p-12 text-center border-0 shadow-sm">
               <div className="w-14 h-14 bg-muted rounded-2xl flex items-center justify-center mx-auto mb-4"><AlertCircle className="w-6 h-6 text-muted-foreground" /></div>
-              <p className="text-base font-semibold text-foreground mb-1">{t("customer.jobs.noJobsOfStatus", { status: statusConfig[activeTab].label })}</p>
-              <p className="text-sm text-muted-foreground mb-4">{t("customer.jobs.noJobsOfStatusHint", { status: statusConfig[activeTab].label.toLowerCase() })}</p>
+              <p className="text-sm font-semibold text-foreground mb-1">{t("customer.jobs.noJobsOfStatus", { status: statusConfig[activeTab].label })}</p>
+              <p className="text-xs text-muted-foreground mb-4">{t("customer.jobs.noJobsOfStatusHint", { status: statusConfig[activeTab].label.toLowerCase() })}</p>
               <Link href="/customer/services"><Button className="rounded-xl">{t("home.browseServices")}</Button></Link>
             </Card>
           )}

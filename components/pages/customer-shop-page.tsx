@@ -98,7 +98,7 @@ export function CustomerShopPage() {
   if (!shop) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background px-4 text-center">
-        <p className="text-lg font-semibold text-foreground">{t("customer.shop.notFound")}</p>
+        <p className="text-base font-semibold text-foreground">{t("customer.shop.notFound")}</p>
         <Button onClick={() => router.push("/customer/services")}>{t("customer.shop.browseMarketplace")}</Button>
       </div>
     )
@@ -119,10 +119,10 @@ export function CustomerShopPage() {
             <div className="absolute bottom-4 left-4 right-4 flex flex-wrap items-end justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2">
-                  <h1 className="text-2xl font-bold text-white">{shop.name}</h1>
+                  <h1 className="text-xl font-bold text-white">{shop.name}</h1>
                   {shop.isVerified && <ShieldCheck className="h-5 w-5 text-emerald-400" />}
                 </div>
-                {shop.category && <p className="text-sm text-white/80">{shop.category}</p>}
+                {shop.category && <p className="text-xs text-white/80">{shop.category}</p>}
               </div>
               <div className="flex gap-2">
                 {shop.isOpen ? (
@@ -136,7 +136,7 @@ export function CustomerShopPage() {
             </div>
           </div>
           <div className="p-5">
-            <div className="flex items-center gap-2 text-sm mb-3">
+            <div className="flex items-center gap-2 text-xs mb-3">
               <div className="flex items-center">
                 {[...Array(5)].map((_, i) => (
                   <Star key={i} className={`w-4 h-4 ${i < Math.round(shop.rating) ? "fill-amber-400 text-amber-400" : "text-muted"}`} />
@@ -150,14 +150,14 @@ export function CustomerShopPage() {
             </div>
 
             {shop.isOnVacation ? (
-              <div className="mb-3 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-900/20 dark:text-red-300">
+              <div className="mb-3 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-800 dark:border-red-900/50 dark:bg-red-900/20 dark:text-red-300">
                 <Clock className="h-4 w-4 flex-shrink-0 mt-0.5" />
                 <p>
                   {t("customer.shop.onVacationNotice")}{shop.vacationNote ? <> <strong>{shop.vacationNote}</strong></> : ""}
                 </p>
               </div>
             ) : !shop.isOpen && shop.nextOpeningLabel && (
-              <div className="mb-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-900/20 dark:text-amber-300">
+              <div className="mb-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-900/50 dark:bg-amber-900/20 dark:text-amber-300">
                 <Clock className="h-4 w-4 flex-shrink-0 mt-0.5" />
                 <p>
                   {t("customer.shop.closedNotice")} <strong>{shop.nextOpeningLabel}</strong>.
@@ -165,11 +165,11 @@ export function CustomerShopPage() {
               </div>
             )}
 
-            {shop.description && <p className="text-sm text-muted-foreground leading-6">{shop.description}</p>}
+            {shop.description && <p className="text-xs text-muted-foreground leading-6">{shop.description}</p>}
 
             {shop.location && (
               <div className="mt-4 pt-4 border-t border-border">
-                <p className="flex items-center gap-1.5 text-sm text-foreground font-medium mb-2">
+                <p className="flex items-center gap-1.5 text-xs text-foreground font-medium mb-2">
                   <MapPin className="h-4 w-4 text-muted-foreground" /> {shop.location}
                 </p>
                 {shop.latitude != null && shop.longitude != null && (
@@ -186,7 +186,7 @@ export function CustomerShopPage() {
               <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
                 <ImageIcon className="w-4 h-4 text-primary" />
               </div>
-              <h2 className="text-lg font-semibold text-foreground">{t("customer.shop.showcaseTitle")}</h2>
+              <h2 className="text-base font-semibold text-foreground">{t("customer.shop.showcaseTitle")}</h2>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
               {portfolio.map((item) => (
@@ -194,13 +194,13 @@ export function CustomerShopPage() {
                   <div className="relative aspect-video bg-muted/30">
                     <Image src={item.imageUrl || "/placeholder.svg"} alt={item.title} fill className="object-cover" />
                     {item.videoUrl && (
-                      <span className="absolute top-2 left-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-medium text-white">
+                      <span className="absolute top-2 left-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-medium text-white">
                         <Video className="h-3 w-3" /> {t("customer.shop.videoBadge")}
                       </span>
                     )}
                   </div>
                   <div className="p-2.5">
-                    <p className="truncate text-sm font-medium text-foreground">{item.title}</p>
+                    <p className="truncate text-xs font-medium text-foreground">{item.title}</p>
                     {item.videoUrl && (
                       <video src={item.videoUrl} controls className="mt-2 w-full rounded-lg aspect-video object-cover" />
                     )}
@@ -215,12 +215,12 @@ export function CustomerShopPage() {
           <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
             <Package className="w-4 h-4 text-primary" />
           </div>
-          <h2 className="text-lg font-semibold text-foreground">{t("customer.shop.productsFrom", { name: shop.name })}</h2>
+          <h2 className="text-base font-semibold text-foreground">{t("customer.shop.productsFrom", { name: shop.name })}</h2>
         </div>
 
         {products.length === 0 ? (
           <Card className="p-10 text-center border-dashed">
-            <p className="text-sm text-muted-foreground">{t("customer.shop.noProducts")}</p>
+            <p className="text-xs text-muted-foreground">{t("customer.shop.noProducts")}</p>
           </Card>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
@@ -230,16 +230,16 @@ export function CustomerShopPage() {
                   <div className="relative aspect-square bg-muted/30">
                     <Image src={product.image || "/placeholder.svg"} alt={product.name} fill className="object-cover" />
                     {product.discountPercent != null && (
-                      <span className="absolute left-2 top-2 rounded-md bg-red-500 px-2 py-0.5 text-[11px] font-bold text-white">-{product.discountPercent}%</span>
+                      <span className="absolute left-2 top-2 rounded-md bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">-{product.discountPercent}%</span>
                     )}
                   </div>
                 </Link>
                 <div className="p-3 sm:p-4">
                   <Link href={`/customer/products/${product.id}`}>
-                    <p className="truncate text-sm sm:text-base font-semibold text-foreground">{product.name}</p>
+                    <p className="truncate text-xs sm:text-sm font-semibold text-foreground">{product.name}</p>
                   </Link>
                   <div className="mt-2 flex items-center justify-between gap-2">
-                    <p className="text-primary font-bold text-sm sm:text-base truncate">{formatMoney(product.discountPrice ?? product.price)}</p>
+                    <p className="text-primary font-bold text-xs sm:text-sm truncate">{formatMoney(product.discountPrice ?? product.price)}</p>
                     <Button size="sm" className="rounded-full flex-shrink-0 px-3" onClick={() => handleAddToCart(product)} disabled={product.stock === 0 || shop.isOnVacation} aria-label={t("common.addToCart")}>
                       <Plus className="h-4 w-4" />
                     </Button>
@@ -256,7 +256,7 @@ export function CustomerShopPage() {
               <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
                 <MessageSquare className="w-4 h-4 text-primary" />
               </div>
-              <h2 className="text-lg font-semibold text-foreground">{tn("customer.shop.reviewsCount", shop.reviewCount)}</h2>
+              <h2 className="text-base font-semibold text-foreground">{tn("customer.shop.reviewsCount", shop.reviewCount)}</h2>
             </div>
             {reviewableOrder && !showReviewForm && (
               <Button size="sm" variant="outline" className="rounded-full bg-transparent" onClick={() => setShowReviewForm(true)}>
@@ -267,7 +267,7 @@ export function CustomerShopPage() {
 
           {showReviewForm && (
             <Card className="p-4 mb-4 border-0 shadow-sm">
-              <p className="mb-2 text-sm font-semibold text-foreground">{t("customer.shop.reviewOrderLabel", { orderNumber: reviewableOrder?.orderNumber ?? "" })}</p>
+              <p className="mb-2 text-xs font-semibold text-foreground">{t("customer.shop.reviewOrderLabel", { orderNumber: reviewableOrder?.orderNumber ?? "" })}</p>
               <div className="mb-3 flex gap-1">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button key={star} onClick={() => setReviewRating(star)} aria-label={t("common.rateStars", { count: star })}>
@@ -309,7 +309,7 @@ export function CustomerShopPage() {
                   </label>
                 )}
               </div>
-              {reviewError && <p className="mb-2 text-xs text-red-600">{reviewError}</p>}
+              {reviewError && <p className="mb-2 text-[11px] text-red-600">{reviewError}</p>}
               <div className="flex gap-2">
                 <Button size="sm" className="rounded-xl" onClick={handleSubmitShopReview} disabled={isSubmittingReview}>
                   {isSubmittingReview ? <Loader2 className="h-4 w-4 animate-spin" /> : t("customer.shop.submitReview")}
@@ -323,7 +323,7 @@ export function CustomerShopPage() {
 
           {reviews.length === 0 ? (
             <Card className="p-8 text-center border-dashed">
-              <p className="text-sm text-muted-foreground">{t("customer.shop.noReviewsYet")}</p>
+              <p className="text-xs text-muted-foreground">{t("customer.shop.noReviewsYet")}</p>
             </Card>
           ) : (
             <div className="space-y-3">
@@ -339,19 +339,19 @@ export function CustomerShopPage() {
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-semibold text-foreground">{review.customerName}</p>
-                        <span className="text-xs text-muted-foreground whitespace-nowrap">{new Date(review.createdAt).toLocaleDateString()}</span>
+                        <p className="text-xs font-semibold text-foreground">{review.customerName}</p>
+                        <span className="text-[11px] text-muted-foreground whitespace-nowrap">{new Date(review.createdAt).toLocaleDateString()}</span>
                       </div>
                       <div className="flex items-center mt-0.5">
                         {[...Array(5)].map((_, i) => (
                           <Star key={i} className={`w-3.5 h-3.5 ${i < review.rating ? "fill-amber-400 text-amber-400" : "text-muted"}`} />
                         ))}
                       </div>
-                      <p className="mt-1.5 text-sm text-muted-foreground">{review.comment}</p>
+                      <p className="mt-1.5 text-xs text-muted-foreground">{review.comment}</p>
                       {review.response && (
                         <div className="mt-2 ml-2 pl-3 border-l-2 border-primary/30">
-                          <p className="text-xs font-semibold text-foreground">{t("customer.shop.ownerResponseLabel")}</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">{review.response}</p>
+                          <p className="text-[11px] font-semibold text-foreground">{t("customer.shop.ownerResponseLabel")}</p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">{review.response}</p>
                         </div>
                       )}
                     </div>

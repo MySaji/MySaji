@@ -44,13 +44,13 @@ export default function RecurringMaintenancePage() {
       <div className="mx-auto max-w-2xl px-4 py-6">
         <div className="mb-4 flex items-center gap-3">
           <Button variant="ghost" size="icon" asChild className="rounded-full"><Link href="/customer/home"><ArrowLeft className="h-4 w-4" /></Link></Button>
-          <div><h1 className="text-xl font-bold text-foreground">Recurring Maintenance</h1><p className="text-sm text-muted-foreground">Services you've set to repeat</p></div>
+          <div><h1 className="text-lg font-bold text-foreground">Recurring Maintenance</h1><p className="text-xs text-muted-foreground">Services you've set to repeat</p></div>
         </div>
 
         {items.length === 0 ? (
           <Card className="border-dashed p-10 text-center">
             <RefreshCw className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">No recurring schedules yet. Set one up from a completed job.</p>
+            <p className="text-xs text-muted-foreground">No recurring schedules yet. Set one up from a completed job.</p>
           </Card>
         ) : (
           <div className="space-y-3">
@@ -59,8 +59,8 @@ export default function RecurringMaintenancePage() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="font-semibold text-foreground">{item.title}</p>
-                    {item.providerName && <p className="text-xs text-muted-foreground">{item.providerName}</p>}
-                    <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                    {item.providerName && <p className="text-[11px] text-muted-foreground">{item.providerName}</p>}
+                    <p className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
                       <Calendar className="h-3.5 w-3.5" /> Every {item.frequencyDays} days · next due {new Date(item.nextDueAt).toLocaleDateString()}
                     </p>
                     {item.isDue && <span className="mt-1 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">May be due</span>}

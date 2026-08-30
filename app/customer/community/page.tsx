@@ -252,7 +252,7 @@ export default function CommunityPage() {
               <span className="font-semibold text-foreground">{post.authorName}</span>
               {post.authorVerified && <CheckCircle className="w-4 h-4 text-blue-500 fill-blue-500" />}
             </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <span>{post.authorRole}</span>
               <span>-</span>
               <span>{formatRelativeTime(post.createdAt)}</span>
@@ -261,7 +261,7 @@ export default function CommunityPage() {
         </div>
         <div className="flex items-center gap-2">
           {!post.isMine && !followingIds.includes(post.authorId) && (
-            <Button size="sm" variant="outline" onClick={() => handleToggleFollow(post.authorId)} className="text-xs bg-transparent">
+            <Button size="sm" variant="outline" onClick={() => handleToggleFollow(post.authorId)} className="text-[11px] bg-transparent">
               {t("customer.community.follow")}
             </Button>
           )}
@@ -273,7 +273,7 @@ export default function CommunityPage() {
                 </button>
               </PopoverTrigger>
               <PopoverContent align="end" className="w-40 p-1">
-                <button onClick={() => handleDeletePost(post.id)} className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20">
+                <button onClick={() => handleDeletePost(post.id)} className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-left text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20">
                   <Trash2 className="w-3.5 h-3.5" />{t("customer.community.deletePost")}
                 </button>
               </PopoverContent>
@@ -286,7 +286,7 @@ export default function CommunityPage() {
                 </button>
               </PopoverTrigger>
               <PopoverContent align="end" className="w-40 p-1">
-                <button onClick={() => setReportingTarget({ type: "post", id: post.id })} className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-muted-foreground hover:bg-muted">
+                <button onClick={() => setReportingTarget({ type: "post", id: post.id })} className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-left text-xs text-muted-foreground hover:bg-muted">
                   <Flag className="w-3.5 h-3.5" />{t("customer.community.reportPost")}
                 </button>
               </PopoverContent>
@@ -299,7 +299,7 @@ export default function CommunityPage() {
       <div className="px-4 pb-3">
         <p className="text-foreground whitespace-pre-line">{post.content}</p>
         {post.location && (
-          <div className="flex items-center gap-1 mt-2 text-sm text-muted-foreground">
+          <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
             <MapPin className="w-4 h-4" />
             <span>{post.location}</span>
           </div>
@@ -318,7 +318,7 @@ export default function CommunityPage() {
               <Image src={img || "/placeholder.svg"} alt="" fill className="object-cover group-hover:scale-105 transition-transform" />
               {post.images.length > 4 && idx === 3 && (
                 <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                  <span className="text-white text-2xl font-bold">+{post.images.length - 4}</span>
+                  <span className="text-white text-xl font-bold">+{post.images.length - 4}</span>
                 </div>
               )}
             </button>
@@ -348,18 +348,18 @@ export default function CommunityPage() {
             className="flex items-center gap-2 text-muted-foreground hover:text-red-500 transition-colors"
           >
             <Heart className={`w-5 h-5 ${post.isLiked ? 'fill-red-500 text-red-500' : ''}`} />
-            <span className="text-sm">{post.likeCount}</span>
+            <span className="text-xs">{post.likeCount}</span>
           </button>
           <button
             onClick={() => openComments(post.id)}
             className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors"
           >
             <MessageCircle className="w-5 h-5" />
-            <span className="text-sm">{post.commentCount}</span>
+            <span className="text-xs">{post.commentCount}</span>
           </button>
           <button className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors">
             <Share2 className="w-5 h-5" />
-            <span className="text-sm">{post.shareCount}</span>
+            <span className="text-xs">{post.shareCount}</span>
           </button>
         </div>
         <button
@@ -385,7 +385,7 @@ export default function CommunityPage() {
       <div className="max-w-7xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl lg:text-3xl font-bold text-foreground mb-2">{t("customer.layout.navCommunity")}</h1>
+          <h1 className="text-xl lg:text-2xl font-bold text-foreground mb-2">{t("customer.layout.navCommunity")}</h1>
           <p className="text-muted-foreground">{t("customer.community.subtitle")}</p>
         </div>
 
@@ -409,7 +409,7 @@ export default function CommunityPage() {
                 }`}
               >
                 <Icon className="w-4 h-4" />
-                <span className="text-sm font-medium">{tab.label}</span>
+                <span className="text-xs font-medium">{tab.label}</span>
               </button>
             )
           })}
@@ -434,15 +434,15 @@ export default function CommunityPage() {
               <div className="flex items-center justify-around mt-4 pt-4 border-t border-border">
                 <button onClick={() => imageInputRef.current?.click()} className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
                   <ImageIcon className="w-5 h-5 text-green-500" />
-                  <span className="text-sm">{t("customer.community.photo")}</span>
+                  <span className="text-xs">{t("customer.community.photo")}</span>
                 </button>
                 <button onClick={() => videoInputRef.current?.click()} className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
                   <Video className="w-5 h-5 text-red-500" />
-                  <span className="text-sm">{t("customer.findSpecialists.video")}</span>
+                  <span className="text-xs">{t("customer.findSpecialists.video")}</span>
                 </button>
                 <button className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
                   <Camera className="w-5 h-5 text-blue-500" />
-                  <span className="text-sm">{t("customer.community.live")}</span>
+                  <span className="text-xs">{t("customer.community.live")}</span>
                 </button>
               </div>
             </Card>
@@ -466,14 +466,14 @@ export default function CommunityPage() {
             {activeTab === "groups" ? (
               <div className="space-y-4">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold text-foreground">{t("customer.community.suggestedGroups")}</h2>
+                  <h2 className="text-base font-semibold text-foreground">{t("customer.community.suggestedGroups")}</h2>
                   <Button variant="outline" size="sm" className="gap-2 bg-transparent" onClick={() => setShowCreateGroup(true)}>
                     <Plus className="w-4 h-4" />
                     {t("customer.community.createGroup")}
                   </Button>
                 </div>
                 {groups.length === 0 && (
-                  <Card className="p-8 text-center"><p className="text-sm text-muted-foreground">{t("customer.community.noGroups")}</p></Card>
+                  <Card className="p-8 text-center"><p className="text-xs text-muted-foreground">{t("customer.community.noGroups")}</p></Card>
                 )}
                 {groups.map((group) => (
                   <Card key={group.id} className="p-4">
@@ -483,8 +483,8 @@ export default function CommunityPage() {
                       </Link>
                       <Link href={`/customer/community/${group.id}`} className="flex-1 min-w-0">
                         <h3 className="font-semibold text-foreground hover:text-primary transition-colors">{group.name}</h3>
-                        <p className="text-sm text-muted-foreground">{tn("customer.community.membersCount", group.memberCount)}</p>
-                        <p className="text-sm text-muted-foreground mt-1">{group.description}</p>
+                        <p className="text-xs text-muted-foreground">{tn("customer.community.membersCount", group.memberCount)}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{group.description}</p>
                       </Link>
                       <Button variant={group.isJoined ? "secondary" : "default"} onClick={() => handleToggleJoinGroup(group.id)}>
                         {group.isJoined ? t("customer.community.joined") : t("customer.community.join")}
@@ -501,7 +501,7 @@ export default function CommunityPage() {
                 ) : (
                   <Card className="p-12 text-center">
                     <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-lg font-medium text-foreground mb-2">
+                    <p className="text-base font-medium text-foreground mb-2">
                       {activeTab === "following" ? t("customer.community.noFollowingPosts") : t("customer.community.noPostsFound")}
                     </p>
                     <p className="text-muted-foreground">
@@ -522,12 +522,12 @@ export default function CommunityPage() {
                 {t("customer.community.trendingTopics")}
               </h3>
               <div className="space-y-3">
-                {trendingTopics.length === 0 && <p className="text-xs text-muted-foreground">{t("customer.community.noTrendingHashtags")}</p>}
+                {trendingTopics.length === 0 && <p className="text-[11px] text-muted-foreground">{t("customer.community.noTrendingHashtags")}</p>}
                 {trendingTopics.map((topic, idx) => (
                   <div key={idx} className="w-full flex items-center justify-between p-2 rounded-lg">
                     <div>
                       <span className="text-primary font-medium">{topic.tag}</span>
-                      <p className="text-xs text-muted-foreground">{tn("customer.community.postsCount", topic.postCount)}</p>
+                      <p className="text-[11px] text-muted-foreground">{tn("customer.community.postsCount", topic.postCount)}</p>
                     </div>
                   </div>
                 ))}
@@ -541,7 +541,7 @@ export default function CommunityPage() {
                 {t("customer.community.whoToFollow")}
               </h3>
               <div className="space-y-3">
-                {suggestedUsers.length === 0 && <p className="text-xs text-muted-foreground">{t("customer.community.noSuggestions")}</p>}
+                {suggestedUsers.length === 0 && <p className="text-[11px] text-muted-foreground">{t("customer.community.noSuggestions")}</p>}
                 {suggestedUsers.map((user) => (
                   <div key={user.id} className="flex items-center gap-3">
                     <div className="relative w-10 h-10 rounded-full overflow-hidden">
@@ -549,10 +549,10 @@ export default function CommunityPage() {
                       <img src={user.avatar || "/placeholder.svg"} alt={user.name} className="w-full h-full object-cover" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-foreground text-sm truncate">{user.name}</p>
-                      <p className="text-xs text-muted-foreground truncate">{user.role}</p>
+                      <p className="font-medium text-foreground text-xs truncate">{user.name}</p>
+                      <p className="text-[11px] text-muted-foreground truncate">{user.role}</p>
                     </div>
-                    <Button size="sm" variant="outline" className="text-xs bg-transparent" onClick={() => handleToggleFollow(user.id)}>
+                    <Button size="sm" variant="outline" className="text-[11px] bg-transparent" onClick={() => handleToggleFollow(user.id)}>
                       {followingIds.includes(user.id) ? t("customer.community.following") : t("customer.community.follow")}
                     </Button>
                   </div>
@@ -573,10 +573,10 @@ export default function CommunityPage() {
                       <Image src={group.image || "/placeholder.svg"} alt={group.name} fill className="object-cover" />
                     </Link>
                     <Link href={`/customer/community/${group.id}`} className="flex-1 min-w-0">
-                      <p className="font-medium text-foreground text-sm truncate hover:text-primary transition-colors">{group.name}</p>
-                      <p className="text-xs text-muted-foreground">{tn("customer.community.membersCount", group.memberCount)}</p>
+                      <p className="font-medium text-foreground text-xs truncate hover:text-primary transition-colors">{group.name}</p>
+                      <p className="text-[11px] text-muted-foreground">{tn("customer.community.membersCount", group.memberCount)}</p>
                     </Link>
-                    <Button size="sm" variant={group.isJoined ? "secondary" : "outline"} className="text-xs bg-transparent" onClick={() => handleToggleJoinGroup(group.id)}>
+                    <Button size="sm" variant={group.isJoined ? "secondary" : "outline"} className="text-[11px] bg-transparent" onClick={() => handleToggleJoinGroup(group.id)}>
                       {group.isJoined ? t("customer.community.joined") : t("customer.community.join")}
                     </Button>
                   </div>
@@ -594,7 +594,7 @@ export default function CommunityPage() {
       <Dialog open={showCreatePost} onOpenChange={setShowCreatePost}>
         <DialogContent className="max-w-lg">
           <div className="flex items-center justify-between border-b border-border pb-4">
-            <h3 className="text-lg font-semibold text-foreground">{t("customer.community.createPost")}</h3>
+            <h3 className="text-base font-semibold text-foreground">{t("customer.community.createPost")}</h3>
             <button onClick={() => setShowCreatePost(false)}>
               <X className="w-5 h-5 text-muted-foreground" />
             </button>
@@ -606,14 +606,14 @@ export default function CommunityPage() {
               </div>
               <div>
                 <p className="font-semibold text-foreground">{t("customer.community.you")}</p>
-                <p className="text-xs text-muted-foreground">{t("customer.community.publicPost")}</p>
+                <p className="text-[11px] text-muted-foreground">{t("customer.community.publicPost")}</p>
               </div>
             </div>
             <Textarea
               value={newPostText}
               onChange={(e) => setNewPostText(e.target.value)}
               placeholder={t("customer.community.whatsOnYourMind")}
-              className="min-h-[150px] border-0 resize-none focus-visible:ring-0 text-lg"
+              className="min-h-[150px] border-0 resize-none focus-visible:ring-0 text-base"
             />
             {newPostImages.length > 0 && (
               <div className="mt-4 grid grid-cols-2 gap-2">
@@ -653,18 +653,18 @@ export default function CommunityPage() {
       <Dialog open={showCreateGroup} onOpenChange={setShowCreateGroup}>
         <DialogContent className="max-w-lg">
           <div className="flex items-center justify-between border-b border-border pb-4">
-            <h3 className="text-lg font-semibold text-foreground">{t("customer.community.createGroup")}</h3>
+            <h3 className="text-base font-semibold text-foreground">{t("customer.community.createGroup")}</h3>
             <button onClick={() => setShowCreateGroup(false)}>
               <X className="w-5 h-5 text-muted-foreground" />
             </button>
           </div>
           <div className="space-y-4 py-4">
             <div>
-              <label className="mb-2 block text-sm font-medium text-foreground">{t("customer.community.groupName")}</label>
+              <label className="mb-2 block text-xs font-medium text-foreground">{t("customer.community.groupName")}</label>
               <Input value={groupName} onChange={(e) => setGroupName(e.target.value)} placeholder={t("customer.community.groupNamePlaceholder")} />
             </div>
             <div>
-              <label className="mb-2 block text-sm font-medium text-foreground">{t("customer.community.description")}</label>
+              <label className="mb-2 block text-xs font-medium text-foreground">{t("customer.community.description")}</label>
               <Textarea value={groupDescription} onChange={(e) => setGroupDescription(e.target.value)} placeholder={t("customer.community.groupDescriptionPlaceholder")} className="min-h-[100px]" />
             </div>
           </div>
@@ -709,7 +709,7 @@ export default function CommunityPage() {
             {isLoadingComments ? (
               <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
             ) : comments.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">{t("customer.community.noComments")}</p>
+              <p className="text-xs text-muted-foreground text-center py-4">{t("customer.community.noComments")}</p>
             ) : comments.map(comment => (
               <div key={comment.id} className="flex gap-3">
                 <div className="relative w-10 h-10 rounded-full bg-muted flex-shrink-0 overflow-hidden">
@@ -717,15 +717,15 @@ export default function CommunityPage() {
                 </div>
                 <div className="flex-1">
                   <div className="bg-muted rounded-xl p-3">
-                    <p className="font-medium text-sm text-foreground">{comment.authorName}</p>
-                    <p className="text-sm text-muted-foreground mt-1">{comment.content}</p>
+                    <p className="font-medium text-xs text-foreground">{comment.authorName}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{comment.content}</p>
                   </div>
                   <div className="flex items-center gap-4 mt-2 px-2">
-                    <span className="text-xs text-muted-foreground">{formatRelativeTime(comment.createdAt)}</span>
+                    <span className="text-[11px] text-muted-foreground">{formatRelativeTime(comment.createdAt)}</span>
                     {!comment.isMine && (
                       <button
                         onClick={() => setReportingTarget({ type: "comment", id: comment.id })}
-                        className="text-xs text-muted-foreground hover:text-red-600 flex items-center gap-1"
+                        className="text-[11px] text-muted-foreground hover:text-red-600 flex items-center gap-1"
                       >
                         <Flag className="w-3 h-3" />{t("customer.community.report")}
                       </button>
@@ -739,7 +739,7 @@ export default function CommunityPage() {
           <div className="p-4 border-t border-border">
             <div className="flex gap-3">
               <div className="w-10 h-10 rounded-full bg-primary/20 flex-shrink-0 flex items-center justify-center">
-                <span className="text-primary font-semibold text-sm">Y</span>
+                <span className="text-primary font-semibold text-xs">Y</span>
               </div>
               <div className="flex-1 flex gap-2">
                 <Input
@@ -765,7 +765,7 @@ export default function CommunityPage() {
             <div className="text-center py-6">
               <CheckCircle className="w-10 h-10 text-emerald-500 mx-auto mb-3" />
               <p className="font-semibold text-foreground">{t("customer.community.reportSubmitted")}</p>
-              <p className="text-sm text-muted-foreground mt-1">{t("customer.community.moderationReviewNotice")}</p>
+              <p className="text-xs text-muted-foreground mt-1">{t("customer.community.moderationReviewNotice")}</p>
             </div>
           ) : (
             <>
@@ -775,7 +775,7 @@ export default function CommunityPage() {
                   {reportingTarget?.type === "comment" ? t("customer.community.reportCommentTitle") : t("customer.community.reportPostTitle")}
                 </h3>
               </div>
-              <p className="text-sm text-muted-foreground mb-3">{reportingTarget?.type === "comment" ? t("customer.community.reportCommentHint") : t("customer.community.reportPostHint")}</p>
+              <p className="text-xs text-muted-foreground mb-3">{reportingTarget?.type === "comment" ? t("customer.community.reportCommentHint") : t("customer.community.reportPostHint")}</p>
               <Textarea
                 value={reportReason}
                 onChange={(e) => setReportReason(e.target.value)}

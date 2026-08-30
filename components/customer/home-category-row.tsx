@@ -49,14 +49,14 @@ export function HomeCategoryRow({ productCategories }: { productCategories: Prod
           <div className={`flex h-14 w-14 items-center justify-center rounded-full shadow-sm transition-transform group-hover:scale-105 ${TILE_COLORS[i % TILE_COLORS.length]}`}>
             <tile.icon className="h-6 w-6" />
           </div>
-          <p className="w-full truncate text-[11px] font-medium leading-tight text-foreground">{tile.label}</p>
+          <p className="w-full truncate text-[10px] font-medium leading-tight text-foreground">{tile.label}</p>
         </Link>
       ))}
       <Link href="/customer/services" className="group flex w-16 flex-shrink-0 flex-col items-center gap-2 text-center">
         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted shadow-sm transition-transform group-hover:scale-105">
           <MoreHorizontal className="h-6 w-6 text-muted-foreground" />
         </div>
-        <p className="text-[11px] font-medium leading-tight text-foreground">More</p>
+        <p className="text-[10px] font-medium leading-tight text-foreground">More</p>
       </Link>
     </div>
   )

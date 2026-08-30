@@ -82,7 +82,7 @@ function SectionHeader({ title, href, icon: Icon }: { title: string; href?: stri
   const { t } = useLocalization()
   return (
     <div className="flex items-center justify-between mb-3 sm:mb-4">
-      <h2 className="text-base sm:text-lg font-bold text-foreground flex items-center gap-2">
+      <h2 className="text-sm sm:text-base font-bold text-foreground flex items-center gap-2">
         {Icon && (
           <span className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
             <Icon className="w-4 h-4 text-primary" />
@@ -91,7 +91,7 @@ function SectionHeader({ title, href, icon: Icon }: { title: string; href?: stri
         {title}
       </h2>
       {href && (
-        <Link href={href} className="text-sm text-primary font-medium flex items-center gap-0.5 hover:gap-1.5 transition-all flex-shrink-0">
+        <Link href={href} className="text-xs text-primary font-medium flex items-center gap-0.5 hover:gap-1.5 transition-all flex-shrink-0">
           {t("customer.home.seeAll")} <ChevronRight className="w-4 h-4" />
         </Link>
       )}
@@ -123,8 +123,8 @@ function QuickActionsSection({ walletBalance }: { walletBalance: number }) {
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${action.accent ? "bg-red-500/15 text-red-600 dark:text-red-400" : "bg-primary/10 text-primary"}`}>
                 <action.icon className="w-5 h-5" />
               </div>
-              <p className="text-sm font-semibold text-foreground leading-tight">{action.label}</p>
-              {action.sub && <p className="text-xs text-muted-foreground">{action.sub}</p>}
+              <p className="text-xs font-semibold text-foreground leading-tight">{action.label}</p>
+              {action.sub && <p className="text-[11px] text-muted-foreground">{action.sub}</p>}
             </Card>
           </Link>
         ))}
@@ -151,8 +151,8 @@ function TrustBadgesSection() {
               <badge.icon className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-foreground">{badge.title}</p>
-              <p className="text-xs text-muted-foreground">{badge.desc}</p>
+              <p className="text-xs font-semibold text-foreground">{badge.title}</p>
+              <p className="text-[11px] text-muted-foreground">{badge.desc}</p>
             </div>
           </div>
         ))}
@@ -195,12 +195,12 @@ function ContinueBookingSection({ jobs, orders }: { jobs: CustomerJob[]; orders:
                     <Image src={job.providerAvatar || "/placeholder.svg"} alt={job.providerName} fill className="object-cover" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-xs sm:text-sm text-foreground truncate">{job.title}</p>
-                    <p className="text-[11px] sm:text-xs text-muted-foreground truncate">{job.providerName}</p>
+                    <p className="font-semibold text-[11px] sm:text-xs text-foreground truncate">{job.title}</p>
+                    <p className="text-[10px] sm:text-[11px] text-muted-foreground truncate">{job.providerName}</p>
                   </div>
                   <ChevronRight className="hidden sm:block w-4 h-4 text-muted-foreground flex-shrink-0" />
                 </div>
-                <div className={`mt-2.5 sm:mt-3 inline-flex items-center gap-1 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-[11px] font-semibold ${status.className}`}>
+                <div className={`mt-2.5 sm:mt-3 inline-flex items-center gap-1 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-[10px] font-semibold ${status.className}`}>
                   <StatusIcon className="w-3 h-3 flex-shrink-0" />
                   <span className="truncate">{status.label}</span>
                 </div>
@@ -216,12 +216,12 @@ function ContinueBookingSection({ jobs, orders }: { jobs: CustomerJob[]; orders:
                   <Package className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-xs sm:text-sm text-foreground truncate">{recentOrder.itemSummary}</p>
-                  <p className="text-[11px] sm:text-xs text-muted-foreground truncate">{recentOrder.shopName}</p>
+                  <p className="font-semibold text-[11px] sm:text-xs text-foreground truncate">{recentOrder.itemSummary}</p>
+                  <p className="text-[10px] sm:text-[11px] text-muted-foreground truncate">{recentOrder.shopName}</p>
                 </div>
                 <ChevronRight className="hidden sm:block w-4 h-4 text-muted-foreground flex-shrink-0" />
               </div>
-              <div className={`mt-2.5 sm:mt-3 inline-flex items-center gap-1 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-[11px] font-semibold ${ORDER_STATUS_STYLE[recentOrder.status]?.className ?? ORDER_STATUS_STYLE.PENDING.className}`}>
+              <div className={`mt-2.5 sm:mt-3 inline-flex items-center gap-1 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-[10px] font-semibold ${ORDER_STATUS_STYLE[recentOrder.status]?.className ?? ORDER_STATUS_STYLE.PENDING.className}`}>
                 <Truck className="w-3 h-3 flex-shrink-0" />
                 <span className="truncate">{ORDER_STATUS_STYLE[recentOrder.status]?.label ?? ORDER_STATUS_STYLE.PENDING.label}</span>
               </div>
@@ -248,16 +248,16 @@ function RecommendedSection({ recommended }: { recommended: RecommendedServices 
                 <Image src={service.providerAvatar || "/placeholder.svg"} alt={service.providerName} fill className="object-cover" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm text-foreground truncate">{service.providerName}</p>
-                <p className="text-xs text-muted-foreground truncate">{service.title}</p>
+                <p className="font-semibold text-xs text-foreground truncate">{service.providerName}</p>
+                <p className="text-[11px] text-muted-foreground truncate">{service.title}</p>
               </div>
             </div>
             <div className="flex items-center justify-between mt-3">
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
                 <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                 {service.rating.toFixed(1)}
               </div>
-              <p className="text-sm font-bold text-primary">{formatMoney(service.price)}</p>
+              <p className="text-xs font-bold text-primary">{formatMoney(service.price)}</p>
             </div>
           </Card>
         ))}
@@ -291,7 +291,7 @@ function FeaturedShopCard({ shop }: { shop: HomeFeaturedShop }) {
           )}
         </div>
         <div className="p-3">
-          <h4 className="font-semibold text-foreground text-sm truncate">{shop.name}</h4>
+          <h4 className="font-semibold text-foreground text-xs truncate">{shop.name}</h4>
           <div className="flex items-center gap-1.5 mt-1">
             <div className="flex items-center">
               {[...Array(5)].map((_, i) => (
@@ -301,7 +301,7 @@ function FeaturedShopCard({ shop }: { shop: HomeFeaturedShop }) {
                 />
               ))}
             </div>
-            <span className="text-xs text-muted-foreground">{shop.reviews}</span>
+            <span className="text-[11px] text-muted-foreground">{shop.reviews}</span>
           </div>
           {shop.hoursLabel && (
             <p className="text-[10px] text-muted-foreground mt-1 truncate">{shop.hoursLabel}</p>
@@ -357,16 +357,16 @@ function DealsSection({ products }: { products: ProductCard[] }) {
   return (
     <div className="rounded-2xl sm:rounded-3xl bg-gradient-to-br from-red-500/10 via-orange-500/5 to-transparent p-4 sm:p-6 border border-red-500/10">
       <div className="flex items-center justify-between gap-2 mb-3 sm:mb-4">
-        <h2 className="min-w-0 flex-wrap text-lg sm:text-xl font-extrabold text-foreground flex items-center gap-2">
+        <h2 className="min-w-0 flex-wrap text-base sm:text-lg font-extrabold text-foreground flex items-center gap-2">
           <span className="w-8 h-8 rounded-lg bg-red-500 flex items-center justify-center flex-shrink-0">
             <Flame className="w-4.5 h-4.5 text-white" />
           </span>
           {t("customer.home.flashDeals")}
-          <span className="whitespace-nowrap text-xs font-bold text-white bg-red-500 px-2.5 py-1 rounded-full">
+          <span className="whitespace-nowrap text-[11px] font-bold text-white bg-red-500 px-2.5 py-1 rounded-full">
             {t("customer.home.dealsEndIn", { time: countdown })}
           </span>
         </h2>
-        <Link href="/customer/products" className="text-sm text-primary font-medium flex items-center gap-0.5 flex-shrink-0">
+        <Link href="/customer/products" className="text-xs text-primary font-medium flex items-center gap-0.5 flex-shrink-0">
           {t("customer.home.seeAll")} <ChevronRight className="w-4 h-4" />
         </Link>
       </div>
@@ -376,13 +376,13 @@ function DealsSection({ products }: { products: ProductCard[] }) {
             <Card className="overflow-hidden border border-border ring-1 ring-red-500/20 hover:shadow-md transition-shadow rounded-2xl h-full">
               <div className="relative aspect-square bg-muted/30">
                 <Image src={product.image || "/placeholder.svg"} alt={product.name} fill className="object-cover" />
-                <Badge className="absolute left-1.5 top-1.5 bg-red-500 hover:bg-red-500 text-white text-xs px-1.5 py-0.5 border-0 font-bold">
+                <Badge className="absolute left-1.5 top-1.5 bg-red-500 hover:bg-red-500 text-white text-[11px] px-1.5 py-0.5 border-0 font-bold">
                   -{product.discountPercent}%
                 </Badge>
               </div>
               <div className="p-2.5 sm:p-3">
-                <p className="truncate text-xs sm:text-sm font-semibold text-foreground">{product.name}</p>
-                <p className="text-primary text-sm sm:text-base font-bold mt-0.5">{formatMoney(product.discountPrice ?? product.price)}</p>
+                <p className="truncate text-[11px] sm:text-xs font-semibold text-foreground">{product.name}</p>
+                <p className="text-primary text-xs sm:text-sm font-bold mt-0.5">{formatMoney(product.discountPrice ?? product.price)}</p>
               </div>
             </Card>
           </Link>
@@ -413,8 +413,8 @@ function FeaturedProductsSection({ products }: { products: ProductCard[] }) {
                 </Badge>
               </div>
               <div className="p-2.5">
-                <p className="truncate text-xs font-semibold text-foreground">{product.name}</p>
-                <p className="text-primary text-sm font-bold mt-0.5">{formatMoney(product.discountPrice ?? product.price)}</p>
+                <p className="truncate text-[11px] font-semibold text-foreground">{product.name}</p>
+                <p className="text-primary text-xs font-bold mt-0.5">{formatMoney(product.discountPrice ?? product.price)}</p>
               </div>
             </Card>
           </Link>
@@ -442,8 +442,8 @@ function RecentlyViewedSection({ items }: { items: RecentlyViewedItem[] }) {
                 </span>
               </div>
               <div className="p-2.5">
-                <p className="truncate text-xs font-semibold text-foreground">{item.title}</p>
-                {item.subtitle && <p className="truncate text-[11px] text-muted-foreground">{item.subtitle}</p>}
+                <p className="truncate text-[11px] font-semibold text-foreground">{item.title}</p>
+                {item.subtitle && <p className="truncate text-[10px] text-muted-foreground">{item.subtitle}</p>}
               </div>
             </Card>
           </Link>
@@ -467,7 +467,7 @@ function PopularServicesRow({ categories }: { categories: HomeServiceCategory[] 
             <div className={`w-14 h-14 rounded-full ${style.color} flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform`}>
               <style.icon className="w-6 h-6" />
             </div>
-            <p className="text-[11px] font-medium text-foreground text-center leading-tight truncate w-full">{category.name}</p>
+            <p className="text-[10px] font-medium text-foreground text-center leading-tight truncate w-full">{category.name}</p>
           </Link>
         )
       })}
@@ -475,7 +475,7 @@ function PopularServicesRow({ categories }: { categories: HomeServiceCategory[] 
         <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
           <Grid3X3 className="w-6 h-6 text-muted-foreground" />
         </div>
-        <p className="text-[11px] font-medium text-foreground text-center leading-tight">{t("customer.home.moreLabel")}</p>
+        <p className="text-[10px] font-medium text-foreground text-center leading-tight">{t("customer.home.moreLabel")}</p>
       </Link>
     </div>
   )
@@ -521,18 +521,18 @@ function WalletCard({ balance, escrowBalance }: { balance: number; escrowBalance
   return (
     <Card className="p-4 border border-border rounded-2xl">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
+        <h3 className="text-xs font-bold text-foreground flex items-center gap-1.5">
           <Wallet className="w-4 h-4 text-primary" /> {t("customer.wallet.totalBalance")}
         </h3>
-        <Link href="/customer/wallet" className="text-xs text-primary font-medium">{t("customer.home.seeAll")}</Link>
+        <Link href="/customer/wallet" className="text-[11px] text-primary font-medium">{t("customer.home.seeAll")}</Link>
       </div>
       <div>
-        <p className="text-[11px] text-muted-foreground">{t("customer.home.walletBalanceLabel")}</p>
-        <p className="text-xl font-bold text-foreground">{formatMoney(balance)}</p>
+        <p className="text-[10px] text-muted-foreground">{t("customer.home.walletBalanceLabel")}</p>
+        <p className="text-lg font-bold text-foreground">{formatMoney(balance)}</p>
       </div>
       <div className="mt-2.5 pt-2.5 border-t border-border">
-        <p className="text-[11px] text-muted-foreground">{t("customer.home.escrowBalanceLabel")}</p>
-        <p className="text-base font-semibold text-foreground">{formatMoney(escrowBalance)}</p>
+        <p className="text-[10px] text-muted-foreground">{t("customer.home.escrowBalanceLabel")}</p>
+        <p className="text-sm font-semibold text-foreground">{formatMoney(escrowBalance)}</p>
       </div>
       <div className="mt-3 pt-3 border-t border-border grid grid-cols-3 gap-1.5">
         <Link href="/customer/wallet" className="flex flex-col items-center gap-1 py-1.5 rounded-xl hover:bg-muted transition-colors">
@@ -564,8 +564,8 @@ function ActiveEscrowCard({ jobs }: { jobs: ActiveEscrowJob[] }) {
   return (
     <Card className="p-4 border border-border rounded-2xl">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-bold text-foreground">{t("customer.home.activeEscrowTitle")}</h3>
-        <Link href="/customer/jobs" className="text-xs text-primary font-medium">{t("customer.home.seeAll")}</Link>
+        <h3 className="text-xs font-bold text-foreground">{t("customer.home.activeEscrowTitle")}</h3>
+        <Link href="/customer/jobs" className="text-[11px] text-primary font-medium">{t("customer.home.seeAll")}</Link>
       </div>
       <div className="space-y-3">
         {jobs.slice(0, 3).map((job) => {
@@ -576,11 +576,11 @@ function ActiveEscrowCard({ jobs }: { jobs: ActiveEscrowJob[] }) {
                 <Image src={job.providerAvatar || "/placeholder.svg"} alt={job.providerName} fill className="object-cover" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-foreground truncate">{job.categoryName ?? job.title}</p>
-                <p className="text-[11px] text-muted-foreground truncate">{job.providerName}</p>
+                <p className="text-[11px] font-semibold text-foreground truncate">{job.categoryName ?? job.title}</p>
+                <p className="text-[10px] text-muted-foreground truncate">{job.providerName}</p>
               </div>
               <div className="text-right flex-shrink-0">
-                <p className="text-xs font-bold text-foreground">{formatMoney(job.amount)}</p>
+                <p className="text-[11px] font-bold text-foreground">{formatMoney(job.amount)}</p>
                 <p className={`text-[10px] font-medium ${status.className.split(" ").filter((c) => c.includes("text-")).join(" ")}`}>{status.label}</p>
               </div>
             </Link>
@@ -616,11 +616,11 @@ function RequestBoardSection({ requests }: { requests: MyRequestItem[] }) {
               <Card className="p-3.5 border border-border hover:shadow-md transition-shadow rounded-2xl">
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-foreground truncate">{r.title}</p>
-                    <p className="text-xs text-muted-foreground">{t("customer.home.requestBoardResponseCount", { count: r.responseCount })}</p>
+                    <p className="text-xs font-semibold text-foreground truncate">{r.title}</p>
+                    <p className="text-[11px] text-muted-foreground">{t("customer.home.requestBoardResponseCount", { count: r.responseCount })}</p>
                   </div>
                   {(r.budgetMin != null || r.budgetMax != null) && (
-                    <p className="text-xs font-medium text-muted-foreground flex-shrink-0">
+                    <p className="text-[11px] font-medium text-muted-foreground flex-shrink-0">
                       {r.budgetMin != null ? formatMoney(r.budgetMin) : "?"}–{r.budgetMax != null ? formatMoney(r.budgetMax) : "?"}
                     </p>
                   )}
@@ -634,7 +634,7 @@ function RequestBoardSection({ requests }: { requests: MyRequestItem[] }) {
           {EXAMPLE_REQUEST_PROMPTS.map((prompt) => (
             <Link key={prompt} href="/customer/requests" className="flex-shrink-0">
               <Card className="px-4 py-2.5 border border-dashed border-border hover:border-primary/40 transition-colors rounded-full">
-                <p className="text-xs font-medium text-muted-foreground whitespace-nowrap">{prompt}</p>
+                <p className="text-[11px] font-medium text-muted-foreground whitespace-nowrap">{prompt}</p>
               </Card>
             </Link>
           ))}
@@ -725,7 +725,7 @@ export function CustomerHome() {
       <div className="max-w-7xl mx-auto px-4 py-5 sm:py-6 lg:py-8 space-y-6 sm:space-y-8">
         {/* Greeting */}
         <div>
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground text-balance">
+          <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground text-balance">
             {greeting}, {user?.name?.split(" ")[0] || t("customer.home.thereFallback")}
           </h1>
         </div>
@@ -825,26 +825,26 @@ export function CustomerHome() {
 
         {/* Grow with SAJI */}
         <Card className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border-amber-500/20 p-5 lg:p-8 rounded-2xl sm:rounded-3xl">
-          <h3 className="text-lg lg:text-xl font-bold text-foreground mb-1">{t("customer.home.growWithSaji")}</h3>
-          <p className="text-sm text-muted-foreground mb-4">{t("customer.home.growWithSajiDesc")}</p>
+          <h3 className="text-base lg:text-lg font-bold text-foreground mb-1">{t("customer.home.growWithSaji")}</h3>
+          <p className="text-xs text-muted-foreground mb-4">{t("customer.home.growWithSajiDesc")}</p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
             <Link href="/auth/signup?role=provider" className="flex items-center gap-3 p-3 rounded-xl border border-amber-500/20 bg-background/60 hover:bg-background transition-colors">
               <div className="w-9 h-9 rounded-lg bg-amber-500/15 flex items-center justify-center flex-shrink-0">
                 <Briefcase className="w-4 h-4 text-amber-600" />
               </div>
-              <span className="text-sm font-semibold text-foreground">{t("customer.home.growBecomeExpert")}</span>
+              <span className="text-xs font-semibold text-foreground">{t("customer.home.growBecomeExpert")}</span>
             </Link>
             <Link href="/auth/signup?role=shopkeeper" className="flex items-center gap-3 p-3 rounded-xl border border-amber-500/20 bg-background/60 hover:bg-background transition-colors">
               <div className="w-9 h-9 rounded-lg bg-amber-500/15 flex items-center justify-center flex-shrink-0">
                 <Store className="w-4 h-4 text-amber-600" />
               </div>
-              <span className="text-sm font-semibold text-foreground">{t("customer.home.growOpenShop")}</span>
+              <span className="text-xs font-semibold text-foreground">{t("customer.home.growOpenShop")}</span>
             </Link>
             <Link href="/auth/signup?role=distributor" className="flex items-center gap-3 p-3 rounded-xl border border-amber-500/20 bg-background/60 hover:bg-background transition-colors">
               <div className="w-9 h-9 rounded-lg bg-amber-500/15 flex items-center justify-center flex-shrink-0">
                 <Building2 className="w-4 h-4 text-amber-600" />
               </div>
-              <span className="text-sm font-semibold text-foreground">{t("customer.home.growRegisterBusiness")}</span>
+              <span className="text-xs font-semibold text-foreground">{t("customer.home.growRegisterBusiness")}</span>
             </Link>
           </div>
           <Link href="/auth/signup" className="relative inline-block w-full sm:w-auto overflow-hidden rounded-md animate-shimmer">

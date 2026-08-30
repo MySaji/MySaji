@@ -30,8 +30,8 @@ function BannerCard({ banner, priority }: { banner: PublicBanner; priority: bool
       <Image src={banner.imageUrl} alt={banner.title} fill className="object-cover" sizes="(max-width: 768px) 100vw, 600px" priority={priority} />
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
       <div className="absolute inset-x-0 bottom-0 p-4">
-        <h3 className="text-white font-bold text-base sm:text-lg text-balance">{banner.title}</h3>
-        {banner.subtitle && <p className="text-white/85 text-xs mt-1 max-w-md text-balance">{banner.subtitle}</p>}
+        <h3 className="text-white font-bold text-sm sm:text-base text-balance">{banner.title}</h3>
+        {banner.subtitle && <p className="text-white/85 text-[11px] mt-1 max-w-md text-balance">{banner.subtitle}</p>}
       </div>
     </div>
   )
@@ -49,7 +49,7 @@ export default function CustomerProductsPage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-7xl px-4 py-6 lg:px-6">
-        <div className="mb-4 flex items-center gap-1.5 text-sm text-muted-foreground">
+        <div className="mb-4 flex items-center gap-1.5 text-xs text-muted-foreground">
           <Link href="/customer/home" className="hover:text-foreground">{t("customer.marketplace.breadcrumbHome")}</Link>
           <ChevronRight className="h-3.5 w-3.5" />
           <span className="text-foreground font-medium">{t("customer.marketplace.breadcrumbCurrent")}</span>
@@ -57,8 +57,8 @@ export default function CustomerProductsPage() {
 
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">{t("customer.marketplace.pageTitle")}</h1>
-            <p className="mt-1 text-sm text-muted-foreground sm:text-base">{t("customer.marketplace.pageSubtitle")}</p>
+            <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">{t("customer.marketplace.pageTitle")}</h1>
+            <p className="mt-1 text-xs text-muted-foreground sm:text-sm">{t("customer.marketplace.pageSubtitle")}</p>
           </div>
           <Button asChild variant="outline" className="rounded-xl w-fit">
             <Link href="/auth/signup?role=shopkeeper">
@@ -80,7 +80,7 @@ export default function CustomerProductsPage() {
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
                 <Icon className="h-4.5 w-4.5 text-primary" />
               </div>
-              <p className="text-xs font-medium text-foreground">{t(key)}</p>
+              <p className="text-[11px] font-medium text-foreground">{t(key)}</p>
             </div>
           ))}
         </div>
@@ -93,7 +93,7 @@ export default function CustomerProductsPage() {
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
                 <Icon className="h-4.5 w-4.5 text-primary" />
               </div>
-              <p className="text-xs font-medium text-foreground">{t(key)}</p>
+              <p className="text-[11px] font-medium text-foreground">{t(key)}</p>
             </div>
           ))}
         </div>

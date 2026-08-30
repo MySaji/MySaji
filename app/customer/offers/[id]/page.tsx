@@ -61,8 +61,8 @@ export default function OfferDetailPage() {
   if (!offer) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background px-4 text-center">
-        <p className="text-lg font-semibold text-foreground">Offer not found</p>
-        <p className="text-sm text-muted-foreground">This offer isn't available anymore.</p>
+        <p className="text-base font-semibold text-foreground">Offer not found</p>
+        <p className="text-xs text-muted-foreground">This offer isn't available anymore.</p>
         <Button onClick={() => router.push("/customer/services/more")}>Browse Services &amp; Offers</Button>
       </div>
     )
@@ -79,7 +79,7 @@ export default function OfferDetailPage() {
           </button>
           <div className="flex items-center gap-2">
             <Crown className="h-4 w-4" />
-            <h1 className="text-lg font-bold">Saji Pro Offer</h1>
+            <h1 className="text-base font-bold">Saji Pro Offer</h1>
           </div>
         </div>
       </div>
@@ -90,27 +90,27 @@ export default function OfferDetailPage() {
             {offer.images[0] ? (
               <img src={offer.images[0]} alt={offer.title} className="h-full w-full object-cover" />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">No photo</div>
+              <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">No photo</div>
             )}
           </div>
           <div className="p-5">
             <div className="mb-2 flex items-start justify-between gap-3">
-              <h2 className="text-xl font-bold text-foreground">{offer.title}</h2>
-              {offer.price != null && <span className="whitespace-nowrap text-xl font-bold text-primary">{formatMoney(offer.price)}</span>}
+              <h2 className="text-lg font-bold text-foreground">{offer.title}</h2>
+              {offer.price != null && <span className="whitespace-nowrap text-lg font-bold text-primary">{formatMoney(offer.price)}</span>}
             </div>
-            {offer.categoryName && <p className="mb-3 text-sm text-muted-foreground">{offer.categoryName}</p>}
-            <p className="whitespace-pre-line text-sm text-foreground">{offer.description}</p>
+            {offer.categoryName && <p className="mb-3 text-xs text-muted-foreground">{offer.categoryName}</p>}
+            <p className="whitespace-pre-line text-xs text-foreground">{offer.description}</p>
           </div>
         </Card>
 
         <Card className="border-0 p-4 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-muted">
-              {offer.providerAvatar ? <img src={offer.providerAvatar} alt={offer.providerName} className="h-full w-full object-cover" /> : <span className="text-sm font-semibold text-muted-foreground">{offer.providerName[0]}</span>}
+              {offer.providerAvatar ? <img src={offer.providerAvatar} alt={offer.providerName} className="h-full w-full object-cover" /> : <span className="text-xs font-semibold text-muted-foreground">{offer.providerName[0]}</span>}
             </div>
             <div className="min-w-0 flex-1">
               <p className="flex items-center gap-1.5 font-semibold text-foreground">{offer.providerName} <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" /></p>
-              <p className="flex items-center gap-1 text-xs text-muted-foreground">
+              <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
                 <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" /> {offer.providerRating.toFixed(1)} ({offer.providerReviewCount})
               </p>
             </div>
@@ -124,7 +124,7 @@ export default function OfferDetailPage() {
         ) : sent ? (
           <Card className="border-0 border-emerald-200 bg-emerald-50 p-5 text-center shadow-sm dark:border-emerald-900/40 dark:bg-emerald-900/20">
             <p className="font-semibold text-emerald-700 dark:text-emerald-400">{isFormalQuote ? "Quote request sent" : `Sent to ${offer.providerName}`}</p>
-            <p className="mt-1 text-xs text-muted-foreground">{isFormalQuote ? `${offer.providerName} will review and send back a real quote with price and scope.` : "Check Messages for their reply."}</p>
+            <p className="mt-1 text-[11px] text-muted-foreground">{isFormalQuote ? `${offer.providerName} will review and send back a real quote with price and scope.` : "Check Messages for their reply."}</p>
             <Button variant="outline" size="sm" className="mt-3 bg-transparent" onClick={() => router.push(isFormalQuote ? `/customer/service-requests?id=${contractId}` : "/customer/messages")}>
               {isFormalQuote ? "View Request" : "Go to Messages"}
             </Button>
@@ -135,11 +135,11 @@ export default function OfferDetailPage() {
             <Textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder={isFormalQuote ? "Describe what you need a quote for…" : "What would you like to ask or request?"} className="min-h-[100px]" />
             {isFormalQuote && (
               <div>
-                <label className="mb-1 block text-xs text-muted-foreground">Location</label>
+                <label className="mb-1 block text-[11px] text-muted-foreground">Location</label>
                 <Input value={quoteLocation} onChange={(e) => setQuoteLocation(e.target.value)} placeholder="Where should this happen?" />
               </div>
             )}
-            {sendError && <p className="text-sm text-red-600">{sendError}</p>}
+            {sendError && <p className="text-xs text-red-600">{sendError}</p>}
             <Button className="w-full gap-2" disabled={!message.trim() || (isFormalQuote && !quoteLocation.trim()) || isSending} onClick={handleSendRequest}>
               {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               {isFormalQuote ? "Request Quote" : `Send to ${offer.providerName}`}

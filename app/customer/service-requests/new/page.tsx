@@ -35,28 +35,28 @@ export default function NewServiceRequestPage() {
       <div className="sticky top-0 z-30 bg-gradient-to-r from-primary to-primary/90 px-4 py-4 text-primary-foreground">
         <div className="mx-auto flex max-w-xl items-center gap-4">
           <button onClick={() => router.back()} className="rounded-lg p-2 hover:bg-white/20"><ArrowLeft className="h-6 w-6" /></button>
-          <div className="flex items-center gap-2"><FileText className="h-5 w-5" /><h1 className="text-lg font-bold">Request a Quote</h1></div>
+          <div className="flex items-center gap-2"><FileText className="h-5 w-5" /><h1 className="text-base font-bold">Request a Quote</h1></div>
         </div>
       </div>
 
       <div className="mx-auto max-w-xl space-y-4 px-4 py-6">
         <Card className="border-0 p-5 shadow-sm space-y-4">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Describe what you need. The provider will review it and send back a real quote with price, scope of work, and an estimated timeline for you to accept or decline.
           </p>
           <div>
-            <label className="mb-1 block text-sm text-muted-foreground">What do you need?</label>
+            <label className="mb-1 block text-xs text-muted-foreground">What do you need?</label>
             <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Kitchen sink replacement" />
           </div>
           <div>
-            <label className="mb-1 block text-sm text-muted-foreground">Details</label>
+            <label className="mb-1 block text-xs text-muted-foreground">Details</label>
             <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Describe the job: what's needed, any constraints, preferred timing…" className="min-h-[120px]" />
           </div>
           <div>
-            <label className="mb-1 block text-sm text-muted-foreground">Location</label>
+            <label className="mb-1 block text-xs text-muted-foreground">Location</label>
             <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Where should this happen?" />
           </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-xs text-red-600">{error}</p>}
           <Button className="h-11 w-full rounded-xl" disabled={isSubmitting || !title.trim() || !description.trim() || !location.trim()} onClick={handleSubmit}>
             {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send Request"}
           </Button>

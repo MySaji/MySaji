@@ -23,8 +23,8 @@ export function HomeQuickActions() {
           <Card className={`flex h-full flex-col gap-2 rounded-2xl border-0 p-4 shadow-sm transition-transform hover:-translate-y-0.5 ${action.color}`}>
             <action.icon className="h-5 w-5" />
             <div>
-              <p className="text-sm font-bold">{action.label}</p>
-              <p className="text-xs opacity-80">{action.sub}</p>
+              <p className="text-xs font-bold">{action.label}</p>
+              <p className="text-[11px] opacity-80">{action.sub}</p>
             </div>
           </Card>
         </Link>

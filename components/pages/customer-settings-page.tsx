@@ -195,7 +195,7 @@ export function CustomerSettingsPage() {
         {/* Header */}
         <div className="flex items-center gap-2 mb-6">
           <Settings className="w-5 h-5 text-primary" />
-          <h1 className="text-2xl lg:text-3xl font-bold text-foreground tracking-tight">{t("settings.title")}</h1>
+          <h1 className="text-xl lg:text-2xl font-bold text-foreground tracking-tight">{t("settings.title")}</h1>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-6">
@@ -207,7 +207,7 @@ export function CustomerSettingsPage() {
                   const Icon = section.icon
                   return (
                     <button key={section.id} onClick={() => setActiveSection(section.id)}
-                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
                         activeSection === section.id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"
                       }`}
                     >
@@ -217,7 +217,7 @@ export function CustomerSettingsPage() {
                   )
                 })}
                 <hr className="my-2 border-border/50 mx-3" />
-                <button onClick={handleLogout} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors">
+                <button onClick={handleLogout} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors">
                   <LogOut className="w-4 h-4" /> {t("auth.logout")}
                 </button>
               </nav>
@@ -243,10 +243,10 @@ export function CustomerSettingsPage() {
                     </div>
                     <div className="flex-1 space-y-3 w-full">
                       <div className="grid sm:grid-cols-2 gap-3">
-                        <div><label className="text-xs font-medium text-muted-foreground mb-1.5 block">{t("customer.profile.fullName")}</label><Input value={profileForm.name} onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })} className="rounded-xl" /></div>
-                        <div><label className="text-xs font-medium text-muted-foreground mb-1.5 block">{t("auth.email")}</label><Input value={profile.email} disabled className="rounded-xl opacity-60" /></div>
-                        <div><label className="text-xs font-medium text-muted-foreground mb-1.5 block">{t("customer.profile.phone")}</label><Input value={profileForm.phone} onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })} className="rounded-xl" /></div>
-                        <div><label className="text-xs font-medium text-muted-foreground mb-1.5 block">{t("customer.settings.locationLabel")}</label><Input value={profileForm.location} onChange={(e) => setProfileForm({ ...profileForm, location: e.target.value })} className="rounded-xl" /></div>
+                        <div><label className="text-[11px] font-medium text-muted-foreground mb-1.5 block">{t("customer.profile.fullName")}</label><Input value={profileForm.name} onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })} className="rounded-xl" /></div>
+                        <div><label className="text-[11px] font-medium text-muted-foreground mb-1.5 block">{t("auth.email")}</label><Input value={profile.email} disabled className="rounded-xl opacity-60" /></div>
+                        <div><label className="text-[11px] font-medium text-muted-foreground mb-1.5 block">{t("customer.profile.phone")}</label><Input value={profileForm.phone} onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })} className="rounded-xl" /></div>
+                        <div><label className="text-[11px] font-medium text-muted-foreground mb-1.5 block">{t("customer.settings.locationLabel")}</label><Input value={profileForm.location} onChange={(e) => setProfileForm({ ...profileForm, location: e.target.value })} className="rounded-xl" /></div>
                       </div>
                       <Button className="rounded-xl" size="sm" onClick={handleSaveProfile} disabled={isSavingProfile}>
                         {isSavingProfile ? <Loader2 className="w-4 h-4 animate-spin" /> : profileSaved ? t("customer.settings.savedExclaim") : t("customer.profile.saveChanges")}
@@ -259,7 +259,7 @@ export function CustomerSettingsPage() {
                   <h3 className="font-semibold text-foreground mb-4">{t("customer.settings.languageAndRegion")}</h3>
                   <div className="grid sm:grid-cols-2 gap-5">
                     <div>
-                      <label className="text-xs font-medium text-muted-foreground mb-2 block">{t("settings.language")}</label>
+                      <label className="text-[11px] font-medium text-muted-foreground mb-2 block">{t("settings.language")}</label>
                       <div className="space-y-1.5">
                         {languages.map((lang) => (
                           <button key={lang.code} onClick={() => setLanguage(lang.code as Language)}
@@ -267,7 +267,7 @@ export function CustomerSettingsPage() {
                           >
                             <div className="flex items-center gap-2.5">
                               <span className="w-7 h-5 bg-muted rounded text-[10px] font-bold flex items-center justify-center text-muted-foreground">{lang.flag}</span>
-                              <span className="font-medium text-sm text-foreground">{lang.name}</span>
+                              <span className="font-medium text-xs text-foreground">{lang.name}</span>
                             </div>
                             {language === lang.code && <CheckCircle className="w-4 h-4 text-primary" />}
                           </button>
@@ -275,15 +275,15 @@ export function CustomerSettingsPage() {
                       </div>
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-muted-foreground mb-2 block">{t("settings.currency")}</label>
+                      <label className="text-[11px] font-medium text-muted-foreground mb-2 block">{t("settings.currency")}</label>
                       <div className="space-y-1.5">
                         {currencies.map((curr) => (
                           <button key={curr.code} onClick={() => setCurrency(curr.code as CurrencyCode)}
                             className={`w-full flex items-center justify-between p-3 rounded-xl border-2 transition-all ${currency === curr.code ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}
                           >
                             <div className="text-left">
-                              <p className="font-medium text-sm text-foreground">{curr.symbol} {curr.code}</p>
-                              <p className="text-[11px] text-muted-foreground">{curr.name}</p>
+                              <p className="font-medium text-xs text-foreground">{curr.symbol} {curr.code}</p>
+                              <p className="text-[10px] text-muted-foreground">{curr.name}</p>
                             </div>
                             {currency === curr.code && <CheckCircle className="w-4 h-4 text-primary" />}
                           </button>
@@ -302,7 +302,7 @@ export function CustomerSettingsPage() {
                   <h3 className="font-semibold text-foreground mb-4">{t("customer.settings.changePassword")}</h3>
                   <div className="space-y-3 max-w-md">
                     <div>
-                      <label className="text-xs font-medium text-muted-foreground mb-1.5 block">{t("customer.settings.currentPassword")}</label>
+                      <label className="text-[11px] font-medium text-muted-foreground mb-1.5 block">{t("customer.settings.currentPassword")}</label>
                       <div className="relative">
                         <Input type={showPassword ? "text" : "password"} placeholder={t("customer.settings.enterCurrentPassword")} value={passwordForm.current} onChange={(e) => setPasswordForm({ ...passwordForm, current: e.target.value })} className="rounded-xl pr-10" />
                         <button onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? t("common.hidePassword") : t("common.showPassword")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
@@ -310,10 +310,10 @@ export function CustomerSettingsPage() {
                         </button>
                       </div>
                     </div>
-                    <div><label className="text-xs font-medium text-muted-foreground mb-1.5 block">{t("customer.settings.newPassword")}</label><Input type="password" placeholder={t("customer.settings.enterNewPassword")} value={passwordForm.next} onChange={(e) => setPasswordForm({ ...passwordForm, next: e.target.value })} className="rounded-xl" /></div>
-                    <div><label className="text-xs font-medium text-muted-foreground mb-1.5 block">{t("customer.settings.confirmNewPassword")}</label><Input type="password" placeholder={t("customer.settings.confirmNewPasswordPlaceholder")} value={passwordForm.confirm} onChange={(e) => setPasswordForm({ ...passwordForm, confirm: e.target.value })} className="rounded-xl" /></div>
-                    {passwordError && <p className="text-xs text-red-600">{passwordError}</p>}
-                    {passwordSuccess && <p className="text-xs text-emerald-600">{t("customer.settings.passwordUpdatedSuccess")}</p>}
+                    <div><label className="text-[11px] font-medium text-muted-foreground mb-1.5 block">{t("customer.settings.newPassword")}</label><Input type="password" placeholder={t("customer.settings.enterNewPassword")} value={passwordForm.next} onChange={(e) => setPasswordForm({ ...passwordForm, next: e.target.value })} className="rounded-xl" /></div>
+                    <div><label className="text-[11px] font-medium text-muted-foreground mb-1.5 block">{t("customer.settings.confirmNewPassword")}</label><Input type="password" placeholder={t("customer.settings.confirmNewPasswordPlaceholder")} value={passwordForm.confirm} onChange={(e) => setPasswordForm({ ...passwordForm, confirm: e.target.value })} className="rounded-xl" /></div>
+                    {passwordError && <p className="text-[11px] text-red-600">{passwordError}</p>}
+                    {passwordSuccess && <p className="text-[11px] text-emerald-600">{t("customer.settings.passwordUpdatedSuccess")}</p>}
                     <Button className="rounded-xl" size="sm" onClick={handleChangePassword} disabled={isChangingPassword || !passwordForm.current || !passwordForm.next}>
                       {isChangingPassword ? <Loader2 className="w-4 h-4 animate-spin" /> : t("customer.settings.updatePassword")}
                     </Button>
@@ -325,7 +325,7 @@ export function CustomerSettingsPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/20 rounded-xl flex items-center justify-center"><Smartphone className="w-5 h-5 text-emerald-600 dark:text-emerald-400" /></div>
-                      <div><p className="font-medium text-sm text-foreground">{t("customer.settings.smsAuthentication")}</p><p className="text-xs text-muted-foreground">{t("customer.settings.comingSoon")}</p></div>
+                      <div><p className="font-medium text-xs text-foreground">{t("customer.settings.smsAuthentication")}</p><p className="text-[11px] text-muted-foreground">{t("customer.settings.comingSoon")}</p></div>
                     </div>
                     <Button variant="outline" size="sm" className="rounded-xl bg-transparent" disabled>{t("customer.settings.enableButton")}</Button>
                   </div>
@@ -336,9 +336,9 @@ export function CustomerSettingsPage() {
                   <div className="flex items-center justify-between p-3 bg-muted/50 rounded-xl">
                     <div className="flex items-center gap-3">
                       <Globe className="w-4 h-4 text-muted-foreground" />
-                      <div><p className="font-medium text-sm text-foreground">{t("customer.settings.thisDevice")}</p><p className="text-[11px] text-muted-foreground">{t("customer.settings.currentSession")}</p></div>
+                      <div><p className="font-medium text-xs text-foreground">{t("customer.settings.thisDevice")}</p><p className="text-[10px] text-muted-foreground">{t("customer.settings.currentSession")}</p></div>
                     </div>
-                    <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">{t("customer.settings.activeStatus")}</span>
+                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">{t("customer.settings.activeStatus")}</span>
                   </div>
                 </Card>
               </>
@@ -357,7 +357,7 @@ export function CustomerSettingsPage() {
                       >
                         <Icon className={`w-8 h-8 mb-3 ${theme === themeOption.id ? "text-primary" : "text-muted-foreground"}`} />
                         <p className="font-semibold text-foreground">{themeOption.name}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{themeOption.desc}</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">{themeOption.desc}</p>
                       </button>
                     )
                   })}
@@ -378,18 +378,18 @@ export function CustomerSettingsPage() {
                   </div>
                   <div className="space-y-2">
                     {(!wallet || wallet.paymentMethods.length === 0) && (
-                      <p className="text-sm text-muted-foreground p-2">{t("customer.wallet.noPaymentMethods")}</p>
+                      <p className="text-xs text-muted-foreground p-2">{t("customer.wallet.noPaymentMethods")}</p>
                     )}
                     {wallet?.paymentMethods.map((method) => (
                       <div key={method.id} className="flex items-center justify-between p-3.5 bg-muted/50 rounded-xl">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-7 bg-emerald-600 rounded-lg flex items-center justify-center text-white font-bold text-[9px] uppercase">{method.type}</div>
-                          <div><p className="font-medium text-sm text-foreground">{method.name}</p><p className="text-[11px] text-muted-foreground">{method.number}</p></div>
+                          <div><p className="font-medium text-xs text-foreground">{method.name}</p><p className="text-[10px] text-muted-foreground">{method.number}</p></div>
                         </div>
                         {method.isDefault ? (
-                          <span className="text-[11px] bg-emerald-100 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-md font-semibold">{t("customer.savedAddresses.default")}</span>
+                          <span className="text-[10px] bg-emerald-100 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-md font-semibold">{t("customer.savedAddresses.default")}</span>
                         ) : (
-                          <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => handleRemovePaymentMethod(method.id)}>{t("customer.settings.removeButton")}</Button>
+                          <Button variant="ghost" size="sm" className="text-[11px] h-7" onClick={() => handleRemovePaymentMethod(method.id)}>{t("customer.settings.removeButton")}</Button>
                         )}
                       </div>
                     ))}
@@ -399,11 +399,11 @@ export function CustomerSettingsPage() {
                 <Card className="p-5 border-0 shadow-sm">
                   <h3 className="font-semibold text-foreground mb-4">{t("customer.settings.billingHistory")}</h3>
                   <div className="space-y-2">
-                    {billing.length === 0 && <p className="text-sm text-muted-foreground p-2">{t("customer.settings.noBillingHistory")}</p>}
+                    {billing.length === 0 && <p className="text-xs text-muted-foreground p-2">{t("customer.settings.noBillingHistory")}</p>}
                     {billing.map((item) => (
                       <div key={item.id} className="flex items-center justify-between p-3.5 rounded-xl border border-border/50">
-                        <div><p className="font-medium text-sm text-foreground">{item.description}</p><p className="text-[11px] text-muted-foreground">{new Date(item.date).toLocaleDateString()}</p></div>
-                        <div className="text-right"><p className="font-semibold text-sm text-foreground">{formatMoney(item.amount)}</p><span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium capitalize">{item.status.toLowerCase()}</span></div>
+                        <div><p className="font-medium text-xs text-foreground">{item.description}</p><p className="text-[10px] text-muted-foreground">{new Date(item.date).toLocaleDateString()}</p></div>
+                        <div className="text-right"><p className="font-semibold text-xs text-foreground">{formatMoney(item.amount)}</p><span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium capitalize">{item.status.toLowerCase()}</span></div>
                       </div>
                     ))}
                   </div>
@@ -416,7 +416,7 @@ export function CustomerSettingsPage() {
               <>
                 <Card className="p-5 border-0 shadow-sm">
                   <h3 className="font-semibold text-foreground mb-1">{t("customer.settings.dataAndPrivacy")}</h3>
-                  <p className="text-xs text-muted-foreground mb-4">{t("customer.settings.manageDataAndAccount")}</p>
+                  <p className="text-[11px] text-muted-foreground mb-4">{t("customer.settings.manageDataAndAccount")}</p>
 
                   {/* Download Your Data */}
                   <div className="p-4 rounded-xl border border-border/50 mb-3 hover:bg-muted/20 transition-colors">
@@ -426,15 +426,15 @@ export function CustomerSettingsPage() {
                           <Download className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                         </div>
                         <div>
-                          <p className="font-medium text-sm text-foreground">{t("customer.settings.downloadYourData")}</p>
-                          <p className="text-[11px] text-muted-foreground mt-0.5">{t("customer.settings.downloadYourDataDesc")}</p>
+                          <p className="font-medium text-xs text-foreground">{t("customer.settings.downloadYourData")}</p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">{t("customer.settings.downloadYourDataDesc")}</p>
                         </div>
                       </div>
                       <Button variant="outline" size="sm" className="rounded-xl bg-transparent flex-shrink-0" onClick={() => setShowDownloadModal(true)}>
                         {t("customer.settings.requestButton")}
                       </Button>
                     </div>
-                    <div className="mt-3 flex items-center gap-2 text-[11px] text-muted-foreground">
+                    <div className="mt-3 flex items-center gap-2 text-[10px] text-muted-foreground">
                       <Clock className="w-3 h-3" />
                       <span>{t("customer.settings.dataExportHint")}</span>
                     </div>
@@ -442,7 +442,7 @@ export function CustomerSettingsPage() {
 
                   {/* Data Included Info */}
                   <div className="p-4 rounded-xl bg-muted/30 mb-3">
-                    <p className="text-xs font-medium text-foreground mb-2">{t("customer.settings.exportWillInclude")}</p>
+                    <p className="text-[11px] font-medium text-foreground mb-2">{t("customer.settings.exportWillInclude")}</p>
                     <div className="grid grid-cols-2 gap-2">
                       {[
                         { label: t("customer.settings.exportProfileInfo"), icon: User },
@@ -454,7 +454,7 @@ export function CustomerSettingsPage() {
                       ].map((item) => {
                         const Icon = item.icon
                         return (
-                          <div key={item.label} className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <div key={item.label} className="flex items-center gap-2 text-[11px] text-muted-foreground">
                             <Icon className="w-3.5 h-3.5" />
                             <span>{item.label}</span>
                           </div>
@@ -472,11 +472,11 @@ export function CustomerSettingsPage() {
                     </div>
                     <div>
                       <h3 className="font-semibold text-red-600 dark:text-red-400">{t("customer.settings.deleteAccountPermanently")}</h3>
-                      <p className="text-xs text-muted-foreground mt-0.5">{t("customer.settings.deleteAccountWarning")}</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">{t("customer.settings.deleteAccountWarning")}</p>
                     </div>
                   </div>
                   <div className="bg-red-50 dark:bg-red-900/10 rounded-xl p-3.5 mb-4">
-                    <p className="text-xs text-red-700 dark:text-red-300 font-medium mb-2">{t("customer.settings.deletingWillLabel")}</p>
+                    <p className="text-[11px] text-red-700 dark:text-red-300 font-medium mb-2">{t("customer.settings.deletingWillLabel")}</p>
                     <ul className="space-y-1.5">
                       {[
                         t("customer.settings.deleteBullet1"),
@@ -484,7 +484,7 @@ export function CustomerSettingsPage() {
                         t("customer.settings.deleteBullet3", { amount: formatMoney(wallet?.balance ?? 0) }),
                         t("customer.settings.deleteBullet4"),
                       ].map((item, idx) => (
-                        <li key={idx} className="flex items-start gap-2 text-xs text-red-600/80 dark:text-red-400/80">
+                        <li key={idx} className="flex items-start gap-2 text-[11px] text-red-600/80 dark:text-red-400/80">
                           <span className="w-1 h-1 bg-red-400 rounded-full mt-1.5 flex-shrink-0" />
                           {item}
                         </li>
@@ -512,7 +512,7 @@ export function CustomerSettingsPage() {
                     <button key={item.title} onClick={() => router.push(item.href)} className="w-full flex items-center justify-between p-4 hover:bg-muted/30 transition-colors border-b border-border/30 last:border-b-0">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-xl bg-muted/60 flex items-center justify-center"><Icon className="w-4 h-4 text-muted-foreground" /></div>
-                        <div className="text-left"><p className="font-medium text-sm text-foreground">{item.title}</p><p className="text-[11px] text-muted-foreground">{item.desc}</p></div>
+                        <div className="text-left"><p className="font-medium text-xs text-foreground">{item.title}</p><p className="text-[10px] text-muted-foreground">{item.desc}</p></div>
                       </div>
                       <ChevronRight className="w-4 h-4 text-muted-foreground" />
                     </button>
@@ -537,10 +537,10 @@ export function CustomerSettingsPage() {
                 <FileArchive className="w-7 h-7 text-blue-600 dark:text-blue-400" />
               )}
             </div>
-            <h3 className="text-lg font-bold text-foreground mb-1">
+            <h3 className="text-base font-bold text-foreground mb-1">
               {isDownloading ? t("customer.settings.preparingYourData") : downloadReady ? t("customer.settings.downloadReady") : t("customer.settings.downloadYourData")}
             </h3>
-            <p className="text-sm text-muted-foreground mb-5">
+            <p className="text-xs text-muted-foreground mb-5">
               {isDownloading
                 ? t("customer.settings.packagingDataHint")
                 : downloadReady
@@ -557,7 +557,7 @@ export function CustomerSettingsPage() {
                     style={{ width: `${Math.min(downloadProgress, 100)}%` }}
                   />
                 </div>
-                <p className="text-xs text-muted-foreground">{t("customer.settings.percentComplete", { percent: Math.min(Math.round(downloadProgress), 100) })}</p>
+                <p className="text-[11px] text-muted-foreground">{t("customer.settings.percentComplete", { percent: Math.min(Math.round(downloadProgress), 100) })}</p>
               </div>
             )}
 
@@ -571,7 +571,7 @@ export function CustomerSettingsPage() {
                 </Button>
               </div>
             ) : isDownloading ? (
-              <p className="text-xs text-muted-foreground">{t("customer.settings.pleaseWaitDoNotClose")}</p>
+              <p className="text-[11px] text-muted-foreground">{t("customer.settings.pleaseWaitDoNotClose")}</p>
             ) : (
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => setShowDownloadModal(false)} className="flex-1 rounded-xl bg-transparent">
@@ -605,7 +605,7 @@ export function CustomerSettingsPage() {
                 </div>
                 <div>
                   <h3 className="font-bold text-foreground">{t("customer.settings.whyAreYouLeaving")}</h3>
-                  <p className="text-xs text-muted-foreground">{t("customer.settings.helpsUsImprove")}</p>
+                  <p className="text-[11px] text-muted-foreground">{t("customer.settings.helpsUsImprove")}</p>
                 </div>
               </div>
               <div className="space-y-2 mb-4">
@@ -620,7 +620,7 @@ export function CustomerSettingsPage() {
                   <button
                     key={reason}
                     onClick={() => setDeleteReason(reason)}
-                    className={`w-full text-left p-3 rounded-xl border-2 transition-all text-sm ${
+                    className={`w-full text-left p-3 rounded-xl border-2 transition-all text-xs ${
                       deleteReason === reason ? "border-red-500 bg-red-50 dark:bg-red-900/10 text-red-700 dark:text-red-300" : "border-border text-foreground hover:border-red-300"
                     }`}
                   >
@@ -642,11 +642,11 @@ export function CustomerSettingsPage() {
                 <div className="w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-3">
                   <Trash2 className="w-8 h-8 text-red-500" />
                 </div>
-                <h3 className="text-lg font-bold text-foreground mb-1">{t("customer.settings.areYouAbsolutelySure")}</h3>
-                <p className="text-sm text-muted-foreground">{t("customer.settings.deactivateImmediately")}</p>
+                <h3 className="text-base font-bold text-foreground mb-1">{t("customer.settings.areYouAbsolutelySure")}</h3>
+                <p className="text-xs text-muted-foreground">{t("customer.settings.deactivateImmediately")}</p>
               </div>
               <div className="bg-red-50 dark:bg-red-900/10 rounded-xl p-4 mb-4">
-                <p className="text-xs font-semibold text-red-700 dark:text-red-300 mb-2">{t("customer.settings.youWillLoseAccessTo")}</p>
+                <p className="text-[11px] font-semibold text-red-700 dark:text-red-300 mb-2">{t("customer.settings.youWillLoseAccessTo")}</p>
                 <ul className="space-y-1">
                   {[
                     t("customer.settings.loseBullet1"),
@@ -654,7 +654,7 @@ export function CustomerSettingsPage() {
                     t("customer.settings.loseBullet3", { amount: formatMoney(wallet?.balance ?? 0) }),
                     t("customer.settings.loseBullet4"),
                   ].map((item, idx) => (
-                    <li key={idx} className="flex items-center gap-2 text-xs text-red-600/80 dark:text-red-400/80">
+                    <li key={idx} className="flex items-center gap-2 text-[11px] text-red-600/80 dark:text-red-400/80">
                       <X className="w-3 h-3 flex-shrink-0" /> {item}
                     </li>
                   ))}
@@ -671,8 +671,8 @@ export function CustomerSettingsPage() {
           {deleteStep === 3 && (
             <div>
               <div className="text-center mb-4">
-                <h3 className="text-lg font-bold text-red-600 dark:text-red-400 mb-1">{t("customer.settings.finalStep")}</h3>
-                <p className="text-sm text-muted-foreground">
+                <h3 className="text-base font-bold text-red-600 dark:text-red-400 mb-1">{t("customer.settings.finalStep")}</h3>
+                <p className="text-xs text-muted-foreground">
                   {t("customer.settings.typeDeletePrefix")} <span className="font-mono font-bold text-foreground">DELETE</span> {t("customer.settings.typeDeleteSuffix")}
                 </p>
               </div>
@@ -680,13 +680,13 @@ export function CustomerSettingsPage() {
                 value={deleteConfirmText}
                 onChange={(e) => setDeleteConfirmText(e.target.value)}
                 placeholder={t("customer.settings.typeDeletePlaceholder")}
-                className="rounded-xl text-center font-mono text-lg mb-4 border-red-200 dark:border-red-900/30 focus-visible:ring-red-500"
+                className="rounded-xl text-center font-mono text-base mb-4 border-red-200 dark:border-red-900/30 focus-visible:ring-red-500"
               />
               {isDeleting ? (
                 <div className="text-center py-4">
                   <Loader2 className="w-8 h-8 text-red-500 animate-spin mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">{t("customer.settings.deletingYourAccount")}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{t("customer.settings.redirectedShortly")}</p>
+                  <p className="text-xs text-muted-foreground">{t("customer.settings.deletingYourAccount")}</p>
+                  <p className="text-[11px] text-muted-foreground mt-1">{t("customer.settings.redirectedShortly")}</p>
                 </div>
               ) : (
                 <div className="flex gap-2">

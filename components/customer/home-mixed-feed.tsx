@@ -26,15 +26,15 @@ function MixedFeedCard({ item, isWishlisted, onToggleWishlist }: { item: MixedFe
             {item.hasSale && <span className="absolute right-1.5 top-1.5 rounded-full bg-amber-500 px-1.5 py-0.5 text-[8px] font-bold text-white sm:right-2 sm:top-2 sm:px-2 sm:text-[10px]">SALE</span>}
           </div>
           <div className="p-2 pb-0 sm:p-3">
-            <h3 className="truncate text-xs font-semibold text-foreground sm:text-base">{item.name}</h3>
-            <div className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground sm:mt-1 sm:gap-1 sm:text-xs">
+            <h3 className="truncate text-[11px] font-semibold text-foreground sm:text-sm">{item.name}</h3>
+            <div className="mt-1 flex items-center gap-1 text-[10px] text-muted-foreground sm:mt-1 sm:gap-1 sm:text-[11px]">
               <Star className="h-3 w-3 flex-shrink-0 fill-amber-400 text-amber-400 sm:h-3.5 sm:w-3.5" /> <span className="truncate">{item.rating.toFixed(1)} ({item.reviews})</span>
             </div>
-            {item.hoursLabel && <p className="mt-0.5 hidden truncate text-[11px] text-muted-foreground sm:block sm:mt-1">{item.hoursLabel}</p>}
+            {item.hoursLabel && <p className="mt-0.5 hidden truncate text-[10px] text-muted-foreground sm:block sm:mt-1">{item.hoursLabel}</p>}
           </div>
         </Link>
         <div className="grid grid-cols-1 gap-1 p-2 sm:grid-cols-2 sm:gap-2 sm:p-3">
-          <Link href={`/customer/shops/${item.id}`}><Button size="sm" className="h-8 w-full rounded-md px-1 text-[10px] sm:h-9 sm:rounded-lg sm:px-3 sm:text-sm">Shop Now</Button></Link>
+          <Link href={`/customer/shops/${item.id}`}><Button size="sm" className="h-8 w-full rounded-md px-1 text-[10px] sm:h-9 sm:rounded-lg sm:px-3 sm:text-xs">Shop Now</Button></Link>
           <Link href={`/customer/shops/${item.id}`} className="hidden sm:block"><Button size="sm" variant="outline" className="w-full rounded-lg bg-transparent">View Shop</Button></Link>
         </div>
       </Card>
@@ -56,10 +56,10 @@ function MixedFeedCard({ item, isWishlisted, onToggleWishlist }: { item: MixedFe
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-1">
-              <p className="truncate text-xs font-semibold text-foreground sm:text-sm">{item.name}</p>
+              <p className="truncate text-[11px] font-semibold text-foreground sm:text-xs">{item.name}</p>
               {item.verified && <ShieldCheck className="h-3 w-3 flex-shrink-0 text-emerald-500 sm:h-3.5 sm:w-3.5" />}
             </div>
-            <p className="truncate text-[10px] text-muted-foreground sm:text-xs">{item.categoryName ?? (isBusiness ? "Business" : "Specialist")}</p>
+            <p className="truncate text-[10px] text-muted-foreground sm:text-[11px]">{item.categoryName ?? (isBusiness ? "Business" : "Specialist")}</p>
           </div>
         </div>
         <button onClick={(e) => { e.preventDefault(); onToggleWishlist() }} aria-label="Save" className="hidden flex-shrink-0 rounded-full p-1 hover:bg-muted sm:block">
@@ -67,7 +67,7 @@ function MixedFeedCard({ item, isWishlisted, onToggleWishlist }: { item: MixedFe
         </button>
       </div>
 
-      <div className="mt-1.5 flex items-center gap-1 text-[10px] text-muted-foreground sm:mt-2 sm:gap-1 sm:text-xs">
+      <div className="mt-1.5 flex items-center gap-1 text-[10px] text-muted-foreground sm:mt-2 sm:gap-1 sm:text-[11px]">
         <Star className="h-3 w-3 flex-shrink-0 fill-amber-400 text-amber-400 sm:h-3.5 sm:w-3.5" />
         <span className="font-semibold text-foreground">{item.rating.toFixed(1)}</span>
         <span className="hidden sm:inline">({item.reviewCount}) · {item.location}</span>
@@ -82,13 +82,13 @@ function MixedFeedCard({ item, isWishlisted, onToggleWishlist }: { item: MixedFe
       )}
 
       {isBusiness ? (
-        <div className="mt-3 hidden grid-cols-3 gap-1 text-center text-xs text-muted-foreground sm:grid">
+        <div className="mt-3 hidden grid-cols-3 gap-1 text-center text-[11px] text-muted-foreground sm:grid">
           <div><p className="font-semibold text-foreground">{item.branchCount}</p>Branches</div>
           <div><p className="font-semibold text-foreground">{item.staffCount}</p>Staff</div>
           <div><p className="font-semibold text-foreground">{item.completedJobs}</p>Jobs done</div>
         </div>
       ) : (
-        item.hourlyRate > 0 && <p className="mt-1 truncate text-[10px] text-muted-foreground sm:mt-3 sm:text-sm">From <span className="font-bold text-foreground">{formatMoney(item.hourlyRate)}</span></p>
+        item.hourlyRate > 0 && <p className="mt-1 truncate text-[10px] text-muted-foreground sm:mt-3 sm:text-xs">From <span className="font-bold text-foreground">{formatMoney(item.hourlyRate)}</span></p>
       )}
 
       {/* Compact icon row on mobile so Hire / Quote / View still fit in the
@@ -137,8 +137,8 @@ export function MixedFeedSection({ title, seeAllHref, items }: { title: string; 
   return (
     <div>
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-base font-bold text-foreground sm:text-lg">{title}</h2>
-        <Link href={seeAllHref} className="flex items-center gap-0.5 text-sm font-medium text-primary">
+        <h2 className="text-sm font-bold text-foreground sm:text-base">{title}</h2>
+        <Link href={seeAllHref} className="flex items-center gap-0.5 text-xs font-medium text-primary">
           See all <ChevronRight className="h-4 w-4" />
         </Link>
       </div>

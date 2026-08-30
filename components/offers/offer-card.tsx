@@ -156,7 +156,7 @@ export function OfferCard({
         )}
 
         {data.availabilityLabel && (
-          <span className="absolute bottom-2 left-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm lg:bottom-2.5 lg:left-2.5 lg:text-[11px]">
+          <span className="absolute bottom-2 left-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm lg:bottom-2.5 lg:left-2.5">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden="true" />
             {data.availabilityLabel}
           </span>
@@ -174,7 +174,7 @@ export function OfferCard({
             </span>
           )}
           <span className="flex min-w-0 items-center gap-1">
-            <span className="truncate text-xs font-semibold text-foreground lg:text-[15px]">
+            <span className="truncate text-[11px] font-semibold text-foreground lg:text-[13px]">
               {data.providerName || data.title}
             </span>
             {data.verified && <CheckCircle className="h-3 w-3 shrink-0 text-blue-500 lg:h-4 lg:w-4" />}
@@ -182,13 +182,13 @@ export function OfferCard({
         </div>
 
         {(data.providerName ? data.title : data.subtitle) && (
-          <p className="line-clamp-2 text-[11px] leading-snug text-muted-foreground lg:line-clamp-1 lg:text-sm">
+          <p className="line-clamp-2 text-[10px] leading-snug text-muted-foreground lg:line-clamp-1 lg:text-xs">
             {data.providerName ? data.title : data.subtitle}
           </p>
         )}
 
         {(hasRating || data.location) && (
-          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground lg:gap-2 lg:text-xs">
+          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground lg:gap-2 lg:text-[11px]">
             {hasRating && (
               <span className="flex shrink-0 items-center gap-0.5">
                 <Star className="h-3 w-3 fill-amber-400 text-amber-400 lg:h-3.5 lg:w-3.5" />
@@ -213,12 +213,12 @@ export function OfferCard({
           // past its height budget, so the rest collapse into a "+N" chip.
           <div className="flex gap-1 overflow-hidden lg:gap-1.5">
             {shownTags.map((tag) => (
-              <span key={tag} className="truncate rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary lg:rounded-lg lg:px-2 lg:text-[11px]">
+              <span key={tag} className="truncate rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary lg:rounded-lg lg:px-2">
                 {tag}
               </span>
             ))}
             {overflow > 0 && (
-              <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground lg:rounded-lg lg:px-2 lg:text-[11px]">
+              <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground lg:rounded-lg lg:px-2">
                 +{overflow}
               </span>
             )}
@@ -231,26 +231,26 @@ export function OfferCard({
           <div className="flex items-end justify-between gap-2">
             <div className="min-w-0">
               {data.priceIsFrom && data.price != null && (
-                <p className="text-[10px] leading-none text-muted-foreground lg:text-xs">{t("common.fromPrice")}</p>
+                <p className="text-[10px] leading-none text-muted-foreground lg:text-[11px]">{t("common.fromPrice")}</p>
               )}
-              <p className="truncate text-sm font-bold text-primary lg:text-xl">
+              <p className="truncate text-xs font-bold text-primary lg:text-lg">
                 {data.price == null ? t("common.requestQuote") : formatMoney(data.price)}
                 {data.price != null && data.priceSuffix && (
-                  <span className="text-[10px] font-normal text-muted-foreground lg:text-xs">{data.priceSuffix}</span>
+                  <span className="text-[10px] font-normal text-muted-foreground lg:text-[11px]">{data.priceSuffix}</span>
                 )}
               </p>
             </div>
             {data.responseTime && (
               // No room for this beside a 179px card's price; it returns at lg
               // where the desktop card has a full 272px row to spend.
-              <span className="hidden shrink-0 items-center gap-1 text-xs text-muted-foreground lg:flex">
+              <span className="hidden shrink-0 items-center gap-1 text-[11px] text-muted-foreground lg:flex">
                 <Clock className="h-3.5 w-3.5" />
                 {data.responseTime}
               </span>
             )}
           </div>
 
-          <span className="mt-2 flex h-9 w-full items-center justify-center rounded-lg bg-primary px-2 text-[11px] font-semibold text-primary-foreground transition-colors group-hover:bg-primary/90 lg:mt-2.5 lg:h-11 lg:rounded-xl lg:text-sm">
+          <span className="mt-2 flex h-9 w-full items-center justify-center rounded-lg bg-primary px-2 text-[10px] font-semibold text-primary-foreground transition-colors group-hover:bg-primary/90 lg:mt-2.5 lg:h-11 lg:rounded-xl lg:text-xs">
             {data.actionType ? t(ACTION_KEY[data.actionType]) : t("common.viewDetails")}
           </span>
         </div>

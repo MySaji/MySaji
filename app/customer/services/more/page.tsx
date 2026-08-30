@@ -164,10 +164,10 @@ export default function MoreServicesPage() {
               </Link>
             </Button>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">
+              <h1 className="text-xl font-bold text-foreground">
                 {typeFilter === "rental" ? "Rentals" : typeFilter === "offer" ? "Offers" : typeFilter === "service" ? "Services" : t("customer.services.moreTitle")}
               </h1>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 {typeFilter === "rental" ? "Equipment and tools providers have listed for rent" : t("customer.services.moreSubtitle")}
               </p>
             </div>
@@ -179,7 +179,7 @@ export default function MoreServicesPage() {
             <button
               key={tab.key}
               onClick={() => setTypeFilter(tab.key)}
-              className={`flex-shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${typeFilter === tab.key ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}
+              className={`flex-shrink-0 rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${typeFilter === tab.key ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}
             >
               {tab.label}
             </button>
@@ -199,7 +199,7 @@ export default function MoreServicesPage() {
 
         {filteredCards.length === 0 ? (
           <Card className="border-dashed p-10 text-center">
-            <p className="text-lg font-semibold text-foreground">{t("customer.services.noMatch")}</p>
+            <p className="text-base font-semibold text-foreground">{t("customer.services.noMatch")}</p>
           </Card>
         ) : (
           <OfferCardGrid>

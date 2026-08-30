@@ -70,7 +70,7 @@ export default function CustomerProductDetailPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4">
         <Card className="p-8 text-center">
-          <p className="text-lg font-semibold">{t("customer.productDetail.notFound")}</p>
+          <p className="text-base font-semibold">{t("customer.productDetail.notFound")}</p>
           <Button className="mt-4" onClick={() => router.push("/customer/products")}>{t("customer.productDetail.backToProducts")}</Button>
         </Card>
       </div>
@@ -140,7 +140,7 @@ export default function CustomerProductDetailPage() {
             <ArrowLeft className="h-4 w-4" />
             {t("customer.shop.back")}
           </Button>
-          <Link href="/customer/cart" className="flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary">
+          <Link href="/customer/cart" className="flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary">
             <ShoppingCart className="h-4 w-4" />
             {t("customer.productDetail.inCart", { count: cartCount })}
           </Link>
@@ -170,22 +170,22 @@ export default function CustomerProductDetailPage() {
 
           <div className="space-y-5">
             <div>
-              <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1 text-sm font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+              <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
                 <Package className="h-4 w-4" />
                 {t("customer.productDetail.itemsLeft", { count: product.stock })}
               </div>
-              <h1 className="text-3xl font-bold text-foreground">{product.name}</h1>
-              <p className="mt-2 text-sm text-muted-foreground">{t("customer.productDetail.soldBy", { shop: product.shop })}</p>
+              <h1 className="text-2xl font-bold text-foreground">{product.name}</h1>
+              <p className="mt-2 text-xs text-muted-foreground">{t("customer.productDetail.soldBy", { shop: product.shop })}</p>
             </div>
 
             <div className="rounded-2xl border border-border bg-muted/40 p-4">
-              <p className="text-sm leading-7 text-foreground">{product.description}</p>
+              <p className="text-xs leading-7 text-foreground">{product.description}</p>
             </div>
 
             <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
               <div>
-                <p className="text-sm text-muted-foreground">{t("customer.productDetail.price")}</p>
-                <p className="text-3xl font-bold text-primary">{formatMoney(displayPrice)}</p>
+                <p className="text-xs text-muted-foreground">{t("customer.productDetail.price")}</p>
+                <p className="text-2xl font-bold text-primary">{formatMoney(displayPrice)}</p>
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" className="flex-1 sm:flex-none rounded-full bg-transparent" onClick={() => router.back()}>{t("common.cancel")}</Button>
@@ -196,11 +196,11 @@ export default function CustomerProductDetailPage() {
             </div>
 
             <div className="rounded-2xl border border-border p-4">
-              <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
+              <div className="mb-3 flex items-center gap-2 text-xs font-semibold text-foreground">
                 <Wallet className="h-4 w-4 text-primary" />
                 {t("customer.productDetail.walletCheckoutAvailable")}
               </div>
-              <p className="text-sm text-muted-foreground">{t("customer.productDetail.walletCheckoutHint")}</p>
+              <p className="text-xs text-muted-foreground">{t("customer.productDetail.walletCheckoutHint")}</p>
             </div>
           </div>
         </div>
@@ -216,27 +216,27 @@ export default function CustomerProductDetailPage() {
             <TabsContent value="details" className="space-y-3">
               <div className="grid gap-3 md:grid-cols-2">
                 <div className="rounded-xl bg-muted/40 p-4">
-                  <p className="text-sm font-semibold text-foreground">{t("customer.productDetail.highlights")}</p>
-                  <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
+                  <p className="text-xs font-semibold text-foreground">{t("customer.productDetail.highlights")}</p>
+                  <ul className="mt-2 space-y-2 text-xs text-muted-foreground">
                     <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-500" /> {t("customer.productDetail.highlight1")}</li>
                     <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-500" /> {t("customer.productDetail.highlight2")}</li>
                     <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-500" /> {t("customer.productDetail.highlight3")}</li>
                   </ul>
                 </div>
                 <div className="rounded-xl bg-muted/40 p-4">
-                  <p className="text-sm font-semibold text-foreground">{t("customer.productDetail.sellerNote")}</p>
-                  <p className="mt-2 text-sm text-muted-foreground">{t("customer.productDetail.sellerNoteText")}</p>
+                  <p className="text-xs font-semibold text-foreground">{t("customer.productDetail.sellerNote")}</p>
+                  <p className="mt-2 text-xs text-muted-foreground">{t("customer.productDetail.sellerNoteText")}</p>
                 </div>
               </div>
             </TabsContent>
 
-            <TabsContent value="shipping" className="rounded-xl bg-muted/40 p-4 text-sm text-muted-foreground">
+            <TabsContent value="shipping" className="rounded-xl bg-muted/40 p-4 text-xs text-muted-foreground">
               {t("customer.productDetail.shippingText", { amount: formatMoney(20000) })}
             </TabsContent>
 
             <TabsContent value="reviews" className="space-y-3">
               {product.reviews.length === 0 ? (
-                <p className="rounded-xl bg-muted/40 p-4 text-sm text-muted-foreground">{t("customer.productDetail.noReviews")}</p>
+                <p className="rounded-xl bg-muted/40 p-4 text-xs text-muted-foreground">{t("customer.productDetail.noReviews")}</p>
               ) : (
                 product.reviews.map((review) => (
                   <div key={review.id} className="rounded-xl bg-muted/40 p-3">
@@ -265,7 +265,7 @@ export default function CustomerProductDetailPage() {
                         </div>
                       )}
                     </div>
-                    <p className="text-sm text-muted-foreground">{review.comment}</p>
+                    <p className="text-xs text-muted-foreground">{review.comment}</p>
                     {review.photos.length > 0 && (
                       <div className="mt-2">
                         <KycDocumentViewer
@@ -279,7 +279,7 @@ export default function CustomerProductDetailPage() {
 
               {(isEditingForm || !product.reviews.some((r) => r.isMine)) && (
                 <div className="rounded-xl border border-border p-4">
-                  <p className="mb-2 text-sm font-semibold text-foreground">
+                  <p className="mb-2 text-xs font-semibold text-foreground">
                     {editingReviewId ? t("customer.productDetail.editReview") : t("customer.productDetail.leaveReview")}
                   </p>
                   <div className="mb-3 flex gap-1">
@@ -323,7 +323,7 @@ export default function CustomerProductDetailPage() {
                       </label>
                     )}
                   </div>
-                  {reviewError && <p className="mb-2 text-xs text-red-600">{reviewError}</p>}
+                  {reviewError && <p className="mb-2 text-[11px] text-red-600">{reviewError}</p>}
                   <div className="flex gap-2">
                     <Button size="sm" className="rounded-xl" onClick={handleSubmitReview} disabled={isSubmittingReview}>
                       {isSubmittingReview ? <Loader2 className="h-4 w-4 animate-spin" /> : editingReviewId ? t("common.save") : t("customer.productDetail.submitReview")}
@@ -342,11 +342,11 @@ export default function CustomerProductDetailPage() {
 
         <div className="mt-8">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-foreground">{t("customer.productDetail.mayAlsoLike")}</h2>
-            <Link href="/customer/products" className="text-sm font-medium text-primary">{t("customer.productDetail.browseCatalog")}</Link>
+            <h2 className="text-lg font-semibold text-foreground">{t("customer.productDetail.mayAlsoLike")}</h2>
+            <Link href="/customer/products" className="text-xs font-medium text-primary">{t("customer.productDetail.browseCatalog")}</Link>
           </div>
           {product.relatedProducts.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{t("customer.productDetail.noRelated")}</p>
+            <p className="text-xs text-muted-foreground">{t("customer.productDetail.noRelated")}</p>
           ) : (
             <div className="grid gap-4 md:grid-cols-3">
               {product.relatedProducts.map((item) => (
@@ -356,7 +356,7 @@ export default function CustomerProductDetailPage() {
                   </div>
                   <div className="p-4">
                     <h3 className="font-semibold text-foreground">{item.name}</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">{item.shop}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{item.shop}</p>
                     <div className="mt-3 flex items-center justify-between">
                       <p className="font-bold text-primary">{formatMoney(item.discountPrice ?? item.price)}</p>
                       <Button size="sm" variant="outline" asChild>

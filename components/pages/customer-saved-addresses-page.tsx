@@ -145,8 +145,8 @@ export function CustomerSavedAddressesPage() {
       <div className="max-w-2xl mx-auto px-4 py-6 lg:py-8">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl lg:text-3xl font-bold text-foreground">{t("customer.savedAddresses.title")}</h1>
-            <p className="text-sm text-muted-foreground mt-1">{t("customer.savedAddresses.subtitle")}</p>
+            <h1 className="text-xl lg:text-2xl font-bold text-foreground">{t("customer.savedAddresses.title")}</h1>
+            <p className="text-xs text-muted-foreground mt-1">{t("customer.savedAddresses.subtitle")}</p>
           </div>
           <Button onClick={openAdd} className="rounded-xl gap-1.5"><Plus className="w-4 h-4" />{t("customer.savedAddresses.addNew")}</Button>
         </div>
@@ -154,7 +154,7 @@ export function CustomerSavedAddressesPage() {
         <div className="space-y-3">
           {addresses.length === 0 && (
             <Card className="p-10 text-center border-0 shadow-sm">
-              <p className="text-sm text-muted-foreground">{t("customer.savedAddresses.empty")}</p>
+              <p className="text-xs text-muted-foreground">{t("customer.savedAddresses.empty")}</p>
             </Card>
           )}
           {addresses.map(addr => {
@@ -168,12 +168,12 @@ export function CustomerSavedAddressesPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
-                      <p className="font-semibold text-sm text-foreground">{addr.label}</p>
+                      <p className="font-semibold text-xs text-foreground">{addr.label}</p>
                       {addr.isDefault && (
                         <span className="text-[10px] font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">{t("customer.savedAddresses.default")}</span>
                       )}
                     </div>
-                    <p className="text-sm text-muted-foreground">{addr.address}</p>
+                    <p className="text-xs text-muted-foreground">{addr.address}</p>
                   </div>
                   <div className="relative flex-shrink-0">
                     <button onClick={() => setMenuOpen(menuOpen === addr.id ? null : addr.id)} aria-label={t("customer.messages.moreOptions")} className="p-1.5 hover:bg-muted rounded-lg transition-colors">
@@ -183,9 +183,9 @@ export function CustomerSavedAddressesPage() {
                       <>
                         <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(null)} />
                         <div className="absolute right-0 top-8 w-40 bg-card rounded-xl shadow-xl border border-border z-50 overflow-hidden py-1">
-                          <button onClick={() => openEdit(addr)} className="w-full px-3 py-2 text-sm text-left hover:bg-muted flex items-center gap-2"><Pencil className="w-3.5 h-3.5" />{t("common.edit")}</button>
-                          {!addr.isDefault && <button onClick={() => setDefault(addr.id)} className="w-full px-3 py-2 text-sm text-left hover:bg-muted flex items-center gap-2"><Star className="w-3.5 h-3.5" />{t("customer.savedAddresses.setDefault")}</button>}
-                          <button onClick={() => handleDelete(addr.id)} className="w-full px-3 py-2 text-sm text-left hover:bg-destructive/10 text-destructive flex items-center gap-2"><Trash2 className="w-3.5 h-3.5" />{t("common.delete")}</button>
+                          <button onClick={() => openEdit(addr)} className="w-full px-3 py-2 text-xs text-left hover:bg-muted flex items-center gap-2"><Pencil className="w-3.5 h-3.5" />{t("common.edit")}</button>
+                          {!addr.isDefault && <button onClick={() => setDefault(addr.id)} className="w-full px-3 py-2 text-xs text-left hover:bg-muted flex items-center gap-2"><Star className="w-3.5 h-3.5" />{t("customer.savedAddresses.setDefault")}</button>}
+                          <button onClick={() => handleDelete(addr.id)} className="w-full px-3 py-2 text-xs text-left hover:bg-destructive/10 text-destructive flex items-center gap-2"><Trash2 className="w-3.5 h-3.5" />{t("common.delete")}</button>
                         </div>
                       </>
                     )}
@@ -201,17 +201,17 @@ export function CustomerSavedAddressesPage() {
           <DialogContent className="max-w-md rounded-2xl" aria-describedby={undefined}>
             <DialogHeader><DialogTitle>{editingId ? t("customer.savedAddresses.editAddress") : t("customer.savedAddresses.addAddress")}</DialogTitle></DialogHeader>
             <div className="space-y-4 py-2">
-              <div><label className="text-sm font-medium mb-2 block">{t("customer.savedAddresses.label")}</label><Input value={formLabel} onChange={e => setFormLabel(e.target.value)} placeholder={t("customer.savedAddresses.labelPlaceholder")} className="rounded-xl" /></div>
-              <div><label className="text-sm font-medium mb-2 block">{t("customer.savedAddresses.type")}</label>
+              <div><label className="text-xs font-medium mb-2 block">{t("customer.savedAddresses.label")}</label><Input value={formLabel} onChange={e => setFormLabel(e.target.value)} placeholder={t("customer.savedAddresses.labelPlaceholder")} className="rounded-xl" /></div>
+              <div><label className="text-xs font-medium mb-2 block">{t("customer.savedAddresses.type")}</label>
                 <div className="grid grid-cols-3 gap-2">
                   {(["home", "office", "other"] as const).map(uiType => {
                     const TIcon = typeIcons[uiType]
-                    return (<button key={uiType} onClick={() => setFormType(uiType)} className={`p-3 rounded-xl text-center border-2 transition-all ${formType === uiType ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"}`}><TIcon className="w-5 h-5 mx-auto mb-1" /><span className="text-xs font-medium">{typeLabels[uiType]}</span></button>)
+                    return (<button key={uiType} onClick={() => setFormType(uiType)} className={`p-3 rounded-xl text-center border-2 transition-all ${formType === uiType ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"}`}><TIcon className="w-5 h-5 mx-auto mb-1" /><span className="text-[11px] font-medium">{typeLabels[uiType]}</span></button>)
                   })}
                 </div>
               </div>
               <div>
-                <label className="text-sm font-medium mb-2 block">{t("customer.savedAddresses.fullAddress")}</label>
+                <label className="text-xs font-medium mb-2 block">{t("customer.savedAddresses.fullAddress")}</label>
                 <AddressAutocompleteInput
                   value={formAddress}
                   onChange={setFormAddress}
@@ -227,8 +227,8 @@ export function CustomerSavedAddressesPage() {
                 {isLocating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4" />}
                 {t("customer.savedAddresses.useCurrentLocation")}
               </Button>
-              {locateError && <p className="text-xs text-red-600">{locateError}</p>}
-              {formError && <p className="text-xs text-red-600">{formError}</p>}
+              {locateError && <p className="text-[11px] text-red-600">{locateError}</p>}
+              {formError && <p className="text-[11px] text-red-600">{formError}</p>}
             </div>
             <div className="flex gap-3"><Button variant="outline" onClick={() => setShowForm(false)} className="flex-1 rounded-xl bg-transparent" disabled={isSaving}>{t("common.cancel")}</Button><Button onClick={handleSave} className="flex-1 rounded-xl" disabled={!formLabel || !formAddress || isSaving}>{isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : t("common.save")}</Button></div>
           </DialogContent>

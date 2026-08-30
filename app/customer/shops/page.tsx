@@ -29,11 +29,11 @@ export default function CustomerShopsPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+        <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
           <Store className="w-6 h-6 text-primary" />
           {t("customer.shops.allShops")}
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">{t("customer.shops.browseSubtitle")}</p>
+        <p className="text-xs text-muted-foreground mt-1">{t("customer.shops.browseSubtitle")}</p>
       </div>
 
       <div className="relative mb-6">
@@ -54,7 +54,7 @@ export default function CustomerShopsPage() {
         <Card className="p-10 text-center">
           <Store className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
           <p className="text-foreground font-medium">{search ? t("customer.shops.noMatch") : t("customer.shops.noShops")}</p>
-          {!search && <p className="text-sm text-muted-foreground mt-1">{t("customer.shops.checkBackSoon")}</p>}
+          {!search && <p className="text-xs text-muted-foreground mt-1">{t("customer.shops.checkBackSoon")}</p>}
         </Card>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -80,14 +80,14 @@ export default function CustomerShopsPage() {
                   )}
                 </div>
                 <div className="p-3">
-                  <h4 className="font-semibold text-foreground text-sm truncate">{shop.name}</h4>
+                  <h4 className="font-semibold text-foreground text-xs truncate">{shop.name}</h4>
                   <div className="flex items-center gap-1.5 mt-1">
                     <div className="flex items-center">
                       {[...Array(5)].map((_, i) => (
                         <Star key={i} className={`w-3 h-3 ${i < Math.floor(shop.rating) ? "fill-amber-400 text-amber-400" : "text-muted"}`} />
                       ))}
                     </div>
-                    <span className="text-xs text-muted-foreground">{shop.reviews}</span>
+                    <span className="text-[11px] text-muted-foreground">{shop.reviews}</span>
                   </div>
                   {shop.hoursLabel && <p className="text-[10px] text-muted-foreground mt-1 truncate">{shop.hoursLabel}</p>}
                 </div>

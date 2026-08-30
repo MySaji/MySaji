@@ -61,8 +61,8 @@ export default function ServiceDetailPage() {
   if (!detail) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background px-4 text-center">
-        <p className="text-lg font-semibold text-foreground">{t("customer.booking.serviceNotFound")}</p>
-        <p className="text-sm text-muted-foreground">{t("customer.booking.serviceNoLongerAvailable")}</p>
+        <p className="text-base font-semibold text-foreground">{t("customer.booking.serviceNotFound")}</p>
+        <p className="text-xs text-muted-foreground">{t("customer.booking.serviceNoLongerAvailable")}</p>
         <Button onClick={() => router.push("/customer/services")}>{t("home.browseServices")}</Button>
       </div>
     )
@@ -76,8 +76,8 @@ export default function ServiceDetailPage() {
             <ArrowLeft className="h-6 w-6" />
           </button>
           <div>
-            <h1 className="text-2xl font-bold">{detail.title}</h1>
-            <p className="text-sm text-primary-foreground/80">{t("customer.serviceDetail.verifiedProvidersNearYou")}</p>
+            <h1 className="text-xl font-bold">{detail.title}</h1>
+            <p className="text-xs text-primary-foreground/80">{t("customer.serviceDetail.verifiedProvidersNearYou")}</p>
           </div>
         </div>
       </div>
@@ -99,15 +99,15 @@ export default function ServiceDetailPage() {
         <Card className="p-5 sm:p-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
+              <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
                 <Sparkles className="h-4 w-4" />
                 {t("customer.serviceDetail.premiumService")}
               </div>
-              <h2 className="text-2xl font-bold text-foreground">{detail.title}</h2>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{detail.description}</p>
+              <h2 className="text-xl font-bold text-foreground">{detail.title}</h2>
+              <p className="mt-2 max-w-2xl text-xs leading-6 text-muted-foreground">{detail.description}</p>
             </div>
             {detail.providers.length > 0 && (
-              <div className="rounded-2xl border border-border bg-muted/40 p-3 text-sm">
+              <div className="rounded-2xl border border-border bg-muted/40 p-3 text-xs">
                 <p className="text-muted-foreground">{t("customer.serviceDetail.typicalPrice")}</p>
                 <p className="font-semibold text-foreground">
                   {formatMoney(Math.min(...detail.providers.map((p) => p.price)))} - {formatMoney(Math.max(...detail.providers.map((p) => p.price)))}
@@ -118,16 +118,16 @@ export default function ServiceDetailPage() {
 
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
             <div className="rounded-xl bg-muted/40 p-3">
-              <div className="mb-1 flex items-center gap-2 text-sm font-medium text-foreground"><ShieldCheck className="h-4 w-4 text-emerald-500" /> {t("customer.serviceDetail.verifiedProviders")}</div>
-              <p className="text-sm text-muted-foreground">{t("customer.serviceDetail.verifiedProvidersHint")}</p>
+              <div className="mb-1 flex items-center gap-2 text-xs font-medium text-foreground"><ShieldCheck className="h-4 w-4 text-emerald-500" /> {t("customer.serviceDetail.verifiedProviders")}</div>
+              <p className="text-xs text-muted-foreground">{t("customer.serviceDetail.verifiedProvidersHint")}</p>
             </div>
             <div className="rounded-xl bg-muted/40 p-3">
-              <div className="mb-1 flex items-center gap-2 text-sm font-medium text-foreground"><Clock className="h-4 w-4 text-primary" /> {t("customer.serviceDetail.fastResponse")}</div>
-              <p className="text-sm text-muted-foreground">{t("customer.serviceDetail.fastResponseHint")}</p>
+              <div className="mb-1 flex items-center gap-2 text-xs font-medium text-foreground"><Clock className="h-4 w-4 text-primary" /> {t("customer.serviceDetail.fastResponse")}</div>
+              <p className="text-xs text-muted-foreground">{t("customer.serviceDetail.fastResponseHint")}</p>
             </div>
             <div className="rounded-xl bg-muted/40 p-3">
-              <div className="mb-1 flex items-center gap-2 text-sm font-medium text-foreground"><MapPin className="h-4 w-4 text-primary" /> {t("customer.serviceDetail.localAvailability")}</div>
-              <p className="text-sm text-muted-foreground">{t("customer.serviceDetail.localAvailabilityHint")}</p>
+              <div className="mb-1 flex items-center gap-2 text-xs font-medium text-foreground"><MapPin className="h-4 w-4 text-primary" /> {t("customer.serviceDetail.localAvailability")}</div>
+              <p className="text-xs text-muted-foreground">{t("customer.serviceDetail.localAvailabilityHint")}</p>
             </div>
           </div>
         </Card>
@@ -140,7 +140,7 @@ export default function ServiceDetailPage() {
 
           <TabsContent value="providers" className="space-y-3">
             {detail.providers.length === 0 && (
-              <Card className="p-8 text-center text-sm text-muted-foreground">{t("customer.serviceDetail.noProviders")}</Card>
+              <Card className="p-8 text-center text-xs text-muted-foreground">{t("customer.serviceDetail.noProviders")}</Card>
             )}
             {detail.providers.map((provider) => (
               <Card
@@ -163,21 +163,21 @@ export default function ServiceDetailPage() {
                         <h4 className="flex items-center gap-2 font-bold text-foreground">
                           {provider.name}
                           {provider.verified && (
-                            <span className="rounded-full bg-emerald-100 px-2 py-1 text-[11px] font-semibold text-emerald-700">{t("customer.favorites.verified")}</span>
+                            <span className="rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-semibold text-emerald-700">{t("customer.favorites.verified")}</span>
                           )}
-                          <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${STATUS_STYLE[provider.status].badge}`}>
+                          <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${STATUS_STYLE[provider.status].badge}`}>
                             {STATUS_STYLE[provider.status].label}
                           </span>
                         </h4>
-                        <p className="mt-1 text-sm text-muted-foreground">{provider.bio}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">{provider.bio}</p>
                       </div>
                       <div className="text-left sm:text-right">
-                        <p className="text-xl font-bold text-primary">{formatMoney(provider.price)}</p>
-                        <p className="text-xs text-muted-foreground">{t("customer.serviceDetail.perService")}</p>
+                        <p className="text-lg font-bold text-primary">{formatMoney(provider.price)}</p>
+                        <p className="text-[11px] text-muted-foreground">{t("customer.serviceDetail.perService")}</p>
                       </div>
                     </div>
 
-                    <div className="mb-3 grid grid-cols-1 gap-2 text-xs sm:grid-cols-3">
+                    <div className="mb-3 grid grid-cols-1 gap-2 text-[11px] sm:grid-cols-3">
                       <div className="flex items-center gap-1">
                         <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                         <span className="font-semibold">{provider.rating}</span>
@@ -236,7 +236,7 @@ export default function ServiceDetailPage() {
             ))}
           </TabsContent>
 
-          <TabsContent value="details" className="rounded-2xl border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
+          <TabsContent value="details" className="rounded-2xl border border-border bg-muted/30 p-4 text-xs text-muted-foreground">
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-foreground"><CheckCircle2 className="h-4 w-4 text-emerald-500" /> {t("customer.serviceDetail.detail1")}</div>
               <div className="flex items-center gap-2 text-foreground"><CheckCircle2 className="h-4 w-4 text-emerald-500" /> {t("customer.serviceDetail.detail2")}</div>
@@ -249,8 +249,8 @@ export default function ServiceDetailPage() {
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-background/95 px-4 py-3 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] backdrop-blur lg:hidden">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
           <div>
-            <p className="text-xs text-muted-foreground">{t("customer.serviceDetail.selectedProvider")}</p>
-            <p className="text-sm font-semibold text-foreground">{selectedProvider ? detail.providers.find((provider) => provider.serviceId === selectedProvider)?.name || t("customer.serviceDetail.chooseProvider") : t("customer.serviceDetail.chooseProvider")}</p>
+            <p className="text-[11px] text-muted-foreground">{t("customer.serviceDetail.selectedProvider")}</p>
+            <p className="text-xs font-semibold text-foreground">{selectedProvider ? detail.providers.find((provider) => provider.serviceId === selectedProvider)?.name || t("customer.serviceDetail.chooseProvider") : t("customer.serviceDetail.chooseProvider")}</p>
           </div>
           <Button
             className="rounded-full px-4"

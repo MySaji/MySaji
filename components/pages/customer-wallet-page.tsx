@@ -135,12 +135,12 @@ export function CustomerWalletPage() {
         {/* Header */}
         <div className="flex items-center gap-2 mb-6">
           <Wallet className="w-5 h-5 text-primary" />
-          <h1 className="text-2xl lg:text-3xl font-bold text-foreground tracking-tight">{t("nav.wallet")}</h1>
+          <h1 className="text-xl lg:text-2xl font-bold text-foreground tracking-tight">{t("nav.wallet")}</h1>
         </div>
 
         {returnMessage && (
           <Card className={`p-4 border-0 shadow-sm mb-4 ${returnMessage.type === "success" ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400" : "bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400"}`}>
-            <p className="text-sm font-medium">{returnMessage.text}</p>
+            <p className="text-xs font-medium">{returnMessage.text}</p>
           </Card>
         )}
 
@@ -148,7 +148,7 @@ export function CustomerWalletPage() {
         <Card className="overflow-hidden border-0 shadow-lg mb-6 bg-gradient-to-br from-primary via-primary to-primary/80 text-primary-foreground">
           <div className="p-6 lg:p-8">
             <div className="flex items-center justify-between mb-6">
-              <p className="text-sm font-medium opacity-80">{t("customer.wallet.totalBalance")}</p>
+              <p className="text-xs font-medium opacity-80">{t("customer.wallet.totalBalance")}</p>
               <button
                 onClick={() => setShowBalance(!showBalance)}
                 aria-label={showBalance ? t("common.hideBalance") : t("common.showBalance")}
@@ -157,7 +157,7 @@ export function CustomerWalletPage() {
                 {showBalance ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
               </button>
             </div>
-            <h2 className="text-4xl lg:text-5xl font-bold mb-8 tracking-tight">
+            <h2 className="text-3xl lg:text-4xl font-bold mb-8 tracking-tight">
               {showBalance ? formatMoney(balance) : `${currency} ****`}
             </h2>
             <div className="flex gap-3">
@@ -176,8 +176,8 @@ export function CustomerWalletPage() {
           <Card className="p-4 border-0 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground font-medium mb-1">{t("customer.wallet.totalSpent")}</p>
-                <p className="text-xl font-bold text-foreground">{formatMoney(summary.totalSpent)}</p>
+                <p className="text-[11px] text-muted-foreground font-medium mb-1">{t("customer.wallet.totalSpent")}</p>
+                <p className="text-lg font-bold text-foreground">{formatMoney(summary.totalSpent)}</p>
               </div>
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center"><TrendingUp className="w-5 h-5 text-primary" /></div>
             </div>
@@ -185,8 +185,8 @@ export function CustomerWalletPage() {
           <Card className="p-4 border-0 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground font-medium mb-1">{t("customer.wallet.escrowHeld")}</p>
-                <p className="text-xl font-bold text-foreground">{formatMoney(summary.escrow)}</p>
+                <p className="text-[11px] text-muted-foreground font-medium mb-1">{t("customer.wallet.escrowHeld")}</p>
+                <p className="text-lg font-bold text-foreground">{formatMoney(summary.escrow)}</p>
               </div>
               <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center"><ShieldCheck className="w-5 h-5 text-amber-600 dark:text-amber-400" /></div>
             </div>
@@ -194,8 +194,8 @@ export function CustomerWalletPage() {
           <Card className="p-4 border-0 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground font-medium mb-1">{t("customer.wallet.totalServices")}</p>
-                <p className="text-xl font-bold text-foreground">{summary.completedServices}</p>
+                <p className="text-[11px] text-muted-foreground font-medium mb-1">{t("customer.wallet.totalServices")}</p>
+                <p className="text-lg font-bold text-foreground">{summary.completedServices}</p>
               </div>
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center"><Receipt className="w-5 h-5 text-primary" /></div>
             </div>
@@ -210,7 +210,7 @@ export function CustomerWalletPage() {
             { id: "methods", label: t("customer.wallet.tabMethods") },
           ]).map((tab) => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 py-2 px-4 text-sm font-medium rounded-lg transition-all ${activeTab === tab.id ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+              className={`flex-1 py-2 px-4 text-xs font-medium rounded-lg transition-all ${activeTab === tab.id ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
             >{tab.label}</button>
           ))}
         </div>
@@ -219,12 +219,12 @@ export function CustomerWalletPage() {
         {activeTab === "transactions" && (
           <div className="space-y-2">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-foreground text-sm">{t("customer.wallet.recentTransactions")}</h3>
-              <Button size="sm" variant="ghost" onClick={handleDownloadStatement} className="gap-1.5 text-xs h-8" disabled={transactions.length === 0}><Download className="w-3.5 h-3.5" />{t("customer.wallet.export")}</Button>
+              <h3 className="font-semibold text-foreground text-xs">{t("customer.wallet.recentTransactions")}</h3>
+              <Button size="sm" variant="ghost" onClick={handleDownloadStatement} className="gap-1.5 text-[11px] h-8" disabled={transactions.length === 0}><Download className="w-3.5 h-3.5" />{t("customer.wallet.export")}</Button>
             </div>
             {transactions.length === 0 ? (
               <Card className="p-8 text-center border-0 shadow-sm">
-                <p className="text-sm text-muted-foreground">{t("customer.wallet.noTransactions")}</p>
+                <p className="text-xs text-muted-foreground">{t("customer.wallet.noTransactions")}</p>
               </Card>
             ) : transactions.map((txn) => {
               const config = txnConfig[txn.category]
@@ -236,13 +236,13 @@ export function CustomerWalletPage() {
                       <Icon className={`w-4 h-4 ${config.iconColor}`} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm text-foreground truncate">{txn.description}</p>
+                      <p className="font-medium text-xs text-foreground truncate">{txn.description}</p>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-xs text-muted-foreground">{new Date(txn.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
+                        <span className="text-[11px] text-muted-foreground">{new Date(txn.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
                         <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${txn.status === "completed" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400" : "bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400"}`}>{txnStatusLabels[txn.status] ?? txn.status}</span>
                       </div>
                     </div>
-                    <p className={`font-bold text-sm flex-shrink-0 ${txn.amount > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-foreground"}`}>
+                    <p className={`font-bold text-xs flex-shrink-0 ${txn.amount > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-foreground"}`}>
                       {txn.amount > 0 ? "+" : ""}{formatMoney(Math.abs(txn.amount))}
                     </p>
                   </div>
@@ -259,33 +259,33 @@ export function CustomerWalletPage() {
               <div className="flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 text-sky-600 dark:text-sky-400 mt-0.5 flex-shrink-0" />
                 <div>
-                  <h4 className="font-medium text-sm text-sky-900 dark:text-sky-200">{t("customer.wallet.aboutEscrowTitle")}</h4>
-                  <p className="mt-1 text-sm text-sky-700 dark:text-sky-300">{t("customer.wallet.aboutEscrowDesc")}</p>
+                  <h4 className="font-medium text-xs text-sky-900 dark:text-sky-200">{t("customer.wallet.aboutEscrowTitle")}</h4>
+                  <p className="mt-1 text-xs text-sky-700 dark:text-sky-300">{t("customer.wallet.aboutEscrowDesc")}</p>
                 </div>
               </div>
             </Card>
             {summary.escrowJobs.length === 0 ? (
               <Card className="p-8 text-center border-0 shadow-sm">
                 <ShieldCheck className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
-                <h3 className="mb-1 font-semibold text-foreground text-sm">{t("customer.wallet.noActiveEscrowTitle")}</h3>
-                <p className="text-sm text-muted-foreground">{t("customer.wallet.noActiveEscrowDesc")}</p>
+                <h3 className="mb-1 font-semibold text-foreground text-xs">{t("customer.wallet.noActiveEscrowTitle")}</h3>
+                <p className="text-xs text-muted-foreground">{t("customer.wallet.noActiveEscrowDesc")}</p>
               </Card>
             ) : summary.escrowJobs.map((job) => (
               <Card key={job.jobId} className="p-4 border-0 shadow-sm">
                 <div className="flex items-center justify-between mb-2 gap-2">
-                  <h4 className="font-semibold text-sm text-foreground truncate">{job.title}</h4>
+                  <h4 className="font-semibold text-xs text-foreground truncate">{job.title}</h4>
                   <span className={`flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${job.status === "IN_PROGRESS" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"}`}>
                     {job.status === "IN_PROGRESS" ? (
                       <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{t("customer.wallet.statusInProgress")}</span>
                     ) : t("customer.wallet.statusAccepted")}
                   </span>
                 </div>
-                <p className="text-xs text-muted-foreground mb-3">
+                <p className="text-[11px] text-muted-foreground mb-3">
                   {t("customer.wallet.providerLabel")} {job.providerName}{job.categoryName ? ` · ${job.categoryName}` : ""}
                 </p>
                 <div>
-                  <p className="text-xs text-muted-foreground">{t("customer.wallet.amountLabel")}</p>
-                  <p className="text-lg font-bold text-amber-600 dark:text-amber-400">{formatMoney(job.amount)}</p>
+                  <p className="text-[11px] text-muted-foreground">{t("customer.wallet.amountLabel")}</p>
+                  <p className="text-base font-bold text-amber-600 dark:text-amber-400">{formatMoney(job.amount)}</p>
                 </div>
               </Card>
             ))}
@@ -297,7 +297,7 @@ export function CustomerWalletPage() {
           <div className="space-y-3">
             {paymentMethods.length === 0 && (
               <Card className="p-8 text-center border-0 shadow-sm">
-                <p className="text-sm text-muted-foreground">{t("customer.wallet.noPaymentMethods")}</p>
+                <p className="text-xs text-muted-foreground">{t("customer.wallet.noPaymentMethods")}</p>
               </Card>
             )}
             {paymentMethods.map((method) => (
@@ -306,8 +306,8 @@ export function CustomerWalletPage() {
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${method.type === "mpesa" ? "bg-emerald-100 dark:bg-emerald-900/20" : "bg-blue-100 dark:bg-blue-900/20"}`}>
                     <CreditCard className={`w-4 h-4 ${method.type === "mpesa" ? "text-emerald-600" : "text-blue-600"}`} />
                   </div>
-                  <div className="flex-1"><p className="font-semibold text-sm text-foreground">{method.name}</p><p className="text-xs text-muted-foreground">{method.number}</p></div>
-                  {method.isDefault && <span className="px-2.5 py-1 bg-primary/10 text-primary text-[11px] font-semibold rounded-lg">{t("customer.wallet.primary")}</span>}
+                  <div className="flex-1"><p className="font-semibold text-xs text-foreground">{method.name}</p><p className="text-[11px] text-muted-foreground">{method.number}</p></div>
+                  {method.isDefault && <span className="px-2.5 py-1 bg-primary/10 text-primary text-[10px] font-semibold rounded-lg">{t("customer.wallet.primary")}</span>}
                 </div>
               </Card>
             ))}
@@ -323,12 +323,12 @@ export function CustomerWalletPage() {
           {confirmedAddAmount == null ? (
             <div className="space-y-4 py-2">
               <div>
-                <label className="text-sm font-medium mb-2 block">{t("customer.wallet.amount")}</label>
-                <div className="flex gap-2"><span className="flex items-center px-3 bg-muted rounded-xl text-sm text-muted-foreground">{currency}</span><Input type="number" placeholder="0" value={addMoneyAmount} onChange={(e) => setAddMoneyAmount(e.target.value)} className="rounded-xl" /></div>
+                <label className="text-xs font-medium mb-2 block">{t("customer.wallet.amount")}</label>
+                <div className="flex gap-2"><span className="flex items-center px-3 bg-muted rounded-xl text-xs text-muted-foreground">{currency}</span><Input type="number" placeholder="0" value={addMoneyAmount} onChange={(e) => setAddMoneyAmount(e.target.value)} className="rounded-xl" /></div>
               </div>
               <div className="flex gap-2 flex-wrap">
                 {[500, 1000, 2000, 5000].map((amt) => (
-                  <button key={amt} onClick={() => setAddMoneyAmount(amt.toString())} className="px-3 py-1.5 bg-muted rounded-lg text-sm font-medium hover:bg-muted/80 transition-colors">{formatMoney(amt)}</button>
+                  <button key={amt} onClick={() => setAddMoneyAmount(amt.toString())} className="px-3 py-1.5 bg-muted rounded-lg text-xs font-medium hover:bg-muted/80 transition-colors">{formatMoney(amt)}</button>
                 ))}
               </div>
               <div className="flex gap-2">
@@ -357,16 +357,16 @@ export function CustomerWalletPage() {
           <DialogHeader><DialogTitle>{t("customer.wallet.withdrawMoney")}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <div>
-              <label className="text-sm font-medium mb-2 block">{t("customer.wallet.amount")}</label>
-              <div className="flex gap-2"><span className="flex items-center px-3 bg-muted rounded-xl text-sm text-muted-foreground">{currency}</span><Input type="number" placeholder="0" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} className="rounded-xl" /></div>
+              <label className="text-xs font-medium mb-2 block">{t("customer.wallet.amount")}</label>
+              <div className="flex gap-2"><span className="flex items-center px-3 bg-muted rounded-xl text-xs text-muted-foreground">{currency}</span><Input type="number" placeholder="0" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} className="rounded-xl" /></div>
             </div>
-            <p className="text-xs text-muted-foreground">{t("customer.wallet.available", { amount: formatMoney(balance) })}</p>
+            <p className="text-[11px] text-muted-foreground">{t("customer.wallet.available", { amount: formatMoney(balance) })}</p>
 
             <div>
-              <label className="text-sm font-medium mb-2 block">{t("customer.wallet.withdrawTo")}</label>
+              <label className="text-xs font-medium mb-2 block">{t("customer.wallet.withdrawTo")}</label>
               {paymentMethods.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-border p-4 text-center">
-                  <p className="text-xs text-muted-foreground mb-2">{t("customer.wallet.noMethodSaved")}</p>
+                  <p className="text-[11px] text-muted-foreground mb-2">{t("customer.wallet.noMethodSaved")}</p>
                   <Button
                     size="sm"
                     variant="outline"
@@ -388,8 +388,8 @@ export function CustomerWalletPage() {
                         <CreditCard className={`w-4 h-4 ${m.type === "mpesa" ? "text-emerald-600" : "text-blue-600"}`} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground">{m.name}</p>
-                        <p className="text-xs text-muted-foreground">{m.number}</p>
+                        <p className="text-xs font-medium text-foreground">{m.name}</p>
+                        <p className="text-[11px] text-muted-foreground">{m.number}</p>
                       </div>
                       {m.isDefault && <span className="px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-semibold rounded-lg flex-shrink-0">{t("customer.wallet.primary")}</span>}
                     </button>
@@ -398,7 +398,7 @@ export function CustomerWalletPage() {
               )}
             </div>
 
-            {formError && <p className="text-xs text-red-600">{formError}</p>}
+            {formError && <p className="text-[11px] text-red-600">{formError}</p>}
             <div className="flex gap-2">
               <Button className="flex-1 rounded-xl" onClick={handleWithdraw} disabled={isSubmitting || !withdrawMethodId}>{isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : t("customer.wallet.withdraw")}</Button>
               <Button variant="outline" className="flex-1 rounded-xl bg-transparent" onClick={() => { setShowWithdraw(false); setWithdrawAmount(""); setFormError(""); setWithdrawMethodId(null) }}>{t("common.cancel")}</Button>
@@ -415,23 +415,23 @@ export function CustomerWalletPage() {
             <div className="grid grid-cols-3 gap-2">
               {[{ id: "mpesa", label: t("payment.mpesa") }, { id: "card", label: t("customer.wallet.methodCard") }, { id: "paypal", label: t("payment.paypal") }].map((m) => (
                 <button key={m.id} onClick={() => setNewMethodType(m.id)} className={`p-3 rounded-xl border-2 transition-all text-center ${newMethodType === m.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}>
-                  <p className="text-xs font-semibold">{m.label}</p>
+                  <p className="text-[11px] font-semibold">{m.label}</p>
                 </button>
               ))}
             </div>
-            {newMethodType === "mpesa" && <div><label className="text-sm font-medium mb-1.5 block">{t("customer.wallet.phoneNumber")}</label><Input placeholder="254712345678" value={paymentForm.mpesaPhone} onChange={(e) => setPaymentForm({ ...paymentForm, mpesaPhone: e.target.value })} className="rounded-xl" /></div>}
+            {newMethodType === "mpesa" && <div><label className="text-xs font-medium mb-1.5 block">{t("customer.wallet.phoneNumber")}</label><Input placeholder="254712345678" value={paymentForm.mpesaPhone} onChange={(e) => setPaymentForm({ ...paymentForm, mpesaPhone: e.target.value })} className="rounded-xl" /></div>}
             {newMethodType === "card" && (
               <div className="space-y-3">
-                <div><label className="text-sm font-medium mb-1.5 block">{t("customer.wallet.cardHolder")}</label><Input placeholder={t("customer.wallet.namePlaceholder")} value={paymentForm.cardName} onChange={(e) => setPaymentForm({ ...paymentForm, cardName: e.target.value })} className="rounded-xl" /></div>
-                <div><label className="text-sm font-medium mb-1.5 block">{t("customer.wallet.cardNumber")}</label><Input placeholder="4532 1234 5678 9010" value={paymentForm.cardNumber} onChange={(e) => setPaymentForm({ ...paymentForm, cardNumber: e.target.value.replace(/\s/g, "") })} maxLength={16} className="rounded-xl" /></div>
+                <div><label className="text-xs font-medium mb-1.5 block">{t("customer.wallet.cardHolder")}</label><Input placeholder={t("customer.wallet.namePlaceholder")} value={paymentForm.cardName} onChange={(e) => setPaymentForm({ ...paymentForm, cardName: e.target.value })} className="rounded-xl" /></div>
+                <div><label className="text-xs font-medium mb-1.5 block">{t("customer.wallet.cardNumber")}</label><Input placeholder="4532 1234 5678 9010" value={paymentForm.cardNumber} onChange={(e) => setPaymentForm({ ...paymentForm, cardNumber: e.target.value.replace(/\s/g, "") })} maxLength={16} className="rounded-xl" /></div>
                 <div className="grid grid-cols-2 gap-2">
-                  <div><label className="text-sm font-medium mb-1.5 block">{t("customer.wallet.expiry")}</label><Input placeholder="MM/YY" value={paymentForm.expiryDate} onChange={(e) => setPaymentForm({ ...paymentForm, expiryDate: e.target.value })} className="rounded-xl" /></div>
-                  <div><label className="text-sm font-medium mb-1.5 block">{t("customer.wallet.cvv")}</label><Input placeholder="123" value={paymentForm.cvv} onChange={(e) => setPaymentForm({ ...paymentForm, cvv: e.target.value })} maxLength={3} className="rounded-xl" /></div>
+                  <div><label className="text-xs font-medium mb-1.5 block">{t("customer.wallet.expiry")}</label><Input placeholder="MM/YY" value={paymentForm.expiryDate} onChange={(e) => setPaymentForm({ ...paymentForm, expiryDate: e.target.value })} className="rounded-xl" /></div>
+                  <div><label className="text-xs font-medium mb-1.5 block">{t("customer.wallet.cvv")}</label><Input placeholder="123" value={paymentForm.cvv} onChange={(e) => setPaymentForm({ ...paymentForm, cvv: e.target.value })} maxLength={3} className="rounded-xl" /></div>
                 </div>
               </div>
             )}
-            {newMethodType === "paypal" && <div><label className="text-sm font-medium mb-1.5 block">{t("customer.wallet.paypalEmail")}</label><Input type="email" placeholder="email@example.com" value={paymentForm.paypalEmail} onChange={(e) => setPaymentForm({ ...paymentForm, paypalEmail: e.target.value })} className="rounded-xl" /></div>}
-            {formError && <p className="text-xs text-red-600">{formError}</p>}
+            {newMethodType === "paypal" && <div><label className="text-xs font-medium mb-1.5 block">{t("customer.wallet.paypalEmail")}</label><Input type="email" placeholder="email@example.com" value={paymentForm.paypalEmail} onChange={(e) => setPaymentForm({ ...paymentForm, paypalEmail: e.target.value })} className="rounded-xl" /></div>}
+            {formError && <p className="text-[11px] text-red-600">{formError}</p>}
             {newMethodType && (
               <div className="flex gap-2 pt-2">
                 <Button className="flex-1 rounded-xl" onClick={handleAddPaymentMethod} disabled={isSubmitting}>{isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : t("customer.wallet.add")}</Button>

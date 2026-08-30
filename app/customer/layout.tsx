@@ -104,7 +104,7 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
     <div className="min-h-screen bg-background">
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-foreground"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-xs focus:font-medium focus:text-primary-foreground"
       >
         {t("customer.layout.skipToContent")}
       </a>
@@ -115,9 +115,9 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
         <div className="flex items-center h-16 px-6 border-b border-border">
           <Link href="/customer/home" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-lg">S</span>
+              <span className="text-primary-foreground font-bold text-base">S</span>
             </div>
-            <span className="font-bold text-xl text-foreground">SAJI</span>
+            <span className="font-bold text-lg text-foreground">SAJI</span>
           </Link>
         </div>
 
@@ -133,8 +133,8 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-semibold text-sm text-foreground truncate">{user?.name || t("customer.layout.guestUser")}</p>
-              <p className="text-xs text-muted-foreground truncate">{user?.email || "guest@example.com"}</p>
+              <p className="font-semibold text-xs text-foreground truncate">{user?.name || t("customer.layout.guestUser")}</p>
+              <p className="text-[11px] text-muted-foreground truncate">{user?.email || "guest@example.com"}</p>
             </div>
             <ChevronRight className="w-4 h-4 text-muted-foreground" />
           </Link>
@@ -148,13 +148,13 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
             return (
               <div key={item.href}>
                 {showGroupLabel && (
-                  <p className="px-4 pt-4 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                  <p className="px-4 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
                     {SIDEBAR_GROUP_LABEL[item.group as string]}
                   </p>
                 )}
                 <Link
                   href={item.href}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-medium transition-all ${
                     isActive
                       ? "bg-primary text-primary-foreground shadow-md"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -198,9 +198,9 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
                 <div className="flex items-center h-16 px-6 border-b border-border">
                   <Link href="/customer/home" className="flex items-center gap-2">
                     <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                      <span className="text-primary-foreground font-bold text-lg">S</span>
+                      <span className="text-primary-foreground font-bold text-base">S</span>
                     </div>
-                    <span className="font-bold text-xl text-foreground">SAJI</span>
+                    <span className="font-bold text-lg text-foreground">SAJI</span>
                   </Link>
                 </div>
                 <div className="p-4 border-b border-border">
@@ -214,8 +214,8 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm text-foreground truncate">{user?.name || "Guest User"}</p>
-                      <p className="text-xs text-muted-foreground truncate">{user?.email || "guest@example.com"}</p>
+                      <p className="font-semibold text-xs text-foreground truncate">{user?.name || "Guest User"}</p>
+                      <p className="text-[11px] text-muted-foreground truncate">{user?.email || "guest@example.com"}</p>
                     </div>
                   </Link>
                 </div>
@@ -226,14 +226,14 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
                     return (
                       <div key={item.href}>
                         {showGroupLabel && (
-                          <p className="px-4 pt-4 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                          <p className="px-4 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
                             {SIDEBAR_GROUP_LABEL[item.group as string]}
                           </p>
                         )}
                         <Link
                           href={item.href}
                           onClick={() => setSidebarOpen(false)}
-                          className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                          className={`flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-medium transition-all ${
                             isActive
                               ? "bg-primary text-primary-foreground"
                               : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -261,7 +261,7 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
 
             {/* Page Title - Desktop Only */}
             <div className="hidden lg:block">
-              <h1 className="text-lg font-semibold text-foreground">
+              <h1 className="text-base font-semibold text-foreground">
                 {sidebarItems.find(item => pathname === item.href || pathname.startsWith(item.href + "/"))?.label
                   || (pathname.includes("/notifications") ? t("customer.layout.notifications") : t("customer.layout.dashboard"))}
               </h1>
@@ -270,9 +270,9 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
             {/* Mobile Logo */}
             <Link href="/customer/home" className="lg:hidden flex items-center gap-2">
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-lg">S</span>
+                <span className="text-primary-foreground font-bold text-base">S</span>
               </div>
-              <span className="font-bold text-lg text-foreground">SAJI</span>
+              <span className="font-bold text-base text-foreground">SAJI</span>
             </Link>
 
             {/* Right Side Actions */}
@@ -281,7 +281,7 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
                 <Button variant="ghost" size="icon" className="relative" aria-label={t("customer.layout.cart")}>
                   <ShoppingCart className="w-5 h-5" />
                   {cartCount > 0 && (
-                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-white text-xs rounded-full flex items-center justify-center">
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-white text-[11px] rounded-full flex items-center justify-center">
                       {cartCount}
                     </span>
                   )}
@@ -298,7 +298,7 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
                 >
                   <Bell className="w-5 h-5" />
                   {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[11px] rounded-full flex items-center justify-center">
                       {unreadCount}
                     </span>
                   )}
@@ -314,13 +314,13 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
                     <div className="absolute right-0 top-12 w-80 bg-card rounded-xl shadow-xl border border-border z-50 overflow-hidden">
                       <div className="p-4 border-b border-border flex items-center justify-between">
                         <h3 className="font-semibold text-foreground">{t("customer.layout.notifications")}</h3>
-                        <Button variant="ghost" size="sm" className="text-xs text-primary" onClick={handleMarkAllRead}>
+                        <Button variant="ghost" size="sm" className="text-[11px] text-primary" onClick={handleMarkAllRead}>
                           {t("customer.layout.markAllRead")}
                         </Button>
                       </div>
                       <div className="max-h-80 overflow-y-auto">
                         {notifications.length === 0 ? (
-                          <p className="p-6 text-center text-sm text-muted-foreground">{t("customer.layout.noNotifications")}</p>
+                          <p className="p-6 text-center text-xs text-muted-foreground">{t("customer.layout.noNotifications")}</p>
                         ) : notifications.map((notification) => (
                           <div
                             key={notification.id}
@@ -334,9 +334,9 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
                                 <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0" />
                               )}
                               <div className={!notification.isRead ? "" : "ml-5"}>
-                                <p className="font-medium text-sm text-foreground">{notification.title}</p>
-                                <p className="text-xs text-muted-foreground mt-1">{notification.message}</p>
-                                <p className="text-xs text-muted-foreground mt-1">{formatRelativeTime(notification.createdAt)}</p>
+                                <p className="font-medium text-xs text-foreground">{notification.title}</p>
+                                <p className="text-[11px] text-muted-foreground mt-1">{notification.message}</p>
+                                <p className="text-[11px] text-muted-foreground mt-1">{formatRelativeTime(notification.createdAt)}</p>
                               </div>
                             </div>
                           </div>
@@ -344,7 +344,7 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
                       </div>
                       <Link 
                         href="/customer/notifications"
-                        className="block p-3 text-center text-sm text-primary font-medium hover:bg-muted transition-colors"
+                        className="block p-3 text-center text-xs text-primary font-medium hover:bg-muted transition-colors"
                         onClick={() => setShowNotifications(false)}
                       >
                         {t("customer.layout.viewAllNotifications")}
@@ -424,7 +424,7 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
                         <Link
                           href={item.href}
                           onClick={() => setShowMoreMenu(false)}
-                          className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
+                          className={`flex items-center gap-3 px-4 py-2.5 text-xs transition-colors ${
                             isActive
                               ? "bg-primary/10 text-primary font-medium"
                               : "text-foreground hover:bg-muted"

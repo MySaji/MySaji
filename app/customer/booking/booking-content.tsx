@@ -160,7 +160,7 @@ export default function BookingContent() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        {isCapturingPaypal && <p className="text-sm text-muted-foreground">{t("customer.booking.confirmingPaypal")}</p>}
+        {isCapturingPaypal && <p className="text-xs text-muted-foreground">{t("customer.booking.confirmingPaypal")}</p>}
       </div>
     )
   }
@@ -177,7 +177,7 @@ export default function BookingContent() {
             <button onClick={() => router.push("/customer/jobs")} className="p-2 hover:bg-white/20 rounded-lg">
               <ArrowLeft className="w-6 h-6" />
             </button>
-            <h1 className="text-2xl font-bold">{t("customer.booking.completeYourPayment")}</h1>
+            <h1 className="text-xl font-bold">{t("customer.booking.completeYourPayment")}</h1>
           </div>
         </div>
 
@@ -202,11 +202,11 @@ export default function BookingContent() {
               </div>
               <div className="flex justify-between items-center py-2 bg-primary/10 px-3 rounded-lg">
                 <span className="font-semibold text-foreground">{t("customer.booking.totalCostLabel")}</span>
-                <span className="text-lg font-bold text-primary">{formatMoney(resumeJob.price)}</span>
+                <span className="text-base font-bold text-primary">{formatMoney(resumeJob.price)}</span>
               </div>
             </div>
 
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            {error && <p className="text-xs text-red-600">{error}</p>}
 
             <PaymentMethods
               amount={resumeJob.price}
@@ -222,8 +222,8 @@ export default function BookingContent() {
   if (!service) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background px-4 text-center">
-        <p className="text-lg font-semibold text-foreground">{t("customer.booking.serviceNotFound")}</p>
-        <p className="text-sm text-muted-foreground">{t("customer.booking.serviceNoLongerAvailable")}</p>
+        <p className="text-base font-semibold text-foreground">{t("customer.booking.serviceNotFound")}</p>
+        <p className="text-xs text-muted-foreground">{t("customer.booking.serviceNoLongerAvailable")}</p>
         <Button onClick={() => router.push("/customer/services")}>{t("home.browseServices")}</Button>
       </div>
     )
@@ -238,8 +238,8 @@ export default function BookingContent() {
             <ArrowLeft className="w-6 h-6" />
           </button>
           <div>
-            <h1 className="text-2xl font-bold">{t("customer.booking.bookTitle", { title: service.title })}</h1>
-            <p className="text-primary-foreground/80 text-sm">{t("customer.booking.stepOf", { step, total: 3 })}</p>
+            <h1 className="text-xl font-bold">{t("customer.booking.bookTitle", { title: service.title })}</h1>
+            <p className="text-primary-foreground/80 text-xs">{t("customer.booking.stepOf", { step, total: 3 })}</p>
           </div>
         </div>
       </div>
@@ -260,11 +260,11 @@ export default function BookingContent() {
         {/* Step 1: Schedule */}
         {step === 1 && (
           <Card className="p-6 space-y-6">
-            <h2 className="text-xl font-bold text-foreground">{t("customer.booking.scheduleYourService")}</h2>
+            <h2 className="text-lg font-bold text-foreground">{t("customer.booking.scheduleYourService")}</h2>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2 flex items-center gap-2">
+                <label className="block text-xs font-medium text-foreground mb-2 flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
                   {t("customer.booking.selectDate")}
                 </label>
@@ -277,7 +277,7 @@ export default function BookingContent() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2 flex items-center gap-2">
+                <label className="block text-xs font-medium text-foreground mb-2 flex items-center gap-2">
                   <Clock className="w-4 h-4" />
                   {t("customer.booking.selectTime")}
                 </label>
@@ -290,7 +290,7 @@ export default function BookingContent() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">{t("customer.booking.durationHours")}</label>
+                <label className="block text-xs font-medium text-foreground mb-2">{t("customer.booking.durationHours")}</label>
                 <Input
                   type="number"
                   min="1"
@@ -319,11 +319,11 @@ export default function BookingContent() {
         {/* Step 2: Location */}
         {step === 2 && (
           <Card className="p-6 space-y-6">
-            <h2 className="text-xl font-bold text-foreground">{t("customer.booking.serviceLocation")}</h2>
+            <h2 className="text-lg font-bold text-foreground">{t("customer.booking.serviceLocation")}</h2>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2 flex items-center gap-2">
+                <label className="block text-xs font-medium text-foreground mb-2 flex items-center gap-2">
                   <MapPin className="w-4 h-4" />
                   {t("customer.booking.address")}
                 </label>
@@ -337,7 +337,7 @@ export default function BookingContent() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">{t("customer.booking.additionalNotes")}</label>
+                <label className="block text-xs font-medium text-foreground mb-2">{t("customer.booking.additionalNotes")}</label>
                 <textarea
                   placeholder={t("customer.booking.additionalNotesPlaceholder")}
                   value={bookingData.notes}
@@ -371,7 +371,7 @@ export default function BookingContent() {
         {/* Step 3: Confirmation */}
         {step === 3 && (
           <Card className="p-6 space-y-6">
-            <h2 className="text-xl font-bold text-foreground">{t("customer.booking.confirmYourBooking")}</h2>
+            <h2 className="text-lg font-bold text-foreground">{t("customer.booking.confirmYourBooking")}</h2>
 
             <div className="bg-muted p-4 rounded-lg space-y-3">
               <div className="flex justify-between items-center py-2 border-b border-border">
@@ -394,19 +394,19 @@ export default function BookingContent() {
               </div>
               <div className="flex justify-between items-center py-2 bg-primary/10 px-3 rounded-lg">
                 <span className="font-semibold text-foreground">{t("customer.booking.totalCostLabel")}</span>
-                <span className="text-lg font-bold text-primary">
+                <span className="text-base font-bold text-primary">
                   {formatMoney(service.basePrice * bookingData.quantity)}
                 </span>
               </div>
             </div>
 
             <div className="rounded-lg bg-muted/50 border border-border p-3">
-              <p className="text-xs text-muted-foreground leading-relaxed">{t("customer.booking.cancellationPolicy")}</p>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">{t("customer.booking.cancellationPolicy")}</p>
             </div>
 
             <SajiProtectionBanner />
 
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            {error && <p className="text-xs text-red-600">{error}</p>}
 
             {pendingJobId ? (
               <PaymentMethods
@@ -444,7 +444,7 @@ export default function BookingContent() {
                       {isAddingToCart && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                       {t("customer.booking.addToCartButton")}
                     </Button>
-                    <p className="text-center text-xs text-muted-foreground">{t("customer.booking.addToCartInsteadNotice")}</p>
+                    <p className="text-center text-[11px] text-muted-foreground">{t("customer.booking.addToCartInsteadNotice")}</p>
                   </>
                 )}
               </div>
