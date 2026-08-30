@@ -254,8 +254,8 @@ export default function ShopkeeperProductsPage() {
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
             <div className="min-w-0">
-              <h1 className="text-2xl sm:text-3xl font-bold truncate">{t("shopkeeper.products.headerTitle")}</h1>
-              <p className="text-amber-100 text-sm truncate">{t("shopkeeper.products.headerSubtitle")}</p>
+              <h1 className="text-xl sm:text-2xl font-bold truncate">{t("shopkeeper.products.headerTitle")}</h1>
+              <p className="text-amber-100 text-xs truncate">{t("shopkeeper.products.headerSubtitle")}</p>
             </div>
             <div className="flex gap-2">
               <Button onClick={openBulkModal} variant="outline" className="flex-1 sm:flex-none bg-white/10 border-white/40 text-white hover:bg-white/20" disabled={categories.length === 0}>
@@ -272,20 +272,20 @@ export default function ShopkeeperProductsPage() {
           {/* Quick Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 sm:p-4 min-w-0">
-              <p className="text-2xl sm:text-3xl font-bold truncate">{productsList.length}</p>
-              <p className="text-xs text-amber-100 truncate">{t("shopkeeper.products.statTotalProducts")}</p>
+              <p className="text-xl sm:text-2xl font-bold truncate">{productsList.length}</p>
+              <p className="text-[11px] text-amber-100 truncate">{t("shopkeeper.products.statTotalProducts")}</p>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 sm:p-4 min-w-0">
-              <p className="text-2xl sm:text-3xl font-bold truncate">{productsList.filter(p => p.status === "active").length}</p>
-              <p className="text-xs text-amber-100 truncate">{t("shopkeeper.products.statActive")}</p>
+              <p className="text-xl sm:text-2xl font-bold truncate">{productsList.filter(p => p.status === "active").length}</p>
+              <p className="text-[11px] text-amber-100 truncate">{t("shopkeeper.products.statActive")}</p>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 sm:p-4 min-w-0">
-              <p className="text-2xl sm:text-3xl font-bold truncate">{productsList.filter(p => p.status === "low_stock" || p.status === "out_of_stock").length}</p>
-              <p className="text-xs text-amber-100 truncate">{t("shopkeeper.products.statLowStock")}</p>
+              <p className="text-xl sm:text-2xl font-bold truncate">{productsList.filter(p => p.status === "low_stock" || p.status === "out_of_stock").length}</p>
+              <p className="text-[11px] text-amber-100 truncate">{t("shopkeeper.products.statLowStock")}</p>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 sm:p-4 min-w-0">
-              <p className="text-2xl sm:text-3xl font-bold truncate">{productsList.reduce((acc, p) => acc + p.sold, 0)}</p>
-              <p className="text-xs text-amber-100 truncate">{t("shopkeeper.products.statTotalSold")}</p>
+              <p className="text-xl sm:text-2xl font-bold truncate">{productsList.reduce((acc, p) => acc + p.sold, 0)}</p>
+              <p className="text-[11px] text-amber-100 truncate">{t("shopkeeper.products.statTotalSold")}</p>
             </div>
           </div>
         </div>
@@ -308,7 +308,7 @@ export default function ShopkeeperProductsPage() {
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="flex-1 sm:flex-none min-w-0 px-3 py-2 bg-background border border-input rounded-md text-sm"
+                className="flex-1 sm:flex-none min-w-0 px-3 py-2 bg-background border border-input rounded-md text-xs"
               >
                 <option value="all">{t("shopkeeper.products.allCategories")}</option>
                 {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
@@ -351,25 +351,25 @@ export default function ShopkeeperProductsPage() {
                     fill
                     className="object-cover hover:scale-105 transition-transform"
                   />
-                  <div className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(product.status)}`}>
+                  <div className={`absolute top-3 right-3 px-3 py-1 rounded-full text-[11px] font-semibold ${getStatusBadge(product.status)}`}>
                     {getStatusText(product.status)}
                   </div>
-                  <div className="absolute top-3 left-3 bg-black/60 text-white px-2 py-1 rounded text-xs font-medium">
+                  <div className="absolute top-3 left-3 bg-black/60 text-white px-2 py-1 rounded text-[11px] font-medium">
                     {t("shopkeeper.products.soldLabel", { count: product.sold })}
                   </div>
                 </div>
                 <div className="p-4">
                   <h3 className="font-semibold text-gray-900 dark:text-white mb-1 line-clamp-2">{product.name}</h3>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">{product.description}</p>
+                  <p className="text-[11px] text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">{product.description}</p>
 
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-lg font-bold text-amber-600">{formatMoney(product.price)}</span>
-                    <span className={`text-xs px-2 py-1 rounded ${product.stock > 5 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"}`}>
+                    <span className="text-base font-bold text-amber-600">{formatMoney(product.price)}</span>
+                    <span className={`text-[11px] px-2 py-1 rounded ${product.stock > 5 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"}`}>
                       {t("shopkeeper.products.stockLabel", { count: product.stock })}
                     </span>
                   </div>
 
-                  <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center justify-between text-[11px] text-gray-600 dark:text-gray-400 mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
                     {product.reviewCount > 0 ? (
                       <span className="flex items-center gap-1"><TrendingUp className="w-3 h-3" /> {t("shopkeeper.products.ratingReviews", { rating: product.rating.toFixed(1), count: product.reviewCount })}</span>
                     ) : (
@@ -406,14 +406,14 @@ export default function ShopkeeperProductsPage() {
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <div className="min-w-0">
                         <h3 className="font-semibold text-gray-900 dark:text-white truncate">{product.name}</h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-1 sm:line-clamp-2">{product.description}</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-1 sm:line-clamp-2">{product.description}</p>
                       </div>
-                      <div className={`flex-shrink-0 px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-semibold whitespace-nowrap ${getStatusBadge(product.status)}`}>
+                      <div className={`flex-shrink-0 px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-[11px] font-semibold whitespace-nowrap ${getStatusBadge(product.status)}`}>
                         {getStatusText(product.status)}
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs sm:text-sm mb-3">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] sm:text-xs mb-3">
                       <span className="font-bold text-amber-600">{formatMoney(product.price)}</span>
                       <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap">{t("shopkeeper.products.stockLabel", { count: product.stock })}</span>
                       <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap">{t("shopkeeper.products.soldCountLabel", { count: product.sold })}</span>
@@ -445,12 +445,12 @@ export default function ShopkeeperProductsPage() {
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-xl font-semibold">{t("shopkeeper.products.addModalTitle")}</DialogTitle>
+            <DialogTitle className="text-lg font-semibold">{t("shopkeeper.products.addModalTitle")}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-5 py-2">
             <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50/70 p-4 dark:border-amber-700 dark:bg-amber-950/20">
-              <label className="mb-2 block text-sm font-medium">{t("shopkeeper.products.photosLabel")}</label>
+              <label className="mb-2 block text-xs font-medium">{t("shopkeeper.products.photosLabel")}</label>
               <div className="rounded-lg border border-dashed border-gray-300 bg-white p-4 text-center transition-colors hover:border-amber-500 dark:border-gray-600 dark:bg-gray-900">
                 <input type="file" accept="image/*" multiple onChange={(e) => handleImageUpload(e, true)} className="hidden" id="new-image-input" />
                 <label htmlFor="new-image-input" className="cursor-pointer">
@@ -465,8 +465,8 @@ export default function ShopkeeperProductsPage() {
                   ) : (
                     <div className="py-4">
                       <Upload className="mx-auto mb-2 h-8 w-8 text-amber-500" />
-                      <p className="text-sm font-medium text-gray-700 dark:text-gray-200">{t("shopkeeper.products.uploadPhotosHint")}</p>
-                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{t("shopkeeper.products.photoFormatsHint")}</p>
+                      <p className="text-xs font-medium text-gray-700 dark:text-gray-200">{t("shopkeeper.products.uploadPhotosHint")}</p>
+                      <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">{t("shopkeeper.products.photoFormatsHint")}</p>
                     </div>
                   )}
                 </label>
@@ -475,36 +475,36 @@ export default function ShopkeeperProductsPage() {
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="md:col-span-2">
-                <label className="mb-2 block text-sm font-medium">{t("shopkeeper.products.nameLabel")}</label>
+                <label className="mb-2 block text-xs font-medium">{t("shopkeeper.products.nameLabel")}</label>
                 <Input value={newProductForm.name} onChange={(e) => setNewProductForm({ ...newProductForm, name: e.target.value })} placeholder={t("shopkeeper.products.namePlaceholder")} />
               </div>
               <div>
-                <label className="mb-2 block text-sm font-medium">{t("shopkeeper.products.priceLabel", { currency })}</label>
+                <label className="mb-2 block text-xs font-medium">{t("shopkeeper.products.priceLabel", { currency })}</label>
                 <Input type="number" value={newProductForm.price} onChange={(e) => setNewProductForm({ ...newProductForm, price: e.target.value })} placeholder="0" />
               </div>
               <div>
-                <label className="mb-2 block text-sm font-medium">{t("shopkeeper.products.discountPriceLabel", { currency })}</label>
+                <label className="mb-2 block text-xs font-medium">{t("shopkeeper.products.discountPriceLabel", { currency })}</label>
                 <Input type="number" value={newProductForm.discountPrice} onChange={(e) => setNewProductForm({ ...newProductForm, discountPrice: e.target.value })} placeholder={t("shopkeeper.products.discountPricePlaceholder")} />
               </div>
               <div>
-                <label className="mb-2 block text-sm font-medium">{t("shopkeeper.products.stockQtyLabel")}</label>
+                <label className="mb-2 block text-xs font-medium">{t("shopkeeper.products.stockQtyLabel")}</label>
                 <Input type="number" value={newProductForm.stock} onChange={(e) => setNewProductForm({ ...newProductForm, stock: e.target.value })} placeholder="0" />
               </div>
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium">{t("shopkeeper.products.categoryLabel")}</label>
+              <label className="mb-2 block text-xs font-medium">{t("shopkeeper.products.categoryLabel")}</label>
               <select value={newProductForm.categoryId} onChange={(e) => setNewProductForm({ ...newProductForm, categoryId: e.target.value })} className="w-full rounded-md border border-input bg-background px-3 py-2">
                 {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
               </select>
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium">{t("shopkeeper.products.descriptionLabel")}</label>
+              <label className="mb-2 block text-xs font-medium">{t("shopkeeper.products.descriptionLabel")}</label>
               <textarea value={newProductForm.description} onChange={(e) => setNewProductForm({ ...newProductForm, description: e.target.value })} placeholder={t("shopkeeper.products.descriptionPlaceholder")} className="h-24 w-full resize-none rounded-md border border-input bg-background px-3 py-2" />
             </div>
 
-            {formError && <p className="text-sm text-red-600">{formError}</p>}
+            {formError && <p className="text-xs text-red-600">{formError}</p>}
 
             <div className="flex gap-3 pt-2">
               <Button variant="outline" onClick={() => setShowAddModal(false)} className="flex-1 bg-transparent" disabled={isSaving}>{t("common.cancel")}</Button>
@@ -520,12 +520,12 @@ export default function ShopkeeperProductsPage() {
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-xl font-semibold">{t("shopkeeper.products.editModalTitle")}</DialogTitle>
+            <DialogTitle className="text-lg font-semibold">{t("shopkeeper.products.editModalTitle")}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-5 py-2">
             <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50/70 p-4 dark:border-amber-700 dark:bg-amber-950/20">
-              <label className="mb-2 block text-sm font-medium">{t("shopkeeper.products.photosLabelOptional")}</label>
+              <label className="mb-2 block text-xs font-medium">{t("shopkeeper.products.photosLabelOptional")}</label>
               <div className="rounded-lg border border-dashed border-gray-300 bg-white p-4 text-center transition-colors hover:border-amber-500 dark:border-gray-600 dark:bg-gray-900">
                 <input type="file" accept="image/*" multiple onChange={(e) => handleImageUpload(e, false)} className="hidden" id="edit-image-input" />
                 <label htmlFor="edit-image-input" className="cursor-pointer">
@@ -540,7 +540,7 @@ export default function ShopkeeperProductsPage() {
                   ) : (
                     <div className="py-4">
                       <Upload className="mx-auto mb-2 h-8 w-8 text-amber-500" />
-                      <p className="text-sm font-medium text-gray-700 dark:text-gray-200">{t("shopkeeper.products.replacePhotosHint")}</p>
+                      <p className="text-xs font-medium text-gray-700 dark:text-gray-200">{t("shopkeeper.products.replacePhotosHint")}</p>
                     </div>
                   )}
                 </label>
@@ -549,36 +549,36 @@ export default function ShopkeeperProductsPage() {
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="md:col-span-2">
-                <label className="mb-2 block text-sm font-medium">{t("shopkeeper.products.nameLabelPlain")}</label>
+                <label className="mb-2 block text-xs font-medium">{t("shopkeeper.products.nameLabelPlain")}</label>
                 <Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} placeholder={t("shopkeeper.products.namePlaceholder")} />
               </div>
               <div>
-                <label className="mb-2 block text-sm font-medium">{t("shopkeeper.products.priceLabelPlain", { currency })}</label>
+                <label className="mb-2 block text-xs font-medium">{t("shopkeeper.products.priceLabelPlain", { currency })}</label>
                 <Input type="number" value={editForm.price} onChange={(e) => setEditForm({ ...editForm, price: e.target.value })} />
               </div>
               <div>
-                <label className="mb-2 block text-sm font-medium">{t("shopkeeper.products.discountPriceLabel", { currency })}</label>
+                <label className="mb-2 block text-xs font-medium">{t("shopkeeper.products.discountPriceLabel", { currency })}</label>
                 <Input type="number" value={editForm.discountPrice} onChange={(e) => setEditForm({ ...editForm, discountPrice: e.target.value })} placeholder={t("shopkeeper.products.discountPricePlaceholder")} />
               </div>
               <div>
-                <label className="mb-2 block text-sm font-medium">{t("shopkeeper.products.stockQtyLabelPlain")}</label>
+                <label className="mb-2 block text-xs font-medium">{t("shopkeeper.products.stockQtyLabelPlain")}</label>
                 <Input type="number" value={editForm.stock} onChange={(e) => setEditForm({ ...editForm, stock: e.target.value })} />
               </div>
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium">{t("shopkeeper.products.categoryLabelPlain")}</label>
+              <label className="mb-2 block text-xs font-medium">{t("shopkeeper.products.categoryLabelPlain")}</label>
               <select value={editForm.categoryId} onChange={(e) => setEditForm({ ...editForm, categoryId: e.target.value })} className="w-full rounded-md border border-input bg-background px-3 py-2">
                 {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
               </select>
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium">{t("shopkeeper.products.descriptionLabelPlain")}</label>
+              <label className="mb-2 block text-xs font-medium">{t("shopkeeper.products.descriptionLabelPlain")}</label>
               <textarea value={editForm.description} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} placeholder={t("shopkeeper.products.descriptionPlaceholder")} className="h-24 w-full resize-none rounded-md border border-input bg-background px-3 py-2" />
             </div>
 
-            {formError && <p className="text-sm text-red-600">{formError}</p>}
+            {formError && <p className="text-xs text-red-600">{formError}</p>}
 
             <div className="flex gap-3 pt-2">
               <Button variant="outline" onClick={() => setShowEditModal(false)} className="flex-1 bg-transparent" disabled={isSaving}>{t("common.cancel")}</Button>
@@ -594,11 +594,11 @@ export default function ShopkeeperProductsPage() {
       <Dialog open={showBulkModal} onOpenChange={setShowBulkModal}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-xl font-semibold">{t("shopkeeper.products.bulkImportTitle")}</DialogTitle>
+            <DialogTitle className="text-lg font-semibold">{t("shopkeeper.products.bulkImportTitle")}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-5 py-2">
-            <p className="text-sm text-gray-600 dark:text-gray-400">{t("shopkeeper.products.bulkImportHint")}</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400">{t("shopkeeper.products.bulkImportHint")}</p>
 
             <Button variant="outline" onClick={downloadCsvTemplate} className="w-full bg-transparent">
               <Download className="w-4 h-4 mr-2" />
@@ -609,21 +609,21 @@ export default function ShopkeeperProductsPage() {
               <input type="file" accept=".csv" onChange={handleBulkFileChange} className="hidden" id="bulk-csv-input" />
               <label htmlFor="bulk-csv-input" className="cursor-pointer">
                 <Upload className="mx-auto mb-2 h-8 w-8 text-amber-500" />
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                <p className="text-xs font-medium text-gray-700 dark:text-gray-200">
                   {bulkFileName || t("shopkeeper.products.chooseCsvFile")}
                 </p>
                 {bulkRows.length > 0 && (
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{t("shopkeeper.products.bulkRowsFound", { count: bulkRows.length })}</p>
+                  <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">{t("shopkeeper.products.bulkRowsFound", { count: bulkRows.length })}</p>
                 )}
               </label>
             </div>
 
-            {bulkError && <p className="text-sm text-red-600">{bulkError}</p>}
+            {bulkError && <p className="text-xs text-red-600">{bulkError}</p>}
 
             {bulkResult && (
               <div className="space-y-3">
                 {bulkResult.createdCount > 0 && (
-                  <div className="flex items-center gap-2 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400">
+                  <div className="flex items-center gap-2 rounded-lg bg-emerald-50 p-3 text-xs text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400">
                     <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
                     {t("shopkeeper.products.bulkCreatedCount", { count: bulkResult.createdCount })}
                   </div>
@@ -631,7 +631,7 @@ export default function ShopkeeperProductsPage() {
                 {bulkResult.errors.length > 0 && (
                   <div className="space-y-1.5 max-h-48 overflow-y-auto rounded-lg bg-red-50 p-3 dark:bg-red-900/20">
                     {bulkResult.errors.map((err) => (
-                      <div key={err.row} className="flex items-start gap-2 text-xs text-red-700 dark:text-red-400">
+                      <div key={err.row} className="flex items-start gap-2 text-[11px] text-red-700 dark:text-red-400">
                         <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
                         <span>{t("shopkeeper.products.bulkRowError", { row: err.row, name: err.name, error: err.error })}</span>
                       </div>

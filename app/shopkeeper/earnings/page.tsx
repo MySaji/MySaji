@@ -162,8 +162,8 @@ export default function ShopkeeperEarningsPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-3 sm:p-4 lg:p-8 overflow-x-hidden">
       <div className="max-w-6xl mx-auto">
         <div className="mb-6 sm:mb-8 min-w-0">
-          <h1 className="text-2xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-2 truncate">{t("shopkeeper.earnings.title")}</h1>
-          <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base truncate">{t("shopkeeper.earnings.subtitle")}</p>
+          <h1 className="text-xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2 truncate">{t("shopkeeper.earnings.title")}</h1>
+          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm truncate">{t("shopkeeper.earnings.subtitle")}</p>
         </div>
 
         {success && (
@@ -186,46 +186,46 @@ export default function ShopkeeperEarningsPage() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-6 mb-6 sm:mb-8">
           <Card className="p-2.5 sm:p-6 border-0 shadow-lg hover:shadow-xl transition-shadow min-w-0">
             <div className="flex items-center justify-between gap-1.5 mb-2 sm:mb-4">
-              <p className="text-gray-600 dark:text-gray-400 text-[11px] sm:text-sm font-medium truncate min-w-0">{t("shopkeeper.earnings.statTotalEarnings")}</p>
+              <p className="text-gray-600 dark:text-gray-400 text-[10px] sm:text-xs font-medium truncate min-w-0">{t("shopkeeper.earnings.statTotalEarnings")}</p>
               <div className="p-1.5 sm:p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex-shrink-0">
                 <TrendingUp className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-emerald-600" />
               </div>
             </div>
-            <p className="text-base sm:text-3xl font-bold text-gray-900 dark:text-white truncate">{formatMoney(data.totalEarnings)}</p>
-            <p className="text-[10px] sm:text-xs text-emerald-600 dark:text-emerald-400 mt-1 sm:mt-2 truncate">{t("shopkeeper.earnings.allTimeEarnings")}</p>
+            <p className="text-sm sm:text-2xl font-bold text-gray-900 dark:text-white truncate">{formatMoney(data.totalEarnings)}</p>
+            <p className="text-[10px] sm:text-[11px] text-emerald-600 dark:text-emerald-400 mt-1 sm:mt-2 truncate">{t("shopkeeper.earnings.allTimeEarnings")}</p>
           </Card>
 
           <Card className="p-2.5 sm:p-6 border-0 shadow-lg hover:shadow-xl transition-shadow min-w-0">
             <div className="flex items-center justify-between gap-1.5 mb-2 sm:mb-4">
-              <p className="text-gray-600 dark:text-gray-400 text-[11px] sm:text-sm font-medium truncate min-w-0">{t("shopkeeper.earnings.statThisMonth")}</p>
+              <p className="text-gray-600 dark:text-gray-400 text-[10px] sm:text-xs font-medium truncate min-w-0">{t("shopkeeper.earnings.statThisMonth")}</p>
               <div className="p-1.5 sm:p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex-shrink-0">
                 <Calendar className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-blue-600" />
               </div>
             </div>
-            <p className="text-base sm:text-3xl font-bold text-gray-900 dark:text-white truncate">{formatMoney(data.thisMonth)}</p>
-            <p className="text-[10px] sm:text-xs text-blue-600 dark:text-blue-400 mt-1 sm:mt-2 truncate">{new Date().toLocaleDateString([], { month: "long", year: "numeric" })}</p>
+            <p className="text-sm sm:text-2xl font-bold text-gray-900 dark:text-white truncate">{formatMoney(data.thisMonth)}</p>
+            <p className="text-[10px] sm:text-[11px] text-blue-600 dark:text-blue-400 mt-1 sm:mt-2 truncate">{new Date().toLocaleDateString([], { month: "long", year: "numeric" })}</p>
           </Card>
 
           <Card className="p-2.5 sm:p-6 border-0 shadow-lg hover:shadow-xl transition-shadow bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 min-w-0">
             <div className="flex items-center justify-between gap-1.5 mb-2 sm:mb-4">
-              <p className="text-gray-600 dark:text-gray-400 text-[11px] sm:text-sm font-medium truncate min-w-0">{t("shopkeeper.earnings.statAvailable")}</p>
+              <p className="text-gray-600 dark:text-gray-400 text-[10px] sm:text-xs font-medium truncate min-w-0">{t("shopkeeper.earnings.statAvailable")}</p>
               <div className="p-1.5 sm:p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg flex-shrink-0">
                 <Wallet className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-amber-600" />
               </div>
             </div>
-            <p className="text-base sm:text-3xl font-bold text-gray-900 dark:text-white truncate">{availableBalance}</p>
+            <p className="text-sm sm:text-2xl font-bold text-gray-900 dark:text-white truncate">{availableBalance}</p>
             <div className="flex flex-col sm:flex-row gap-1.5 sm:gap-2 mt-2 sm:mt-4">
               <Button
                 onClick={() => setShowAddMoney(true)}
                 variant="outline"
-                className="flex-1 h-7 sm:h-9 px-2 text-[11px] sm:text-sm font-medium bg-transparent"
+                className="flex-1 h-7 sm:h-9 px-2 text-[10px] sm:text-xs font-medium bg-transparent"
               >
                 <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 flex-shrink-0" />
                 <span className="truncate">{t("shopkeeper.earnings.addMoney")}</span>
               </Button>
               <Button
                 onClick={handleWithdrawClick}
-                className="flex-1 bg-amber-600 hover:bg-amber-700 h-7 sm:h-9 px-2 text-[11px] sm:text-sm font-medium"
+                className="flex-1 bg-amber-600 hover:bg-amber-700 h-7 sm:h-9 px-2 text-[10px] sm:text-xs font-medium"
                 disabled={data.available < 100}
               >
                 <ArrowUpRight className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 flex-shrink-0" />
@@ -236,46 +236,46 @@ export default function ShopkeeperEarningsPage() {
 
           <Card className="p-2.5 sm:p-6 border-0 shadow-lg hover:shadow-xl transition-shadow min-w-0">
             <div className="flex items-center justify-between gap-1.5 mb-2 sm:mb-4">
-              <p className="text-gray-600 dark:text-gray-400 text-[11px] sm:text-sm font-medium truncate min-w-0">{t("shopkeeper.earnings.statPending")}</p>
+              <p className="text-gray-600 dark:text-gray-400 text-[10px] sm:text-xs font-medium truncate min-w-0">{t("shopkeeper.earnings.statPending")}</p>
               <div className="p-1.5 sm:p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex-shrink-0">
                 <Clock className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-purple-600" />
               </div>
             </div>
-            <p className="text-base sm:text-3xl font-bold text-gray-900 dark:text-white truncate">{formatMoney(data.pending)}</p>
-            <p className="text-[10px] sm:text-xs text-purple-600 dark:text-purple-400 mt-1 sm:mt-2 truncate">{t("shopkeeper.earnings.processingHint")}</p>
+            <p className="text-sm sm:text-2xl font-bold text-gray-900 dark:text-white truncate">{formatMoney(data.pending)}</p>
+            <p className="text-[10px] sm:text-[11px] text-purple-600 dark:text-purple-400 mt-1 sm:mt-2 truncate">{t("shopkeeper.earnings.processingHint")}</p>
           </Card>
         </div>
 
         <Card className="border-0 shadow-lg">
           <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white">{t("shopkeeper.earnings.transactionHistory")}</h2>
+            <h2 className="text-base font-bold text-gray-900 dark:text-white">{t("shopkeeper.earnings.transactionHistory")}</h2>
           </div>
 
           {data.transactions.length === 0 ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-12">{t("shopkeeper.earnings.noTransactionsYet")}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-12">{t("shopkeeper.earnings.noTransactionsYet")}</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-gray-700">
-                    <th className="text-left p-6 text-sm font-semibold text-gray-900 dark:text-white">{t("shopkeeper.earnings.colType")}</th>
-                    <th className="text-left p-6 text-sm font-semibold text-gray-900 dark:text-white">{t("shopkeeper.earnings.colDescription")}</th>
-                    <th className="text-left p-6 text-sm font-semibold text-gray-900 dark:text-white">{t("shopkeeper.earnings.colAmount")}</th>
-                    <th className="text-left p-6 text-sm font-semibold text-gray-900 dark:text-white">{t("shopkeeper.earnings.colDate")}</th>
-                    <th className="text-left p-6 text-sm font-semibold text-gray-900 dark:text-white">{t("shopkeeper.earnings.colStatus")}</th>
+                    <th className="text-left p-6 text-xs font-semibold text-gray-900 dark:text-white">{t("shopkeeper.earnings.colType")}</th>
+                    <th className="text-left p-6 text-xs font-semibold text-gray-900 dark:text-white">{t("shopkeeper.earnings.colDescription")}</th>
+                    <th className="text-left p-6 text-xs font-semibold text-gray-900 dark:text-white">{t("shopkeeper.earnings.colAmount")}</th>
+                    <th className="text-left p-6 text-xs font-semibold text-gray-900 dark:text-white">{t("shopkeeper.earnings.colDate")}</th>
+                    <th className="text-left p-6 text-xs font-semibold text-gray-900 dark:text-white">{t("shopkeeper.earnings.colStatus")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.transactions.map((tx) => (
                     <tr key={tx.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                      <td className="p-6 text-sm text-gray-900 dark:text-white font-medium">{tx.type === "credit" ? t("shopkeeper.earnings.typeSale") : t("shopkeeper.earnings.typeWithdrawal")}</td>
-                      <td className="p-6 text-sm text-gray-600 dark:text-gray-400">{tx.description}</td>
-                      <td className={`p-6 text-sm font-semibold ${tx.type === "credit" ? "text-emerald-600" : "text-orange-600"}`}>
+                      <td className="p-6 text-xs text-gray-900 dark:text-white font-medium">{tx.type === "credit" ? t("shopkeeper.earnings.typeSale") : t("shopkeeper.earnings.typeWithdrawal")}</td>
+                      <td className="p-6 text-xs text-gray-600 dark:text-gray-400">{tx.description}</td>
+                      <td className={`p-6 text-xs font-semibold ${tx.type === "credit" ? "text-emerald-600" : "text-orange-600"}`}>
                         {tx.type === "credit" ? "+" : "-"}{formatMoney(tx.amount)}
                       </td>
-                      <td className="p-6 text-sm text-gray-600 dark:text-gray-400">{formatDate(tx.date)}</td>
+                      <td className="p-6 text-xs text-gray-600 dark:text-gray-400">{formatDate(tx.date)}</td>
                       <td className="p-6">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        <span className={`px-3 py-1 rounded-full text-[11px] font-semibold ${
                           tx.status === "completed"
                             ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
                             : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
@@ -298,7 +298,7 @@ export default function ShopkeeperEarningsPage() {
           <DialogHeader className="flex items-center justify-between pb-4 border-b border-gray-200 dark:border-gray-700">
             <div>
               <DialogTitle>{t("shopkeeper.earnings.withdrawFundsTitle")}</DialogTitle>
-              <p className="text-xs text-muted-foreground mt-1">{t("shopkeeper.earnings.stepOf", { step: withdrawStep })}</p>
+              <p className="text-[11px] text-muted-foreground mt-1">{t("shopkeeper.earnings.stepOf", { step: withdrawStep })}</p>
             </div>
             <button onClick={handleCloseDialog} aria-label={t("common.close")} className="text-muted-foreground hover:text-foreground">
               <X className="w-5 h-5" />
@@ -309,11 +309,11 @@ export default function ShopkeeperEarningsPage() {
             {withdrawStep === 1 && (
               <div className="space-y-4">
                 <div>
-                  <p className="text-sm text-muted-foreground mb-4">{t("shopkeeper.earnings.availableBalanceLabel")} <span className="font-bold text-foreground">{availableBalance}</span></p>
+                  <p className="text-xs text-muted-foreground mb-4">{t("shopkeeper.earnings.availableBalanceLabel")} <span className="font-bold text-foreground">{availableBalance}</span></p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">{t("shopkeeper.earnings.withdrawalAmountLabel", { currency })}</label>
+                  <label className="block text-xs font-medium mb-2">{t("shopkeeper.earnings.withdrawalAmountLabel", { currency })}</label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">{currency}</span>
                     <Input
@@ -329,13 +329,13 @@ export default function ShopkeeperEarningsPage() {
                       max={data.available}
                     />
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">{t("shopkeeper.earnings.minWithdrawalHint", { amount: formatMoney(100) })}</p>
+                  <p className="text-[11px] text-muted-foreground mt-1">{t("shopkeeper.earnings.minWithdrawalHint", { amount: formatMoney(100) })}</p>
                 </div>
 
                 {error && (
                   <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex gap-2">
                     <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
+                    <p className="text-xs text-red-700 dark:text-red-400">{error}</p>
                   </div>
                 )}
 
@@ -352,8 +352,8 @@ export default function ShopkeeperEarningsPage() {
 
             {withdrawStep === 2 && (
               <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">{t("shopkeeper.earnings.withdrawAmountSummary", { amount: formatMoney(parseFloat(withdrawAmount) || 0) })}</p>
-                <p className="text-sm font-medium text-foreground">{t("shopkeeper.earnings.selectPaymentMethod")}</p>
+                <p className="text-xs text-muted-foreground">{t("shopkeeper.earnings.withdrawAmountSummary", { amount: formatMoney(parseFloat(withdrawAmount) || 0) })}</p>
+                <p className="text-xs font-medium text-foreground">{t("shopkeeper.earnings.selectPaymentMethod")}</p>
 
                 <div className="space-y-3">
                   {paymentMethods.map((method) => {
@@ -371,7 +371,7 @@ export default function ShopkeeperEarningsPage() {
                             </div>
                             <div>
                               <p className="font-medium text-gray-900 dark:text-white">{method.name}</p>
-                              <p className="text-xs text-muted-foreground">{method.description}</p>
+                              <p className="text-[11px] text-muted-foreground">{method.description}</p>
                             </div>
                           </div>
                           <ChevronRight className="w-5 h-5 text-muted-foreground" />
@@ -394,23 +394,23 @@ export default function ShopkeeperEarningsPage() {
               <div className="space-y-4">
                 <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-3">
                   <div className="flex justify-between items-center">
-                    <p className="text-sm text-muted-foreground">{t("shopkeeper.earnings.summaryAmount")}</p>
+                    <p className="text-xs text-muted-foreground">{t("shopkeeper.earnings.summaryAmount")}</p>
                     <p className="font-semibold text-foreground">{formatMoney(parseFloat(withdrawAmount) || 0)}</p>
                   </div>
                   <div className="h-px bg-gray-200 dark:bg-gray-700" />
                   <div className="flex justify-between items-center">
-                    <p className="text-sm text-muted-foreground">{t("shopkeeper.earnings.summaryPaymentMethod")}</p>
+                    <p className="text-xs text-muted-foreground">{t("shopkeeper.earnings.summaryPaymentMethod")}</p>
                     <p className="font-semibold text-foreground">{paymentMethods.find(m => m.id === selectedPaymentMethod)?.name}</p>
                   </div>
                   <div className="h-px bg-gray-200 dark:bg-gray-700" />
                   <div className="flex justify-between items-center">
-                    <p className="text-sm text-muted-foreground">{t("shopkeeper.earnings.summaryNewBalance")}</p>
+                    <p className="text-xs text-muted-foreground">{t("shopkeeper.earnings.summaryNewBalance")}</p>
                     <p className="font-semibold text-emerald-600">{formatMoney(data.available - (parseFloat(withdrawAmount) || 0))}</p>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">
+                  <label className="block text-xs font-medium mb-2">
                     {selectedPaymentMethod === "mpesa" ? t("shopkeeper.earnings.mpesaPhoneLabel") : selectedPaymentMethod === "bank" ? t("shopkeeper.earnings.bankAccountLabel") : t("shopkeeper.earnings.paypalEmailLabel")}
                   </label>
                   <Input
@@ -423,13 +423,13 @@ export default function ShopkeeperEarningsPage() {
                 {error && (
                   <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex gap-2">
                     <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
+                    <p className="text-xs text-red-700 dark:text-red-400">{error}</p>
                   </div>
                 )}
 
                 <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg flex gap-2">
                   <AlertCircle className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-blue-700 dark:text-blue-400">
+                  <p className="text-[11px] text-blue-700 dark:text-blue-400">
                     {t("shopkeeper.earnings.processingTimeHint")}
                   </p>
                 </div>
@@ -456,15 +456,15 @@ export default function ShopkeeperEarningsPage() {
           {confirmedAddAmount == null ? (
             <div className="space-y-4 py-2">
               <div>
-                <label className="text-sm font-medium mb-2 block">{t("shopkeeper.earnings.addMoneyAmountLabel")}</label>
+                <label className="text-xs font-medium mb-2 block">{t("shopkeeper.earnings.addMoneyAmountLabel")}</label>
                 <div className="flex gap-2">
-                  <span className="flex items-center px-3 bg-muted rounded-xl text-sm text-muted-foreground">{currency}</span>
+                  <span className="flex items-center px-3 bg-muted rounded-xl text-xs text-muted-foreground">{currency}</span>
                   <Input type="number" placeholder="0" value={addMoneyAmount} onChange={(e) => setAddMoneyAmount(e.target.value)} className="rounded-xl" />
                 </div>
               </div>
               <div className="flex gap-2 flex-wrap">
                 {[1000, 5000, 10000, 20000].map((amt) => (
-                  <button key={amt} onClick={() => setAddMoneyAmount(amt.toString())} className="px-3 py-1.5 bg-muted rounded-lg text-sm font-medium hover:bg-muted/80 transition-colors">{formatMoney(amt)}</button>
+                  <button key={amt} onClick={() => setAddMoneyAmount(amt.toString())} className="px-3 py-1.5 bg-muted rounded-lg text-xs font-medium hover:bg-muted/80 transition-colors">{formatMoney(amt)}</button>
                 ))}
               </div>
               <div className="flex gap-2">

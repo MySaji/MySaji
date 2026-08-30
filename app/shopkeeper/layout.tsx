@@ -204,7 +204,7 @@ export default function ShopkeeperLayout({ children }: { children: React.ReactNo
     <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-lg focus:bg-amber-600 focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-lg focus:bg-amber-600 focus:px-4 focus:py-2 focus:text-xs focus:font-medium focus:text-white"
       >
         {t("customer.layout.skipToContent")}
       </a>
@@ -231,8 +231,8 @@ export default function ShopkeeperLayout({ children }: { children: React.ReactNo
               <Store className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-bold leading-tight">{t("shopkeeper.layout.brandName")}</h2>
-              <p className="text-xs text-amber-200">{t("shopkeeper.layout.portalName")}</p>
+              <h2 className="text-base font-bold leading-tight">{t("shopkeeper.layout.brandName")}</h2>
+              <p className="text-[11px] text-amber-200">{t("shopkeeper.layout.portalName")}</p>
             </div>
           </div>
         </div>
@@ -257,7 +257,7 @@ export default function ShopkeeperLayout({ children }: { children: React.ReactNo
                     <div
                       title={t("shopkeeper.layout.lockedTooltip")}
                       aria-disabled="true"
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium opacity-40 cursor-not-allowed select-none"
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium opacity-40 cursor-not-allowed select-none"
                     >
                       <IconComponent className="w-[18px] h-[18px] flex-shrink-0" />
                       <span className="flex-1">{item.label}</span>
@@ -272,7 +272,7 @@ export default function ShopkeeperLayout({ children }: { children: React.ReactNo
                   <Link
                     href={item.href}
                     onClick={() => setSidebarOpen(false)}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm font-medium ${
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-xs font-medium ${
                       active
                         ? "bg-white/20 shadow-lg"
                         : "hover:bg-white/10"
@@ -295,14 +295,14 @@ export default function ShopkeeperLayout({ children }: { children: React.ReactNo
         {/* Footer */}
         <div className="p-3 border-t border-amber-500/40 flex-shrink-0 space-y-1.5">
           <Link href="/shopkeeper/settings" onClick={() => setSidebarOpen(false)}>
-            <button className="w-full flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">
+            <button className="w-full flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white font-medium py-2.5 rounded-lg text-xs transition-colors">
               <Settings size={16} />
               {t("settings.title")}
             </button>
           </Link>
           <button
             onClick={handleLogout}
-            className="w-full bg-red-500/80 hover:bg-red-500 text-white font-medium py-2.5 rounded-lg text-sm flex items-center justify-center gap-2 transition-colors"
+            className="w-full bg-red-500/80 hover:bg-red-500 text-white font-medium py-2.5 rounded-lg text-xs flex items-center justify-center gap-2 transition-colors"
           >
             <LogOut size={16} />
             {t("auth.logout")}
@@ -328,7 +328,7 @@ export default function ShopkeeperLayout({ children }: { children: React.ReactNo
                 <input
                   type="text"
                   placeholder={t("shopkeeper.layout.searchPlaceholder")}
-                  className="bg-transparent text-sm outline-none flex-1 text-gray-700 dark:text-gray-200 placeholder:text-gray-400"
+                  className="bg-transparent text-xs outline-none flex-1 text-gray-700 dark:text-gray-200 placeholder:text-gray-400"
                 />
               </div>
             </div>
@@ -356,14 +356,14 @@ export default function ShopkeeperLayout({ children }: { children: React.ReactNo
                     <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                       <h3 className="font-semibold text-gray-900 dark:text-white">{t("shopkeeper.layout.notificationsTitle")}</h3>
                       {unreadCount > 0 && (
-                        <button onClick={handleMarkAllRead} className="text-xs text-amber-600 hover:text-amber-700 font-medium">
+                        <button onClick={handleMarkAllRead} className="text-[11px] text-amber-600 hover:text-amber-700 font-medium">
                           {t("shopkeeper.layout.markAllRead")}
                         </button>
                       )}
                     </div>
                     <div className="max-h-80 overflow-y-auto">
                       {notifications.length === 0 ? (
-                        <div className="p-6 text-center text-sm text-gray-500 dark:text-gray-400">{t("shopkeeper.layout.noNotifications")}</div>
+                        <div className="p-6 text-center text-xs text-gray-500 dark:text-gray-400">{t("shopkeeper.layout.noNotifications")}</div>
                       ) : (
                         notifications.map((notif) => {
                           const Icon = NOTIF_ICON[notif.type] ?? Bell
@@ -380,14 +380,14 @@ export default function ShopkeeperLayout({ children }: { children: React.ReactNo
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-start justify-between gap-2">
-                                  <p className={`text-sm ${!notif.isRead ? "font-semibold text-gray-900 dark:text-white" : "text-gray-700 dark:text-gray-300"}`}>
+                                  <p className={`text-xs ${!notif.isRead ? "font-semibold text-gray-900 dark:text-white" : "text-gray-700 dark:text-gray-300"}`}>
                                     {notif.title}
                                   </p>
                                   {!notif.isRead && (
                                     <span className="w-2 h-2 bg-amber-500 rounded-full flex-shrink-0 mt-1.5" />
                                   )}
                                 </div>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{notif.message}</p>
+                                <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">{notif.message}</p>
                                 <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">{formatRelativeTime(notif.createdAt)}</p>
                               </div>
                             </button>
@@ -397,7 +397,7 @@ export default function ShopkeeperLayout({ children }: { children: React.ReactNo
                     </div>
                     <button
                       onClick={() => { setNotificationsOpen(false); router.push("/shopkeeper/notifications") }}
-                      className="block w-full p-3 text-center text-sm text-amber-600 dark:text-amber-400 font-medium hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors border-t border-gray-100 dark:border-gray-700/50"
+                      className="block w-full p-3 text-center text-xs text-amber-600 dark:text-amber-400 font-medium hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors border-t border-gray-100 dark:border-gray-700/50"
                     >
                       {t("shopkeeper.layout.viewAllNotifications")}
                     </button>
@@ -421,14 +421,14 @@ export default function ShopkeeperLayout({ children }: { children: React.ReactNo
                 <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 dark:border-red-900/50 dark:bg-red-900/20 p-4">
                   <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-red-800 dark:text-red-300">{t("shopkeeper.layout.registrationRejectedTitle")}</p>
-                    <p className="text-xs text-red-700 dark:text-red-400 mt-0.5">
+                    <p className="text-xs font-semibold text-red-800 dark:text-red-300">{t("shopkeeper.layout.registrationRejectedTitle")}</p>
+                    <p className="text-[11px] text-red-700 dark:text-red-400 mt-0.5">
                       {t("shopkeeper.layout.registrationRejectedMessage", { reason: rejectionReason ?? t("shopkeeper.layout.registrationRejectedDefaultReason") })}
                     </p>
                   </div>
                   <Link
                     href="/shopkeeper/register"
-                    className="flex-shrink-0 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                    className="flex-shrink-0 bg-red-600 hover:bg-red-700 text-white text-[11px] font-semibold px-3 py-1.5 rounded-lg transition-colors"
                   >
                     {t("shopkeeper.layout.resubmit")}
                   </Link>
@@ -437,8 +437,8 @@ export default function ShopkeeperLayout({ children }: { children: React.ReactNo
                 <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-900/20 p-4">
                   <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">{t("shopkeeper.layout.registrationUnderReviewTitle")}</p>
-                    <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+                    <p className="text-xs font-semibold text-amber-800 dark:text-amber-300">{t("shopkeeper.layout.registrationUnderReviewTitle")}</p>
+                    <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-0.5">
                       {t("shopkeeper.layout.registrationUnderReviewHint")}
                     </p>
                   </div>
@@ -447,14 +447,14 @@ export default function ShopkeeperLayout({ children }: { children: React.ReactNo
                 <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-900/20 p-4">
                   <Lock className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">{t("shopkeeper.layout.registrationIncompleteTitle")}</p>
-                    <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+                    <p className="text-xs font-semibold text-amber-800 dark:text-amber-300">{t("shopkeeper.layout.registrationIncompleteTitle")}</p>
+                    <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-0.5">
                       {t("shopkeeper.layout.registrationIncompleteHint")}
                     </p>
                   </div>
                   <Link
                     href="/shopkeeper/register"
-                    className="flex-shrink-0 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                    className="flex-shrink-0 bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-semibold px-3 py-1.5 rounded-lg transition-colors"
                   >
                     {t("shopkeeper.layout.getStarted")}
                   </Link>
@@ -540,7 +540,7 @@ export default function ShopkeeperLayout({ children }: { children: React.ReactNo
                           key={item.href}
                           title={t("shopkeeper.layout.lockedTooltip")}
                           aria-disabled="true"
-                          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-400 dark:text-gray-600 cursor-not-allowed select-none"
+                          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs text-gray-400 dark:text-gray-600 cursor-not-allowed select-none"
                         >
                           <IconComponent className="w-4 h-4 flex-shrink-0" />
                           <span className="flex-1">{item.label}</span>
@@ -553,7 +553,7 @@ export default function ShopkeeperLayout({ children }: { children: React.ReactNo
                         key={item.href}
                         href={item.href}
                         onClick={() => setMoreMenuOpen(false)}
-                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-sm ${
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-xs ${
                           active
                             ? "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 font-semibold"
                             : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"

@@ -85,8 +85,8 @@ export default function ShopkeeperAnalyticsPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">{t("shopkeeper.analytics.title")}</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t("shopkeeper.analytics.subtitle")}</p>
+            <h1 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t("shopkeeper.analytics.title")}</h1>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t("shopkeeper.analytics.subtitle")}</p>
           </div>
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5">
@@ -94,7 +94,7 @@ export default function ShopkeeperAnalyticsPage() {
               <select
                 value={dateRange}
                 onChange={(e) => setDateRange(e.target.value as ShopkeeperAnalyticsRange)}
-                className="bg-transparent text-sm outline-none text-gray-700 dark:text-gray-200"
+                className="bg-transparent text-xs outline-none text-gray-700 dark:text-gray-200"
               >
                 <option value="7d">{t("shopkeeper.analytics.rangeLast7Days")}</option>
                 <option value="30d">{t("shopkeeper.analytics.rangeLast30Days")}</option>
@@ -102,7 +102,7 @@ export default function ShopkeeperAnalyticsPage() {
                 <option value="year">{t("shopkeeper.analytics.rangeThisYear")}</option>
               </select>
             </div>
-            <Button onClick={() => setShowExportModal(true)} className="bg-amber-600 hover:bg-amber-700 gap-2 text-sm h-9">
+            <Button onClick={() => setShowExportModal(true)} className="bg-amber-600 hover:bg-amber-700 gap-2 text-xs h-9">
               <Download className="w-4 h-4" />
               <span className="hidden sm:inline">{t("shopkeeper.analytics.exportButton")}</span>
             </Button>
@@ -120,13 +120,13 @@ export default function ShopkeeperAnalyticsPage() {
                   <div className={`p-2 rounded-lg ${kpi.color}`}>
                     <Icon className="w-4 h-4" />
                   </div>
-                  <div className={`flex items-center gap-0.5 text-xs font-semibold ${isUp ? "text-emerald-600" : "text-red-500"}`}>
+                  <div className={`flex items-center gap-0.5 text-[11px] font-semibold ${isUp ? "text-emerald-600" : "text-red-500"}`}>
                     {isUp ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                     {Math.abs(kpi.change)}%
                   </div>
                 </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{kpi.label}</p>
-                <p className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white mt-0.5">{kpi.value}</p>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium">{kpi.label}</p>
+                <p className="text-lg lg:text-xl font-bold text-gray-900 dark:text-white mt-0.5">{kpi.value}</p>
               </Card>
             )
           })}
@@ -136,12 +136,12 @@ export default function ShopkeeperAnalyticsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
           <Card className="lg:col-span-2 p-4 lg:p-5 border-0 shadow-sm">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-semibold text-gray-900 dark:text-white">{t("shopkeeper.analytics.revenueTrendTitle")}</h2>
-              <span className="text-xs text-gray-500 dark:text-gray-400">{RANGE_LABEL[dateRange]}</span>
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-white">{t("shopkeeper.analytics.revenueTrendTitle")}</h2>
+              <span className="text-[11px] text-gray-500 dark:text-gray-400">{RANGE_LABEL[dateRange]}</span>
             </div>
             <div className="h-64 lg:h-72">
               {data.revenueTrend.length === 0 ? (
-                <div className="h-full flex items-center justify-center text-sm text-gray-400">{t("shopkeeper.analytics.noOrdersInPeriod")}</div>
+                <div className="h-full flex items-center justify-center text-xs text-gray-400">{t("shopkeeper.analytics.noOrdersInPeriod")}</div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={data.revenueTrend} margin={{ top: 5, right: 5, left: -15, bottom: 0 }}>
@@ -166,9 +166,9 @@ export default function ShopkeeperAnalyticsPage() {
           </Card>
 
           <Card className="p-4 lg:p-5 border-0 shadow-sm">
-            <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-4">{t("shopkeeper.analytics.salesByCategoryTitle")}</h2>
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">{t("shopkeeper.analytics.salesByCategoryTitle")}</h2>
             {data.categoryBreakdown.length === 0 ? (
-              <div className="h-48 flex items-center justify-center text-sm text-gray-400">{t("shopkeeper.analytics.noSalesYet")}</div>
+              <div className="h-48 flex items-center justify-center text-xs text-gray-400">{t("shopkeeper.analytics.noSalesYet")}</div>
             ) : (
               <>
                 <div className="h-48">
@@ -193,7 +193,7 @@ export default function ShopkeeperAnalyticsPage() {
                 </div>
                 <div className="space-y-2 mt-2">
                   {data.categoryBreakdown.map((cat, index) => (
-                    <div key={cat.name} className="flex items-center justify-between text-sm">
+                    <div key={cat.name} className="flex items-center justify-between text-xs">
                       <div className="flex items-center gap-2">
                         <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CATEGORY_COLORS[index % CATEGORY_COLORS.length] }} />
                         <span className="text-gray-700 dark:text-gray-300">{cat.name}</span>
@@ -211,8 +211,8 @@ export default function ShopkeeperAnalyticsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
           <Card className="p-4 lg:p-5 border-0 shadow-sm">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-semibold text-gray-900 dark:text-white">{t("shopkeeper.analytics.monthlyRevenueTitle")}</h2>
-              <span className="text-xs text-gray-500 dark:text-gray-400">{t("shopkeeper.analytics.last6Months")}</span>
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-white">{t("shopkeeper.analytics.monthlyRevenueTitle")}</h2>
+              <span className="text-[11px] text-gray-500 dark:text-gray-400">{t("shopkeeper.analytics.last6Months")}</span>
             </div>
             <div className="h-56 lg:h-64">
               <ResponsiveContainer width="100%" height="100%">
@@ -232,12 +232,12 @@ export default function ShopkeeperAnalyticsPage() {
 
           <Card className="p-4 lg:p-5 border-0 shadow-sm">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-semibold text-gray-900 dark:text-white">{t("shopkeeper.analytics.ordersByStatusTitle")}</h2>
-              <span className="text-xs text-gray-500 dark:text-gray-400">{RANGE_LABEL[dateRange]}</span>
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-white">{t("shopkeeper.analytics.ordersByStatusTitle")}</h2>
+              <span className="text-[11px] text-gray-500 dark:text-gray-400">{RANGE_LABEL[dateRange]}</span>
             </div>
             <div className="h-56 lg:h-64">
               {data.statusBreakdown.length === 0 ? (
-                <div className="h-full flex items-center justify-center text-sm text-gray-400">{t("shopkeeper.analytics.noOrdersInPeriod")}</div>
+                <div className="h-full flex items-center justify-center text-xs text-gray-400">{t("shopkeeper.analytics.noOrdersInPeriod")}</div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
@@ -263,33 +263,33 @@ export default function ShopkeeperAnalyticsPage() {
         {/* Top Products Table */}
         <Card className="border-0 shadow-sm overflow-hidden">
           <div className="p-4 lg:p-5 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-gray-900 dark:text-white">{t("shopkeeper.analytics.topProductsTitle")}</h2>
-            <span className="text-xs text-gray-500 dark:text-gray-400">{t("shopkeeper.analytics.allTimeByUnitsSold")}</span>
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white">{t("shopkeeper.analytics.topProductsTitle")}</h2>
+            <span className="text-[11px] text-gray-500 dark:text-gray-400">{t("shopkeeper.analytics.allTimeByUnitsSold")}</span>
           </div>
           {data.topProducts.length === 0 ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-12">{t("shopkeeper.analytics.noSalesYet")}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-12">{t("shopkeeper.analytics.noSalesYet")}</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-100 dark:border-gray-700">
-                    <th className="text-left px-4 lg:px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t("shopkeeper.analytics.colRank")}</th>
-                    <th className="text-left px-4 lg:px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t("shopkeeper.analytics.colProduct")}</th>
-                    <th className="text-left px-4 lg:px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t("shopkeeper.analytics.colUnitsSold")}</th>
-                    <th className="text-left px-4 lg:px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t("shopkeeper.analytics.colRevenue")}</th>
+                    <th className="text-left px-4 lg:px-5 py-3 text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t("shopkeeper.analytics.colRank")}</th>
+                    <th className="text-left px-4 lg:px-5 py-3 text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t("shopkeeper.analytics.colProduct")}</th>
+                    <th className="text-left px-4 lg:px-5 py-3 text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t("shopkeeper.analytics.colUnitsSold")}</th>
+                    <th className="text-left px-4 lg:px-5 py-3 text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t("shopkeeper.analytics.colRevenue")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.topProducts.map((product, idx) => (
                     <tr key={product.name} className="border-b border-gray-50 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                       <td className="px-4 lg:px-5 py-3">
-                        <span className="w-6 h-6 rounded-full bg-gradient-to-br from-amber-400 to-orange-600 text-white text-xs font-bold flex items-center justify-center">
+                        <span className="w-6 h-6 rounded-full bg-gradient-to-br from-amber-400 to-orange-600 text-white text-[11px] font-bold flex items-center justify-center">
                           {idx + 1}
                         </span>
                       </td>
-                      <td className="px-4 lg:px-5 py-3 text-sm font-medium text-gray-900 dark:text-white">{product.name}</td>
-                      <td className="px-4 lg:px-5 py-3 text-sm text-gray-600 dark:text-gray-400">{product.sales}</td>
-                      <td className="px-4 lg:px-5 py-3 text-sm font-semibold text-gray-900 dark:text-white">{formatMoney(product.revenue)}</td>
+                      <td className="px-4 lg:px-5 py-3 text-xs font-medium text-gray-900 dark:text-white">{product.name}</td>
+                      <td className="px-4 lg:px-5 py-3 text-xs text-gray-600 dark:text-gray-400">{product.sales}</td>
+                      <td className="px-4 lg:px-5 py-3 text-xs font-semibold text-gray-900 dark:text-white">{formatMoney(product.revenue)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -312,8 +312,8 @@ export default function ShopkeeperAnalyticsPage() {
             >
               <FileText className="w-5 h-5 text-blue-600" />
               <div>
-                <p className="font-medium text-sm text-gray-900 dark:text-white">{t("shopkeeper.analytics.csvFileLabel")}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{t("shopkeeper.analytics.csvFileDesc")}</p>
+                <p className="font-medium text-xs text-gray-900 dark:text-white">{t("shopkeeper.analytics.csvFileLabel")}</p>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400">{t("shopkeeper.analytics.csvFileDesc")}</p>
               </div>
             </button>
           </div>

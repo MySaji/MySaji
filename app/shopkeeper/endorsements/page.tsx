@@ -84,19 +84,19 @@ export default function ShopkeeperEndorsementsPage() {
               <Award className="w-7 h-7" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">{t("shopkeeper.endorsements.title")}</h1>
-              <p className="text-amber-100 text-sm">{t("shopkeeper.endorsements.subtitle")}</p>
+              <h1 className="text-xl font-bold">{t("shopkeeper.endorsements.title")}</h1>
+              <p className="text-amber-100 text-xs">{t("shopkeeper.endorsements.subtitle")}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 text-center">
-              <p className="text-2xl font-bold">{data.totalGiven}</p>
-              <p className="text-xs text-amber-100">{t("shopkeeper.endorsements.givenLabel")}</p>
+              <p className="text-xl font-bold">{data.totalGiven}</p>
+              <p className="text-[11px] text-amber-100">{t("shopkeeper.endorsements.givenLabel")}</p>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 text-center">
-              <p className="text-2xl font-bold">{data.thisMonthCount}</p>
-              <p className="text-xs text-amber-100">{t("shopkeeper.endorsements.thisMonthLabel")}</p>
+              <p className="text-xl font-bold">{data.thisMonthCount}</p>
+              <p className="text-[11px] text-amber-100">{t("shopkeeper.endorsements.thisMonthLabel")}</p>
             </div>
           </div>
         </div>
@@ -108,7 +108,7 @@ export default function ShopkeeperEndorsementsPage() {
           <div className="flex gap-1">
             <button
               onClick={() => setActiveTab("given")}
-              className={`flex-1 py-2.5 px-4 rounded-lg font-medium text-sm transition-all ${
+              className={`flex-1 py-2.5 px-4 rounded-lg font-medium text-xs transition-all ${
                 activeTab === "given"
                   ? "bg-amber-600 text-white shadow-md"
                   : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -118,7 +118,7 @@ export default function ShopkeeperEndorsementsPage() {
             </button>
             <button
               onClick={() => setActiveTab("find")}
-              className={`flex-1 py-2.5 px-4 rounded-lg font-medium text-sm transition-all ${
+              className={`flex-1 py-2.5 px-4 rounded-lg font-medium text-xs transition-all ${
                 activeTab === "find"
                   ? "bg-amber-600 text-white shadow-md"
                   : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -147,8 +147,8 @@ export default function ShopkeeperEndorsementsPage() {
             <div className="flex items-start gap-3">
               <ThumbsUp className="w-5 h-5 text-amber-600 mt-0.5" />
               <div>
-                <p className="font-medium text-amber-900 dark:text-amber-200 text-sm">{t("shopkeeper.endorsements.matterTitle")}</p>
-                <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                <p className="font-medium text-amber-900 dark:text-amber-200 text-xs">{t("shopkeeper.endorsements.matterTitle")}</p>
+                <p className="text-[11px] text-amber-700 dark:text-amber-300 mt-1">
                   {t("shopkeeper.endorsements.matterHint")}
                 </p>
               </div>
@@ -163,7 +163,7 @@ export default function ShopkeeperEndorsementsPage() {
               <Card className="p-8 text-center border-0 shadow-sm">
                 <Search className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                 <h3 className="font-semibold text-gray-900 dark:text-white mb-1">{t("shopkeeper.endorsements.noSpecialistsFound")}</h3>
-                <p className="text-sm text-muted-foreground">{t("shopkeeper.endorsements.tryDifferentSearch")}</p>
+                <p className="text-xs text-muted-foreground">{t("shopkeeper.endorsements.tryDifferentSearch")}</p>
               </Card>
             ) : (
               filteredSpecialists.map((specialist) => {
@@ -182,10 +182,10 @@ export default function ShopkeeperEndorsementsPage() {
                         <div className="flex items-start justify-between gap-2">
                           <div>
                             <h3 className="font-semibold text-gray-900 dark:text-white">{specialist.name}</h3>
-                            <p className="text-sm text-muted-foreground">{specialist.skills.join(", ") || t("shopkeeper.endorsements.specialistFallback")}</p>
+                            <p className="text-xs text-muted-foreground">{specialist.skills.join(", ") || t("shopkeeper.endorsements.specialistFallback")}</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-3 mt-2 text-sm">
+                        <div className="flex items-center gap-3 mt-2 text-xs">
                           <span className="flex items-center gap-1 text-amber-600">
                             <Star className="w-4 h-4 fill-amber-500" />
                             {specialist.rating.toFixed(1)}
@@ -201,7 +201,7 @@ export default function ShopkeeperEndorsementsPage() {
 
                     <div className="mt-4">
                       {alreadyEndorsed ? (
-                        <div className="flex items-center justify-center gap-2 text-sm text-emerald-600 py-2">
+                        <div className="flex items-center justify-center gap-2 text-xs text-emerald-600 py-2">
                           <CheckCircle2 className="w-4 h-4" />
                           {t("shopkeeper.endorsements.alreadyEndorsed")}
                         </div>
@@ -234,7 +234,7 @@ export default function ShopkeeperEndorsementsPage() {
               <Card className="p-8 text-center border-0 shadow-sm">
                 <Award className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                 <h3 className="font-semibold text-gray-900 dark:text-white mb-1">{t("shopkeeper.endorsements.noEndorsementsYet")}</h3>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   {t("shopkeeper.endorsements.startEndorsingHint")}
                 </p>
                 <Button className="mt-4 bg-amber-600 hover:bg-amber-700" onClick={() => setActiveTab("find")}>
@@ -254,8 +254,8 @@ export default function ShopkeeperEndorsementsPage() {
                     />
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-gray-900 dark:text-white">{endorsement.name}</h3>
-                      <p className="text-sm text-muted-foreground">{endorsement.specialty}</p>
-                      <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                      <p className="text-xs text-muted-foreground">{endorsement.specialty}</p>
+                      <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3.5 h-3.5" />
                           {formatDate(endorsement.createdAt)}
@@ -265,7 +265,7 @@ export default function ShopkeeperEndorsementsPage() {
                   </div>
 
                   <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-4">
-                    <p className="text-sm text-amber-900 dark:text-amber-200">&quot;{endorsement.message}&quot;</p>
+                    <p className="text-xs text-amber-900 dark:text-amber-200">&quot;{endorsement.message}&quot;</p>
                   </div>
                 </Card>
               ))
@@ -292,27 +292,27 @@ export default function ShopkeeperEndorsementsPage() {
                 />
                 <div>
                   <p className="font-medium text-gray-900 dark:text-white">{selectedSpecialist.name}</p>
-                  <p className="text-sm text-muted-foreground">{selectedSpecialist.skills.join(", ") || t("shopkeeper.endorsements.specialistFallback")}</p>
+                  <p className="text-xs text-muted-foreground">{selectedSpecialist.skills.join(", ") || t("shopkeeper.endorsements.specialistFallback")}</p>
                 </div>
               </div>
 
               <div>
-                <p className="text-sm font-medium mb-2">{t("shopkeeper.endorsements.yourEndorsementLabel")}</p>
+                <p className="text-xs font-medium mb-2">{t("shopkeeper.endorsements.yourEndorsementLabel")}</p>
                 <Textarea
                   value={endorsementText}
                   onChange={(e) => setEndorsementText(e.target.value)}
                   placeholder={t("shopkeeper.endorsements.endorsementPlaceholder")}
                   className="min-h-[120px]"
                 />
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-[11px] text-muted-foreground mt-1">
                   {t("shopkeeper.endorsements.charCount", { count: endorsementText.length })}
                 </p>
               </div>
 
-              {formError && <p className="text-sm text-red-600">{formError}</p>}
+              {formError && <p className="text-xs text-red-600">{formError}</p>}
 
               <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3">
-                <p className="text-xs text-amber-800 dark:text-amber-300">
+                <p className="text-[11px] text-amber-800 dark:text-amber-300">
                   <strong>{t("shopkeeper.endorsements.tipLabel")}</strong> {t("shopkeeper.endorsements.tipText")}
                 </p>
               </div>

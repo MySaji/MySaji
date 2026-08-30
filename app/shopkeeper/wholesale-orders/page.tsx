@@ -67,11 +67,11 @@ export default function ShopkeeperWholesaleOrdersPage() {
   return (
     <div className="max-w-5xl mx-auto px-4 py-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+        <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
           <Truck className="w-6 h-6 text-primary" />
           {t("shopkeeper.wholesaleOrders.title")}
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">{t("shopkeeper.wholesaleOrders.subtitle")}</p>
+        <p className="text-xs text-muted-foreground mt-1">{t("shopkeeper.wholesaleOrders.subtitle")}</p>
       </div>
 
       {orders.length === 0 ? (
@@ -89,21 +89,21 @@ export default function ShopkeeperWholesaleOrdersPage() {
                   <div>
                     <div className="flex items-center gap-2">
                       <p className="font-semibold text-foreground">{o.orderNumber}</p>
-                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 ${STATUS_COLOR[o.status]}`}>
+                      <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold flex items-center gap-1 ${STATUS_COLOR[o.status]}`}>
                         <StatusIcon className="w-3 h-3" /> {getStatusLabel(o.status)}
                       </span>
                     </div>
-                    <p className="text-sm text-muted-foreground">{o.distributorName} · {o.locationName}</p>
+                    <p className="text-xs text-muted-foreground">{o.distributorName} · {o.locationName}</p>
                   </div>
                   <div className="text-right">
                     <p className="font-bold text-foreground">{formatMoney(o.total)}</p>
-                    <p className="text-xs text-muted-foreground">{new Date(o.createdAt).toLocaleDateString()}</p>
+                    <p className="text-[11px] text-muted-foreground">{new Date(o.createdAt).toLocaleDateString()}</p>
                   </div>
                 </div>
 
                 <div className="space-y-1 mb-3">
                   {o.items.map((it) => (
-                    <div key={it.id} className="flex items-center justify-between text-sm text-muted-foreground">
+                    <div key={it.id} className="flex items-center justify-between text-xs text-muted-foreground">
                       <span>{it.productName} × {it.quantity}</span>
                       <span>{formatMoney(it.totalPrice)}</span>
                     </div>

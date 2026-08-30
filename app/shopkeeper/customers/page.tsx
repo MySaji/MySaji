@@ -61,29 +61,29 @@ export default function ShopkeeperCustomersPage() {
   return (
     <div className="p-4 lg:p-6 max-w-5xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">{t("shopkeeper.customers.title")}</h1>
-        <p className="text-sm text-muted-foreground mt-1">{t("shopkeeper.customers.subtitle")}</p>
+        <h1 className="text-xl font-bold text-foreground">{t("shopkeeper.customers.title")}</h1>
+        <p className="text-xs text-muted-foreground mt-1">{t("shopkeeper.customers.subtitle")}</p>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Card className="p-3 border border-border rounded-xl text-center">
           <Users className="w-4 h-4 text-primary mx-auto mb-1" />
-          <p className="text-xl font-bold text-foreground">{customers.length}</p>
+          <p className="text-lg font-bold text-foreground">{customers.length}</p>
           <p className="text-[10px] text-muted-foreground">{t("shopkeeper.customers.statTotal")}</p>
         </Card>
         <Card className="p-3 border border-border rounded-xl text-center">
           <RefreshCw className="w-4 h-4 text-accent mx-auto mb-1" />
-          <p className="text-xl font-bold text-foreground">{customers.filter((c) => c.totalOrders >= 2).length}</p>
+          <p className="text-lg font-bold text-foreground">{customers.filter((c) => c.totalOrders >= 2).length}</p>
           <p className="text-[10px] text-muted-foreground">{t("shopkeeper.customers.statRepeat")}</p>
         </Card>
         <Card className="p-3 border border-border rounded-xl text-center">
           <DollarSign className="w-4 h-4 text-emerald-500 mx-auto mb-1" />
-          <p className="text-xl font-bold text-foreground">{formatMoney(customers.reduce((a, c) => a + c.totalSpent, 0))}</p>
+          <p className="text-lg font-bold text-foreground">{formatMoney(customers.reduce((a, c) => a + c.totalSpent, 0))}</p>
           <p className="text-[10px] text-muted-foreground">{t("shopkeeper.customers.statRevenue")}</p>
         </Card>
         <Card className="p-3 border border-border rounded-xl text-center">
           <Ban className="w-4 h-4 text-destructive mx-auto mb-1" />
-          <p className="text-xl font-bold text-foreground">{customers.filter((c) => c.isBlocked).length}</p>
+          <p className="text-lg font-bold text-foreground">{customers.filter((c) => c.isBlocked).length}</p>
           <p className="text-[10px] text-muted-foreground">{t("shopkeeper.customers.statBlocked")}</p>
         </Card>
       </div>
@@ -99,7 +99,7 @@ export default function ShopkeeperCustomersPage() {
             { key: "Repeat", label: t("shopkeeper.customers.filterRepeat") },
             { key: "Blocked", label: t("shopkeeper.customers.filterBlocked") },
           ].map((f) => (
-            <button key={f.key} onClick={() => setFilterType(f.key)} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${filterType === f.key ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}>{f.label}</button>
+            <button key={f.key} onClick={() => setFilterType(f.key)} className={`px-3 py-1.5 rounded-full text-[11px] font-medium transition-all ${filterType === f.key ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}>{f.label}</button>
           ))}
         </div>
       </div>
@@ -107,24 +107,24 @@ export default function ShopkeeperCustomersPage() {
       <div className="space-y-2">
         {filtered.length === 0 && (
           <Card className="p-10 text-center border-dashed">
-            <p className="text-sm text-muted-foreground">{t("shopkeeper.customers.emptyText")}</p>
+            <p className="text-xs text-muted-foreground">{t("shopkeeper.customers.emptyText")}</p>
           </Card>
         )}
         {filtered.map((customer) => (
           <Card key={customer.id} className="border border-border rounded-xl overflow-hidden">
             <button onClick={() => setExpandedCustomer(expandedCustomer === customer.id ? null : customer.id)} className="w-full p-4 text-left">
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary flex-shrink-0">{customer.name.charAt(0).toUpperCase()}</div>
+                <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">{customer.name.charAt(0).toUpperCase()}</div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-foreground truncate">{customer.name}</span>
+                    <span className="text-xs font-semibold text-foreground truncate">{customer.name}</span>
                     {customer.isBlocked && <Ban className="w-3 h-3 text-destructive flex-shrink-0" />}
                     {customer.totalOrders >= 2 && <span className="text-[9px] bg-accent/10 text-accent px-1.5 py-0.5 rounded-full font-medium flex-shrink-0">{t("shopkeeper.customers.repeatBadge")}</span>}
                   </div>
-                  <p className="text-[11px] text-muted-foreground">{t("shopkeeper.customers.customerSince", { date: new Date(customer.customerSince).toLocaleDateString() })}</p>
+                  <p className="text-[10px] text-muted-foreground">{t("shopkeeper.customers.customerSince", { date: new Date(customer.customerSince).toLocaleDateString() })}</p>
                 </div>
                 <div className="text-right flex-shrink-0">
-                  <p className="text-sm font-bold text-foreground">{formatMoney(customer.totalSpent)}</p>
+                  <p className="text-xs font-bold text-foreground">{formatMoney(customer.totalSpent)}</p>
                   <p className="text-[10px] text-muted-foreground">{tn("shopkeeper.customers.ordersCount", customer.totalOrders)}</p>
                 </div>
                 <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform ${expandedCustomer === customer.id ? "rotate-90" : ""}`} />
@@ -132,25 +132,25 @@ export default function ShopkeeperCustomersPage() {
             </button>
             {expandedCustomer === customer.id && (
               <div className="px-4 pb-4 border-t border-border pt-3 space-y-3">
-                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
                   <span className="flex items-center gap-1"><Phone className="w-3 h-3" />{customer.phone ?? t("shopkeeper.customers.noPhoneOnFile")}</span>
                   <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{t("shopkeeper.customers.lastOrder", { date: new Date(customer.lastOrderDate).toLocaleDateString() })}</span>
                 </div>
                 {customer.isBlocked && customer.blockedReason && (
-                  <div className="rounded-lg bg-destructive/10 p-2.5 text-xs text-destructive">
+                  <div className="rounded-lg bg-destructive/10 p-2.5 text-[11px] text-destructive">
                     <strong>{t("shopkeeper.customers.blockedReasonLabel")}</strong> {customer.blockedReason}
                   </div>
                 )}
                 {customer.orders.length > 0 && (
                   <div className="space-y-1.5">
-                    <p className="text-xs font-medium text-muted-foreground">{t("shopkeeper.customers.recentOrdersLabel")}</p>
+                    <p className="text-[11px] font-medium text-muted-foreground">{t("shopkeeper.customers.recentOrdersLabel")}</p>
                     {customer.orders.map((order) => (
                       <div key={order.id} className="flex items-center justify-between p-2 bg-muted/30 rounded-lg">
                         <div>
-                          <p className="text-xs font-medium text-foreground">{order.orderNumber}</p>
+                          <p className="text-[11px] font-medium text-foreground">{order.orderNumber}</p>
                           <p className="text-[10px] text-muted-foreground">{new Date(order.date).toLocaleDateString()}</p>
                         </div>
-                        <p className="text-xs font-semibold text-foreground">{formatMoney(order.amount)}</p>
+                        <p className="text-[11px] font-semibold text-foreground">{formatMoney(order.amount)}</p>
                       </div>
                     ))}
                   </div>
@@ -158,7 +158,7 @@ export default function ShopkeeperCustomersPage() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className={`w-full rounded-lg text-xs ${customer.isBlocked ? "" : "text-destructive hover:text-destructive"}`}
+                  className={`w-full rounded-lg text-[11px] ${customer.isBlocked ? "" : "text-destructive hover:text-destructive"}`}
                   onClick={() => (customer.isBlocked ? handleUnblock(customer.id) : openBlockDialog(customer.id))}
                 >
                   {customer.isBlocked ? <ShieldCheck className="w-3 h-3 mr-1" /> : <Ban className="w-3 h-3 mr-1" />}
@@ -176,7 +176,7 @@ export default function ShopkeeperCustomersPage() {
             <DialogTitle>{t("shopkeeper.customers.blockDialogTitle")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <p className="text-sm text-muted-foreground">{t("shopkeeper.customers.blockDialogHint")}</p>
+            <p className="text-xs text-muted-foreground">{t("shopkeeper.customers.blockDialogHint")}</p>
             <Textarea
               value={blockReason}
               onChange={(e) => setBlockReason(e.target.value)}

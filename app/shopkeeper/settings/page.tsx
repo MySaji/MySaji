@@ -150,7 +150,7 @@ export default function ShopkeeperSettingsPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 lg:p-8">
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">{t("shopkeeper.settings.title")}</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{t("shopkeeper.settings.title")}</h1>
           <p className="text-gray-600 dark:text-gray-400">{t("shopkeeper.settings.subtitle")}</p>
         </div>
 
@@ -160,7 +160,7 @@ export default function ShopkeeperSettingsPage() {
               <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
               <div>
                 <p className="font-semibold text-emerald-900 dark:text-emerald-100">{t("shopkeeper.settings.savedSuccess")}</p>
-                <p className="text-sm text-emerald-800 dark:text-emerald-200">{t("shopkeeper.settings.savedSuccessHint")}</p>
+                <p className="text-xs text-emerald-800 dark:text-emerald-200">{t("shopkeeper.settings.savedSuccessHint")}</p>
               </div>
             </div>
           </Card>
@@ -185,11 +185,11 @@ export default function ShopkeeperSettingsPage() {
           {/* Account Tab */}
           <TabsContent value="account" className="space-y-6 mt-6">
             <Card className="p-6 border-0 shadow-lg">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-6">{t("shopkeeper.settings.shopInfoTitle")}</h2>
+              <h2 className="text-base font-bold text-gray-900 dark:text-white mb-6">{t("shopkeeper.settings.shopInfoTitle")}</h2>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("shopkeeper.settings.shopNameLabel")}</label>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t("shopkeeper.settings.shopNameLabel")}</label>
                   <Input
                     value={accountForm.shopName}
                     onChange={(e) => setAccountForm({ ...accountForm, shopName: e.target.value })}
@@ -199,14 +199,14 @@ export default function ShopkeeperSettingsPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("shopkeeper.settings.businessRegistrationLabel")}</label>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t("shopkeeper.settings.businessRegistrationLabel")}</label>
                     <Input
                       value={accountForm.businessLicense}
                       onChange={(e) => setAccountForm({ ...accountForm, businessLicense: e.target.value })}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("shopkeeper.settings.businessCategoryLabel")}</label>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t("shopkeeper.settings.businessCategoryLabel")}</label>
                     <Input
                       value={accountForm.shopCategory}
                       onChange={(e) => setAccountForm({ ...accountForm, shopCategory: e.target.value })}
@@ -216,7 +216,7 @@ export default function ShopkeeperSettingsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("shopkeeper.settings.businessDescriptionLabel")}</label>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t("shopkeeper.settings.businessDescriptionLabel")}</label>
                   <textarea
                     value={accountForm.shopDescription}
                     onChange={(e) => setAccountForm({ ...accountForm, shopDescription: e.target.value })}
@@ -225,9 +225,9 @@ export default function ShopkeeperSettingsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("shopkeeper.settings.deliveryFeeLabel")}</label>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t("shopkeeper.settings.deliveryFeeLabel")}</label>
                   <div className="relative max-w-xs">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">KES</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">KES</span>
                     <Input
                       type="number"
                       min="0"
@@ -237,16 +237,16 @@ export default function ShopkeeperSettingsPage() {
                       className="pl-12"
                     />
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1.5">{t("shopkeeper.settings.deliveryFeeHint")}</p>
+                  <p className="text-[11px] text-muted-foreground mt-1.5">{t("shopkeeper.settings.deliveryFeeHint")}</p>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">{t("shopkeeper.settings.workingHoursTitle")}</h3>
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">{t("shopkeeper.settings.workingHoursTitle")}</h3>
                   <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                     <Clock className="w-5 h-5 text-amber-600 flex-shrink-0" />
                     <div className="flex-1 grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs text-muted-foreground mb-1">{t("shopkeeper.settings.opensAtLabel")}</label>
+                        <label className="block text-[11px] text-muted-foreground mb-1">{t("shopkeeper.settings.opensAtLabel")}</label>
                         <Input
                           type="time"
                           value={accountForm.openingTime}
@@ -255,7 +255,7 @@ export default function ShopkeeperSettingsPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-xs text-muted-foreground mb-1">{t("shopkeeper.settings.closesAtLabel")}</label>
+                        <label className="block text-[11px] text-muted-foreground mb-1">{t("shopkeeper.settings.closesAtLabel")}</label>
                         <Input
                           type="time"
                           value={accountForm.closingTime}
@@ -265,16 +265,16 @@ export default function ShopkeeperSettingsPage() {
                       </div>
                     </div>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2">{t("shopkeeper.settings.workingHoursHint")}</p>
+                  <p className="text-[11px] text-muted-foreground mt-2">{t("shopkeeper.settings.workingHoursHint")}</p>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">{t("shopkeeper.settings.contactInfoTitle")}</h3>
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">{t("shopkeeper.settings.contactInfoTitle")}</h3>
                   <div className="space-y-4">
                     <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                       <Mail className="w-5 h-5 text-amber-600 flex-shrink-0" />
                       <div className="flex-1">
-                        <p className="text-sm text-muted-foreground">{t("shopkeeper.settings.emailLabel")}</p>
+                        <p className="text-xs text-muted-foreground">{t("shopkeeper.settings.emailLabel")}</p>
                         <p className="mt-1 font-medium text-gray-900 dark:text-white">{account.email}</p>
                       </div>
                     </div>
@@ -282,7 +282,7 @@ export default function ShopkeeperSettingsPage() {
                     <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                       <Phone className="w-5 h-5 text-amber-600 flex-shrink-0" />
                       <div className="flex-1">
-                        <p className="text-sm text-muted-foreground">{t("shopkeeper.settings.phoneLabel")}</p>
+                        <p className="text-xs text-muted-foreground">{t("shopkeeper.settings.phoneLabel")}</p>
                         <Input
                           value={accountForm.phone}
                           onChange={(e) => setAccountForm({ ...accountForm, phone: e.target.value })}
@@ -294,7 +294,7 @@ export default function ShopkeeperSettingsPage() {
                     <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                       <MapPin className="w-5 h-5 text-amber-600 flex-shrink-0" />
                       <div className="flex-1">
-                        <p className="text-sm text-muted-foreground">{t("shopkeeper.settings.shopLocationLabel")}</p>
+                        <p className="text-xs text-muted-foreground">{t("shopkeeper.settings.shopLocationLabel")}</p>
                         <Input
                           value={accountForm.location}
                           onChange={(e) => setAccountForm({ ...accountForm, location: e.target.value })}
@@ -306,7 +306,7 @@ export default function ShopkeeperSettingsPage() {
                 </div>
               </div>
 
-              {accountError && <p className="text-sm text-red-600 mt-4">{accountError}</p>}
+              {accountError && <p className="text-xs text-red-600 mt-4">{accountError}</p>}
 
               <div className="flex gap-3 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
                 <Button onClick={handleSaveAccount} className="bg-amber-600 hover:bg-amber-700" disabled={isSavingAccount}>
@@ -323,8 +323,8 @@ export default function ShopkeeperSettingsPage() {
                     <PlaneTakeoff className="w-5 h-5 text-amber-600" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold text-gray-900 dark:text-white">{t("shopkeeper.settings.vacationModeTitle")}</h2>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{t("shopkeeper.settings.vacationModeHint")}</p>
+                    <h2 className="text-base font-bold text-gray-900 dark:text-white">{t("shopkeeper.settings.vacationModeTitle")}</h2>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400">{t("shopkeeper.settings.vacationModeHint")}</p>
                   </div>
                 </div>
                 <button
@@ -341,12 +341,12 @@ export default function ShopkeeperSettingsPage() {
 
               {vacationEnabled && (
                 <div className="mt-4 space-y-3">
-                  <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-900/20 dark:text-amber-300">
+                  <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-900/50 dark:bg-amber-900/20 dark:text-amber-300">
                     <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
                     <p>{t("shopkeeper.settings.vacationModeActiveWarning")}</p>
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">{t("shopkeeper.settings.vacationNoteLabel")}</label>
+                    <label className="text-[11px] font-medium text-muted-foreground mb-1.5 block">{t("shopkeeper.settings.vacationNoteLabel")}</label>
                     <Textarea
                       value={vacationNote}
                       onChange={(e) => setVacationNote(e.target.value)}
@@ -360,10 +360,10 @@ export default function ShopkeeperSettingsPage() {
             </Card>
 
             <Card className="p-6 border-0 shadow-lg">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-6">{t("shopkeeper.settings.languageAndRegionTitle")}</h2>
+              <h2 className="text-base font-bold text-gray-900 dark:text-white mb-6">{t("shopkeeper.settings.languageAndRegionTitle")}</h2>
               <div className="grid sm:grid-cols-2 gap-5">
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-2 block">{t("settings.language")}</label>
+                  <label className="text-[11px] font-medium text-muted-foreground mb-2 block">{t("settings.language")}</label>
                   <div className="space-y-1.5">
                     {languages.map((lang) => (
                       <button key={lang.code} onClick={() => setLanguage(lang.code as Language)}
@@ -371,7 +371,7 @@ export default function ShopkeeperSettingsPage() {
                       >
                         <div className="flex items-center gap-2.5">
                           <span className="w-7 h-5 bg-muted rounded text-[10px] font-bold flex items-center justify-center text-muted-foreground">{lang.flag}</span>
-                          <span className="font-medium text-sm text-foreground">{lang.name}</span>
+                          <span className="font-medium text-xs text-foreground">{lang.name}</span>
                         </div>
                         {language === lang.code && <CheckCircle2 className="w-4 h-4 text-amber-600" />}
                       </button>
@@ -379,15 +379,15 @@ export default function ShopkeeperSettingsPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-2 block">{t("settings.currency")}</label>
+                  <label className="text-[11px] font-medium text-muted-foreground mb-2 block">{t("settings.currency")}</label>
                   <div className="space-y-1.5">
                     {currencies.map((curr) => (
                       <button key={curr.code} onClick={() => setCurrency(curr.code as CurrencyCode)}
                         className={`w-full flex items-center justify-between p-3 rounded-xl border-2 transition-all ${currency === curr.code ? "border-amber-600 bg-amber-600/5" : "border-border hover:border-amber-600/40"}`}
                       >
                         <div className="text-left">
-                          <p className="font-medium text-sm text-foreground">{curr.symbol} {curr.code}</p>
-                          <p className="text-[11px] text-muted-foreground">{curr.name}</p>
+                          <p className="font-medium text-xs text-foreground">{curr.symbol} {curr.code}</p>
+                          <p className="text-[10px] text-muted-foreground">{curr.name}</p>
                         </div>
                         {currency === curr.code && <CheckCircle2 className="w-4 h-4 text-amber-600" />}
                       </button>
@@ -401,7 +401,7 @@ export default function ShopkeeperSettingsPage() {
           {/* Notifications Tab */}
           <TabsContent value="notifications" className="space-y-6 mt-6">
             <Card className="p-6 border-0 shadow-lg">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-6">{t("shopkeeper.settings.notificationPrefsTitle")}</h2>
+              <h2 className="text-base font-bold text-gray-900 dark:text-white mb-6">{t("shopkeeper.settings.notificationPrefsTitle")}</h2>
 
               <div className="space-y-4">
                 {([
@@ -414,7 +414,7 @@ export default function ShopkeeperSettingsPage() {
                   <div key={item.key} className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                     <div>
                       <p className="font-medium text-gray-900 dark:text-white">{item.label}</p>
-                      <p className="text-sm text-muted-foreground">{item.description}</p>
+                      <p className="text-xs text-muted-foreground">{item.description}</p>
                     </div>
                     <button
                       onClick={() => toggleNotifSetting(item.key)}
@@ -449,7 +449,7 @@ export default function ShopkeeperSettingsPage() {
           {/* Security Tab */}
           <TabsContent value="security" className="space-y-6 mt-6">
             <Card className="p-6 border-0 shadow-lg">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-6">{t("shopkeeper.settings.securitySettingsTitle")}</h2>
+              <h2 className="text-base font-bold text-gray-900 dark:text-white mb-6">{t("shopkeeper.settings.securitySettingsTitle")}</h2>
 
               <div className="space-y-4">
                 <Button
@@ -460,7 +460,7 @@ export default function ShopkeeperSettingsPage() {
                     <Lock className="w-5 h-5 text-amber-600 flex-shrink-0" />
                     <div>
                       <p className="font-medium">{t("shopkeeper.settings.changePassword")}</p>
-                      <p className="text-sm text-muted-foreground">{t("shopkeeper.settings.updatePasswordHint")}</p>
+                      <p className="text-xs text-muted-foreground">{t("shopkeeper.settings.updatePasswordHint")}</p>
                     </div>
                   </div>
                   <ChevronRight className="w-5 h-5 text-muted-foreground" />
@@ -472,7 +472,7 @@ export default function ShopkeeperSettingsPage() {
                   <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
                   <div>
                     <p className="font-medium text-blue-900 dark:text-blue-100">{t("shopkeeper.settings.securityRecommendationTitle")}</p>
-                    <p className="text-sm text-blue-800 dark:text-blue-200 mt-1">{t("shopkeeper.settings.securityRecommendationHint")}</p>
+                    <p className="text-xs text-blue-800 dark:text-blue-200 mt-1">{t("shopkeeper.settings.securityRecommendationHint")}</p>
                   </div>
                 </div>
               </div>
@@ -490,7 +490,7 @@ export default function ShopkeeperSettingsPage() {
 
           <div className="space-y-4 py-4">
             <div>
-              <label className="block text-sm font-medium mb-2">{t("shopkeeper.settings.currentPasswordLabel")}</label>
+              <label className="block text-xs font-medium mb-2">{t("shopkeeper.settings.currentPasswordLabel")}</label>
               <div className="relative">
                 <Input
                   type={showPassword ? "text" : "password"}
@@ -510,16 +510,16 @@ export default function ShopkeeperSettingsPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">{t("shopkeeper.settings.newPasswordLabel")}</label>
+              <label className="block text-xs font-medium mb-2">{t("shopkeeper.settings.newPasswordLabel")}</label>
               <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder={t("shopkeeper.settings.enterNewPasswordPlaceholder")} />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">{t("shopkeeper.settings.confirmPasswordLabel")}</label>
+              <label className="block text-xs font-medium mb-2">{t("shopkeeper.settings.confirmPasswordLabel")}</label>
               <Input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder={t("shopkeeper.settings.confirmNewPasswordPlaceholder")} />
             </div>
 
-            {passwordError && <p className="text-sm text-red-600">{passwordError}</p>}
+            {passwordError && <p className="text-xs text-red-600">{passwordError}</p>}
 
             <div className="flex gap-3 pt-4">
               <Button variant="outline" onClick={() => setShowPasswordDialog(false)} className="flex-1 bg-transparent" disabled={isChangingPassword}>{t("common.cancel")}</Button>

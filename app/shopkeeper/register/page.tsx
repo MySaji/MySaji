@@ -120,23 +120,23 @@ export default function ShopkeeperRegistrationPage() {
           <div className="w-20 h-20 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
             <Clock className="w-10 h-10 text-amber-600" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">{t("shopkeeper.register.submittedTitle")}</h1>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-3">{t("shopkeeper.register.submittedTitle")}</h1>
           <p className="text-muted-foreground mb-6">
             {t("shopkeeper.register.submittedHint")}
           </p>
           <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-4 mb-6 text-left">
             <h3 className="font-medium text-amber-900 dark:text-amber-200 mb-2">{t("shopkeeper.register.whatHappensNextTitle")}</h3>
-            <ul className="space-y-2 text-sm text-amber-800 dark:text-amber-300">
+            <ul className="space-y-2 text-xs text-amber-800 dark:text-amber-300">
               <li className="flex items-start gap-2">
-                <span className="bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200 rounded-full w-5 h-5 flex items-center justify-center text-xs flex-shrink-0 mt-0.5">1</span>
+                <span className="bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200 rounded-full w-5 h-5 flex items-center justify-center text-[11px] flex-shrink-0 mt-0.5">1</span>
                 {t("shopkeeper.register.nextStep1")}
               </li>
               <li className="flex items-start gap-2">
-                <span className="bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200 rounded-full w-5 h-5 flex items-center justify-center text-xs flex-shrink-0 mt-0.5">2</span>
+                <span className="bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200 rounded-full w-5 h-5 flex items-center justify-center text-[11px] flex-shrink-0 mt-0.5">2</span>
                 {t("shopkeeper.register.nextStep2")}
               </li>
               <li className="flex items-start gap-2">
-                <span className="bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200 rounded-full w-5 h-5 flex items-center justify-center text-xs flex-shrink-0 mt-0.5">3</span>
+                <span className="bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200 rounded-full w-5 h-5 flex items-center justify-center text-[11px] flex-shrink-0 mt-0.5">3</span>
                 {t("shopkeeper.register.nextStep3")}
               </li>
             </ul>
@@ -156,7 +156,7 @@ export default function ShopkeeperRegistrationPage() {
       {/* Header */}
       <div className="bg-gradient-to-r from-amber-600 to-orange-600 text-white p-6">
         <div className="max-w-2xl mx-auto">
-          <Link href="/" className="inline-flex items-center text-amber-100 hover:text-white mb-4 text-sm">
+          <Link href="/" className="inline-flex items-center text-amber-100 hover:text-white mb-4 text-xs">
             <ChevronLeft className="w-4 h-4 mr-1" />
             {t("shopkeeper.register.backToHome")}
           </Link>
@@ -165,8 +165,8 @@ export default function ShopkeeperRegistrationPage() {
               <Store className="w-7 h-7" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">{t("shopkeeper.register.headerTitle")}</h1>
-              <p className="text-amber-100 text-sm">{t("shopkeeper.register.headerSubtitle")}</p>
+              <h1 className="text-xl font-bold">{t("shopkeeper.register.headerTitle")}</h1>
+              <p className="text-amber-100 text-xs">{t("shopkeeper.register.headerSubtitle")}</p>
             </div>
           </div>
         </div>
@@ -184,7 +184,7 @@ export default function ShopkeeperRegistrationPage() {
             ].map((s, idx) => (
               <div key={s.num} className="flex items-center">
                 <div className={`flex flex-col items-center ${idx > 0 ? 'ml-2' : ''}`}>
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-colors ${
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs transition-colors ${
                     step > s.num
                       ? 'bg-green-500 text-white'
                       : step === s.num
@@ -193,7 +193,7 @@ export default function ShopkeeperRegistrationPage() {
                   }`}>
                     {step > s.num ? <CheckCircle2 className="w-5 h-5" /> : s.num}
                   </div>
-                  <span className={`text-xs mt-1 hidden sm:block ${step >= s.num ? 'text-amber-600 font-medium' : 'text-muted-foreground'}`}>
+                  <span className={`text-[11px] mt-1 hidden sm:block ${step >= s.num ? 'text-amber-600 font-medium' : 'text-muted-foreground'}`}>
                     {s.label}
                   </span>
                 </div>
@@ -206,7 +206,7 @@ export default function ShopkeeperRegistrationPage() {
         </Card>
 
         {error && (
-          <div className="mb-6 p-4 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/30 text-red-700 dark:text-red-400 text-sm">
+          <div className="mb-6 p-4 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/30 text-red-700 dark:text-red-400 text-xs">
             {error}
           </div>
         )}
@@ -217,8 +217,8 @@ export default function ShopkeeperRegistrationPage() {
           {step === 1 && (
             <div className="space-y-4">
               <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">{t("shopkeeper.register.shopDetailsHeading")}</h2>
-                <p className="text-sm text-muted-foreground">{t("shopkeeper.register.shopDetailsHint")}</p>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-1">{t("shopkeeper.register.shopDetailsHeading")}</h2>
+                <p className="text-xs text-muted-foreground">{t("shopkeeper.register.shopDetailsHint")}</p>
               </div>
 
               <div>
@@ -267,7 +267,7 @@ export default function ShopkeeperRegistrationPage() {
                       <button
                         onClick={() => setFormData(prev => ({ ...prev, shopLogo: null }))}
                         aria-label={t("shopkeeper.register.removeLogo")}
-                        className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs"
+                        className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-[11px]"
                       >
                         ×
                       </button>
@@ -275,7 +275,7 @@ export default function ShopkeeperRegistrationPage() {
                   ) : (
                     <label className="flex flex-col items-center justify-center w-32 h-32 border-2 border-dashed border-muted-foreground/30 rounded-xl cursor-pointer hover:border-amber-500 transition-colors">
                       <Camera className="w-8 h-8 text-muted-foreground mb-2" />
-                      <span className="text-xs text-muted-foreground">{t("shopkeeper.register.uploadLogo")}</span>
+                      <span className="text-[11px] text-muted-foreground">{t("shopkeeper.register.uploadLogo")}</span>
                       <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload('shopLogo')} />
                     </label>
                   )}
@@ -288,8 +288,8 @@ export default function ShopkeeperRegistrationPage() {
           {step === 2 && (
             <div className="space-y-4">
               <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">{t("shopkeeper.register.locationHeading")}</h2>
-                <p className="text-sm text-muted-foreground">{t("shopkeeper.register.locationHint")}</p>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-1">{t("shopkeeper.register.locationHeading")}</h2>
+                <p className="text-xs text-muted-foreground">{t("shopkeeper.register.locationHint")}</p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -339,8 +339,8 @@ export default function ShopkeeperRegistrationPage() {
               <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 flex items-start gap-3">
                 <MapPin className="w-5 h-5 text-blue-600 mt-0.5" />
                 <div>
-                  <p className="font-medium text-blue-900 dark:text-blue-200 text-sm">{t("shopkeeper.register.locationVerificationTitle")}</p>
-                  <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                  <p className="font-medium text-blue-900 dark:text-blue-200 text-xs">{t("shopkeeper.register.locationVerificationTitle")}</p>
+                  <p className="text-[11px] text-blue-700 dark:text-blue-300 mt-1">
                     {t("shopkeeper.register.locationVerificationHint")}
                   </p>
                 </div>
@@ -352,8 +352,8 @@ export default function ShopkeeperRegistrationPage() {
           {step === 3 && (
             <div className="space-y-4">
               <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">{t("shopkeeper.register.documentsHeading")}</h2>
-                <p className="text-sm text-muted-foreground">{t("shopkeeper.register.documentsHint")}</p>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-1">{t("shopkeeper.register.documentsHeading")}</h2>
+                <p className="text-xs text-muted-foreground">{t("shopkeeper.register.documentsHint")}</p>
               </div>
 
               <div>
@@ -368,7 +368,7 @@ export default function ShopkeeperRegistrationPage() {
 
               <div>
                 <Label>{t("shopkeeper.register.idPhotosLabel")}</Label>
-                <p className="text-xs text-muted-foreground mb-2">{t("shopkeeper.register.idPhotosHint")}</p>
+                <p className="text-[11px] text-muted-foreground mb-2">{t("shopkeeper.register.idPhotosHint")}</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <KycPhotoUpload label={t("shopkeeper.register.idFrontLabel")} value={formData.idFront ?? ""} onChange={(v) => setFormData(prev => ({ ...prev, idFront: v || null }))} />
                   <KycPhotoUpload label={t("shopkeeper.register.idBackLabel")} value={formData.idBack ?? ""} onChange={(v) => setFormData(prev => ({ ...prev, idBack: v || null }))} />
@@ -392,8 +392,8 @@ export default function ShopkeeperRegistrationPage() {
                     <div className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
                       <FileText className="w-8 h-8 text-green-600" />
                       <div className="flex-1">
-                        <p className="font-medium text-green-900 dark:text-green-200 text-sm">{t("shopkeeper.register.documentUploaded")}</p>
-                        <p className="text-xs text-green-700 dark:text-green-300">{t("shopkeeper.register.clickToReplace")}</p>
+                        <p className="font-medium text-green-900 dark:text-green-200 text-xs">{t("shopkeeper.register.documentUploaded")}</p>
+                        <p className="text-[11px] text-green-700 dark:text-green-300">{t("shopkeeper.register.clickToReplace")}</p>
                       </div>
                       <button
                         onClick={() => setFormData(prev => ({ ...prev, businessPermit: null }))}
@@ -405,7 +405,7 @@ export default function ShopkeeperRegistrationPage() {
                   ) : (
                     <label className="flex items-center justify-center gap-3 p-4 border-2 border-dashed border-muted-foreground/30 rounded-lg cursor-pointer hover:border-amber-500 transition-colors">
                       <Upload className="w-6 h-6 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">{t("shopkeeper.register.uploadBusinessPermitHint")}</span>
+                      <span className="text-xs text-muted-foreground">{t("shopkeeper.register.uploadBusinessPermitHint")}</span>
                       <input type="file" accept="image/*,.pdf" className="hidden" onChange={handleImageUpload('businessPermit')} />
                     </label>
                   )}
@@ -415,8 +415,8 @@ export default function ShopkeeperRegistrationPage() {
               <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-4 flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
                 <div>
-                  <p className="font-medium text-amber-900 dark:text-amber-200 text-sm">{t("shopkeeper.register.importantLabel")}</p>
-                  <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                  <p className="font-medium text-amber-900 dark:text-amber-200 text-xs">{t("shopkeeper.register.importantLabel")}</p>
+                  <p className="text-[11px] text-amber-700 dark:text-amber-300 mt-1">
                     {t("shopkeeper.register.documentsSecureHint")}
                   </p>
                 </div>
@@ -428,8 +428,8 @@ export default function ShopkeeperRegistrationPage() {
           {step === 4 && (
             <div className="space-y-4">
               <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">{t("shopkeeper.register.selfieHeading")}</h2>
-                <p className="text-sm text-muted-foreground">{t("shopkeeper.register.selfieHint")}</p>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-1">{t("shopkeeper.register.selfieHeading")}</h2>
+                <p className="text-xs text-muted-foreground">{t("shopkeeper.register.selfieHint")}</p>
               </div>
 
               <SelfieCapture value={formData.selfie ?? ""} onChange={(v) => setFormData(prev => ({ ...prev, selfie: v || null }))} />
@@ -437,8 +437,8 @@ export default function ShopkeeperRegistrationPage() {
               <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-4 flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
                 <div>
-                  <p className="font-medium text-amber-900 dark:text-amber-200 text-sm">{t("shopkeeper.register.importantLabel")}</p>
-                  <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                  <p className="font-medium text-amber-900 dark:text-amber-200 text-xs">{t("shopkeeper.register.importantLabel")}</p>
+                  <p className="text-[11px] text-amber-700 dark:text-amber-300 mt-1">
                     {t("shopkeeper.register.selfieImportantHint")}
                   </p>
                 </div>
@@ -481,34 +481,34 @@ export default function ShopkeeperRegistrationPage() {
 
         {/* Benefits Section */}
         <Card className="p-6 mb-8 border-0 shadow-sm bg-gradient-to-br from-amber-600 to-orange-600 text-white">
-          <h3 className="font-bold text-lg mb-4">{t("shopkeeper.register.whySellTitle")}</h3>
+          <h3 className="font-bold text-base mb-4">{t("shopkeeper.register.whySellTitle")}</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex items-start gap-2">
               <CheckCircle2 className="w-5 h-5 text-amber-200 mt-0.5" />
               <div>
-                <p className="font-medium text-sm">{t("shopkeeper.register.benefitReachTitle")}</p>
-                <p className="text-xs text-amber-100">{t("shopkeeper.register.benefitReachDesc")}</p>
+                <p className="font-medium text-xs">{t("shopkeeper.register.benefitReachTitle")}</p>
+                <p className="text-[11px] text-amber-100">{t("shopkeeper.register.benefitReachDesc")}</p>
               </div>
             </div>
             <div className="flex items-start gap-2">
               <CheckCircle2 className="w-5 h-5 text-amber-200 mt-0.5" />
               <div>
-                <p className="font-medium text-sm">{t("shopkeeper.register.benefitEndorseTitle")}</p>
-                <p className="text-xs text-amber-100">{t("shopkeeper.register.benefitEndorseDesc")}</p>
+                <p className="font-medium text-xs">{t("shopkeeper.register.benefitEndorseTitle")}</p>
+                <p className="text-[11px] text-amber-100">{t("shopkeeper.register.benefitEndorseDesc")}</p>
               </div>
             </div>
             <div className="flex items-start gap-2">
               <CheckCircle2 className="w-5 h-5 text-amber-200 mt-0.5" />
               <div>
-                <p className="font-medium text-sm">{t("shopkeeper.register.benefitEasyTitle")}</p>
-                <p className="text-xs text-amber-100">{t("shopkeeper.register.benefitEasyDesc")}</p>
+                <p className="font-medium text-xs">{t("shopkeeper.register.benefitEasyTitle")}</p>
+                <p className="text-[11px] text-amber-100">{t("shopkeeper.register.benefitEasyDesc")}</p>
               </div>
             </div>
             <div className="flex items-start gap-2">
               <CheckCircle2 className="w-5 h-5 text-amber-200 mt-0.5" />
               <div>
-                <p className="font-medium text-sm">{t("shopkeeper.register.benefitSecureTitle")}</p>
-                <p className="text-xs text-amber-100">{t("shopkeeper.register.benefitSecureDesc")}</p>
+                <p className="font-medium text-xs">{t("shopkeeper.register.benefitSecureTitle")}</p>
+                <p className="text-[11px] text-amber-100">{t("shopkeeper.register.benefitSecureDesc")}</p>
               </div>
             </div>
           </div>

@@ -28,11 +28,11 @@ export default function ShopkeeperDistributorsPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+        <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
           <Truck className="w-6 h-6 text-primary" />
           {t("shopkeeper.distributors.title")}
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">{t("shopkeeper.distributors.subtitle")}</p>
+        <p className="text-xs text-muted-foreground mt-1">{t("shopkeeper.distributors.subtitle")}</p>
       </div>
 
       <div className="relative mb-6">
@@ -48,7 +48,7 @@ export default function ShopkeeperDistributorsPage() {
         <Card className="p-10 text-center">
           <Truck className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
           <p className="text-foreground font-medium">{search ? t("shopkeeper.distributors.noMatchSearch") : t("shopkeeper.distributors.noDistributorsYet")}</p>
-          {!search && <p className="text-sm text-muted-foreground mt-1">{t("shopkeeper.distributors.checkBackHint")}</p>}
+          {!search && <p className="text-xs text-muted-foreground mt-1">{t("shopkeeper.distributors.checkBackHint")}</p>}
         </Card>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -63,16 +63,16 @@ export default function ShopkeeperDistributorsPage() {
                   )}
                 </div>
                 <div className="p-3">
-                  <h4 className="font-semibold text-foreground text-sm truncate">{d.companyName}</h4>
+                  <h4 className="font-semibold text-foreground text-xs truncate">{d.companyName}</h4>
                   <div className="flex items-center gap-1.5 mt-1">
                     <div className="flex items-center">
                       {[...Array(5)].map((_, i) => (
                         <Star key={i} className={`w-3 h-3 ${i < Math.floor(d.rating) ? "fill-amber-400 text-amber-400" : "text-muted"}`} />
                       ))}
                     </div>
-                    <span className="text-xs text-muted-foreground">{d.reviewCount}</span>
+                    <span className="text-[11px] text-muted-foreground">{d.reviewCount}</span>
                   </div>
-                  <div className="flex items-center gap-3 mt-2 text-[11px] text-muted-foreground">
+                  <div className="flex items-center gap-3 mt-2 text-[10px] text-muted-foreground">
                     <span className="flex items-center gap-1"><Warehouse className="w-3 h-3" />{d.locationCount}</span>
                     <span className="flex items-center gap-1"><Package className="w-3 h-3" />{d.productCount}</span>
                   </div>

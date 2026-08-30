@@ -111,7 +111,7 @@ export default function ShopShowcasePage() {
             <Link href="/shopkeeper" className="lg:hidden hover:bg-orange-500/50 p-2 rounded-lg">
               <ArrowLeft className="w-6 h-6" />
             </Link>
-            <h1 className="text-xl font-bold">{t("shopkeeper.showcase.title")}</h1>
+            <h1 className="text-lg font-bold">{t("shopkeeper.showcase.title")}</h1>
           </div>
           <Button onClick={handleAddWork} className="bg-white text-orange-600 hover:bg-gray-100"><Upload className="w-4 h-4 mr-2" />{t("shopkeeper.showcase.addWork")}</Button>
         </div>
@@ -119,13 +119,13 @@ export default function ShopShowcasePage() {
 
       {/* Content */}
       <div className="p-4 max-w-2xl mx-auto lg:max-w-4xl space-y-6 py-6">
-        <p className="text-sm text-muted-foreground">{t("shopkeeper.showcase.subtitle")}</p>
+        <p className="text-xs text-muted-foreground">{t("shopkeeper.showcase.subtitle")}</p>
 
         {/* Add/Edit form — inline within the page, not a popup */}
         {showUpload && (
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-orange-200 dark:border-orange-900/40 shadow-sm p-4 sm:p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{editingItem ? t("shopkeeper.showcase.editWorkTitle") : t("shopkeeper.showcase.addNewWorkTitle")}</h2>
+              <h2 className="text-base font-semibold text-gray-900 dark:text-white">{editingItem ? t("shopkeeper.showcase.editWorkTitle") : t("shopkeeper.showcase.addNewWorkTitle")}</h2>
               <button onClick={() => setShowUpload(false)} aria-label={t("common.close")} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full flex-shrink-0">
                 <X className="w-5 h-5 text-gray-500" />
               </button>
@@ -139,8 +139,8 @@ export default function ShopShowcasePage() {
                   ) : (
                     <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                   )}
-                  <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">{newImage ? t("shopkeeper.showcase.imageSelected") : t("shopkeeper.showcase.chooseImage")}</p>
-                  {!newImage && <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">{t("shopkeeper.showcase.clickToUpload")}</p>}
+                  <p className="text-xs font-medium text-gray-900 dark:text-white mb-1">{newImage ? t("shopkeeper.showcase.imageSelected") : t("shopkeeper.showcase.chooseImage")}</p>
+                  {!newImage && <p className="text-[11px] text-gray-600 dark:text-gray-400 mb-3">{t("shopkeeper.showcase.clickToUpload")}</p>}
                   <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
                   <Button size="sm" variant="outline" onClick={() => fileInputRef.current?.click()} className="bg-transparent">{newImage ? t("shopkeeper.showcase.chooseDifferentImage") : t("shopkeeper.showcase.chooseFiles")}</Button>
                 </div>
@@ -149,7 +149,7 @@ export default function ShopShowcasePage() {
               {!editingItem && (
                 <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-2 min-w-0">
+                    <p className="text-xs font-medium text-gray-900 dark:text-white flex items-center gap-2 min-w-0">
                       <Video className="w-4 h-4 flex-shrink-0" /><span className="truncate">{newVideo ? t("shopkeeper.showcase.videoAttached") : t("shopkeeper.showcase.addVideoOptional")}</span>
                     </p>
                     {newVideo ? (
@@ -164,16 +164,16 @@ export default function ShopShowcasePage() {
               )}
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("shopkeeper.showcase.projectTitleLabel")}</label>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t("shopkeeper.showcase.projectTitleLabel")}</label>
                 <Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder={t("shopkeeper.showcase.projectTitlePlaceholder")} />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("shopkeeper.showcase.descriptionLabel")}</label>
-                <textarea value={newDescription} onChange={(e) => setNewDescription(e.target.value)} placeholder={t("shopkeeper.showcase.descriptionPlaceholder")} rows={4} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20" />
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t("shopkeeper.showcase.descriptionLabel")}</label>
+                <textarea value={newDescription} onChange={(e) => setNewDescription(e.target.value)} placeholder={t("shopkeeper.showcase.descriptionPlaceholder")} rows={4} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-orange-500/20" />
               </div>
 
-              {formError && <p className="text-sm text-red-600">{formError}</p>}
+              {formError && <p className="text-xs text-red-600">{formError}</p>}
 
               <div className="flex gap-3 pt-2">
                 <Button variant="outline" onClick={() => setShowUpload(false)} className="flex-1 bg-transparent" disabled={isSaving}>{t("common.cancel")}</Button>
@@ -189,7 +189,7 @@ export default function ShopShowcasePage() {
           <div className="text-center py-12">
             <Upload className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
             <p className="text-gray-900 dark:text-white font-medium mb-2">{t("shopkeeper.showcase.noWorkTitle")}</p>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">{t("shopkeeper.showcase.noWorkDesc")}</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mb-6">{t("shopkeeper.showcase.noWorkDesc")}</p>
             <Button onClick={handleAddWork} className="bg-orange-600 hover:bg-orange-700"><Upload className="w-4 h-4 mr-2" />{t("shopkeeper.showcase.addFirstWork")}</Button>
           </div>
         ) : items.length > 0 ? (
@@ -199,7 +199,7 @@ export default function ShopShowcasePage() {
                 <div className="relative h-48 bg-gray-100 dark:bg-gray-700 overflow-hidden group">
                   <img src={item.imageUrl || "/placeholder.svg"} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                   {item.videoUrl && (
-                    <span className="absolute top-2 left-2 bg-black/60 text-white text-[11px] font-medium px-2 py-1 rounded-full flex items-center gap-1">
+                    <span className="absolute top-2 left-2 bg-black/60 text-white text-[10px] font-medium px-2 py-1 rounded-full flex items-center gap-1">
                       <Video className="w-3 h-3" />{t("shopkeeper.showcase.videoBadge")}
                     </span>
                   )}
@@ -208,9 +208,9 @@ export default function ShopShowcasePage() {
                   </div>
                 </div>
                 <div className="p-4">
-                  <p className="font-semibold text-gray-900 dark:text-white text-lg mb-1">{item.title}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">{new Date(item.createdAt).toLocaleDateString()}</p>
-                  {item.description && <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-2">{item.description}</p>}
+                  <p className="font-semibold text-gray-900 dark:text-white text-base mb-1">{item.title}</p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-3">{new Date(item.createdAt).toLocaleDateString()}</p>
+                  {item.description && <p className="text-xs text-gray-600 dark:text-gray-400 mb-4 line-clamp-2">{item.description}</p>}
                   <div className="flex items-center justify-end">
                     <div className="flex gap-2">
                       <button onClick={() => handleEditWork(item)} aria-label={t("common.edit")} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"><Edit2 className="w-4 h-4 text-orange-600" /></button>
@@ -236,12 +236,12 @@ export default function ShopShowcasePage() {
               )}
               {previewItem.description && (
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">{t("shopkeeper.showcase.descriptionLabel")}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">{t("shopkeeper.showcase.descriptionLabel")}</p>
                   <p className="text-gray-900 dark:text-white">{previewItem.description}</p>
                 </div>
               )}
               <div>
-                <p className="text-xs text-gray-600 dark:text-gray-400">{t("shopkeeper.showcase.dateLabel")}</p>
+                <p className="text-[11px] text-gray-600 dark:text-gray-400">{t("shopkeeper.showcase.dateLabel")}</p>
                 <p className="font-medium text-gray-900 dark:text-white">{new Date(previewItem.createdAt).toLocaleDateString()}</p>
               </div>
               <Button onClick={() => setShowPreview(false)} className="w-full bg-orange-600 hover:bg-orange-700">{t("common.close")}</Button>

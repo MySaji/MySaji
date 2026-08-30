@@ -108,22 +108,22 @@ export default function ShopkeeperReviewsPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 lg:p-6">
       <div className="max-w-5xl mx-auto">
         <div className="mb-6">
-          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">{t("shopkeeper.reviews.title")}</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t("shopkeeper.reviews.subtitle")}</p>
+          <h1 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t("shopkeeper.reviews.title")}</h1>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t("shopkeeper.reviews.subtitle")}</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
           <Card className="p-5 border-0 shadow-sm">
             <div className="flex items-center gap-4">
               <div className="text-center">
-                <p className="text-4xl font-bold text-gray-900 dark:text-white">{avgRatingLabel}</p>
+                <p className="text-3xl font-bold text-gray-900 dark:text-white">{avgRatingLabel}</p>
                 {renderStars(Math.round(data.avgRating), "w-4 h-4")}
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{tn("shopkeeper.reviews.reviewsCount", data.totalReviews)}</p>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">{tn("shopkeeper.reviews.reviewsCount", data.totalReviews)}</p>
               </div>
               <div className="flex-1 space-y-1.5">
                 {data.ratingDistribution.map(({ star, count, percent }) => (
                   <div key={star} className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500 dark:text-gray-400 w-3">{star}</span>
+                    <span className="text-[11px] text-gray-500 dark:text-gray-400 w-3">{star}</span>
                     <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
                     <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                       <div
@@ -131,7 +131,7 @@ export default function ShopkeeperReviewsPage() {
                         style={{ width: `${percent}%` }}
                       />
                     </div>
-                    <span className="text-xs text-gray-500 dark:text-gray-400 w-6 text-right">{count}</span>
+                    <span className="text-[11px] text-gray-500 dark:text-gray-400 w-6 text-right">{count}</span>
                   </div>
                 ))}
               </div>
@@ -143,18 +143,18 @@ export default function ShopkeeperReviewsPage() {
               <div>
                 <div className="flex items-center gap-1.5 mb-1">
                   <TrendingUp className="w-4 h-4 text-emerald-500" />
-                  <span className="text-xs text-gray-500 dark:text-gray-400">{t("shopkeeper.reviews.responseRate")}</span>
+                  <span className="text-[11px] text-gray-500 dark:text-gray-400">{t("shopkeeper.reviews.responseRate")}</span>
                 </div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                <p className="text-xl font-bold text-gray-900 dark:text-white">
                   {data.totalReviews > 0 ? Math.round(((data.totalReviews - data.unrepliedCount) / data.totalReviews) * 100) : 0}%
                 </p>
               </div>
               <div>
                 <div className="flex items-center gap-1.5 mb-1">
                   <Clock className="w-4 h-4 text-blue-500" />
-                  <span className="text-xs text-gray-500 dark:text-gray-400">{t("shopkeeper.reviews.avgReplyTime")}</span>
+                  <span className="text-[11px] text-gray-500 dark:text-gray-400">{t("shopkeeper.reviews.avgReplyTime")}</span>
                 </div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                <p className="text-xl font-bold text-gray-900 dark:text-white">
                   {data.avgReplyTimeHours === null ? "—" : data.avgReplyTimeHours < 1 ? t("shopkeeper.reviews.lessThanHour") : t("shopkeeper.reviews.hoursSuffix", { hours: Math.round(data.avgReplyTimeHours) })}
                 </p>
               </div>
@@ -168,12 +168,12 @@ export default function ShopkeeperReviewsPage() {
               </div>
               <div>
                 <p className="font-semibold text-amber-900 dark:text-amber-200">{t("shopkeeper.reviews.needsReplyMessage", { count: data.unrepliedCount })}</p>
-                <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
+                <p className="text-[11px] text-amber-700 dark:text-amber-300 mt-0.5">
                   {t("shopkeeper.reviews.needsReplyHint")}
                 </p>
                 <Button
                   size="sm"
-                  className="mt-3 bg-amber-600 hover:bg-amber-700 text-xs h-8"
+                  className="mt-3 bg-amber-600 hover:bg-amber-700 text-[11px] h-8"
                   onClick={() => setActiveFilter("unreplied")}
                 >
                   {t("shopkeeper.reviews.replyToReviews")}
@@ -199,7 +199,7 @@ export default function ShopkeeperReviewsPage() {
                 <button
                   key={filter.key}
                   onClick={() => setActiveFilter(filter.key)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
+                  className={`px-3 py-1.5 rounded-lg text-[11px] font-medium whitespace-nowrap transition-colors ${
                     activeFilter === filter.key
                       ? "bg-amber-600 text-white"
                       : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
@@ -234,27 +234,27 @@ export default function ShopkeeperReviewsPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <h3 className="font-semibold text-sm text-gray-900 dark:text-white">{review.customerName}</h3>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                        <h3 className="font-semibold text-xs text-gray-900 dark:text-white">{review.customerName}</h3>
+                        <p className="text-[11px] text-gray-500 dark:text-gray-400">
                           {review.productName ?? (review.orderNumber ? t("shopkeeper.reviews.shopReviewLabel", { orderNumber: review.orderNumber }) : t("shopkeeper.reviews.shopReviewLabelGeneric"))}
                         </p>
                       </div>
-                      <span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{formatDate(review.createdAt)}</span>
+                      <span className="text-[11px] text-gray-400 dark:text-gray-500 whitespace-nowrap">{formatDate(review.createdAt)}</span>
                     </div>
                     <div className="flex items-center gap-2 mt-1">
                       {renderStars(review.rating, "w-3.5 h-3.5")}
-                      <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{review.rating}.0</span>
+                      <span className="text-[11px] font-medium text-gray-600 dark:text-gray-400">{review.rating}.0</span>
                     </div>
                   </div>
                 </div>
 
-                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-3">{review.comment}</p>
+                <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed mb-3">{review.comment}</p>
 
                 {!review.response && (
                   <div className="flex items-center justify-end">
                     <Button
                       size="sm"
-                      className="bg-amber-600 hover:bg-amber-700 text-xs h-7 gap-1"
+                      className="bg-amber-600 hover:bg-amber-700 text-[11px] h-7 gap-1"
                       onClick={() => {
                         setSelectedReview(review)
                         setReplyText("")
@@ -273,11 +273,11 @@ export default function ShopkeeperReviewsPage() {
                       <div className="w-6 h-6 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white text-[10px] font-bold">
                         {data.shopName.charAt(0).toUpperCase()}
                       </div>
-                      <span className="text-xs font-semibold text-gray-900 dark:text-white">{data.shopName}</span>
+                      <span className="text-[11px] font-semibold text-gray-900 dark:text-white">{data.shopName}</span>
                       {review.respondedAt && <span className="text-[10px] text-gray-400">{formatDate(review.respondedAt)}</span>}
                       <CheckCircle2 className="w-3 h-3 text-emerald-500" />
                     </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{review.response}</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">{review.response}</p>
                   </div>
                 )}
               </Card>
@@ -286,7 +286,7 @@ export default function ShopkeeperReviewsPage() {
             <Card className="p-12 border-0 shadow-sm text-center">
               <Star className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
               <h3 className="font-semibold text-gray-900 dark:text-white mb-1">{t("shopkeeper.reviews.noReviewsFound")}</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{t("shopkeeper.reviews.noReviewsHint")}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t("shopkeeper.reviews.noReviewsHint")}</p>
             </Card>
           )}
         </div>
@@ -310,26 +310,26 @@ export default function ShopkeeperReviewsPage() {
                     className="rounded-full object-cover"
                   />
                   <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedReview.customerName}</p>
+                    <p className="text-xs font-medium text-gray-900 dark:text-white">{selectedReview.customerName}</p>
                     {renderStars(selectedReview.rating, "w-3 h-3")}
                   </div>
                 </div>
-                <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-3">{selectedReview.comment}</p>
+                <p className="text-[11px] text-gray-600 dark:text-gray-400 line-clamp-3">{selectedReview.comment}</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1.5">{t("shopkeeper.reviews.yourReplyLabel")}</label>
+                <label className="block text-xs font-medium mb-1.5">{t("shopkeeper.reviews.yourReplyLabel")}</label>
                 <Textarea
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
                   placeholder={t("shopkeeper.reviews.replyPlaceholder")}
                   className="min-h-[100px]"
                 />
-                <p className="text-xs text-gray-400 mt-1">{t("shopkeeper.reviews.charCount", { count: replyText.length })}</p>
+                <p className="text-[11px] text-gray-400 mt-1">{t("shopkeeper.reviews.charCount", { count: replyText.length })}</p>
               </div>
 
               <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                <p className="text-xs text-blue-700 dark:text-blue-300">
+                <p className="text-[11px] text-blue-700 dark:text-blue-300">
                   <strong>{t("shopkeeper.reviews.tipLabel")}</strong> {t("shopkeeper.reviews.tipText")}
                 </p>
               </div>

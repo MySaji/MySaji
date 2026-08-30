@@ -156,10 +156,10 @@ export default function ShopkeeperPromotionsPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">{t("shopkeeper.promotions.title")}</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t("shopkeeper.promotions.subtitle")}</p>
+            <h1 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t("shopkeeper.promotions.title")}</h1>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t("shopkeeper.promotions.subtitle")}</p>
           </div>
-          <Button onClick={() => setShowCreateModal(true)} className="bg-amber-600 hover:bg-amber-700 gap-2 text-sm">
+          <Button onClick={() => setShowCreateModal(true)} className="bg-amber-600 hover:bg-amber-700 gap-2 text-xs">
             <Plus className="w-4 h-4" />
             {t("shopkeeper.promotions.createPromotion")}
           </Button>
@@ -179,8 +179,8 @@ export default function ShopkeeperPromotionsPage() {
                     <Icon className="w-4 h-4" />
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{stat.label}</p>
-                    <p className="text-lg font-bold text-gray-900 dark:text-white">{stat.value}</p>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400">{stat.label}</p>
+                    <p className="text-base font-bold text-gray-900 dark:text-white">{stat.value}</p>
                   </div>
                 </div>
               </Card>
@@ -205,7 +205,7 @@ export default function ShopkeeperPromotionsPage() {
                 <button
                   key={filter.key}
                   onClick={() => setActiveFilter(filter.key)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
+                  className={`px-3 py-1.5 rounded-lg text-[11px] font-medium whitespace-nowrap transition-colors ${
                     activeFilter === filter.key
                       ? "bg-amber-600 text-white"
                       : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
@@ -234,7 +234,7 @@ export default function ShopkeeperPromotionsPage() {
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <div>
                           <h3 className="font-semibold text-gray-900 dark:text-white">{promo.name}</h3>
-                          {promo.description && <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{promo.description}</p>}
+                          {promo.description && <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">{promo.description}</p>}
                         </div>
                         <div className={`px-2 py-1 rounded-full text-[10px] font-semibold flex items-center gap-1 ${statusConfig.bg} ${statusConfig.text}`}>
                           {statusConfig.icon}
@@ -245,21 +245,21 @@ export default function ShopkeeperPromotionsPage() {
                       <div className="flex flex-wrap items-center gap-3 mb-3">
                         <button
                           onClick={() => handleCopyCode(promo.code)}
-                          className="flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm font-mono font-bold text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                          className="flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs font-mono font-bold text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                         >
                           {copiedCode === promo.code ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-gray-400" />}
                           {promo.code}
                         </button>
-                        <span className="flex items-center gap-1 text-sm font-semibold text-amber-600">
+                        <span className="flex items-center gap-1 text-xs font-semibold text-amber-600">
                           <TypeIcon className="w-3.5 h-3.5" />
                           {promo.type === "percentage" ? t("shopkeeper.promotions.percentOff", { value: promo.value }) : promo.type === "fixed" ? t("shopkeeper.promotions.fixedOffAmount", { amount: formatMoney(promo.value) }) : t("shopkeeper.promotions.bogoLabel")}
                         </span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                        <span className="text-[11px] text-gray-500 dark:text-gray-400">
                           {t("shopkeeper.promotions.minOrderLabel", { amount: formatMoney(promo.minOrder) })}
                         </span>
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+                      <div className="flex flex-wrap items-center gap-3 text-[11px] text-gray-500 dark:text-gray-400">
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
                           {promo.endDate ? t("shopkeeper.promotions.dateRangeTo", { start: formatDate(promo.startDate), end: formatDate(promo.endDate) }) : `${formatDate(promo.startDate)} ${t("shopkeeper.promotions.noEndDate")}`}
@@ -273,7 +273,7 @@ export default function ShopkeeperPromotionsPage() {
 
                     <div className="flex flex-col items-end gap-3 lg:w-48 flex-shrink-0">
                       <div className="w-full">
-                        <div className="flex items-center justify-between text-xs mb-1">
+                        <div className="flex items-center justify-between text-[11px] mb-1">
                           <span className="text-gray-500 dark:text-gray-400">{t("shopkeeper.promotions.usageLabel")}</span>
                           <span className="font-medium text-gray-700 dark:text-gray-300">{promo.usedCount}{promo.maxUses ? `/${promo.maxUses}` : ""}</span>
                         </div>
@@ -285,7 +285,7 @@ export default function ShopkeeperPromotionsPage() {
                             />
                           </div>
                         ) : (
-                          <p className="text-xs text-gray-400">{t("shopkeeper.promotions.unlimitedUses")}</p>
+                          <p className="text-[11px] text-gray-400">{t("shopkeeper.promotions.unlimitedUses")}</p>
                         )}
                       </div>
 
@@ -294,7 +294,7 @@ export default function ShopkeeperPromotionsPage() {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="text-xs h-7 bg-transparent"
+                            className="text-[11px] h-7 bg-transparent"
                             onClick={() => handleToggleStatus(promo.id)}
                             disabled={isBusy}
                           >
@@ -304,7 +304,7 @@ export default function ShopkeeperPromotionsPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="text-xs h-7 bg-transparent text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                          className="text-[11px] h-7 bg-transparent text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
                           onClick={() => handleDeletePromo(promo.id)}
                           disabled={isBusy}
                         >
@@ -320,7 +320,7 @@ export default function ShopkeeperPromotionsPage() {
             <Card className="p-12 border-0 shadow-sm text-center">
               <Tag className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
               <h3 className="font-semibold text-gray-900 dark:text-white mb-1">{t("shopkeeper.promotions.noPromotionsFound")}</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{t("shopkeeper.promotions.noPromotionsHint")}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t("shopkeeper.promotions.noPromotionsHint")}</p>
             </Card>
           )}
         </div>
@@ -334,7 +334,7 @@ export default function ShopkeeperPromotionsPage() {
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div>
-              <label className="block text-sm font-medium mb-1.5">{t("shopkeeper.promotions.nameLabel")}</label>
+              <label className="block text-xs font-medium mb-1.5">{t("shopkeeper.promotions.nameLabel")}</label>
               <Input
                 value={newPromo.name}
                 onChange={(e) => setNewPromo({ ...newPromo, name: e.target.value })}
@@ -344,7 +344,7 @@ export default function ShopkeeperPromotionsPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium mb-1.5">{t("shopkeeper.promotions.codeLabel")}</label>
+                <label className="block text-xs font-medium mb-1.5">{t("shopkeeper.promotions.codeLabel")}</label>
                 <Input
                   value={newPromo.code}
                   onChange={(e) => setNewPromo({ ...newPromo, code: e.target.value.toUpperCase() })}
@@ -353,11 +353,11 @@ export default function ShopkeeperPromotionsPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1.5">{t("shopkeeper.promotions.typeLabel")}</label>
+                <label className="block text-xs font-medium mb-1.5">{t("shopkeeper.promotions.typeLabel")}</label>
                 <select
                   value={newPromo.type}
                   onChange={(e) => setNewPromo({ ...newPromo, type: e.target.value as ShopkeeperPromotionType })}
-                  className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm"
+                  className="w-full px-3 py-2 bg-background border border-input rounded-md text-xs"
                 >
                   <option value="percentage">{t("shopkeeper.promotions.typePercentage")}</option>
                   <option value="fixed">{t("shopkeeper.promotions.typeFixed")}</option>
@@ -368,7 +368,7 @@ export default function ShopkeeperPromotionsPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium mb-1.5">
+                <label className="block text-xs font-medium mb-1.5">
                   {newPromo.type === "percentage" ? t("shopkeeper.promotions.valueLabelPercent") : newPromo.type === "fixed" ? t("shopkeeper.promotions.valueLabelFixed", { currency }) : t("shopkeeper.promotions.valueLabelBogo")}
                 </label>
                 <Input
@@ -379,7 +379,7 @@ export default function ShopkeeperPromotionsPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1.5">{t("shopkeeper.promotions.minOrderInputLabel", { currency })}</label>
+                <label className="block text-xs font-medium mb-1.5">{t("shopkeeper.promotions.minOrderInputLabel", { currency })}</label>
                 <Input
                   type="number"
                   value={newPromo.minOrder}
@@ -391,7 +391,7 @@ export default function ShopkeeperPromotionsPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium mb-1.5">{t("shopkeeper.promotions.startDateLabel")}</label>
+                <label className="block text-xs font-medium mb-1.5">{t("shopkeeper.promotions.startDateLabel")}</label>
                 <Input
                   type="date"
                   value={newPromo.startDate}
@@ -399,7 +399,7 @@ export default function ShopkeeperPromotionsPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1.5">{t("shopkeeper.promotions.endDateLabel")}</label>
+                <label className="block text-xs font-medium mb-1.5">{t("shopkeeper.promotions.endDateLabel")}</label>
                 <Input
                   type="date"
                   value={newPromo.endDate}
@@ -410,7 +410,7 @@ export default function ShopkeeperPromotionsPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium mb-1.5">{t("shopkeeper.promotions.maxUsesLabel")}</label>
+                <label className="block text-xs font-medium mb-1.5">{t("shopkeeper.promotions.maxUsesLabel")}</label>
                 <Input
                   type="number"
                   value={newPromo.maxUses}
@@ -419,11 +419,11 @@ export default function ShopkeeperPromotionsPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1.5">{t("shopkeeper.promotions.appliesToLabel")}</label>
+                <label className="block text-xs font-medium mb-1.5">{t("shopkeeper.promotions.appliesToLabel")}</label>
                 <select
                   value={newPromo.categoryId}
                   onChange={(e) => setNewPromo({ ...newPromo, categoryId: e.target.value })}
-                  className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm"
+                  className="w-full px-3 py-2 bg-background border border-input rounded-md text-xs"
                 >
                   <option value="">{t("shopkeeper.promotions.allProducts")}</option>
                   {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
@@ -432,7 +432,7 @@ export default function ShopkeeperPromotionsPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1.5">{t("shopkeeper.promotions.descriptionLabel")}</label>
+              <label className="block text-xs font-medium mb-1.5">{t("shopkeeper.promotions.descriptionLabel")}</label>
               <Textarea
                 value={newPromo.description}
                 onChange={(e) => setNewPromo({ ...newPromo, description: e.target.value })}
@@ -441,7 +441,7 @@ export default function ShopkeeperPromotionsPage() {
               />
             </div>
 
-            {formError && <p className="text-sm text-red-600">{formError}</p>}
+            {formError && <p className="text-xs text-red-600">{formError}</p>}
 
             <div className="flex gap-3 pt-2">
               <Button variant="outline" className="flex-1 bg-transparent" onClick={() => setShowCreateModal(false)} disabled={isSaving}>

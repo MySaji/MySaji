@@ -174,7 +174,7 @@ export default function ShopkeeperOrdersPage() {
       {/* Header */}
       <div className="bg-gradient-to-r from-amber-600 to-orange-600 dark:from-amber-800 dark:to-orange-800 text-white p-4 sm:p-6 lg:rounded-b-3xl overflow-hidden">
         <div className="max-w-7xl mx-auto">
-          <h1 className="text-2xl sm:text-3xl font-bold mb-4 truncate">{t("shopkeeper.orders.title")}</h1>
+          <h1 className="text-xl sm:text-2xl font-bold mb-4 truncate">{t("shopkeeper.orders.title")}</h1>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
             {orderStats.map((stat, idx) => {
@@ -183,8 +183,8 @@ export default function ShopkeeperOrdersPage() {
                 <div key={idx} className="bg-white/10 backdrop-blur-sm rounded-xl p-3 sm:p-4 min-w-0">
                   <div className="flex items-center justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="text-xs text-amber-100 truncate">{stat.label}</p>
-                      <p className="text-lg sm:text-2xl font-bold truncate">{stat.value}</p>
+                      <p className="text-[11px] text-amber-100 truncate">{stat.label}</p>
+                      <p className="text-base sm:text-xl font-bold truncate">{stat.value}</p>
                     </div>
                     <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-amber-200 opacity-60 flex-shrink-0" />
                   </div>
@@ -231,7 +231,7 @@ export default function ShopkeeperOrdersPage() {
               >
                 <Icon className="w-4 h-4" />
                 {tab.label}
-                <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-bold ${
+                <span className={`ml-2 px-2 py-0.5 rounded-full text-[11px] font-bold ${
                   activeTab === tab.key ? "bg-white/20" : "bg-gray-100 dark:bg-gray-700"
                 }`}>
                   {count}
@@ -257,14 +257,14 @@ export default function ShopkeeperOrdersPage() {
                     <div className="flex items-start justify-between gap-3 mb-2">
                       <div className="min-w-0">
                         <p className="font-bold text-gray-900 dark:text-white truncate">{req.orderNumber}</p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 truncate">{req.customerName}</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 truncate">{req.customerName}</p>
                       </div>
-                      <span className="flex-shrink-0 px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                      <span className="flex-shrink-0 px-2.5 py-1 rounded-full text-[10px] font-semibold whitespace-nowrap bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
                         {req.status === "OPEN" ? t("shopkeeper.orders.returnStatusOpen") : t("shopkeeper.orders.returnStatusInReview")}
                       </span>
                     </div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-white break-words">{req.reason}</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 break-words">{req.description}</p>
+                    <p className="text-xs font-medium text-gray-900 dark:text-white break-words">{req.reason}</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 break-words">{req.description}</p>
                     {req.photos.length > 0 && (
                       <div className="mt-3">
                         <KycDocumentViewer documents={req.photos.map((url, i) => ({ label: `${t("customer.orderDetail.addPhoto")} ${i + 1}`, url })) satisfies KycDocumentItem[]} />
@@ -273,8 +273,8 @@ export default function ShopkeeperOrdersPage() {
 
                     {decliningId === req.id ? (
                       <div className="mt-3 space-y-2">
-                        <Textarea value={declineReason} onChange={(e) => setDeclineReason(e.target.value)} placeholder={t("shopkeeper.orders.declineReasonPlaceholder")} className="min-h-[70px] text-sm" />
-                        {declineError && <p className="text-xs text-red-600">{declineError}</p>}
+                        <Textarea value={declineReason} onChange={(e) => setDeclineReason(e.target.value)} placeholder={t("shopkeeper.orders.declineReasonPlaceholder")} className="min-h-[70px] text-xs" />
+                        {declineError && <p className="text-[11px] text-red-600">{declineError}</p>}
                         <div className="flex gap-2">
                           <Button size="sm" variant="outline" className="bg-transparent" onClick={() => setDecliningId(null)} disabled={isBusy}>{t("common.cancel")}</Button>
                           <Button size="sm" variant="destructive" onClick={() => submitDecline(req.id)} disabled={declineReason.trim().length < 5 || isBusy}>
@@ -332,17 +332,17 @@ export default function ShopkeeperOrdersPage() {
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <div className="min-w-0">
                           <p className="font-bold text-gray-900 dark:text-white truncate">{order.orderNumber}</p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
+                          <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
                             {firstItem?.productName ?? t("shopkeeper.orders.orderFallback")}{extraCount > 0 ? ` ${t("shopkeeper.orders.moreItemsSuffix", { count: extraCount })}` : ""}
                           </p>
                         </div>
-                        <div className={`flex-shrink-0 px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-semibold flex items-center gap-1 border whitespace-nowrap ${getStatusColor(order.status)}`}>
+                        <div className={`flex-shrink-0 px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-[11px] font-semibold flex items-center gap-1 border whitespace-nowrap ${getStatusColor(order.status)}`}>
                           {getStatusIcon(order.status)}
                           {getStatusLabel(order.status)}
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-x-3 gap-y-1.5 sm:gap-4 text-xs sm:text-sm mb-3">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-x-3 gap-y-1.5 sm:gap-4 text-[11px] sm:text-xs mb-3">
                         <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 min-w-0">
                           <Image
                             src={order.customerAvatar || "/placeholder.svg"}
@@ -369,8 +369,8 @@ export default function ShopkeeperOrdersPage() {
 
                       <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-gray-200 dark:border-gray-700">
                         <div className="min-w-0">
-                          <p className="text-sm text-gray-600 dark:text-gray-400">{t("shopkeeper.orders.amountLabel")}</p>
-                          <p className="text-lg sm:text-2xl font-bold text-amber-600 truncate">{formatMoney(order.amount)}</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">{t("shopkeeper.orders.amountLabel")}</p>
+                          <p className="text-base sm:text-xl font-bold text-amber-600 truncate">{formatMoney(order.amount)}</p>
                         </div>
 
                         <div className="flex gap-2 flex-shrink-0">
@@ -461,19 +461,19 @@ export default function ShopkeeperOrdersPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg min-w-0">
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">{t("common.customer")}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">{t("common.customer")}</p>
                   <p className="font-semibold text-gray-900 dark:text-white break-words">{selectedOrder.customerName}</p>
                 </div>
                 <div className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg min-w-0">
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">{t("shopkeeper.orders.phoneLabel")}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">{t("shopkeeper.orders.phoneLabel")}</p>
                   <p className="font-semibold text-gray-900 dark:text-white break-words">{selectedOrder.customerPhone ?? t("shopkeeper.orders.naText")}</p>
                 </div>
                 <div className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg min-w-0">
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">{t("shopkeeper.orders.emailLabel")}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">{t("shopkeeper.orders.emailLabel")}</p>
                   <p className="font-semibold text-gray-900 dark:text-white break-all">{selectedOrder.customerEmail}</p>
                 </div>
                 <div className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg min-w-0">
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">{t("shopkeeper.orders.paymentMethodLabel")}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">{t("shopkeeper.orders.paymentMethodLabel")}</p>
                   <p className="font-semibold text-gray-900 dark:text-white break-words">{selectedOrder.paymentMethod}</p>
                 </div>
               </div>
@@ -495,13 +495,13 @@ export default function ShopkeeperOrdersPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-gray-900 dark:text-white truncate">{item.productName}</p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 truncate">{t("shopkeeper.orders.quantityAtPrice", { qty: item.quantity, price: formatMoney(item.unitPrice) })}</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 truncate">{t("shopkeeper.orders.quantityAtPrice", { qty: item.quantity, price: formatMoney(item.unitPrice) })}</p>
                       </div>
                       <p className="font-bold text-amber-600 flex-shrink-0">{formatMoney(item.totalPrice)}</p>
                     </div>
                   ))}
                 </div>
-                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-1 text-sm">
+                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-1 text-xs">
                   <div className="flex justify-between text-gray-600 dark:text-gray-400">
                     <span>{t("shopkeeper.orders.subtotalLabel")}</span>
                     <span>{formatMoney(selectedOrder.subtotal)}</span>
@@ -510,7 +510,7 @@ export default function ShopkeeperOrdersPage() {
                     <span>{t("shopkeeper.orders.shippingLabel")}</span>
                     <span>{formatMoney(selectedOrder.shippingCost)}</span>
                   </div>
-                  <div className="flex justify-between font-bold text-gray-900 dark:text-white text-base pt-1">
+                  <div className="flex justify-between font-bold text-gray-900 dark:text-white text-sm pt-1">
                     <span>{t("payment.total")}</span>
                     <span>{formatMoney(selectedOrder.amount)}</span>
                   </div>
