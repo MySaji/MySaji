@@ -49,40 +49,40 @@ export default function AgentCommissionsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="p-6">
-          <div className="flex items-start justify-between">
-            <div>
+        <Card className="p-6 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
               <p className="text-xs text-muted-foreground mb-2">{t("agent.commissions.totalEarned")}</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatMoney(data.totalEarned)}</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white truncate">{formatMoney(data.totalEarned)}</p>
               <p className="text-[11px] text-gray-600 dark:text-gray-400 mt-2">{t("agent.commissions.totalEarnedHint")}</p>
             </div>
-            <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-lg">
+            <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-lg flex-shrink-0">
               <DollarSign className="w-6 h-6 text-blue-600 dark:text-blue-400" />
             </div>
           </div>
         </Card>
 
-        <Card className="p-6">
-          <div className="flex items-start justify-between">
-            <div>
+        <Card className="p-6 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
               <p className="text-xs text-muted-foreground mb-2">{t("agent.common.casesResolved")}</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">{data.casesResolved}</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white truncate">{data.casesResolved}</p>
               <p className="text-[11px] text-gray-600 dark:text-gray-400 mt-2">{t("agent.commissions.ofAssignedTemplate", { count: data.casesAssigned })}</p>
             </div>
-            <div className="bg-green-100 dark:bg-green-900/30 p-3 rounded-lg">
+            <div className="bg-green-100 dark:bg-green-900/30 p-3 rounded-lg flex-shrink-0">
               <TrendingUp className="w-6 h-6 text-green-600 dark:text-green-400" />
             </div>
           </div>
         </Card>
 
-        <Card className="p-6">
-          <div className="flex items-start justify-between">
-            <div>
+        <Card className="p-6 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
               <p className="text-xs text-muted-foreground mb-2">{t("agent.commissions.currentTier")}</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">{data.currentTier ? `${data.currentTier.rate}%` : t("agent.commissions.noneTier")}</p>
-              <p className="text-[11px] text-gray-600 dark:text-gray-400 mt-2">{data.currentTier?.name ?? t("agent.commissions.noTierReachedYet")}</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white truncate">{data.currentTier ? `${data.currentTier.rate}%` : t("agent.commissions.noneTier")}</p>
+              <p className="text-[11px] text-gray-600 dark:text-gray-400 mt-2 truncate">{data.currentTier?.name ?? t("agent.commissions.noTierReachedYet")}</p>
             </div>
-            <div className="bg-purple-100 dark:bg-purple-900/30 p-3 rounded-lg">
+            <div className="bg-purple-100 dark:bg-purple-900/30 p-3 rounded-lg flex-shrink-0">
               <Award className="w-6 h-6 text-purple-600 dark:text-purple-400" />
             </div>
           </div>

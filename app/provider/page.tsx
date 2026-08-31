@@ -399,15 +399,15 @@ export default function ProviderHomePage() {
             return (
               <Card
                 key={idx}
-                className="p-6 bg-white dark:bg-gray-800 border-0 rounded-xl shadow-sm hover:shadow-md transition-shadow"
+                className="p-3 sm:p-6 bg-white dark:bg-gray-800 border-0 rounded-xl shadow-sm hover:shadow-md transition-shadow min-w-0"
               >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-gray-600 dark:text-gray-400 text-xs font-medium">{stat.label}</p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white mt-2">{stat.value}</p>
+                <div className="flex items-center justify-between gap-1.5 sm:gap-2">
+                  <div className="min-w-0">
+                    <p className="text-gray-600 dark:text-gray-400 text-[11px] sm:text-xs font-medium truncate">{stat.label}</p>
+                    <p className="text-base sm:text-2xl font-bold text-gray-900 dark:text-white mt-1 sm:mt-2 truncate">{stat.value}</p>
                   </div>
-                  <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${stat.color}`}>
-                    <Icon className="w-6 h-6" />
+                  <div className={`w-8 h-8 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center flex-shrink-0 ${stat.color}`}>
+                    <Icon className="w-4 h-4 sm:w-6 sm:h-6" />
                   </div>
                 </div>
               </Card>

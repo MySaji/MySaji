@@ -185,6 +185,17 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html,
+  body {
+    /* Last-resort safety net, not a fix: this stops a single stray wide
+     * element (an unwrapped currency string in a stat card is the recurring
+     * culprit — see StatCard/MoneyText below) from ever widening the page
+     * itself into horizontal scroll. It does nothing for that element's own
+     * card visually stretching/breaking its layout — that still needs
+     * min-w-0 + wrapping at the source, which is the actual fix. */
+    max-width: 100%;
+    overflow-x: hidden;
+  }
   body {
     @apply bg-background text-foreground;
   }

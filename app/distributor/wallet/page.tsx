@@ -109,7 +109,7 @@ export default function DistributorWalletPage() {
                 {showBalance ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
               </button>
             </div>
-            <h2 className="text-3xl lg:text-4xl font-bold mb-8 tracking-tight">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-8 tracking-tight break-words">
               {showBalance ? formatMoney(balance) : `${currency} ****`}
             </h2>
             <div className="flex gap-3">
@@ -120,26 +120,26 @@ export default function DistributorWalletPage() {
           </div>
         </Card>
 
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          <Card className="p-4 border-0 shadow-sm">
-            <div className="flex flex-col gap-1">
-              <div className="w-10 h-10 rounded-xl bg-teal-100 dark:bg-teal-900/20 flex items-center justify-center"><TrendingUp className="w-5 h-5 text-teal-600" /></div>
-              <p className="text-[11px] text-muted-foreground font-medium mt-1">{t("distributor.wallet.totalEarnings")}</p>
-              <p className="text-base font-bold text-gray-900 dark:text-white">{formatMoney(summary.totalEarnings)}</p>
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-6">
+          <Card className="p-2.5 sm:p-4 border-0 shadow-sm min-w-0">
+            <div className="flex flex-col gap-1 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-teal-100 dark:bg-teal-900/20 flex items-center justify-center flex-shrink-0"><TrendingUp className="w-5 h-5 text-teal-600" /></div>
+              <p className="text-[11px] text-muted-foreground font-medium mt-1 truncate">{t("distributor.wallet.totalEarnings")}</p>
+              <p className="text-sm sm:text-base font-bold text-gray-900 dark:text-white truncate">{formatMoney(summary.totalEarnings)}</p>
             </div>
           </Card>
-          <Card className="p-4 border-0 shadow-sm">
-            <div className="flex flex-col gap-1">
-              <div className="w-10 h-10 rounded-xl bg-teal-100 dark:bg-teal-900/20 flex items-center justify-center"><TrendingUp className="w-5 h-5 text-teal-600" /></div>
-              <p className="text-[11px] text-muted-foreground font-medium mt-1">{t("distributor.wallet.thisMonth")}</p>
-              <p className="text-base font-bold text-gray-900 dark:text-white">{formatMoney(summary.thisMonth)}</p>
+          <Card className="p-2.5 sm:p-4 border-0 shadow-sm min-w-0">
+            <div className="flex flex-col gap-1 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-teal-100 dark:bg-teal-900/20 flex items-center justify-center flex-shrink-0"><TrendingUp className="w-5 h-5 text-teal-600" /></div>
+              <p className="text-[11px] text-muted-foreground font-medium mt-1 truncate">{t("distributor.wallet.thisMonth")}</p>
+              <p className="text-sm sm:text-base font-bold text-gray-900 dark:text-white truncate">{formatMoney(summary.thisMonth)}</p>
             </div>
           </Card>
-          <Card className="p-4 border-0 shadow-sm">
-            <div className="flex flex-col gap-1">
-              <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/20 flex items-center justify-center"><Clock className="w-5 h-5 text-amber-600" /></div>
-              <p className="text-[11px] text-muted-foreground font-medium mt-1">{t("distributor.wallet.pending")}</p>
-              <p className="text-base font-bold text-gray-900 dark:text-white">{formatMoney(summary.pending)}</p>
+          <Card className="p-2.5 sm:p-4 border-0 shadow-sm min-w-0">
+            <div className="flex flex-col gap-1 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/20 flex items-center justify-center flex-shrink-0"><Clock className="w-5 h-5 text-amber-600" /></div>
+              <p className="text-[11px] text-muted-foreground font-medium mt-1 truncate">{t("distributor.wallet.pending")}</p>
+              <p className="text-sm sm:text-base font-bold text-gray-900 dark:text-white truncate">{formatMoney(summary.pending)}</p>
             </div>
           </Card>
         </div>

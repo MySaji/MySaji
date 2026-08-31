@@ -73,20 +73,20 @@ export function CustomerReferralsPage() {
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3 mb-6">
-          <Card className="p-4 border-0 shadow-sm text-center">
+          <Card className="p-4 border-0 shadow-sm text-center min-w-0">
             <Users className="w-5 h-5 text-primary mx-auto mb-1.5" />
-            <p className="text-lg font-bold text-foreground">{summary.invited}</p>
-            <p className="text-[10px] text-muted-foreground">{t("customer.referrals.invited")}</p>
+            <p className="text-base sm:text-lg font-bold text-foreground truncate">{summary.invited}</p>
+            <p className="text-[10px] text-muted-foreground truncate">{t("customer.referrals.invited")}</p>
           </Card>
-          <Card className="p-4 border-0 shadow-sm text-center">
+          <Card className="p-4 border-0 shadow-sm text-center min-w-0">
             <CheckCircle className="w-5 h-5 text-emerald-600 mx-auto mb-1.5" />
-            <p className="text-lg font-bold text-foreground">{summary.completed}</p>
-            <p className="text-[10px] text-muted-foreground">{t("customer.referrals.completed")}</p>
+            <p className="text-base sm:text-lg font-bold text-foreground truncate">{summary.completed}</p>
+            <p className="text-[10px] text-muted-foreground truncate">{t("customer.referrals.completed")}</p>
           </Card>
-          <Card className="p-4 border-0 shadow-sm text-center">
+          <Card className="p-4 border-0 shadow-sm text-center min-w-0">
             <Wallet className="w-5 h-5 text-amber-600 mx-auto mb-1.5" />
-            <p className="text-lg font-bold text-foreground">{formatMoney(summary.totalEarned)}</p>
-            <p className="text-[10px] text-muted-foreground">{t("customer.referrals.earned")}</p>
+            <p className="text-base sm:text-lg font-bold text-foreground truncate">{formatMoney(summary.totalEarned)}</p>
+            <p className="text-[10px] text-muted-foreground truncate">{t("customer.referrals.earned")}</p>
           </Card>
         </div>
 

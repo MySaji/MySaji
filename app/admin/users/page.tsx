@@ -162,40 +162,40 @@ export default function UsersPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="p-4 border-0 shadow-lg">
-          <div className="flex items-center justify-between">
-            <div>
+        <Card className="p-4 border-0 shadow-lg min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
               <p className="text-xs text-gray-600 dark:text-gray-400">{t("admin.users.statTotalUsers")}</p>
-              <p className="text-xl font-bold text-gray-900 dark:text-white mt-1">{totalCount}</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-white mt-1 truncate">{totalCount}</p>
             </div>
-            <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg"><Search className="w-5 h-5 text-blue-600" /></div>
+            <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex-shrink-0"><Search className="w-5 h-5 text-blue-600" /></div>
           </div>
         </Card>
-        <Card className="p-4 border-0 shadow-lg">
-          <div className="flex items-center justify-between">
-            <div>
+        <Card className="p-4 border-0 shadow-lg min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
               <p className="text-xs text-gray-600 dark:text-gray-400">{t("admin.users.statActiveThisPage")}</p>
-              <p className="text-xl font-bold text-gray-900 dark:text-white mt-1">{activeCount}</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-white mt-1 truncate">{activeCount}</p>
             </div>
-            <div className="p-3 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg"><CheckCircle2 className="w-5 h-5 text-emerald-600" /></div>
+            <div className="p-3 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex-shrink-0"><CheckCircle2 className="w-5 h-5 text-emerald-600" /></div>
           </div>
         </Card>
-        <Card className="p-4 border-0 shadow-lg">
-          <div className="flex items-center justify-between">
-            <div>
+        <Card className="p-4 border-0 shadow-lg min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
               <p className="text-xs text-gray-600 dark:text-gray-400">{t("admin.users.statDisputedThisPage")}</p>
-              <p className="text-xl font-bold text-gray-900 dark:text-white mt-1">{disputedCount}</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-white mt-1 truncate">{disputedCount}</p>
             </div>
-            <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-lg"><AlertCircle className="w-5 h-5 text-red-600" /></div>
+            <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-lg flex-shrink-0"><AlertCircle className="w-5 h-5 text-red-600" /></div>
           </div>
         </Card>
-        <Card className="p-4 border-0 shadow-lg">
-          <div className="flex items-center justify-between">
-            <div>
+        <Card className="p-4 border-0 shadow-lg min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
               <p className="text-xs text-gray-600 dark:text-gray-400">{t("admin.users.statEarningsThisPage")}</p>
-              <p className="text-xl font-bold text-gray-900 dark:text-white mt-1">{formatMoney(totalEarnings)}</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-white mt-1 truncate">{formatMoney(totalEarnings)}</p>
             </div>
-            <div className="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg"><TrendingUp className="w-5 h-5 text-yellow-600" /></div>
+            <div className="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex-shrink-0"><TrendingUp className="w-5 h-5 text-yellow-600" /></div>
           </div>
         </Card>
       </div>

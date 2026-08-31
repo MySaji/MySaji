@@ -173,29 +173,29 @@ export function CustomerWalletPage() {
 
         {/* Quick Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
-          <Card className="p-4 border-0 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
+          <Card className="p-4 border-0 shadow-sm min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
                 <p className="text-[11px] text-muted-foreground font-medium mb-1">{t("customer.wallet.totalSpent")}</p>
-                <p className="text-lg font-bold text-foreground">{formatMoney(summary.totalSpent)}</p>
+                <p className="text-lg font-bold text-foreground truncate">{formatMoney(summary.totalSpent)}</p>
               </div>
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center"><TrendingUp className="w-5 h-5 text-primary" /></div>
             </div>
           </Card>
-          <Card className="p-4 border-0 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
+          <Card className="p-4 border-0 shadow-sm min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
                 <p className="text-[11px] text-muted-foreground font-medium mb-1">{t("customer.wallet.escrowHeld")}</p>
-                <p className="text-lg font-bold text-foreground">{formatMoney(summary.escrow)}</p>
+                <p className="text-lg font-bold text-foreground truncate">{formatMoney(summary.escrow)}</p>
               </div>
               <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center"><ShieldCheck className="w-5 h-5 text-amber-600 dark:text-amber-400" /></div>
             </div>
           </Card>
-          <Card className="p-4 border-0 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
+          <Card className="p-4 border-0 shadow-sm min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
                 <p className="text-[11px] text-muted-foreground font-medium mb-1">{t("customer.wallet.totalServices")}</p>
-                <p className="text-lg font-bold text-foreground">{summary.completedServices}</p>
+                <p className="text-lg font-bold text-foreground truncate">{summary.completedServices}</p>
               </div>
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center"><Receipt className="w-5 h-5 text-primary" /></div>
             </div>

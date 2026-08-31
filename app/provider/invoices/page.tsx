@@ -113,17 +113,17 @@ export default function InvoicesPage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-3 gap-3">
-        <Card className="p-3 border border-border rounded-xl">
-          <p className="text-[10px] text-muted-foreground">{t("provider.invoices.statCollected")}</p>
-          <p className="text-base font-bold text-emerald-600">{formatMoney(stats.collected)}</p>
+        <Card className="p-3 border border-border rounded-xl min-w-0">
+          <p className="text-[10px] text-muted-foreground truncate">{t("provider.invoices.statCollected")}</p>
+          <p className="text-sm sm:text-base font-bold text-emerald-600 truncate">{formatMoney(stats.collected)}</p>
         </Card>
-        <Card className="p-3 border border-border rounded-xl">
-          <p className="text-[10px] text-muted-foreground">{t("provider.invoices.statPending")}</p>
-          <p className="text-base font-bold text-amber-600">{formatMoney(stats.pending)}</p>
+        <Card className="p-3 border border-border rounded-xl min-w-0">
+          <p className="text-[10px] text-muted-foreground truncate">{t("provider.invoices.statPending")}</p>
+          <p className="text-sm sm:text-base font-bold text-amber-600 truncate">{formatMoney(stats.pending)}</p>
         </Card>
-        <Card className="p-3 border border-border rounded-xl">
-          <p className="text-[10px] text-muted-foreground">{t("provider.invoices.statOverdue")}</p>
-          <p className="text-base font-bold text-destructive">{formatMoney(stats.overdue)}</p>
+        <Card className="p-3 border border-border rounded-xl min-w-0">
+          <p className="text-[10px] text-muted-foreground truncate">{t("provider.invoices.statOverdue")}</p>
+          <p className="text-sm sm:text-base font-bold text-destructive truncate">{formatMoney(stats.overdue)}</p>
         </Card>
       </div>
 

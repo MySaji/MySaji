@@ -46,7 +46,7 @@ export default function AnalyticsPage() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Card className="p-4 border border-border rounded-xl">
+        <Card className="p-4 border border-border rounded-xl min-w-0">
           <div className="flex items-start justify-between mb-2">
             <div className="p-2 rounded-lg bg-primary/10"><DollarSign className="w-4 h-4 text-primary" /></div>
             <span className={`text-[10px] font-medium flex items-center gap-0.5 ${analytics.revenueGrowthPct >= 0 ? "text-emerald-600" : "text-destructive"}`}>
@@ -54,10 +54,10 @@ export default function AnalyticsPage() {
               {analytics.revenueGrowthPct >= 0 ? "+" : ""}{analytics.revenueGrowthPct}%
             </span>
           </div>
-          <p className="text-lg font-bold text-foreground">{formatMoney(analytics.totalRevenue)}</p>
+          <p className="text-lg font-bold text-foreground truncate">{formatMoney(analytics.totalRevenue)}</p>
           <p className="text-[10px] text-muted-foreground">{t("provider.analytics.statTotalRevenue")}</p>
         </Card>
-        <Card className="p-4 border border-border rounded-xl">
+        <Card className="p-4 border border-border rounded-xl min-w-0">
           <div className="flex items-start justify-between mb-2">
             <div className="p-2 rounded-lg bg-primary/10"><Briefcase className="w-4 h-4 text-primary" /></div>
             <span className={`text-[10px] font-medium flex items-center gap-0.5 ${analytics.jobsGrowthPct >= 0 ? "text-emerald-600" : "text-destructive"}`}>
@@ -65,23 +65,23 @@ export default function AnalyticsPage() {
               {analytics.jobsGrowthPct >= 0 ? "+" : ""}{analytics.jobsGrowthPct}%
             </span>
           </div>
-          <p className="text-lg font-bold text-foreground">{analytics.jobsCompleted}</p>
+          <p className="text-lg font-bold text-foreground truncate">{analytics.jobsCompleted}</p>
           <p className="text-[10px] text-muted-foreground">{t("provider.analytics.statJobsCompleted")}</p>
         </Card>
-        <Card className="p-4 border border-border rounded-xl">
+        <Card className="p-4 border border-border rounded-xl min-w-0">
           <div className="p-2 rounded-lg bg-primary/10 w-fit mb-2"><Star className="w-4 h-4 text-primary" /></div>
-          <p className="text-lg font-bold text-foreground">{analytics.avgRating.toFixed(1)}</p>
+          <p className="text-lg font-bold text-foreground truncate">{analytics.avgRating.toFixed(1)}</p>
           <p className="text-[10px] text-muted-foreground">{t("provider.analytics.statAvgRating")}</p>
         </Card>
-        <Card className="p-4 border border-border rounded-xl">
+        <Card className="p-4 border border-border rounded-xl min-w-0">
           <div className="p-2 rounded-lg bg-primary/10 w-fit mb-2"><Users className="w-4 h-4 text-primary" /></div>
-          <p className="text-lg font-bold text-foreground">{analytics.repeatClientPct}%</p>
+          <p className="text-lg font-bold text-foreground truncate">{analytics.repeatClientPct}%</p>
           <p className="text-[10px] text-muted-foreground">{t("provider.analytics.statRepeatClients")}</p>
         </Card>
       </div>
 
       {/* Revenue Chart */}
-      <Card className="p-4 border border-border rounded-xl">
+      <Card className="p-4 border border-border rounded-xl min-w-0">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="font-semibold text-foreground flex items-center gap-2"><BarChart3 className="w-4 h-4 text-primary" />{t("provider.analytics.revenueTrendTitle")}</h3>
@@ -115,7 +115,7 @@ export default function AnalyticsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Jobs by Category */}
-        <Card className="p-4 border border-border rounded-xl">
+        <Card className="p-4 border border-border rounded-xl min-w-0">
           <h3 className="font-semibold text-foreground flex items-center gap-2 mb-4"><PieChartIcon className="w-4 h-4 text-primary" />{t("provider.analytics.jobsByCategoryTitle")}</h3>
           {analytics.jobsByCategory.length === 0 ? (
             <p className="text-xs text-muted-foreground">{t("provider.analytics.noJobsThisPeriod")}</p>
@@ -137,7 +137,7 @@ export default function AnalyticsPage() {
         </Card>
 
         {/* Peak Hours */}
-        <Card className="p-4 border border-border rounded-xl">
+        <Card className="p-4 border border-border rounded-xl min-w-0">
           <h3 className="font-semibold text-foreground flex items-center gap-2 mb-4"><Clock className="w-4 h-4 text-primary" />{t("provider.analytics.peakHoursTitle")}</h3>
           <div className="space-y-2">
             {analytics.peakHours.map((h) => (
@@ -155,7 +155,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Top Customers */}
-      <Card className="p-4 border border-border rounded-xl">
+      <Card className="p-4 border border-border rounded-xl min-w-0">
         <h3 className="font-semibold text-foreground flex items-center gap-2 mb-4"><Users className="w-4 h-4 text-primary" />{t("provider.analytics.topCustomersTitle")}</h3>
         {analytics.topCustomers.length === 0 ? (
           <p className="text-xs text-muted-foreground">{t("provider.analytics.noJobsThisPeriod")}</p>

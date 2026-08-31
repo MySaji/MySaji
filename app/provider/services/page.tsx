@@ -148,9 +148,9 @@ export default function ServicesCatalogPage() {
           </Card>
         )}
         {filtered.map(service => (
-          <Card key={service.id} className={`p-4 border rounded-xl transition-all ${service.isActive && service.approvalStatus === "APPROVED" ? "border-border" : "border-border opacity-60"}`}>
+          <Card key={service.id} className={`p-4 border rounded-xl transition-all min-w-0 ${service.isActive && service.approvalStatus === "APPROVED" ? "border-border" : "border-border opacity-60"}`}>
             <div className="flex items-start justify-between gap-3">
-              <div className="flex items-start gap-3">
+              <div className="flex items-start gap-3 min-w-0 flex-1">
                 <div className="w-20 h-14 flex-shrink-0 bg-muted rounded-md overflow-hidden">
                   {service.image ? (
                     <img src={service.image} alt={service.title} className="w-full h-full object-cover" />
@@ -180,12 +180,12 @@ export default function ServicesCatalogPage() {
                   </div>
                 </div>
               </div>
-              <div className="text-right flex-shrink-0">
+              <div className="text-right flex-shrink-0 max-w-[45%]">
                 <div className="mb-2">
-                  <span className="text-base font-bold text-foreground">{formatMoney(service.basePrice)}</span>
+                  <span className="text-base font-bold text-foreground break-words">{formatMoney(service.basePrice)}</span>
                   <span className="text-[10px] text-muted-foreground block">{t("provider.services.perHour")}</span>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center justify-end gap-1">
                   <button
                     onClick={() => toggleActive(service.id)}
                     aria-label={service.isActive ? t("provider.services.deactivate") : t("provider.services.activate")}

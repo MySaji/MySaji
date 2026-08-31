@@ -88,40 +88,40 @@ export default function WithdrawalsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="p-6 bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20">
-          <div className="flex items-start justify-between">
-            <div>
+        <Card className="p-6 bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
               <p className="text-xs text-muted-foreground mb-2">{t("agent.withdrawals.availableBalance")}</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatMoney(wallet.available)}</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white truncate">{formatMoney(wallet.available)}</p>
               <p className="text-[11px] text-gray-600 dark:text-gray-400 mt-2">{t("agent.withdrawals.readyToWithdraw")}</p>
             </div>
-            <div className="bg-emerald-200 dark:bg-emerald-700/50 p-3 rounded-lg">
+            <div className="bg-emerald-200 dark:bg-emerald-700/50 p-3 rounded-lg flex-shrink-0">
               <DollarSign className="w-6 h-6 text-emerald-700 dark:text-emerald-400" />
             </div>
           </div>
         </Card>
 
-        <Card className="p-6">
-          <div className="flex items-start justify-between">
-            <div>
+        <Card className="p-6 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
               <p className="text-xs text-muted-foreground mb-2">{t("agent.withdrawals.pendingWithdrawal")}</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatMoney(wallet.pendingBalance)}</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white truncate">{formatMoney(wallet.pendingBalance)}</p>
               <p className="text-[11px] text-gray-600 dark:text-gray-400 mt-2">{t("agent.withdrawals.awaitingProcessing")}</p>
             </div>
-            <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-lg">
+            <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-lg flex-shrink-0">
               <CreditCard className="w-6 h-6 text-blue-600 dark:text-blue-400" />
             </div>
           </div>
         </Card>
 
-        <Card className="p-6">
-          <div className="flex items-start justify-between">
-            <div>
+        <Card className="p-6 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
               <p className="text-xs text-muted-foreground mb-2">{t("agent.withdrawals.totalWalletBalance")}</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatMoney(wallet.balance)}</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white truncate">{formatMoney(wallet.balance)}</p>
               <p className="text-[11px] text-gray-600 dark:text-gray-400 mt-2">{t("agent.withdrawals.availablePlusPending")}</p>
             </div>
-            <div className="bg-purple-100 dark:bg-purple-900/30 p-3 rounded-lg">
+            <div className="bg-purple-100 dark:bg-purple-900/30 p-3 rounded-lg flex-shrink-0">
               <AlertCircle className="w-6 h-6 text-purple-600 dark:text-purple-400" />
             </div>
           </div>

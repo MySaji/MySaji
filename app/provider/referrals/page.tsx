@@ -54,20 +54,20 @@ export default function ReferralsPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3">
-        <Card className="p-3 border border-border rounded-xl text-center">
+        <Card className="p-3 border border-border rounded-xl text-center min-w-0">
           <Users className="w-4 h-4 text-primary mx-auto mb-1" />
-          <p className="text-lg font-bold text-foreground">{summary.invited}</p>
-          <p className="text-[10px] text-muted-foreground">{t("provider.referrals.statReferrals")}</p>
+          <p className="text-base sm:text-lg font-bold text-foreground truncate">{summary.invited}</p>
+          <p className="text-[10px] text-muted-foreground truncate">{t("provider.referrals.statReferrals")}</p>
         </Card>
-        <Card className="p-3 border border-border rounded-xl text-center">
+        <Card className="p-3 border border-border rounded-xl text-center min-w-0">
           <Check className="w-4 h-4 text-emerald-500 mx-auto mb-1" />
-          <p className="text-lg font-bold text-foreground">{summary.completed}</p>
-          <p className="text-[10px] text-muted-foreground">{t("provider.referrals.statActive")}</p>
+          <p className="text-base sm:text-lg font-bold text-foreground truncate">{summary.completed}</p>
+          <p className="text-[10px] text-muted-foreground truncate">{t("provider.referrals.statActive")}</p>
         </Card>
-        <Card className="p-3 border border-border rounded-xl text-center">
+        <Card className="p-3 border border-border rounded-xl text-center min-w-0">
           <DollarSign className="w-4 h-4 text-amber-500 mx-auto mb-1" />
-          <p className="text-lg font-bold text-foreground">{formatMoney(summary.totalEarned)}</p>
-          <p className="text-[10px] text-muted-foreground">{t("provider.referrals.statEarned")}</p>
+          <p className="text-base sm:text-lg font-bold text-foreground truncate">{formatMoney(summary.totalEarned)}</p>
+          <p className="text-[10px] text-muted-foreground truncate">{t("provider.referrals.statEarned")}</p>
         </Card>
       </div>
 

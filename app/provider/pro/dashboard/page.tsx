@@ -102,23 +102,23 @@ export default function ProDashboardPage() {
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Card className="border-0 p-4 shadow-sm">
-          <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground"><Eye className="h-4 w-4 text-emerald-600" /> Profile views</div>
-          <p className="text-xl font-bold text-foreground">{overview.profileViews.toLocaleString()}</p>
+        <Card className="border-0 p-4 shadow-sm min-w-0">
+          <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground truncate"><Eye className="h-4 w-4 text-emerald-600 flex-shrink-0" /> Profile views</div>
+          <p className="text-lg sm:text-xl font-bold text-foreground truncate">{overview.profileViews.toLocaleString()}</p>
         </Card>
-        <Card className="border-0 p-4 shadow-sm">
-          <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground"><MessageSquare className="h-4 w-4 text-sky-600" /> Requests</div>
-          <p className="text-xl font-bold text-foreground">{overview.requests.value}</p>
+        <Card className="border-0 p-4 shadow-sm min-w-0">
+          <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground truncate"><MessageSquare className="h-4 w-4 text-sky-600 flex-shrink-0" /> Requests</div>
+          <p className="text-lg sm:text-xl font-bold text-foreground truncate">{overview.requests.value}</p>
           <TrendBadge pct={overview.requests.changePct} />
         </Card>
-        <Card className="border-0 p-4 shadow-sm">
-          <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground"><Calendar className="h-4 w-4 text-amber-600" /> Bookings</div>
-          <p className="text-xl font-bold text-foreground">{overview.bookings.value}</p>
+        <Card className="border-0 p-4 shadow-sm min-w-0">
+          <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground truncate"><Calendar className="h-4 w-4 text-amber-600 flex-shrink-0" /> Bookings</div>
+          <p className="text-lg sm:text-xl font-bold text-foreground truncate">{overview.bookings.value}</p>
           <TrendBadge pct={overview.bookings.changePct} />
         </Card>
-        <Card className="border-0 p-4 shadow-sm">
-          <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground"><Wallet className="h-4 w-4 text-emerald-600" /> Earnings</div>
-          <p className="text-xl font-bold text-foreground">{formatMoney(overview.earnings.value)}</p>
+        <Card className="border-0 p-4 shadow-sm min-w-0">
+          <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground truncate"><Wallet className="h-4 w-4 text-emerald-600 flex-shrink-0" /> Earnings</div>
+          <p className="text-lg sm:text-xl font-bold text-foreground truncate">{formatMoney(overview.earnings.value)}</p>
           <TrendBadge pct={overview.earnings.changePct} />
         </Card>
       </div>
@@ -260,10 +260,10 @@ export default function ProDashboardPage() {
             )}
           </div>
           <div className="mt-3 grid grid-cols-4 gap-2 border-t border-border/50 pt-3 text-center">
-            <div><p className="text-xs font-bold text-foreground">{overview.monthStats.views}</p><p className="text-[10px] text-muted-foreground">Views</p></div>
-            <div><p className="text-xs font-bold text-foreground">{overview.monthStats.requests.value}</p><p className="text-[10px] text-muted-foreground">Requests</p></div>
-            <div><p className="text-xs font-bold text-foreground">{overview.monthStats.bookings.value}</p><p className="text-[10px] text-muted-foreground">Bookings</p></div>
-            <div><p className="text-xs font-bold text-foreground">{formatMoney(overview.monthStats.earnings.value)}</p><p className="text-[10px] text-muted-foreground">Earnings</p></div>
+            <div className="min-w-0"><p className="text-xs font-bold text-foreground truncate">{overview.monthStats.views}</p><p className="text-[10px] text-muted-foreground">Views</p></div>
+            <div className="min-w-0"><p className="text-xs font-bold text-foreground truncate">{overview.monthStats.requests.value}</p><p className="text-[10px] text-muted-foreground">Requests</p></div>
+            <div className="min-w-0"><p className="text-xs font-bold text-foreground truncate">{overview.monthStats.bookings.value}</p><p className="text-[10px] text-muted-foreground">Bookings</p></div>
+            <div className="min-w-0"><p className="text-xs font-bold text-foreground truncate">{formatMoney(overview.monthStats.earnings.value)}</p><p className="text-[10px] text-muted-foreground">Earnings</p></div>
           </div>
         </Card>
 
