@@ -296,6 +296,7 @@ export type CustomerJob = {
   scheduledDate: string
   image: string | null
   providerId: string | null
+  providerUserId: string | null
   providerName: string
   providerPhone: string | null
   providerAvatar: string | null
@@ -340,11 +341,13 @@ export async function getCustomerJobs(): Promise<CustomerJob[]> {
       scheduledDate: job.scheduledDate.toISOString(),
       image: job.service?.images[0] ?? null,
       providerId: job.providerId,
+      providerUserId: job.provider?.user.id ?? null,
       providerName: job.provider?.user.name ?? "Provider",
-      // Address & Phone Privacy: symmetric with getProviderJobs — the
-      // provider's real number only shows once they've actually accepted,
-      // not while the job is still just a pending request they might decline.
-      providerPhone: job.status === "PENDING" ? null : (job.provider?.user.phone ?? null),
+      // Real phone numbers never leave the server to another user — Call
+      // and Message both go through the in-app conversation/voice-call
+      // system (providerUserId above), never a raw tel: link. See
+      // lib/contact-info-filter.ts for the matching guard on chat text.
+      providerPhone: null,
       providerAvatar: job.provider?.user.image ?? null,
       providerRating: job.provider ? Number(job.provider.rating) : 0,
       reviewed: job.review != null,

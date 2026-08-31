@@ -16,6 +16,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.111.0",
     "@auth/prisma-adapter": "2.11.2",
+    "@google/genai": "^2.19.0",
     "@hookform/resolvers": "^3.10.0",
     "@livekit/components-react": "^2.9.23",
     "@livekit/components-styles": "^1.2.0",
@@ -63,6 +64,7 @@
     "input-otp": "1.4.1",
     "jspdf": "4.0.0",
     "jspdf-autotable": "5.0.7",
+    "jsqr": "^1.4.0",
     "livekit-client": "^2.20.1",
     "livekit-server-sdk": "^2.17.0",
     "lucide-react": "^0.454.0",

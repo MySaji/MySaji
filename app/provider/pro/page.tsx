@@ -2,11 +2,11 @@
 
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
-import { Crown, Loader2, CheckCircle2, XCircle, Sparkles, Wrench, ShieldCheck, TrendingUp } from "lucide-react"
+import { Crown, Loader2, CheckCircle2, XCircle, Sparkles, Wrench, ShieldCheck, TrendingUp, Wallet } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { getMySubscriptionStatus, checkProSubscriptionPaymentStatus, type ProviderSubscriptionStatus } from "@/lib/actions/provider-subscription"
+import { getMySubscriptionStatus, checkProSubscriptionPaymentStatus, getMyWalletBalance, type ProviderSubscriptionStatus } from "@/lib/actions/provider-subscription"
 import { useLocalization } from "@/lib/hooks/useLocalization"
 
 type PurchaseState = "idle" | "awaiting-provider" | "success" | "failed"
@@ -21,6 +21,7 @@ const BENEFITS = [
 export default function ProviderProPage() {
   const { formatMoney } = useLocalization()
   const [status, setStatus] = useState<ProviderSubscriptionStatus>(null)
+  const [walletBalance, setWalletBalance] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [phone, setPhone] = useState("")
   const [purchaseState, setPurchaseState] = useState<PurchaseState>("idle")
@@ -31,7 +32,7 @@ export default function ProviderProPage() {
   const refresh = () => getMySubscriptionStatus().then(setStatus)
 
   useEffect(() => {
-    refresh().finally(() => setIsLoading(false))
+    Promise.all([refresh(), getMyWalletBalance().then(setWalletBalance)]).finally(() => setIsLoading(false))
     return () => {
       if (pollRef.current) clearInterval(pollRef.current)
     }
@@ -55,7 +56,7 @@ export default function ProviderProPage() {
     }, 3000)
   }
 
-  const purchase = async (provider: "mpesa" | "paypal" | "card") => {
+  const purchase = async (provider: "mpesa" | "paypal" | "card" | "wallet") => {
     setMessage(null)
     setSubmitting(true)
     try {
@@ -76,6 +77,14 @@ export default function ProviderProPage() {
       }
       if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl
+        return
+      }
+      if (data.instant) {
+        setPurchaseState("success")
+        setMessage(data.message ?? null)
+        await refresh()
+        setWalletBalance((b) => b - status!.priceKES)
+        setSubmitting(false)
         return
       }
       if (data.simulated) {
@@ -179,6 +188,30 @@ export default function ProviderProPage() {
               <Button onClick={() => purchase("paypal")} disabled={submitting} className="bg-blue-600 hover:bg-blue-700">PayPal</Button>
               <Button onClick={() => purchase("card")} disabled={submitting}>Card</Button>
             </div>
+
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-muted/40 p-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                  <Wallet className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-foreground">Pay from Saji Wallet</p>
+                  <p className="text-[11px] text-muted-foreground">Balance: {formatMoney(walletBalance)}</p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => purchase("wallet")}
+                disabled={submitting || walletBalance < status.priceKES}
+                className="flex-shrink-0 rounded-xl bg-transparent"
+              >
+                One-time payment
+              </Button>
+            </div>
+            {walletBalance < status.priceKES && (
+              <p className="text-[11px] text-muted-foreground -mt-2">Top up your wallet to pay for Saji Pro this way.</p>
+            )}
 
             {purchaseState === "failed" && (
               <div className="flex items-center gap-2 text-xs text-destructive"><XCircle className="h-4 w-4" /> {message}</div>

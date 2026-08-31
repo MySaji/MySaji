@@ -129,7 +129,6 @@ export default function ClientsPage() {
             {expandedClient === client.id && (
               <div className="px-4 pb-4 border-t border-border pt-3 space-y-3">
                 <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
-                  <span className="flex items-center gap-1"><Phone className="w-3 h-3" />{client.phone ?? t("provider.clients.noPhoneOnFile")}</span>
                   <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{t("provider.clients.clientSince", { date: new Date(client.clientSince).toLocaleDateString() })}</span>
                   {client.avgRating > 0 && <span className="flex items-center gap-1"><Star className="w-3 h-3 text-amber-500" />{client.avgRating.toFixed(1)}</span>}
                 </div>
@@ -158,7 +157,7 @@ export default function ClientsPage() {
                   <Button size="sm" variant="outline" className="flex-1 rounded-lg text-[11px]" onClick={() => { window.location.href = `/provider/messages?client=${client.id}&action=message` }}>
                     <MessageCircle className="w-3 h-3 mr-1" />{t("provider.clients.messageButton")}
                   </Button>
-                  <Button size="sm" className="flex-1 rounded-lg text-[11px]" disabled={!client.phone} onClick={() => { if (client.phone) window.location.href = `tel:${client.phone}` }}>
+                  <Button size="sm" className="flex-1 rounded-lg text-[11px]" onClick={() => { window.location.href = `/provider/messages?client=${client.id}&action=call` }}>
                     <Phone className="w-3 h-3 mr-1" />{t("provider.clients.callButton")}
                   </Button>
                 </div>

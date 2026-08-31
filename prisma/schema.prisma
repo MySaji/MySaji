@@ -771,6 +771,12 @@ model Offer {
   // the item returned — see returnRentalBooking in lib/actions/rentals.ts.
   // Meaningless for the other five action types, left at its 0 default.
   depositAmount     Decimal                  @default(0) @db.Decimal(12, 2)
+  // BUY-actionType only — null means "not tracked" (unlimited/on-request,
+  // the pre-existing default for every other action type and for BUY offers
+  // that predate this field). Once set, createOfferBooking checks it before
+  // accepting a purchase and decrements it on success — see
+  // lib/actions/provider-products.ts for the provider-facing stock editor.
+  stockQuantity     Int?
 
   provider ProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)
   category Category?       @relation(fields: [categoryId], references: [id])
@@ -1580,6 +1586,12 @@ model Job {
   expectedCompletionAt DateTime?
   urgency          JobUrgency @default(MEDIUM)
   attachments      String[]
+  // How many units this Job represents — always 1 for a real service booking,
+  // may be >1 when it came from createOfferBooking() on a BUY-actionType
+  // Offer (see lib/actions/offers.ts). `price` already has quantity baked in
+  // (unit price * quantity), so this is purely a display/stock-reconciliation
+  // field, not something callers need to multiply against price themselves.
+  quantity         Int        @default(1)
   // Gap 6 (cancellation/no-show policy): set only when status is CANCELLED,
   // by lib/job-cancellation.ts — distinguishes a free early cancellation
   // from the two cases that carry a dispatch fee, for both the customer-

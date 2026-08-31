@@ -37,7 +37,7 @@ type UiStatus = "active" | "completed" | "cancelled" | "scheduled"
 type Translate = (key: TranslationKey) => string
 
 interface Job {
-  id: string; providerId: string | null; title: string; provider: string; providerPhone: string | null; providerAvatar: string
+  id: string; providerId: string | null; providerUserId: string | null; title: string; provider: string; providerPhone: string | null; providerAvatar: string
   status: UiStatus; rawStatus: string; date: string; time: string; scheduledDate: string; location: string; price: number
   rating?: number; image: string; description?: string
   reviewed?: boolean
@@ -76,6 +76,7 @@ function mapJob(job: CustomerJob, t: Translate): Job {
   return {
     id: job.id,
     providerId: job.providerId,
+    providerUserId: job.providerUserId,
     title: job.title,
     provider: job.providerName,
     providerPhone: job.providerPhone,
@@ -324,10 +325,10 @@ export function CustomerJobsPage() {
               </div>
             </div>
             <div className="flex gap-2 mt-3">
-              <Button variant="outline" className="flex-1 gap-2 rounded-xl bg-transparent h-9 text-xs" disabled={!selectedJob.providerPhone} onClick={() => selectedJob.providerPhone && (window.location.href = `tel:${selectedJob.providerPhone}`)}>
+              <Button variant="outline" className="flex-1 gap-2 rounded-xl bg-transparent h-9 text-xs" disabled={!selectedJob.providerUserId} onClick={() => selectedJob.providerUserId && (window.location.href = `/customer/messages?provider=${selectedJob.providerUserId}&action=call`)}>
                 <Phone className="w-3.5 h-3.5" />{t("customer.serviceDetail.call")}
               </Button>
-              <Link href="/customer/messages" className="flex-1">
+              <Link href={selectedJob.providerUserId ? `/customer/messages?provider=${selectedJob.providerUserId}&action=message` : "/customer/messages"} className="flex-1">
                 <Button variant="outline" className="w-full gap-2 rounded-xl bg-transparent h-9 text-xs">
                   <MessageCircle className="w-3.5 h-3.5" />{t("customer.serviceDetail.message")}
                 </Button>
@@ -509,10 +510,10 @@ export function CustomerJobsPage() {
                 ))}
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" className="flex-1 rounded-xl bg-transparent gap-1.5" onClick={() => window.location.href = `tel:${selectedJob?.providerPhone}`}>
+                <Button variant="outline" className="flex-1 rounded-xl bg-transparent gap-1.5" disabled={!selectedJob?.providerUserId} onClick={() => selectedJob?.providerUserId && (window.location.href = `/customer/messages?provider=${selectedJob.providerUserId}&action=call`)}>
                   <Phone className="w-4 h-4" />{t("customer.serviceDetail.call")}
                 </Button>
-                <Link href="/customer/messages" className="flex-1">
+                <Link href={selectedJob?.providerUserId ? `/customer/messages?provider=${selectedJob.providerUserId}&action=message` : "/customer/messages"} className="flex-1">
                   <Button className="w-full rounded-xl gap-1.5"><MessageCircle className="w-4 h-4" />{t("customer.serviceDetail.message")}</Button>
                 </Link>
               </div>

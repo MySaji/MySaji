@@ -52,7 +52,10 @@ export async function getShopCustomers(): Promise<ShopCustomer[]> {
     customers.push({
       id: customerId,
       name: customer.name,
-      phone: customer.phone,
+      // Real phone numbers never leave the server to another user — Message
+      // goes through the in-app conversation system (id above), never a
+      // raw tel: link.
+      phone: null,
       avatar: customer.image,
       totalOrders: customerOrders.length,
       totalSpent,

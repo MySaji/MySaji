@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import {
   Search, Package, Truck, CheckCircle2, Clock, XCircle,
-  Phone, MapPin, Calendar, MoreVertical, Eye, Printer,
+  MessageCircle, MapPin, Calendar, MoreVertical, Eye, Printer,
   TrendingUp, DollarSign, Loader2, RotateCcw, Undo2, Check, X as XIcon,
 } from "lucide-react"
 import { Card } from "@/components/ui/card"
@@ -63,8 +63,7 @@ export default function ShopkeeperOrdersPage() {
   const filteredOrders = ordersList.filter(order => {
     const matchesSearch =
       order.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (order.customerPhone ?? "").includes(searchQuery)
+      order.customerName.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesTab = activeTab === "all" || order.status === activeTab
     return matchesSearch && matchesTab
   })
@@ -353,10 +352,10 @@ export default function ShopkeeperOrdersPage() {
                           />
                           <span className="truncate">{order.customerName}</span>
                         </div>
-                        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 min-w-0">
-                          <Phone className="w-4 h-4 flex-shrink-0" />
-                          <span className="truncate">{order.customerPhone ?? t("shopkeeper.orders.naText")}</span>
-                        </div>
+                        <a href={`/shopkeeper/messages?client=${order.customerId}&action=message`} className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-foreground min-w-0">
+                          <MessageCircle className="w-4 h-4 flex-shrink-0" />
+                          <span className="truncate">{t("shopkeeper.orders.messageCustomer")}</span>
+                        </a>
                         <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 min-w-0">
                           <MapPin className="w-4 h-4 flex-shrink-0" />
                           <span className="truncate">{order.location}</span>
@@ -466,7 +465,9 @@ export default function ShopkeeperOrdersPage() {
                 </div>
                 <div className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg min-w-0">
                   <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">{t("shopkeeper.orders.phoneLabel")}</p>
-                  <p className="font-semibold text-gray-900 dark:text-white break-words">{selectedOrder.customerPhone ?? t("shopkeeper.orders.naText")}</p>
+                  <a href={`/shopkeeper/messages?client=${selectedOrder.customerId}&action=message`} className="font-semibold text-primary hover:underline flex items-center gap-1.5">
+                    <MessageCircle className="w-3.5 h-3.5" />{t("shopkeeper.orders.messageCustomer")}
+                  </a>
                 </div>
                 <div className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg min-w-0">
                   <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">{t("shopkeeper.orders.emailLabel")}</p>

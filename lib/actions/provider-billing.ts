@@ -75,7 +75,10 @@ export async function getProviderInvoices(): Promise<ProviderInvoice[]> {
     invoiceNumber: inv.invoiceNumber,
     customerId: inv.customerId,
     customerName: inv.customer?.name ?? "Unknown client",
-    customerPhone: inv.customer?.phone ?? null,
+    // Real phone numbers never leave the server to another user — Call and
+    // Message both go through the in-app conversation/voice-call system
+    // (customerId above), never a raw tel: link.
+    customerPhone: null,
     createdAt: inv.createdAt.toISOString(),
     dueDate: inv.dueDate.toISOString(),
     paidAt: inv.paidAt?.toISOString() ?? null,

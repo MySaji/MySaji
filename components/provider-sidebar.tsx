@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import { Home, Briefcase, MessageCircle, Wallet, User, ChevronDown, ChevronLeft, ChevronRight, ImageIcon, Calendar, Wrench, BarChart3, FileText, Users, Store, Gift, Award, ClipboardList, X, MoreHorizontal, Megaphone, LayoutDashboard, Building2, TrendingUp, Navigation, Crown, Rocket, Package, Handshake, Radar } from "lucide-react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useSearchParams } from "next/navigation"
 import { Logo } from "@/components/logo"
 import { AccountMenu } from "@/components/account-menu"
 import { getProviderJobStats } from "@/lib/actions/provider-jobs"
@@ -26,6 +26,7 @@ export default function ProviderSidebar({ isOpen, onClose, isCollapsed, onToggle
   const [showMoreMenu, setShowMoreMenu] = useState(false)
   const moreMenuRef = useRef<HTMLDivElement>(null)
   const pathname = usePathname()
+  const searchParams = useSearchParams()
 
   useEffect(() => {
     getProviderJobStats().then((stats) => setPendingJobs(stats.pendingCount))
@@ -68,6 +69,7 @@ export default function ProviderSidebar({ isOpen, onClose, isCollapsed, onToggle
       { icon: Wrench, label: "Services", href: "/provider/services", group: null },
       { icon: Rocket, label: "Offers", href: "/provider/offers", group: null },
       { icon: Package, label: "Rentals", href: "/provider/rentals", group: null },
+      { icon: Store, label: "My Shop", href: "/provider/shop", group: "business" },
       { icon: Users, label: "Customers", href: "/provider/clients", group: "business" },
       { icon: ImageIcon, label: "Showcase", href: "/provider/content", group: "business" },
       { icon: MessageCircle, label: "Messages", href: "/provider/messages", badge: unreadMessages || undefined, group: "business" },
@@ -95,13 +97,13 @@ export default function ProviderSidebar({ isOpen, onClose, isCollapsed, onToggle
   } else {
     primaryCount = 4
     menuItems = [
+      { icon: Home, label: "Home", href: "/provider", exact: true, group: null },
       { icon: Briefcase, label: "Today's Jobs", href: "/provider/jobs", exact: true, badge: pendingJobs || undefined, group: null },
       { icon: Calendar, label: "My Calendar", href: "/provider/jobs?tab=calendar", group: null },
       { icon: Wrench, label: "Service Menu", href: "/provider/services", group: null },
       { icon: Rocket, label: "Offers", href: "/provider/offers", group: null },
       { icon: Package, label: "Rentals", href: "/provider/rentals", group: null },
       { icon: Wallet, label: "Earnings", href: "/provider/wallet", group: null },
-      { icon: Home, label: "Home", href: "/provider", exact: true, group: null },
       { icon: LayoutDashboard, label: "Pro Dashboard", href: "/provider/pro/dashboard", group: null },
       // Team-building is a real Saji Pro perk, not a Business-only one — a
       // solo Pro provider can already convert to a Business account from
@@ -149,9 +151,29 @@ export default function ProviderSidebar({ isOpen, onClose, isCollapsed, onToggle
   ]
 
   const isItemActive = (item: typeof menuItems[0]) => {
-    if (item.exact) return pathname === item.href
-    return pathname === item.href || pathname.startsWith(item.href + "/")
+    const [itemPath, itemQuery] = item.href.split("?")
+    const pathMatches = item.exact ? pathname === itemPath : pathname === itemPath || pathname.startsWith(itemPath + "/")
+    if (!pathMatches) return false
+    // Today's Jobs and My Calendar both point at /provider/jobs, disambiguated
+    // only by ?tab= — without this, whichever one matched pathname first
+    // stayed visually "active" even while looking at the other's tab.
+    const itemTab = itemQuery ? new URLSearchParams(itemQuery).get("tab") : null
+    const currentTab = searchParams.get("tab")
+    return itemTab ? currentTab === itemTab : !currentTab
   }
+
+  // Mobile bottom nav: the first primary item (Home / Dashboard / Assigned
+  // Jobs, depending on workspace — always menuItems[0] now) gets raised
+  // into a centered, elevated circular button instead of sitting in the
+  // linear row like every other tab, the same "home icon front and center"
+  // pattern most consumer apps use. The rest of the primary items split
+  // evenly on either side of it.
+  const [mobileHomeItem, ...mobileOtherPrimary] = menuItems.slice(0, primaryCount)
+  const mobileHalf = Math.ceil(mobileOtherPrimary.length / 2)
+  const mobileLeftItems = mobileOtherPrimary.slice(0, mobileHalf)
+  const mobileRightItems = mobileOtherPrimary.slice(mobileHalf)
+  const MobileHomeIcon = mobileHomeItem?.icon
+  const mobileHomeActive = mobileHomeItem ? isItemActive(mobileHomeItem) : false
 
   return (
     <>
@@ -291,8 +313,55 @@ export default function ProviderSidebar({ isOpen, onClose, isCollapsed, onToggle
 
       {/* Mobile Bottom Navigation */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-40 safe-area-inset-bottom">
-        <div className="flex justify-around py-2">
-          {menuItems.slice(0, primaryCount).map((item) => {
+        <div className="flex items-end justify-around py-2">
+          {mobileLeftItems.map((item) => {
+            const IconComponent = item.icon
+            const active = isItemActive(item)
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex flex-col items-center gap-0.5 py-1 px-3 rounded-lg transition-colors ${
+                  active
+                    ? "text-blue-600 dark:text-blue-400"
+                    : "text-gray-500 dark:text-gray-400"
+                }`}
+              >
+                <div className="relative">
+                  <IconComponent className="w-6 h-6" />
+                  {item.badge && (
+                    <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1">
+                      {item.badge}
+                    </span>
+                  )}
+                </div>
+                <span className="text-[10px] font-medium">{item.label}</span>
+              </Link>
+            )
+          })}
+
+          {/* Home — centered and raised above the rest of the bar */}
+          {mobileHomeItem && MobileHomeIcon && (
+            <Link href={mobileHomeItem.href} className="relative -mt-6 flex flex-col items-center gap-0.5 px-2">
+              <div
+                className={`relative flex items-center justify-center w-14 h-14 rounded-full shadow-lg ring-4 ring-white dark:ring-gray-800 transition-colors ${
+                  mobileHomeActive ? "bg-blue-700" : "bg-blue-600"
+                } text-white`}
+              >
+                <MobileHomeIcon className="w-6 h-6" />
+                {mobileHomeItem.badge && (
+                  <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1 ring-2 ring-white dark:ring-gray-800">
+                    {mobileHomeItem.badge}
+                  </span>
+                )}
+              </div>
+              <span className={`text-[10px] font-medium ${mobileHomeActive ? "text-blue-600 dark:text-blue-400" : "text-gray-500 dark:text-gray-400"}`}>
+                {mobileHomeItem.label}
+              </span>
+            </Link>
+          )}
+
+          {mobileRightItems.map((item) => {
             const IconComponent = item.icon
             const active = isItemActive(item)
             return (

@@ -22,6 +22,7 @@ export type ShopkeeperOrderItem = {
 export type ShopkeeperOrder = {
   id: string
   orderNumber: string
+  customerId: string
   customerName: string
   customerPhone: string | null
   customerEmail: string
@@ -61,8 +62,12 @@ export async function getMyOrders(): Promise<ShopkeeperOrder[]> {
   return orders.map((o) => ({
     id: o.id,
     orderNumber: o.orderNumber,
+    customerId: o.customerId,
     customerName: o.customer.name,
-    customerPhone: o.customer.phone,
+    // Real phone numbers never leave the server to another user — Message
+    // goes through the in-app conversation system (customerId above),
+    // never a raw tel: link.
+    customerPhone: null,
     customerEmail: o.customer.email,
     customerAvatar: o.customer.image,
     items: o.items.map((it) => ({

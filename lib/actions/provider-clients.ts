@@ -69,7 +69,10 @@ export async function getProviderClients(): Promise<ProviderClient[]> {
     clients.push({
       id: customerId,
       name: customer.name,
-      phone: customer.phone,
+      // Real phone numbers never leave the server to another user — Call
+      // and Message both go through the in-app conversation/voice-call
+      // system (id above), never a raw tel: link.
+      phone: null,
       avatar: customer.image,
       location: sortedByScheduled[0].location,
       totalJobs: customerJobs.length,

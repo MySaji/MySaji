@@ -265,6 +265,23 @@ export async function confirmJobPayment(jobId: string) {
 
   await db.job.update({ where: { id: job.id }, data: { status: newStatus } }).catch(() => {})
 
+  // The real stock decrement for a BUY-offer purchase — deliberately here,
+  // not at createOfferBooking() (lib/actions/offers.ts), so an abandoned/
+  // unpaid PENDING_PAYMENT job never holds stock hostage. Guarded with a
+  // conditional updateMany (stockQuantity >= job.quantity in the WHERE)
+  // instead of a plain update so two concurrent payment confirmations for
+  // the same low-stock offer can't both succeed and oversell it; the loser
+  // simply leaves stock unchanged rather than going negative.
+  if (job.offerId) {
+    const offer = await db.offer.findUnique({ where: { id: job.offerId }, select: { actionType: true, stockQuantity: true } }).catch(() => null)
+    if (offer?.actionType === "BUY" && offer.stockQuantity != null) {
+      await db.offer.updateMany({
+        where: { id: job.offerId, stockQuantity: { gte: job.quantity } },
+        data: { stockQuantity: { decrement: job.quantity } },
+      }).catch(() => {})
+    }
+  }
+
   if (isEmergency) {
     if (job.providerId) {
       const provider = await db.providerProfile.findUnique({ where: { id: job.providerId }, include: { user: true } }).catch(() => null)

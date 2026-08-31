@@ -107,6 +107,41 @@ export async function POST(req: Request) {
       }
 
       switch (provider) {
+        case "wallet": {
+          // Same instant, real, no-redirect pattern as the JOB context's
+          // "wallet" branch below — the provider's own Saji Wallet balance
+          // funding their own Pro subscription in one step, no gateway
+          // round trip needed.
+          const wallet = await db.wallet.findUnique({ where: { userId: session.user.id } })
+          if (!wallet) return NextResponse.json({ success: false, message: "Wallet not found." })
+          if (Number(wallet.balance) < amount) {
+            return NextResponse.json({ success: false, message: "Insufficient wallet balance for this amount." })
+          }
+
+          const balanceBefore = Number(wallet.balance)
+          const balanceAfter = balanceBefore - amount
+          const payment = await db.payment.create({
+            data: { amount, currency: "KES", status: "COMPLETED", contextType: "SUBSCRIPTION", payerId: session.user.id, paidAt: new Date() },
+          })
+          await db.$transaction([
+            db.wallet.update({ where: { userId: session.user.id }, data: { balance: balanceAfter } }),
+            db.transaction.create({
+              data: {
+                walletId: wallet.id,
+                type: "DEBIT",
+                amount: -amount,
+                description: "SAJI Pro subscription",
+                referenceType: "SUBSCRIPTION",
+                referenceId: payment.id,
+                status: "COMPLETED",
+                balanceBefore,
+                balanceAfter,
+              },
+            }),
+          ])
+          await confirmProSubscriptionPayment(providerProfile.id, amount)
+          return NextResponse.json({ success: true, provider: "wallet", instant: true, message: "Paid from your SAJI wallet." })
+        }
         case "mpesa": {
           const res = await initiateMpesaPayment(phone, amount, "SAJI Pro subscription")
           if (res.success) {

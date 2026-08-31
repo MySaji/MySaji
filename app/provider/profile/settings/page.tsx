@@ -3,7 +3,7 @@
 import { ArrowLeft, Lock, Eye, Shield, Trash2, Download, Bell, LogOut, ChevronRight, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
-import { signOut } from "next-auth/react"
+import { useAuthContext } from "@/lib/auth-context"
 import { useLocalization } from "@/lib/hooks/useLocalization"
 import type { Language } from "@/lib/i18n"
 import type { CurrencyCode } from "@/lib/currency"
@@ -17,6 +17,7 @@ import { NotificationPreferencesCard } from "@/components/settings/notification-
 
 export default function SettingsPage() {
   const { t, language, setLanguage, currency, setCurrency, theme, setTheme } = useLocalization()
+  const { logout } = useAuthContext()
   const [isLoading, setIsLoading] = useState(true)
   const [settings, setSettings] = useState<NotificationPreferences>({
     pushNotifications: true, emailAlerts: true, jobNotifications: true,
@@ -63,8 +64,13 @@ export default function SettingsPage() {
     alert(t("provider.settings.exportDataAlert"))
   }
 
+  // logout() (see lib/auth-context.tsx) clears the session heartbeat before
+  // signing out and only navigates once the sign-out actually completes —
+  // calling next-auth's signOut() directly here skipped that heartbeat
+  // clear and used its own separate redirect, inconsistent with (and
+  // missing the same race-safety as) every other sign-out button in the app.
   const handleSignOut = () => {
-    signOut({ callbackUrl: "/auth/login" })
+    logout()
   }
 
   const handleDeleteAccount = async () => {
@@ -72,7 +78,7 @@ export default function SettingsPage() {
     setIsDeleting(true)
     const result = await deleteMyAccount()
     if (result.success) {
-      signOut({ callbackUrl: "/auth/login" })
+      logout()
       return
     }
     setIsDeleting(false)

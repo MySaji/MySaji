@@ -129,7 +129,10 @@ export async function getSpecialistDetail(providerId: string): Promise<Specialis
     slug: provider.slug,
     badges: computeBadges(provider.verified, Number(provider.rating), provider.responseTimeMinutes),
     bio: provider.bio,
-    phone: provider.user.phone,
+    // Real phone numbers never leave the server to another user — Call and
+    // Message both go through the in-app conversation/voice-call system
+    // (userId above), never a raw tel: link.
+    phone: null,
     portfolio: provider.portfolio.map((item) => ({ id: item.id, title: item.title, imageUrl: item.imageUrl, videoUrl: item.videoUrl })),
     endorsements: endorsements.map((e) => ({
       id: e.id,

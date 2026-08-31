@@ -73,6 +73,17 @@ export async function requirePro(): Promise<ProGateResult | null> {
   }
 }
 
+/** Lightweight balance-only read for the Pro purchase page's "Pay from
+ * Wallet" option — getWalletSummary() in lib/actions/wallet.ts pulls
+ * transactions, payment methods and escrow jobs too, more than this button
+ * needs just to decide whether to show/disable itself. */
+export async function getMyWalletBalance(): Promise<number> {
+  const session = await auth()
+  if (!session?.user?.id) return 0
+  const wallet = await db.wallet.findUnique({ where: { userId: session.user.id }, select: { balance: true } })
+  return wallet ? Number(wallet.balance) : 0
+}
+
 export type ProSubscriptionPaymentStatus = { status: "PENDING" | "COMPLETED" | "FAILED"; failureReason?: string | null }
 
 /** The frontend polls this after initiating an M-Pesa/Stripe subscription

@@ -2,6 +2,7 @@
 
 import type React from "react"
 import { useEffect, useRef, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import { Search, Filter, Calendar, MapPin, Clock, CheckCircle2, AlertTriangle, ChevronRight, Star, Phone, MessageSquare, Navigation, MoreVertical, X, Check, Loader2, Radio, PlayCircle } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -36,6 +37,7 @@ const LOCATION_SHARE_MIN_INTERVAL_MS = 15000
 const MAX_RECEIPT_PHOTO_BYTES = 1_500_000
 
 type TabKey = "active" | "pending" | "completed" | "disputed" | "calendar"
+const TAB_KEYS: TabKey[] = ["active", "pending", "completed", "disputed", "calendar"]
 
 function toTab(status: string): TabKey {
   switch (status) {
@@ -86,7 +88,21 @@ const STATUS_COLOR: Record<string, string> = {
 
 export default function ProviderJobsPage() {
   const { t, formatMoney } = useLocalization()
+  const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState<TabKey>("active")
+
+  // The sidebar's "My Calendar" link (and the home page's "My Calendar"
+  // quick action) point here with ?tab=calendar rather than a separate
+  // route — but a query-string-only navigation to the same route doesn't
+  // remount this component, so without this effect the tab silently never
+  // changed and the link looked unresponsive. Re-syncs any time the query
+  // param changes, not just on first mount.
+  useEffect(() => {
+    const tabParam = searchParams.get("tab")
+    if (tabParam && TAB_KEYS.includes(tabParam as TabKey)) {
+      setActiveTab(tabParam as TabKey)
+    }
+  }, [searchParams])
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedJob, setSelectedJob] = useState<ProviderJobItem | null>(null)
   const [showJobDetails, setShowJobDetails] = useState(false)
@@ -199,8 +215,11 @@ export default function ProviderJobsPage() {
     if (result.success) { setShowJobDetails(false); await refresh() }
   }
 
-  const handleCallClient = (phone: string | null) => {
-    if (phone) window.location.href = `tel:${phone}`
+  // Real phone numbers are never sent to the client — calling goes through
+  // the in-app voice-call system (same deep link the messages page already
+  // consumes to auto-start a CallButton call, see classic-chat.tsx).
+  const handleCallClient = (job: ProviderJobItem) => {
+    window.location.href = `/provider/messages?client=${job.customerId}&action=call`
   }
 
   const handleChatClient = (job: ProviderJobItem) => {
@@ -511,7 +530,7 @@ export default function ProviderJobsPage() {
                       <div className="flex items-center flex-wrap gap-2">
                         {activeTab === "active" && (
                           <>
-                            <Button size="sm" variant="outline" className="h-8 bg-transparent" onClick={() => handleCallClient(job.clientPhone)} disabled={!job.clientPhone}>
+                            <Button size="sm" variant="outline" className="h-8 bg-transparent" onClick={() => handleCallClient(job)}>
                               <Phone className="w-3.5 h-3.5 mr-1" />
                               {t("provider.jobs.call")}
                             </Button>
@@ -635,7 +654,7 @@ export default function ProviderJobsPage() {
 
               {/* Actions */}
               <div className="flex gap-3 flex-wrap">
-                <Button onClick={() => handleCallClient(selectedJob.clientPhone)} className="bg-green-600 hover:bg-green-700" disabled={!selectedJob.clientPhone}>
+                <Button onClick={() => handleCallClient(selectedJob)} className="bg-green-600 hover:bg-green-700">
                   <Phone className="w-4 h-4 mr-2" />
                   {t("provider.jobs.callClient")}
                 </Button>
@@ -644,7 +663,7 @@ export default function ProviderJobsPage() {
                   {t("provider.jobs.chat")}
                 </Button>
                 {selectedJob.status === "PENDING" && (
-                  <p className="w-full text-[11px] text-muted-foreground">Phone number and exact address unlock once you accept this job.</p>
+                  <p className="w-full text-[11px] text-muted-foreground">Exact address unlocks once you accept this job. Calls and chat always stay in-app — real numbers are never shared.</p>
                 )}
                 <Button onClick={() => handleNavigate(selectedJob.location)} variant="outline">
                   <Navigation className="w-4 h-4 mr-2" />

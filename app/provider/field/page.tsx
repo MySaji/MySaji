@@ -41,8 +41,11 @@ export default function FieldTechnicianHomePage() {
     window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`, "_blank")
   }
 
-  const handleCallClient = (phone: string | null) => {
-    if (phone) window.location.href = `tel:${phone}`
+  // Real phone numbers are never sent to the client — calling goes through
+  // the in-app voice-call system (same deep link the messages page already
+  // consumes to auto-start a CallButton call, see classic-chat.tsx).
+  const handleCallClient = (job: ProviderJobItem) => {
+    window.location.href = `/provider/messages?client=${job.customerId}&action=call`
   }
 
   const handleChatClient = (job: ProviderJobItem) => {
@@ -100,7 +103,7 @@ export default function FieldTechnicianHomePage() {
               </div>
 
               <div className="flex flex-wrap gap-2 mb-3">
-                <Button size="sm" variant="outline" className="h-8 bg-transparent" onClick={() => handleCallClient(job.clientPhone)} disabled={!job.clientPhone}>
+                <Button size="sm" variant="outline" className="h-8 bg-transparent" onClick={() => handleCallClient(job)}>
                   <Phone className="w-3.5 h-3.5 mr-1" />{t("provider.jobs.call")}
                 </Button>
                 <Button size="sm" variant="outline" className="h-8 bg-transparent" onClick={() => handleChatClient(job)}>

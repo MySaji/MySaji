@@ -38,7 +38,12 @@ export function StaticLocationMap({
 
   const center = { lat: latitude, lng: longitude }
   return (
-    <GoogleMap mapContainerClassName={containerClass} center={center} zoom={15} options={{ disableDefaultUI: true, zoomControl: true }}>
+    // gestureHandling: "none" keeps this a true static preview — this map
+    // routinely sits inside a scrollable dialog (e.g. the provider job
+    // details modal), and a draggable/zoomable map there captures touch
+    // scroll gestures instead of letting them reach the dialog's own
+    // scroll container.
+    <GoogleMap mapContainerClassName={containerClass} center={center} zoom={15} options={{ disableDefaultUI: true, gestureHandling: "none", keyboardShortcuts: false }}>
       <MarkerF position={center} title={label} />
     </GoogleMap>
   )

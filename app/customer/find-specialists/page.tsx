@@ -375,7 +375,7 @@ export default function FindSpecialistsPage() {
                   {/* Quick Actions */}
                   <div className="grid grid-cols-5 gap-2">
                     {[
-                      { icon: Phone, label: t("customer.serviceDetail.call"), bg: "bg-emerald-50 dark:bg-emerald-900/20", iconBg: "bg-emerald-500", textColor: "text-emerald-700 dark:text-emerald-300", href: selectedSpecialist.phone ? `tel:${selectedSpecialist.phone}` : undefined },
+                      { icon: Phone, label: t("customer.serviceDetail.call"), bg: "bg-emerald-50 dark:bg-emerald-900/20", iconBg: "bg-emerald-500", textColor: "text-emerald-700 dark:text-emerald-300", href: `/customer/messages?provider=${selectedSpecialist.userId}&action=call` },
                       { icon: MessageCircle, label: t("customer.findSpecialists.chat"), bg: "bg-blue-50 dark:bg-blue-900/20", iconBg: "bg-blue-500", textColor: "text-blue-700 dark:text-blue-300", href: `/customer/messages?provider=${selectedSpecialist.userId}&action=message` },
                       { icon: Video, label: t("customer.findSpecialists.video"), bg: "bg-violet-50 dark:bg-violet-900/20", iconBg: "bg-violet-500", textColor: "text-violet-700 dark:text-violet-300" },
                       { icon: Calendar, label: t("customer.findSpecialists.book"), bg: "bg-orange-50 dark:bg-orange-900/20", iconBg: "bg-orange-500", textColor: "text-orange-700 dark:text-orange-300", onClick: handleBookNow },

@@ -26,6 +26,8 @@ export type RentalBookingStatus = "PENDING_PAYMENT" | "CONFIRMED" | "PICKED_UP" 
 
 export type ProviderRentalBookingItem = {
   id: string
+  offerId: string
+  customerId: string
   listingTitle: string
   customerName: string
   startDate: string
@@ -53,6 +55,8 @@ export async function getMyRentalBookingsAsProvider(): Promise<ProviderRentalBoo
 
   return bookings.map((b) => ({
     id: b.id,
+    offerId: b.offerId,
+    customerId: b.customerId,
     listingTitle: b.offer.title,
     customerName: b.customer.name,
     startDate: b.startDate.toISOString(),

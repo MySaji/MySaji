@@ -204,7 +204,6 @@ export default function InvoicesPage() {
               <div className="bg-muted/30 rounded-lg p-3">
                 <p className="text-[11px] text-muted-foreground">{t("provider.invoices.billTo")}</p>
                 <p className="text-xs font-semibold text-foreground">{viewInvoice.customerName}</p>
-                {viewInvoice.customerPhone && <p className="text-[11px] text-muted-foreground">{viewInvoice.customerPhone}</p>}
               </div>
               <div>
                 <p className="text-[11px] font-medium text-muted-foreground mb-2">{t("provider.invoices.itemsLabel")}</p>

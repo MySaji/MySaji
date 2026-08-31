@@ -725,6 +725,18 @@ export async function createOfferBooking(input: unknown): Promise<CreateOfferBoo
   if (offer.provider?.availability?.isOnVacation) {
     return { success: false, error: "This provider is currently unavailable for new bookings." }
   }
+  // Only BUY offers with tracked stock (stockQuantity set) are checked here —
+  // null means not tracked, same as every offer before this field existed.
+  // The real, race-safe decrement happens once payment actually clears (see
+  // confirmJobPayment in lib/actions/payments.ts); this is just an early,
+  // friendly rejection so a customer isn't sent to checkout for something
+  // that's already visibly out of stock.
+  if (offer.actionType === "BUY" && offer.stockQuantity != null && offer.stockQuantity < data.quantity) {
+    return {
+      success: false,
+      error: offer.stockQuantity === 0 ? "This product is out of stock." : `Only ${offer.stockQuantity} left in stock.`,
+    }
+  }
 
   const isBlocked = await db.blockedClient.findUnique({
     where: { providerId_customerId: { providerId: offer.providerId, customerId: session.user.id } },
@@ -750,6 +762,7 @@ export async function createOfferBooking(input: unknown): Promise<CreateOfferBoo
       longitude: data.longitude,
       scheduledDate,
       status: "PENDING_PAYMENT",
+      quantity: data.quantity,
     },
   })
 

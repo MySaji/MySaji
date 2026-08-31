@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Search, Phone, Calendar, DollarSign, ChevronRight, Users, RefreshCw, Loader2, Ban, ShieldCheck } from "lucide-react"
+import { Search, MessageCircle, Calendar, DollarSign, ChevronRight, Users, RefreshCw, Loader2, Ban, ShieldCheck } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -133,9 +133,16 @@ export default function ShopkeeperCustomersPage() {
             {expandedCustomer === customer.id && (
               <div className="px-4 pb-4 border-t border-border pt-3 space-y-3">
                 <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
-                  <span className="flex items-center gap-1"><Phone className="w-3 h-3" />{customer.phone ?? t("shopkeeper.customers.noPhoneOnFile")}</span>
                   <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{t("shopkeeper.customers.lastOrder", { date: new Date(customer.lastOrderDate).toLocaleDateString() })}</span>
                 </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full rounded-lg text-[11px]"
+                  onClick={() => { window.location.href = `/shopkeeper/messages?client=${customer.id}&action=message` }}
+                >
+                  <MessageCircle className="w-3 h-3 mr-1" />{t("shopkeeper.customers.messageButton")}
+                </Button>
                 {customer.isBlocked && customer.blockedReason && (
                   <div className="rounded-lg bg-destructive/10 p-2.5 text-[11px] text-destructive">
                     <strong>{t("shopkeeper.customers.blockedReasonLabel")}</strong> {customer.blockedReason}

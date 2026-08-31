@@ -1,5 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk"
-import { isConfigured, noteAnthropicFailure } from "@/lib/ai/credentials"
+import { Type as GeminiType } from "@google/genai"
+import { getGeminiClient } from "@/lib/ai/gemini-client"
+import { isAnyAiConfigured, isGeminiConfigured, isAnthropicConfigured, noteAnthropicFailure, noteGeminiFailure } from "@/lib/ai/credentials"
 import { z } from "zod"
 import { db } from "@/lib/db"
 
@@ -25,24 +27,24 @@ import { db } from "@/lib/db"
  * On a marketplace with escrow and disputes that is a trust problem, not a
  * feature.
  *
- * Same env-gated shape as lib/ai/chatbot.ts and offer-extraction.ts — fully
- * real when ANTHROPIC_API_KEY is set, honestly degraded when it isn't. The
- * wizard's manual fields always work either way; this only decides whether the
- * provider is offered a suggestion to accept or ignore.
+ * Same Gemini-first, Anthropic-fallback shape as lib/ai/chatbot.ts and
+ * offer-extraction.ts — fully real when either key is set, honestly degraded
+ * when neither is. The wizard's manual fields always work either way; this
+ * only decides whether the provider is offered a suggestion to accept or
+ * ignore.
  */
 
 // Opus 5 rather than the Haiku used for Step-2 extraction: extraction is a
 // high-volume classification over text the provider already wrote, while this
 // writes copy that goes on a public listing. Effort is held low because the
 // task is short-form generation, not reasoning.
-const MODEL = "claude-opus-5"
+const ANTHROPIC_MODEL = "claude-opus-5"
+const GEMINI_MODEL = "gemini-3.5-flash"
 
-
-
-let cachedClient: Anthropic | null = null
-function getClient(): Anthropic {
-  if (!cachedClient) cachedClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-  return cachedClient
+let cachedAnthropicClient: Anthropic | null = null
+function getAnthropicClient(): Anthropic {
+  if (!cachedAnthropicClient) cachedAnthropicClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  return cachedAnthropicClient
 }
 
 /* ------------------------------------------------------------------ */
@@ -53,7 +55,7 @@ function getClient(): Anthropic {
 // helper targets Zod 4, and this project is on Zod 3. The schema below
 // constrains what the model may return; the Zod schema after it re-validates
 // what actually came back, so a shape change can't reach the wizard unchecked.
-const ENHANCEMENT_JSON_SCHEMA = {
+const ANTHROPIC_ENHANCEMENT_SCHEMA = {
   type: "object",
   properties: {
     title: { type: "string", description: "A clear, specific listing title. Max 70 characters." },
@@ -70,6 +72,20 @@ const ENHANCEMENT_JSON_SCHEMA = {
   required: ["title", "description", "tags"],
   additionalProperties: false,
 } as const
+
+// Same shape, in the Gemini SDK's own Schema type rather than raw JSON
+// Schema — Gemini's structured-output support predates general JSON Schema
+// passthrough, so the native shape (Type enum, no additionalProperties) is
+// the safer bet across SDK versions.
+const GEMINI_ENHANCEMENT_SCHEMA = {
+  type: GeminiType.OBJECT,
+  properties: {
+    title: { type: GeminiType.STRING, description: "A clear, specific listing title. Max 70 characters." },
+    description: { type: GeminiType.STRING, description: "2-4 short paragraphs a customer can skim. Plain text, no markdown." },
+    tags: { type: GeminiType.ARRAY, items: { type: GeminiType.STRING }, description: "3-8 short search tags, lowercase." },
+  },
+  required: ["title", "description", "tags"],
+}
 
 const enhancementSchema = z.object({
   title: z.string().min(1),
@@ -91,36 +107,7 @@ export type EnhancementInput = {
   youOffer: string[]
 }
 
-/**
- * Turns a thin draft into publishable copy. Never invents credentials,
- * guarantees, prices or turnaround times — a listing is a commitment the
- * provider has to honour, and the model has no way to know what they can
- * actually promise.
- *
- * `data: null` (distinct from `simulated: true`) means the key is configured
- * but the call failed; either way the caller keeps whatever the provider typed.
- */
-export async function enhanceOfferCopy(input: EnhancementInput): Promise<OfferEnhancementResult> {
-  if (!isConfigured()) return { simulated: true }
-
-  const draft = [
-    `Category: ${input.categoryName ?? "unspecified"}`,
-    `Provider's title: ${input.title || "(none yet)"}`,
-    `Provider's description: ${input.description || "(none yet)"}`,
-    input.youOffer.length > 0 ? `They offer: ${input.youOffer.join(", ")}` : "",
-  ]
-    .filter(Boolean)
-    .join("\n")
-
-  try {
-    const response = await getClient().messages.create({
-      model: MODEL,
-      max_tokens: 2000,
-      output_config: {
-        format: { type: "json_schema", schema: ENHANCEMENT_JSON_SCHEMA as unknown as Record<string, unknown> },
-        effort: "low",
-      },
-      system: `You improve marketplace listings for SAJI, a multi-service marketplace in Kenya.
+const ENHANCEMENT_SYSTEM_PROMPT = `You improve marketplace listings for SAJI, a multi-service marketplace in Kenya.
 
 Rewrite the provider's draft into a clear listing. Rules:
 - Stay strictly within what the draft says. Never invent qualifications, certifications, years of experience, guarantees, turnaround times, prices, or areas served.
@@ -128,32 +115,103 @@ Rewrite the provider's draft into a clear listing. Rules:
 - Write for a Kenyan customer. Plain English, no jargon, no hype, no emoji.
 - The title names what is being offered, not who the provider is.
 - Tags are short search terms a customer would actually type.
-- If the draft is too thin to work with, keep the provider's own wording rather than padding it out.`,
+- If the draft is too thin to work with, keep the provider's own wording rather than padding it out.`
+
+function buildDraft(input: EnhancementInput): string {
+  return [
+    `Category: ${input.categoryName ?? "unspecified"}`,
+    `Provider's title: ${input.title || "(none yet)"}`,
+    `Provider's description: ${input.description || "(none yet)"}`,
+    input.youOffer.length > 0 ? `They offer: ${input.youOffer.join(", ")}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n")
+}
+
+function parseEnhancement(raw: string): OfferEnhancement | null {
+  if (!raw) return null
+  let json: unknown
+  try {
+    json = JSON.parse(raw)
+  } catch {
+    return null
+  }
+  const parsed = enhancementSchema.safeParse(json)
+  if (!parsed.success) return null
+  return {
+    title: parsed.data.title.slice(0, 100),
+    description: parsed.data.description,
+    tags: parsed.data.tags.map((t) => t.trim().toLowerCase()).filter(Boolean).slice(0, 8),
+  }
+}
+
+/** Returns the enhancement, or undefined to signal "try the other provider". */
+async function tryGemini(draft: string): Promise<OfferEnhancement | null | undefined> {
+  if (!isGeminiConfigured()) return undefined
+  try {
+    const response = await getGeminiClient().models.generateContent({
+      model: GEMINI_MODEL,
+      contents: [{ role: "user", parts: [{ text: draft }] }],
+      config: {
+        systemInstruction: ENHANCEMENT_SYSTEM_PROMPT,
+        responseMimeType: "application/json",
+        responseSchema: GEMINI_ENHANCEMENT_SCHEMA,
+      },
+    })
+    return parseEnhancement((response.text ?? "").trim())
+  } catch (error) {
+    noteGeminiFailure(error)
+    return undefined
+  }
+}
+
+/** Returns the enhancement, or undefined to signal total failure. */
+async function tryAnthropic(draft: string): Promise<OfferEnhancement | null | undefined> {
+  if (!isAnthropicConfigured()) return undefined
+  try {
+    const response = await getAnthropicClient().messages.create({
+      model: ANTHROPIC_MODEL,
+      max_tokens: 2000,
+      output_config: {
+        format: { type: "json_schema", schema: ANTHROPIC_ENHANCEMENT_SCHEMA as unknown as Record<string, unknown> },
+        effort: "low",
+      },
+      system: ENHANCEMENT_SYSTEM_PROMPT,
       messages: [{ role: "user", content: draft }],
     })
-
     const textBlock = response.content.find((block) => block.type === "text")
     const raw = textBlock && "text" in textBlock ? textBlock.text.trim() : ""
-    if (!raw) return { simulated: false, data: null }
-
-    const parsed = enhancementSchema.safeParse(JSON.parse(raw))
-    if (!parsed.success) return { simulated: false, data: null }
-
-    return {
-      simulated: false,
-      data: {
-        title: parsed.data.title.slice(0, 100),
-        description: parsed.data.description,
-        tags: parsed.data.tags.map((t) => t.trim().toLowerCase()).filter(Boolean).slice(0, 8),
-      },
-    }
+    return parseEnhancement(raw)
   } catch (error) {
-    // A rejected key reports as "not configured" rather than a failed call,
-    // so the wizard shows the same honest state it shows with no key at all.
-    if (noteAnthropicFailure(error)) return { simulated: true }
-    // A failed suggestion must never block the wizard.
-    return { simulated: false, data: null }
+    noteAnthropicFailure(error)
+    return undefined
   }
+}
+
+/**
+ * Turns a thin draft into publishable copy. Never invents credentials,
+ * guarantees, prices or turnaround times — a listing is a commitment the
+ * provider has to honour, and the model has no way to know what they can
+ * actually promise.
+ *
+ * `data: null` (distinct from `simulated: true`) means at least one provider
+ * is configured but every attempt failed; either way the caller keeps
+ * whatever the provider typed.
+ */
+export async function enhanceOfferCopy(input: EnhancementInput): Promise<OfferEnhancementResult> {
+  if (!isAnyAiConfigured()) return { simulated: true }
+
+  const draft = buildDraft(input)
+
+  const geminiResult = await tryGemini(draft)
+  if (geminiResult !== undefined) return { simulated: false, data: geminiResult }
+
+  const anthropicResult = await tryAnthropic(draft)
+  if (anthropicResult !== undefined) return { simulated: false, data: anthropicResult }
+
+  if (!isAnyAiConfigured()) return { simulated: true }
+  // A failed suggestion must never block the wizard.
+  return { simulated: false, data: null }
 }
 
 /* ------------------------------------------------------------------ */

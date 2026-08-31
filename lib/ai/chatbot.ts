@@ -1,18 +1,21 @@
 import Anthropic from "@anthropic-ai/sdk"
-import { isConfigured, noteAnthropicFailure } from "@/lib/ai/credentials"
+import { getGeminiClient } from "@/lib/ai/gemini-client"
+import { isAnyAiConfigured, isGeminiConfigured, isAnthropicConfigured, noteAnthropicFailure, noteGeminiFailure } from "@/lib/ai/credentials"
 
-const MODEL = "claude-haiku-4-5-20251001"
+const ANTHROPIC_MODEL = "claude-haiku-4-5-20251001"
+const GEMINI_MODEL = "gemini-3.5-flash"
 
-// Same env-gated pattern as every other paid third-party integration in this
-// project (M-Pesa/Stripe/PayPal in lib/actions/payments.ts) — fully real
-// when ANTHROPIC_API_KEY is set, honestly degraded when it isn't, never a
-// silent/fake success.
+// Gemini (Google AI Studio, real free tier) is tried first; Anthropic is the
+// paid fallback for whenever Gemini is unconfigured, rejected, rate-limited,
+// or just has a bad moment — same env-gated pattern as every other paid
+// third-party integration in this project (M-Pesa/Stripe/PayPal in
+// lib/actions/payments.ts): fully real when a key is set, honestly degraded
+// when neither is, never a silent/fake success.
 
-
-let cachedClient: Anthropic | null = null
-function getClient(): Anthropic {
-  if (!cachedClient) cachedClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-  return cachedClient
+let cachedAnthropicClient: Anthropic | null = null
+function getAnthropicClient(): Anthropic {
+  if (!cachedAnthropicClient) cachedAnthropicClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  return cachedAnthropicClient
 }
 
 const SYSTEM_PROMPT = `You are SAJI Assistant, the in-app support chatbot for SAJI, a Kenya-focused marketplace with several connected portals: Customers, Providers, Shopkeepers, Distributors, and an internal Admin/Sub-Admin/Agent/Secretary team. Most people you talk to are Customers, but a Provider, Shopkeeper, or Distributor may also reach you from their own portal. Answer according to whichever side of the platform they're asking about.
@@ -62,31 +65,60 @@ export type ChatbotReplyResult = { content: string; simulated: boolean }
 const SIMULATED_REPLY =
   "I'm not fully set up yet. My AI connection hasn't been configured by the SAJI team. I can still connect you with a real support agent if you'd like, just ask."
 
-export async function generateChatbotReply(history: ChatbotHistoryTurn[]): Promise<ChatbotReplyResult> {
-  if (!isConfigured()) {
-    return { content: SIMULATED_REPLY, simulated: true }
-  }
-
+/** Returns the reply text, or null to signal "try the other provider". */
+async function tryGemini(history: ChatbotHistoryTurn[]): Promise<string | null> {
+  if (!isGeminiConfigured()) return null
   try {
-    const response = await getClient().messages.create({
-      model: MODEL,
+    const response = await getGeminiClient().models.generateContent({
+      model: GEMINI_MODEL,
+      contents: history.map((m) => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] })),
+      config: { systemInstruction: SYSTEM_PROMPT, maxOutputTokens: 400 },
+    })
+    return response.text?.trim() || "Sorry, I couldn't generate a response. Please try again."
+  } catch (error) {
+    noteGeminiFailure(error)
+    return null
+  }
+}
+
+/** Returns the reply text, or null to signal total failure (caller decides the message). */
+async function tryAnthropic(history: ChatbotHistoryTurn[]): Promise<string | null> {
+  if (!isAnthropicConfigured()) return null
+  try {
+    const response = await getAnthropicClient().messages.create({
+      model: ANTHROPIC_MODEL,
       max_tokens: 400,
       system: SYSTEM_PROMPT,
       messages: history.map((m) => ({ role: m.role, content: m.content })),
     })
     const textBlock = response.content.find((block) => block.type === "text")
     const content = textBlock && "text" in textBlock ? textBlock.text.trim() : ""
-    return { content: content || "Sorry, I couldn't generate a response. Please try again.", simulated: false }
+    return content || "Sorry, I couldn't generate a response. Please try again."
   } catch (error) {
-    // A rejected key is not a transient blip: telling someone to "try again in
-    // a moment" sends them into a loop that can never succeed. Report it the
-    // same way an absent key is reported instead.
-    if (noteAnthropicFailure(error)) {
-      return { content: SIMULATED_REPLY, simulated: true }
-    }
-    return {
-      content: "Sorry, I'm having trouble responding right now. Please try again in a moment, or ask me to connect you with a real support agent.",
-      simulated: false,
-    }
+    noteAnthropicFailure(error)
+    return null
+  }
+}
+
+export async function generateChatbotReply(history: ChatbotHistoryTurn[]): Promise<ChatbotReplyResult> {
+  if (!isAnyAiConfigured()) {
+    return { content: SIMULATED_REPLY, simulated: true }
+  }
+
+  const geminiReply = await tryGemini(history)
+  if (geminiReply != null) return { content: geminiReply, simulated: false }
+
+  const anthropicReply = await tryAnthropic(history)
+  if (anthropicReply != null) return { content: anthropicReply, simulated: false }
+
+  // Both providers either aren't configured or just failed. If either still
+  // has a live (non-rejected) key, this was a transient outage — worth a
+  // retry. Only when both keys are absent/rejected is it truly "not set up".
+  if (!isAnyAiConfigured()) {
+    return { content: SIMULATED_REPLY, simulated: true }
+  }
+  return {
+    content: "Sorry, I'm having trouble responding right now. Please try again in a moment, or ask me to connect you with a real support agent.",
+    simulated: false,
   }
 }

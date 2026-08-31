@@ -83,7 +83,10 @@ export async function getProviderJobs(): Promise<ProviderJobItem[]> {
     customerId: j.customerId,
     clientName: j.customer.name,
     clientAvatar: j.customer.image,
-    clientPhone: isPending ? null : j.customer.phone,
+    // Real phone numbers never leave the server to another user — Call and
+    // Message both go through the in-app conversation/voice-call system
+    // (customerId above), never a raw tel: link.
+    clientPhone: null,
     location: isPending ? coarsenLocation(j.location) : j.location,
     latitude: isPending ? null : (j.latitude != null ? Number(j.latitude) : null),
     longitude: isPending ? null : (j.longitude != null ? Number(j.longitude) : null),
