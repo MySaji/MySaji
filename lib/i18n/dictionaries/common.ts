@@ -176,6 +176,10 @@ const en = {
   "verify.done.body": "We will review them shortly and let you know the moment you are verified.",
   "verify.done.close": "Done",
   "verify.incomplete": "Please complete every field before submitting.",
+  "location.setLocation": "Set location",
+  "location.changeLocation": "Change location",
+  "location.noSavedAddresses": "No saved addresses yet",
+  "location.manageAddresses": "Manage addresses",
 } as const
 
 const sw: Record<keyof typeof en, string> = {
@@ -347,6 +351,10 @@ const sw: Record<keyof typeof en, string> = {
   "verify.done.body": "Tutazikagua hivi karibuni na kukujulisha mara tu utakapothibitishwa.",
   "verify.done.close": "Nimemaliza",
   "verify.incomplete": "Tafadhali jaza kila sehemu kabla ya kuwasilisha.",
+  "location.setLocation": "Weka eneo",
+  "location.changeLocation": "Badilisha eneo",
+  "location.noSavedAddresses": "Hakuna anwani zilizohifadhiwa",
+  "location.manageAddresses": "Dhibiti anwani",
 }
 
 const fr: Record<keyof typeof en, string> = {
@@ -518,6 +526,10 @@ const fr: Record<keyof typeof en, string> = {
   "verify.done.body": "Nous les examinerons sous peu et vous informerons dès que vous serez vérifié.",
   "verify.done.close": "Terminé",
   "verify.incomplete": "Veuillez remplir tous les champs avant de soumettre.",
+  "location.setLocation": "Définir le lieu",
+  "location.changeLocation": "Changer de lieu",
+  "location.noSavedAddresses": "Aucune adresse enregistrée",
+  "location.manageAddresses": "Gérer les adresses",
 }
 
 export const commonDictionary = { en, sw, fr }

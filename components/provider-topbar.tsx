@@ -5,6 +5,7 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { Menu, Bell, Wallet, MessageCircle, X } from "lucide-react"
 import { SajiProLogo } from "@/components/saji-pro-badge"
+import { LocationSelector } from "@/components/location-selector"
 import { AccountMenu } from "@/components/account-menu"
 import { useNotificationBell } from "@/lib/hooks/useNotificationBell"
 import { formatRelativeTime } from "@/lib/format"
@@ -94,13 +95,20 @@ export default function ProviderTopbar({ onMenuClick }: { onMenuClick: () => voi
         </button>
 
         {/* Mobile logo */}
-        <Link href="/provider" className="lg:hidden flex-1 flex justify-center">
+        <Link href="/provider" className="lg:hidden flex-shrink-0">
           <SajiProLogo size="sm" showText />
         </Link>
 
         {/* Desktop page title */}
         <div className="hidden lg:block">
           <h1 className="text-base font-semibold text-gray-900 dark:text-white">{pageTitleFor(pathname ?? "")}</h1>
+        </div>
+
+        {/* Where this account is working from, beside the wordmark as in the
+            design. min-w-0 so its label truncates instead of widening the
+            header on a narrow phone. */}
+        <div className="min-w-0 flex-1">
+          <LocationSelector manageHref="/provider/profile/account" />
         </div>
 
         {/* Right side actions */}

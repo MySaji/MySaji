@@ -7,6 +7,7 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useAuthContext } from "@/lib/auth-context"
 import { useCartCount } from "@/lib/hooks/useCartCount"
+import { LocationSelector } from "@/components/location-selector"
 import { useNotificationBell } from "@/lib/hooks/useNotificationBell"
 import { useSidebarCollapsed } from "@/lib/hooks/useSidebarCollapsed"
 import { formatRelativeTime } from "@/lib/format"
@@ -301,8 +302,15 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
               <span className="font-bold text-base text-foreground">SAJI</span>
             </Link>
 
+            {/* Where this customer is shopping from, beside the wordmark as in
+                the design. min-w-0 so a long address truncates rather than
+                widening the header on a phone. */}
+            <div className="min-w-0 flex-1">
+              <LocationSelector manageHref="/customer/saved-addresses" />
+            </div>
+
             {/* Right Side Actions */}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-shrink-0 items-center gap-2">
               <Link href="/customer/cart" className="relative">
                 <Button variant="ghost" size="icon" className="relative" aria-label={t("customer.layout.cart")}>
                   <ShoppingCart className="w-5 h-5" />
