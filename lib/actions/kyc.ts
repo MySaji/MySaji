@@ -101,8 +101,13 @@ export async function submitBusinessPermitDocument(input: unknown): Promise<Subm
           ...buildKycDedupeFields({ documentNumber, idFileUrl: fileDataUrl }),
         },
       })
-      await tx.user.update({ where: { id: userId }, data: { kycStatus: "PENDING" } })
-      await markVerificationPending(tx, userId)
+      // Deliberately does not touch kycStatus or verificationStatus. A
+      // business permit is not identity evidence: marking the account PENDING
+      // here would tell a business its identity was under review when nothing
+      // of the sort had been submitted, and — since approving a permit no
+      // longer moves those fields (see lib/kyc-review-core.ts) — it would
+      // strand the account at PENDING permanently. The permit's own
+      // KycDocument.status is what the business gate reads.
     }, { timeout: 60000, maxWait: 10000 })
     return { success: true }
   } catch {

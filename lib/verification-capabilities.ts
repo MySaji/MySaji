@@ -93,3 +93,31 @@ export const VERIFICATION_REQUIRED_MESSAGE =
 export function isVerifiedStatus(status: string | undefined): boolean {
   return status === "verified" || status === "premium_verified"
 }
+
+/**
+ * Capabilities a *business* provider must additionally hold an approved
+ * business permit for, on top of the identity verification everyone needs.
+ *
+ * Straight from the Business Pro rules: a business may build its company
+ * profile, add branches and staff, build a portfolio and draft offers freely,
+ * but may not publish offers, accept jobs, take customer money or withdraw
+ * earnings until business verification is complete. A solo provider is
+ * unaffected — nothing here applies unless ProviderProfile.isBusinessOwner.
+ *
+ * Deliberately does not include "offer.submit" (bidding on a request): the
+ * rules name publishing, accepting, being paid and withdrawing, and widening
+ * that on my own would block a legitimate business from quoting for work it
+ * is allowed to pursue.
+ */
+export const BUSINESS_VERIFIED_CAPABILITIES: ReadonlySet<Capability> = new Set<Capability>([
+  "offer.publish",
+  "job.accept",
+  "payout.receive",
+  "escrow.participate",
+])
+
+/** Distinct from VERIFICATION_REQUIRED_MESSAGE so the UI can send a business
+ *  owner to their company documents rather than to the identity wizard, which
+ *  collects the wrong thing entirely. */
+export const BUSINESS_VERIFICATION_REQUIRED_MESSAGE =
+  "Complete your business verification to continue. We need your registered business permit before your company can publish, take on work, or be paid."

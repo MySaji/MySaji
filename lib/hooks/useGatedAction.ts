@@ -40,6 +40,11 @@ export function useGatedAction() {
         promptVerification()
         return true
       }
+      // A business refusal is deliberately NOT handled here. The wizard
+      // collects identity documents, so opening it would hand a company owner
+      // the wrong form entirely — and they have usually already completed it.
+      // The caller shows the message instead, which names the business permit
+      // as what is missing.
       return false
     },
     [promptVerification],

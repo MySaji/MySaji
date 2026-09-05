@@ -18,6 +18,8 @@ import { auth } from "@/auth"
 import { db } from "@/lib/db"
 import {
   satisfies,
+  BUSINESS_VERIFIED_CAPABILITIES,
+  BUSINESS_VERIFICATION_REQUIRED_MESSAGE,
   VERIFICATION_REQUIRED_MESSAGE,
   type Capability,
   type VerificationStatus,
@@ -25,14 +27,14 @@ import {
 
 // Re-exported so existing server-side importers keep working against this
 // module alone; client components must import from verification-capabilities.
-export { satisfies, VERIFICATION_REQUIRED_MESSAGE }
+export { satisfies, VERIFICATION_REQUIRED_MESSAGE, BUSINESS_VERIFICATION_REQUIRED_MESSAGE }
 export type { Capability, VerificationStatus }
 
 export type GateFailure = {
   ok: false
   /** Distinguishes "sign in first" from "verify first" — the UI routes these
    *  to entirely different places. */
-  reason: "unauthenticated" | "verification_required"
+  reason: "unauthenticated" | "verification_required" | "business_verification_required"
   capability: Capability
   /** Where the account stands now, so the caller can say "under review"
    *  rather than "please verify" to someone who already submitted. */
@@ -91,6 +93,46 @@ export async function requireVerified(capability: Capability): Promise<GateResul
       capability,
       status,
       error: VERIFICATION_REQUIRED_MESSAGE,
+    }
+  }
+
+  // Business Pro: a company needs its registered permit approved on top of
+  // the identity check above before it can publish, take on work, or be paid.
+  // Only queried for the four capabilities that actually require it, and only
+  // reaches the second query for an account that is genuinely a business —
+  // solo providers and every non-provider role pay one indexed lookup at
+  // most, and the ungated capabilities pay nothing.
+  if (BUSINESS_VERIFIED_CAPABILITIES.has(capability)) {
+    try {
+      const profile = await db.providerProfile.findUnique({
+        where: { userId: session.user.id },
+        select: { isBusinessOwner: true },
+      })
+      if (profile?.isBusinessOwner) {
+        const permit = await db.kycDocument.findFirst({
+          where: { userId: session.user.id, documentType: "BUSINESS_PERMIT", status: "APPROVED" },
+          select: { id: true },
+        })
+        if (!permit) {
+          return {
+            ok: false,
+            reason: "business_verification_required",
+            capability,
+            status,
+            error: BUSINESS_VERIFICATION_REQUIRED_MESSAGE,
+          }
+        }
+      }
+    } catch {
+      // Same fail-closed rule as the identity lookup above: an action that
+      // cannot be shown to be permitted is refused, not allowed through.
+      return {
+        ok: false,
+        reason: "business_verification_required",
+        capability,
+        status,
+        error: "Couldn't confirm your business verification. Please check your connection and try again.",
+      }
     }
   }
 
