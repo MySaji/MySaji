@@ -9,11 +9,23 @@ import ProviderTopbar from "@/components/provider-topbar"
 import FloatingChatButton from "@/components/floating-chat-button"
 import { AccountSuspendedScreen } from "@/components/account-status/account-suspended-screen"
 import { DisputeBanner } from "@/components/account-status/dispute-banner"
+import { ShopRegistrationBanner } from "@/components/account-status/shop-registration-banner"
 import { getMyAccountStatus, type MyOpenDispute } from "@/lib/actions/account-status"
 import { useLocalization } from "@/lib/hooks/useLocalization"
 import { useSidebarCollapsed } from "@/lib/hooks/useSidebarCollapsed"
 
-export default function ProviderLayout({ children }: { children: React.ReactNode }) {
+/**
+ * The single Saji Pro shell, shared by the service half (/provider/*) and the
+ * merchant half (/shopkeeper/*).
+ *
+ * Both used to be separate portals with their own layout, sidebar, topbar and
+ * bottom nav, so an account that both offered services and ran a shop had to
+ * switch between two products. They now live in one route group with this one
+ * chrome. The group is parenthesised, so it contributes nothing to the URL —
+ * every existing /provider/... and /shopkeeper/... link, bookmark and
+ * notification deep-link still resolves exactly as before.
+ */
+export default function SajiProLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const { t } = useLocalization()
   const { isAuthenticated, isLoading, user, logout } = useAuthContext()
@@ -40,13 +52,17 @@ export default function ProviderLayout({ children }: { children: React.ReactNode
   }, [isAuthenticated, isLoading, user, router])
 
   useEffect(() => {
-    if (!isAuthenticated || user?.role !== "provider") return
+    if (!isAuthenticated || (user?.role !== "provider" && user?.role !== "shopkeeper")) return
     getMyAccountStatus().then((status) => setOpenDisputes(status.openDisputes))
   }, [isAuthenticated, user])
 
-  const isSuspended = user?.role === "provider" && user?.isActive === false
-  if (!isLoading && isSuspended && !pathname?.startsWith("/provider/messages")) {
-    return <AccountSuspendedScreen messagesBasePath="/provider/messages" onLogout={logout} />
+  // Messages live under whichever half of the portal the user is currently
+  // in, so a suspended account keeps its route to support either way.
+  const messagesBasePath = pathname?.startsWith("/shopkeeper") ? "/shopkeeper/messages" : "/provider/messages"
+
+  const isSuspended = (user?.role === "provider" || user?.role === "shopkeeper") && user?.isActive === false
+  if (!isLoading && isSuspended && !pathname?.startsWith(messagesBasePath)) {
+    return <AccountSuspendedScreen messagesBasePath={messagesBasePath} onLogout={logout} />
   }
 
   // Deliberately keyed on `user` rather than `isLoading`/`isAuthenticated`:
@@ -104,9 +120,15 @@ export default function ProviderLayout({ children }: { children: React.ReactNode
               open the wizard at the moment they are attempted, which is what
               "progressive" means here — the ask arrives with the action, not
               as a permanent fixture above unrelated work. */}
+          {/* Merchant half: renders nothing unless this account has a shop
+              that still needs registering, which is what lets the shared
+              shell mount it for every Saji Pro page. */}
+          <div className="px-4 pt-4 lg:px-6 empty:hidden">
+            <ShopRegistrationBanner />
+          </div>
           {openDisputes.length > 0 && (
             <div className="px-4 lg:px-6 pt-4">
-              <DisputeBanner disputes={openDisputes} messagesBasePath="/provider/messages" />
+              <DisputeBanner disputes={openDisputes} messagesBasePath={messagesBasePath} />
             </div>
           )}
           {children}

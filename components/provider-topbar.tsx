@@ -16,8 +16,27 @@ import { ProviderOnlineToggle } from "@/components/provider-online-toggle"
 
 // Same set of routes ProviderSidebar's menuItems covers — kept as a
 // separate, label-only map here since the topbar only needs the title text,
-// not the icons/badges the sidebar renders.
+// not the icons/badges the sidebar renders. Covers both halves of Saji Pro:
+// without the /shopkeeper entries every merchant page fell through to the
+// "Dashboard" default once the two portals merged under one topbar.
 const TITLE_BY_PREFIX: [string, string][] = [
+  ["/shopkeeper/products", "Shop Products"],
+  ["/shopkeeper/orders", "Shop Orders"],
+  ["/shopkeeper/customers", "Shop Customers"],
+  ["/shopkeeper/promotions", "Promotions"],
+  ["/shopkeeper/earnings", "Shop Earnings"],
+  ["/shopkeeper/reviews", "Shop Reviews"],
+  ["/shopkeeper/analytics", "Shop Analytics"],
+  ["/shopkeeper/distributors", "Distributors"],
+  ["/shopkeeper/wholesale-orders", "Wholesale Orders"],
+  ["/shopkeeper/showcase", "Showcase"],
+  ["/shopkeeper/endorsements", "Endorsements"],
+  ["/shopkeeper/register", "Shop Registration"],
+  ["/shopkeeper/requests", "Requests"],
+  ["/shopkeeper/messages", "Messages"],
+  ["/shopkeeper/notifications", "Notifications"],
+  ["/shopkeeper/settings", "Settings"],
+  ["/shopkeeper/profile", "Shop Profile"],
   ["/provider/jobs", "Jobs"],
   ["/provider/services", "Services"],
   ["/provider/availability", "Availability"],
@@ -35,7 +54,7 @@ const TITLE_BY_PREFIX: [string, string][] = [
 ]
 
 function pageTitleFor(pathname: string): string {
-  if (pathname === "/provider") return "Home"
+  if (pathname === "/provider" || pathname === "/shopkeeper") return "Home"
   const match = TITLE_BY_PREFIX.find(([prefix]) => pathname.startsWith(prefix))
   return match ? match[1] : "Dashboard"
 }

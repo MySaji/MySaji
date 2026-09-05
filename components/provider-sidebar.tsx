@@ -10,6 +10,8 @@ import { AccountMenu } from "@/components/account-menu"
 import { getProviderJobStats } from "@/lib/actions/provider-jobs"
 import { getUnreadMessageCount } from "@/lib/actions/messages"
 import { useProviderWorkspace } from "@/lib/hooks/useProviderWorkspace"
+import useSWR from "swr"
+import { getMyRoleProfiles } from "@/lib/actions/account-switch"
 import { useLocalization } from "@/lib/hooks/useLocalization"
 
 type ProviderSidebarProps = {
@@ -47,6 +49,13 @@ export default function ProviderSidebar({ isOpen, onClose, isCollapsed, onToggle
   const isActive = (path: string) => pathname === path || pathname.startsWith(path + "/")
 
   const { type: workspaceType, isPro } = useProviderWorkspace()
+
+  // Saji Pro merges the provider and merchant portals, so an account that
+  // also runs a shop gets the shop's own pages in this one nav rather than a
+  // second portal to switch into. Accounts without a shop never see the group
+  // — the merge must not clutter a plain service provider's sidebar.
+  const { data: profiles } = useSWR("my-role-profiles", getMyRoleProfiles)
+  const hasShop = profiles?.hasShopkeeper ?? false
 
   // Adaptive UI Workspaces: three genuinely different item sets, not just
   // a reordering of one universal list — each workspace's first N items
@@ -129,8 +138,23 @@ export default function ProviderSidebar({ isOpen, onClose, isCollapsed, onToggle
   }
 
   const GROUP_LABEL: Record<string, string> = {
+    shop: "My Shop",
     business: "Business",
     insights: "Insights",
+  }
+
+  // Appended rather than woven into the workspace lists above: these are the
+  // merchant half of Saji Pro and apply to any workspace type that also has a
+  // shop, so they should not have to be repeated in all three.
+  if (hasShop) {
+    menuItems = [
+      ...menuItems,
+      { icon: Package, label: "Shop Products", href: "/shopkeeper/products", group: "shop" },
+      { icon: ClipboardList, label: "Shop Orders", href: "/shopkeeper/orders", group: "shop" },
+      { icon: Users, label: "Shop Customers", href: "/shopkeeper/customers", group: "shop" },
+      { icon: Megaphone, label: "Promotions", href: "/shopkeeper/promotions", group: "shop" },
+      { icon: Wallet, label: "Shop Earnings", href: "/shopkeeper/earnings", group: "shop" },
+    ]
   }
 
   // Everything beyond the primary bottom-nav items — reachable via the
@@ -197,7 +221,9 @@ export default function ProviderSidebar({ isOpen, onClose, isCollapsed, onToggle
         <div className={`p-5 border-b border-gray-200 dark:border-gray-700 flex items-start justify-between ${isCollapsed ? "lg:justify-center" : ""}`}>
           <div className={isCollapsed ? "lg:hidden" : ""}>
             <SajiProLogo size="md" showText />
-            <p className="text-[11px] text-muted-foreground mt-1">Service Provider Portal</p>
+            {/* One portal for both halves now — services and shop — so this
+                no longer says "Service Provider". */}
+            <p className="text-[11px] text-muted-foreground mt-1">Services &amp; Shop</p>
           </div>
           <div className={`hidden ${isCollapsed ? "lg:block" : ""}`}>
             <Logo size="md" showText={false} />
