@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { LocalizationProvider } from "@/lib/localization-context"
 import type { Language } from "@/lib/i18n"
 import { AuthProvider } from "@/lib/auth-context"
+import { VerificationPromptProvider } from "@/lib/verification-prompt-context"
 import { EmailSubscriptionPopup } from "@/components/email-subscription-popup"
 import "./globals.css"
 
@@ -88,8 +89,15 @@ export default async function RootLayout({
               initialCurrency={session?.user?.currency ?? "KES"}
             >
               <AuthProvider>
-                {children}
-                <EmailSubscriptionPopup />
+                {/* Progressive KYC: mounts the one verification wizard for the
+                    whole app, so any gated action can open it in place rather
+                    than navigating the user out of what they were doing.
+                    Inside AuthProvider because the wizard reads and refreshes
+                    the session through useAuthContext. */}
+                <VerificationPromptProvider>
+                  {children}
+                  <EmailSubscriptionPopup />
+                </VerificationPromptProvider>
               </AuthProvider>
             </LocalizationProvider>
           </SessionProvider>

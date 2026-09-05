@@ -10,12 +10,14 @@ import { Textarea } from "@/components/ui/textarea"
 import { ShoppingCart, Trash2, Plus, Minus, Wallet, ArrowRight, MapPin, Loader2, Clock, Tag, X, Wrench, CalendarClock } from "lucide-react"
 import { getCart, updateCartItemQuantity, removeCartItem, removeServiceCartItem, checkout, type CartLine } from "@/lib/actions/cart"
 import { revalidateCartCount } from "@/lib/hooks/useCartCount"
+import { useGatedAction } from "@/lib/hooks/useGatedAction"
 import { getWalletSummary } from "@/lib/actions/wallet"
 import { validatePromoCode } from "@/lib/actions/promo"
 import { useLocalization } from "@/lib/hooks/useLocalization"
 
 export default function CustomerCartPage() {
   const { t, formatMoney } = useLocalization()
+  const { handleGateFailure } = useGatedAction()
   const [cart, setCart] = useState<CartLine[]>([])
   const [walletBalance, setWalletBalance] = useState(0)
   const [shippingAddress, setShippingAddress] = useState("")
@@ -110,7 +112,13 @@ export default function CustomerCartPage() {
     setCheckoutError("")
     const result = await checkout({ shippingAddress, shippingPhone, notes, promoCode: appliedPromo ? promoCode : undefined })
     setIsSubmitting(false)
-    if (!result.success) { setCheckoutError(result.error); return }
+    // A verification refusal opens the wizard instead of leaving the
+    // shopper staring at a message with nowhere to act on it.
+    if (!result.success) {
+      if (handleGateFailure(result)) return
+      setCheckoutError(result.error)
+      return
+    }
     await refresh()
     void revalidateCartCount()
     setCheckoutState("ordered")

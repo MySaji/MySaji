@@ -23,7 +23,14 @@ export async function approveKycDocument(kycDocumentId: string, reviewerId: stri
       where: { id: doc.id },
       data: { status: "APPROVED", reviewedAt: new Date(), reviewedById: reviewerId, rejectionReason: null },
     }),
-    db.user.update({ where: { id: doc.userId }, data: { kycStatus: "APPROVED" } }),
+    // Progressive KYC: `kycStatus` records the verdict on this document,
+    // `verificationStatus` is what the gate in lib/verification-gate.ts
+    // actually reads. Approval has to move both — moving only the first
+    // would leave an approved user still unable to transact.
+    db.user.update({
+      where: { id: doc.userId },
+      data: { kycStatus: "APPROVED", verificationStatus: "VERIFIED" },
+    }),
   ]
   if (isShop) updates.push(db.shopkeeperProfile.updateMany({ where: { userId: doc.userId }, data: { isVerified: true } }))
   else if (isProvider) updates.push(db.providerProfile.updateMany({ where: { userId: doc.userId }, data: { verified: true } }))
@@ -60,7 +67,17 @@ export async function rejectKycDocument(kycDocumentId: string, reviewerId: strin
       where: { id: doc.id },
       data: { status: "REJECTED", reviewedAt: new Date(), reviewedById: reviewerId, rejectionReason: reason },
     }),
-    db.user.update({ where: { id: doc.userId }, data: { kycStatus: "REJECTED" } }),
+    // A rejection sends the account back to BASIC rather than to a
+    // "rejected" tier of its own: for the purpose of what they may do, a
+    // rejected user is simply unverified, and `kycStatus` REJECTED is what
+    // lets the UI explain why and invite a resubmission. Revoking is the
+    // fail-safe direction, and matches what already happened here before
+    // progressive KYC — a REJECTED user was locked out of their portal
+    // outright, so this is no more restrictive than the previous behaviour.
+    db.user.update({
+      where: { id: doc.userId },
+      data: { kycStatus: "REJECTED", verificationStatus: "BASIC" },
+    }),
     db.notification.create({
       data: {
         userId: doc.userId,

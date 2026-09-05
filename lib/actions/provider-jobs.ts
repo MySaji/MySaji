@@ -3,6 +3,7 @@
 import { z } from "zod"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
+import { requireVerified } from "@/lib/verification-gate"
 import { pushToUser } from "@/lib/actions/push"
 import { notifyUser } from "@/lib/actions/notify"
 import { maybeRewardReferralForProvider } from "@/lib/actions/referrals"
@@ -108,6 +109,12 @@ const jobIdSchema = z.object({ jobId: z.string().trim().min(1) })
 export async function acceptJob(input: unknown): Promise<ProviderJobActionResult> {
   const provider = await requireProvider()
   if (!provider) return { success: false, error: "You must be signed in as a provider." }
+
+  // Progressive KYC: accepting puts this provider in a customer's home or
+  // hands, against escrowed money. declineJob below stays ungated — a
+  // provider must always be able to release a job they cannot take.
+  const gate = await requireVerified("job.accept")
+  if (!gate.ok) return { success: false, error: gate.error }
 
   if (await providerHasOpenDispute(provider.providerId)) {
     return { success: false, error: "Accepting new jobs is restricted while you have an open dispute. Message admin support for help." }

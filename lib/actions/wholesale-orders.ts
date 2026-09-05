@@ -3,6 +3,7 @@
 import { z } from "zod"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
+import { requireVerified } from "@/lib/verification-gate"
 import { requireShopkeeper } from "@/lib/actions/shopkeeper-dashboard"
 import { requireDistributor } from "@/lib/actions/distributor-dashboard"
 import { getEffectiveCommissionRate, splitByCommission } from "@/lib/commission"
@@ -553,6 +554,14 @@ const advanceWholesaleSchema = z.object({
 export async function advanceWholesaleOrderStatus(input: unknown): Promise<WholesaleOrderActionResult> {
   const distributor = await requireDistributor()
   if (!distributor) return { success: false, error: "You must be signed in as a distributor." }
+
+  // Progressive KYC: same rule as a shopkeeper advancing a retail order.
+  // placeWholesaleOrder above is deliberately not gated here — it already
+  // requires buyerProfile.isVerified, which KYC approval sets in the same
+  // transaction (see lib/kyc-review-core.ts), so a second check would only
+  // cost a round-trip.
+  const gate = await requireVerified("order.accept")
+  if (!gate.ok) return { success: false, error: gate.error }
 
   const parsed = advanceWholesaleSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: "Invalid input" }

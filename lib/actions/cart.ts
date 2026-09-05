@@ -3,6 +3,7 @@
 import { z } from "zod"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
+import { requireVerified } from "@/lib/verification-gate"
 import { isShopCurrentlyOpen, getNextOpeningLabel } from "@/lib/format"
 import { getEffectiveCommissionRate, splitByCommission } from "@/lib/commission"
 import { pushToUser } from "@/lib/actions/push"
@@ -289,6 +290,11 @@ export type CheckoutResult = { success: true; orderIds: string[]; jobIds: string
 export async function checkout(input: unknown): Promise<CheckoutResult> {
   const customerId = await requireCustomerId()
   if (!customerId) return { success: false, error: "You must be signed in." }
+
+  // Progressive KYC: browsing and filling a cart stay open to everyone;
+  // placing the order is where a verified identity starts to matter.
+  const gate = await requireVerified("order.place")
+  if (!gate.ok) return { success: false, error: gate.error }
 
   const parsed = checkoutSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }

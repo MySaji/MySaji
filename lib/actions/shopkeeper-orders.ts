@@ -2,6 +2,7 @@
 
 import { z } from "zod"
 import { db } from "@/lib/db"
+import { requireVerified } from "@/lib/verification-gate"
 import { requireShopkeeper } from "@/lib/actions/shopkeeper-dashboard"
 import { pushToUser } from "@/lib/actions/push"
 import { reverseOrder } from "@/lib/order-cancellation"
@@ -107,6 +108,13 @@ const advanceSchema = z.object({
 export async function advanceOrderStatus(input: unknown): Promise<ShopkeeperOrderActionResult> {
   const shopkeeper = await requireShopkeeper()
   if (!shopkeeper) return { success: false, error: "You must be signed in as a shopkeeper." }
+
+  // Progressive KYC: taking on a customer's order means taking on their
+  // money. Note that cancelMyOrder and the return-handling actions below are
+  // deliberately left ungated — a merchant who loses verification must still
+  // be able to release customers who are already waiting on them.
+  const gate = await requireVerified("order.accept")
+  if (!gate.ok) return { success: false, error: gate.error }
 
   const parsed = advanceSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: "Invalid input" }

@@ -3,6 +3,7 @@
 import { z } from "zod"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
+import { requireVerified } from "@/lib/verification-gate"
 import { getOrCreateConversation } from "@/lib/actions/messages"
 import { pushToUser } from "@/lib/actions/push"
 
@@ -51,6 +52,11 @@ export async function createCustomerRequest(input: unknown): Promise<CreateReque
   if (!session?.user?.id || session.user.role !== "customer") {
     return { success: false, error: "You must be signed in as a customer." }
   }
+
+  // Progressive KYC: a posted request is broadcast to providers who will
+  // spend time bidding on it, so the account behind it must be real.
+  const gate = await requireVerified("service.request")
+  if (!gate.ok) return { success: false, error: gate.error }
 
   const parsed = createSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
@@ -335,6 +341,11 @@ export async function respondToRequest(input: unknown): Promise<RequestActionRes
   if (session.user.role !== "provider" && session.user.role !== "shopkeeper") {
     return { success: false, error: "Only providers and shopkeepers can respond to requests." }
   }
+
+  // Progressive KYC: a bid is a commitment to a customer and reaches them
+  // directly, so it carries the same bar as publishing an offer.
+  const gate = await requireVerified("offer.submit")
+  if (!gate.ok) return { success: false, error: gate.error }
 
   const parsed = respondSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }

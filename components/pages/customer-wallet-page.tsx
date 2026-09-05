@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useLocalization } from "@/lib/hooks/useLocalization"
+import { useGatedAction } from "@/lib/hooks/useGatedAction"
 import { getWalletSummary, requestWithdrawal, addPaymentMethod, type WalletSummary } from "@/lib/actions/wallet"
 import { useWalletTopupReturn } from "@/lib/hooks/useWalletTopupReturn"
 import { WalletTopupMethods } from "@/components/payment/wallet-topup-methods"
@@ -15,6 +16,7 @@ import {
 } from "lucide-react"
 
 export function CustomerWalletPage() {
+  const { handleGateFailure } = useGatedAction()
   const { t, formatMoney, currency } = useLocalization()
   const [showBalance, setShowBalance] = useState(true)
   const [activeTab, setActiveTab] = useState("transactions")
@@ -69,7 +71,13 @@ export function CustomerWalletPage() {
     setFormError("")
     const result = await requestWithdrawal({ amount, paymentMethodId: withdrawMethodId })
     setIsSubmitting(false)
-    if (!result.success) { setFormError(result.error); return }
+    // A verification refusal opens the wizard rather than leaving the user
+    // with a message and nowhere to act on it.
+    if (!result.success) {
+      if (handleGateFailure(result)) return
+      setFormError(result.error)
+      return
+    }
     await refresh()
     setShowWithdraw(false); setWithdrawAmount(""); setWithdrawMethodId(null)
   }
@@ -99,7 +107,13 @@ export function CustomerWalletPage() {
       paypalEmail: paymentForm.paypalEmail,
     })
     setIsSubmitting(false)
-    if (!result.success) { setFormError(result.error); return }
+    // A verification refusal opens the wizard rather than leaving the user
+    // with a message and nowhere to act on it.
+    if (!result.success) {
+      if (handleGateFailure(result)) return
+      setFormError(result.error)
+      return
+    }
     await refresh()
     setShowAddMethod(false)
     setPaymentForm({ mpesaPhone: "", cardNumber: "", cardName: "", expiryDate: "", cvv: "", paypalEmail: "" }); setNewMethodType("")

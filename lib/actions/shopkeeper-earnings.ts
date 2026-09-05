@@ -2,6 +2,7 @@
 
 import { z } from "zod"
 import { db } from "@/lib/db"
+import { requireVerified } from "@/lib/verification-gate"
 import { requireShopkeeper } from "@/lib/actions/shopkeeper-dashboard"
 import { encryptAccountNumber } from "@/lib/payment-method-crypto"
 
@@ -79,6 +80,11 @@ const withdrawSchema = z.object({
 export async function requestShopkeeperWithdrawal(input: unknown): Promise<ShopkeeperEarningsActionResult> {
   const shopkeeper = await requireShopkeeper()
   if (!shopkeeper) return { success: false, error: "You must be signed in as a shopkeeper." }
+
+  // Progressive KYC: same rule as the provider payout — money may only
+  // leave the platform to a verified account.
+  const gate = await requireVerified("payout.receive")
+  if (!gate.ok) return { success: false, error: gate.error }
 
   const parsed = withdrawSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }

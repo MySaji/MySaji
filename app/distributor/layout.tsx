@@ -95,12 +95,25 @@ export default function DistributorLayout({ children }: { children: React.ReactN
 
   const isCompanyLocked = user?.role === "distributor" && user?.kycStatus !== "approved"
 
+  // Progressive KYC: an unverified company now keeps its whole portal. This
+  // used to be the same condition as above, which greyed out every non-exempt
+  // nav item and bounced direct URLs back to the dashboard — the single
+  // biggest source of merchant signup abandonment, since a new distributor met a
+  // locked portal before ever seeing what it did. The restricted actions
+  // (publishing, accepting orders, payouts) now refuse themselves server-side
+  // instead; see lib/verification-gate.ts.
+  //
+  // Kept as a named constant rather than deleting the nav-lock branches
+  // below, so the mechanism is still there if a future policy — a fraud hold,
+  // a suspension — needs to lock navigation again.
+  const isCompanyNavLocked = false
+
   // Sidebar links are disabled for non-exempt pages, but a locked distributor
   // could still reach them by typing the URL directly — redirect those back
   // to the Dashboard so the gate isn't just cosmetic.
   useEffect(() => {
     if (!mounted || isLoading || !isAuthenticated || user?.role !== "distributor") return
-    if (isCompanyLocked && pathname && !isExemptPath(pathname)) {
+    if (isCompanyNavLocked && pathname && !isExemptPath(pathname)) {
       router.replace("/distributor")
     }
   }, [mounted, isLoading, isAuthenticated, user, isCompanyLocked, pathname, router])
@@ -223,7 +236,7 @@ export default function DistributorLayout({ children }: { children: React.ReactN
             {menuItems.map((item) => {
               const IconComponent = item.icon
               const active = item.href === "/distributor" ? isExactActive(item.href) : isActive(item.href)
-              const locked = isCompanyLocked && !isExemptPath(item.href)
+              const locked = isCompanyNavLocked && !isExemptPath(item.href)
               if (locked) {
                 return (
                   <div
@@ -487,7 +500,7 @@ export default function DistributorLayout({ children }: { children: React.ReactN
           {bottomNavItems.map((item) => {
             const IconComponent = item.icon
             const active = item.href === "/distributor" ? isExactActive(item.href) : isActive(item.href)
-            const locked = isCompanyLocked && !isExemptPath(item.href)
+            const locked = isCompanyNavLocked && !isExemptPath(item.href)
             if (locked) {
               return (
                 <div
@@ -544,7 +557,7 @@ export default function DistributorLayout({ children }: { children: React.ReactN
                   {moreNavItems.map((item) => {
                     const IconComponent = item.icon
                     const active = item.href === "/distributor" ? isExactActive(item.href) : isActive(item.href)
-                    const locked = isCompanyLocked && !isExemptPath(item.href)
+                    const locked = isCompanyNavLocked && !isExemptPath(item.href)
                     if (locked) {
                       return (
                         <div

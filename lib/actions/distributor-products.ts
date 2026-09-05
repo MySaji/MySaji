@@ -2,6 +2,7 @@
 
 import { z } from "zod"
 import { db } from "@/lib/db"
+import { requireVerified } from "@/lib/verification-gate"
 import { requireDistributor } from "@/lib/actions/distributor-dashboard"
 
 export type DistributorProductLocationStock = { locationId: string; locationName: string; currentStock: number }
@@ -106,8 +107,19 @@ export async function createDistributorProduct(input: unknown): Promise<Distribu
     return { success: false, error: "Wholesale price should be lower than retail price." }
   }
 
+  // Progressive KYC: mirrors createMyProduct for shopkeepers — an
+  // unverified distributor builds their wholesale catalogue freely and it
+  // lands inactive, rather than being refused outright.
+  //
+  // Unlike Product, DistributorProduct has no publishedAt yet, so a draft and
+  // a deliberately paused item are indistinguishable here. That column is
+  // worth adding alongside the distributor catalogue UI that needs to tell
+  // them apart; nothing today reads the difference.
+  const gate = await requireVerified("product.publish")
+
   await db.distributorProduct.create({
     data: {
+      isActive: gate.ok,
       distributorId: distributor.distributorId,
       categoryId: data.categoryId,
       name: data.name,
@@ -182,6 +194,14 @@ export async function toggleDistributorProductActive(input: unknown): Promise<Di
 
   const product = await db.distributorProduct.findUnique({ where: { id: parsed.data.id } })
   if (!product || product.distributorId !== distributor.distributorId) return { success: false, error: "Product not found." }
+
+  // Progressive KYC: listing goes live only for a verified distributor;
+  // taking one down stays available regardless, so nobody is trapped with a
+  // listing they cannot withdraw.
+  if (!product.isActive) {
+    const gate = await requireVerified("product.publish")
+    if (!gate.ok) return { success: false, error: gate.error }
+  }
 
   await db.distributorProduct.update({ where: { id: product.id }, data: { isActive: !product.isActive } })
   return { success: true }

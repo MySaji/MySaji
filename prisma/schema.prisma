@@ -43,6 +43,31 @@ enum KycStatus {
   REJECTED
 }
 
+/// The capability tier an account has earned — what it is *allowed to do*,
+/// as opposed to `KycStatus`, which is the review verdict on whatever
+/// documents it last submitted. The two are deliberately separate:
+///
+///   BASIC             signed up, never submitted documents. Can browse,
+///                     search, save favourites, build drafts — but cannot
+///                     move money, transact, or publish.
+///   PENDING           documents submitted, awaiting review. Same
+///                     restrictions as BASIC; the difference is only what
+///                     the UI tells them to do next.
+///   VERIFIED          reviewed and approved. Full transactional access.
+///   PREMIUM_VERIFIED  reserved for a future enhanced tier (see
+///                     lib/verification-gate.ts) — nothing requires it yet,
+///                     and it satisfies every VERIFIED requirement.
+///
+/// A rejection is *not* a state here: it sends the account back to BASIC
+/// while `kycStatus` holds REJECTED, so the gate treats them like anyone
+/// unverified while the UI can still explain why and invite a resubmission.
+enum VerificationStatus {
+  BASIC
+  PENDING
+  VERIFIED
+  PREMIUM_VERIFIED
+}
+
 enum ServiceApprovalStatus {
   PENDING
   APPROVED
@@ -388,6 +413,11 @@ model User {
   image         String?
   role          Role      @default(CUSTOMER)
   kycStatus     KycStatus @default(PENDING)
+  // Progressive KYC: an account is usable the moment it exists, and only
+  // the restricted actions in lib/verification-gate.ts consult this.
+  // Existing accounts are backfilled by
+  // scripts/backfill-verification-status.js.
+  verificationStatus VerificationStatus @default(BASIC)
   isActive      Boolean   @default(true)
   chatTheme     ChatTheme @default(CLASSIC)
   language      String    @default("en")
@@ -505,6 +535,7 @@ model User {
 
   @@index([role])
   @@index([kycStatus])
+  @@index([verificationStatus])
   @@map("users")
 }
 
@@ -1417,6 +1448,14 @@ model Product {
   discountPrice Decimal? @db.Decimal(12, 2)
   images        String[]
   isActive      Boolean  @default(true)
+  // Progressive KYC gives merchants a real draft state: an unverified
+  // shopkeeper builds their catalogue with isActive=false, and publishing
+  // (the gated action) is what flips it on. `isActive` alone can't tell a
+  // never-published draft from a deliberately paused listing, which the
+  // merchant's own product list needs to distinguish — null here means
+  // "never went live". Deliberately additive: no marketplace query changes,
+  // since they all already filter on isActive.
+  publishedAt   DateTime?
   isFeatured    Boolean  @default(false)
   rating        Decimal  @default(0) @db.Decimal(3, 2)
   reviewCount   Int      @default(0)

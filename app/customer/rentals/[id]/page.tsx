@@ -12,10 +12,12 @@ import {
 } from "@/lib/actions/rentals"
 import { capturePaypalOrder } from "@/lib/actions/payments"
 import { useLocalization } from "@/lib/hooks/useLocalization"
+import { useGatedAction } from "@/lib/hooks/useGatedAction"
 
 type View = "form" | "awaiting-provider" | "success" | "failed"
 
 export default function RentalDetailPage() {
+  const { handleGateFailure } = useGatedAction()
   const params = useParams()
   const id = params.id as string
   const router = useRouter()
@@ -101,7 +103,13 @@ export default function RentalDetailPage() {
     setIsSubmitting(true)
     const result = await createRentalBooking({ offerId: id, startDate, endDate, location })
     setIsSubmitting(false)
-    if (!result.success) { setFormError(result.error); return }
+    if (!result.success) {
+      // A verification refusal opens the wizard rather than leaving the user
+      // with a message and nowhere to act on it.
+      if (handleGateFailure(result)) return
+      setFormError(result.error)
+      return
+    }
     setBookingId(result.bookingId)
     const details = await getRentalBookingForPayment(result.bookingId)
     setBooking(details)

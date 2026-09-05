@@ -3,6 +3,7 @@
 import { z } from "zod"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
+import { requireVerified } from "@/lib/verification-gate"
 import { encryptAccountNumber } from "@/lib/payment-method-crypto"
 
 async function requireProvider(): Promise<{ userId: string; providerId: string } | null> {
@@ -121,6 +122,12 @@ const withdrawSchema = z.object({
 export async function requestProviderWithdrawal(input: unknown): Promise<ProviderWalletActionResult> {
   const provider = await requireProvider()
   if (!provider) return { success: false, error: "You must be signed in as a provider." }
+
+  // Progressive KYC: earnings accrue whatever the provider's status, but
+  // taking them off the platform requires a verified identity — this is the
+  // point the money becomes irreversible.
+  const gate = await requireVerified("payout.receive")
+  if (!gate.ok) return { success: false, error: gate.error }
 
   const parsed = withdrawSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }

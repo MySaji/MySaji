@@ -3,6 +3,7 @@
 import { z } from "zod"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
+import { requireVerified } from "@/lib/verification-gate"
 
 async function requireProviderId(): Promise<string | null> {
   const session = await auth()
@@ -264,6 +265,12 @@ export async function createRentalBooking(input: unknown): Promise<CreateRentalB
   if (!session?.user?.id || session.user.role !== "customer") {
     return { success: false, error: "You must be signed in as a customer to continue." }
   }
+
+  // Progressive KYC: a rental puts a provider's physical equipment in the
+  // customer's hands, so identity matters here at least as much as it
+  // does for a service booking.
+  const gate = await requireVerified("booking.create")
+  if (!gate.ok) return { success: false, error: gate.error }
 
   const parsed = createRentalBookingSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }

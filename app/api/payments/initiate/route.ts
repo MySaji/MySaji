@@ -6,6 +6,7 @@ import { confirmRentalBookingPayment } from "@/lib/actions/rentals"
 import { getEffectivePlatformPreferences } from "@/lib/actions/admin-settings"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
+import { requireVerified } from "@/lib/verification-gate"
 
 const WALLET_TOPUP_METHOD_LABEL: Record<string, string> = { mpesa: "M-Pesa", airtel: "Airtel Money", paypal: "PayPal", card: "Card", stripe: "Card" }
 
@@ -18,6 +19,21 @@ export async function POST(req: Request) {
 
     const session = await auth()
     if (!session?.user?.id) return NextResponse.json({ success: false, message: "Not authenticated" }, { status: 401 })
+
+    // Progressive KYC: this route is the single door every outgoing payment
+    // goes through — wallet top-up, Saji Pro subscription, rental payment and
+    // job payment all land here — so one gate covers all four. Gating it here
+    // rather than in lib/actions/payments.ts is deliberate: those functions
+    // are also driven by gateway webhooks and callbacks, which are
+    // server-to-server and have no user session to verify.
+    //
+    // This is also what closes the M-Pesa/Stripe/PayPal top-up path;
+    // initiateBankTransferTopup in lib/actions/wallet.ts only ever covered
+    // the bank-transfer half of deposits.
+    const gate = await requireVerified("payment.make")
+    if (!gate.ok) {
+      return NextResponse.json({ success: false, message: gate.error }, { status: 403 })
+    }
 
     if (body.context === "wallet-topup") {
       const amount = Number(body.amount)

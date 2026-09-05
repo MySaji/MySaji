@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useState } from "react"
 import { useLocalization } from "@/lib/hooks/useLocalization"
+import { useGatedAction } from "@/lib/hooks/useGatedAction"
 import { getServiceForBooking, type ServiceForBooking } from "@/lib/actions/services"
 import { getOfferForBooking, createOfferBooking } from "@/lib/actions/offers"
 import { createBooking, getJobById, type JobDetail } from "@/lib/actions/jobs"
@@ -18,6 +19,7 @@ import { AddressAutocompleteInput, type PlaceResult } from "@/components/maps/ad
 import { SajiProtectionBanner } from "@/components/saji-protection-banner"
 
 export default function BookingContent() {
+  const { handleGateFailure } = useGatedAction()
   const router = useRouter()
   const searchParams = useSearchParams()
   const { t, formatMoney } = useLocalization()
@@ -130,6 +132,9 @@ export default function BookingContent() {
         })
     setIsSubmitting(false)
     if (!result.success) {
+      // A verification refusal opens the wizard rather than leaving the
+      // customer with a message and nowhere to act on it.
+      if (handleGateFailure(result)) return
       setError(result.error)
       return
     }

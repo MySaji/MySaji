@@ -3,8 +3,9 @@
 import { z } from "zod"
 import { db } from "@/lib/db"
 import { requireShopkeeper } from "@/lib/actions/shopkeeper-dashboard"
+import { requireVerified } from "@/lib/verification-gate"
 
-export type ShopkeeperProductStatus = "active" | "low_stock" | "out_of_stock" | "inactive"
+export type ShopkeeperProductStatus = "draft" | "active" | "low_stock" | "out_of_stock" | "inactive"
 
 export type ShopkeeperProduct = {
   id: string
@@ -22,7 +23,11 @@ export type ShopkeeperProduct = {
   reviewCount: number
 }
 
-function deriveStatus(isActive: boolean, stock: number): ShopkeeperProductStatus {
+function deriveStatus(isActive: boolean, stock: number, publishedAt: Date | null): ShopkeeperProductStatus {
+  // Never been live: an unverified merchant's catalogue, waiting on
+  // verification rather than deliberately paused by them. Distinguishing the
+  // two is the whole reason Product.publishedAt exists.
+  if (!isActive && publishedAt === null) return "draft"
   if (!isActive) return "inactive"
   if (stock <= 0) return "out_of_stock"
   if (stock <= 5) return "low_stock"
@@ -52,7 +57,7 @@ export async function getMyProducts(): Promise<ShopkeeperProduct[]> {
       sold: p.totalSold,
       categoryId: p.categoryId,
       categoryName: p.category?.name ?? null,
-      status: deriveStatus(p.isActive, stock),
+      status: deriveStatus(p.isActive, stock, p.publishedAt),
       rating: Number(p.rating),
       reviewCount: p.reviewCount,
     }
@@ -66,7 +71,10 @@ export async function getProductCategoryOptions(): Promise<ShopkeeperProductCate
   return categories.map((c) => ({ id: c.id, name: c.name }))
 }
 
-export type ShopkeeperProductActionResult = { success: true } | { success: false; error: string }
+// `draft` tells the caller the product was saved but not published because
+// the merchant is not verified yet — the UI needs to say so rather than
+// reporting a plain success and leaving them wondering why it isn't live.
+export type ShopkeeperProductActionResult = { success: true; draft?: boolean } | { success: false; error: string }
 
 const productShape = {
   name: z.string().trim().min(1, "Product name is required"),
@@ -95,6 +103,12 @@ export async function createMyProduct(input: unknown): Promise<ShopkeeperProduct
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
   const data = parsed.data
 
+  // Progressive KYC: building a catalogue is deliberately open to every
+  // merchant — only going live is gated. An unverified shop's product is
+  // saved as a draft (isActive false, publishedAt null) rather than refused,
+  // so the work is kept and publishing it later is a single toggle.
+  const gate = await requireVerified("product.publish")
+
   await db.product.create({
     data: {
       shopkeeperId: shopkeeper.shopkeeperId,
@@ -105,11 +119,13 @@ export async function createMyProduct(input: unknown): Promise<ShopkeeperProduct
       price: data.price,
       discountPrice: data.discountPrice,
       images: data.images,
+      isActive: gate.ok,
+      publishedAt: gate.ok ? new Date() : null,
       inventory: { create: { currentStock: data.stock } },
     },
   })
 
-  return { success: true }
+  return gate.ok ? { success: true } : { success: true, draft: true }
 }
 
 const updateProductSchema = z.object({ ...productShape, id: z.string().trim().min(1) }).refine(discountBelowPrice, discountRefinement)
@@ -165,7 +181,25 @@ export async function toggleMyProductActive(input: unknown): Promise<ShopkeeperP
   const product = await db.product.findUnique({ where: { id: parsed.data.id } })
   if (!product || product.shopkeeperId !== shopkeeper.shopkeeperId) return { success: false, error: "Product not found." }
 
-  await db.product.update({ where: { id: product.id }, data: { isActive: !product.isActive } })
+  const activating = !product.isActive
+
+  // Progressive KYC: only going live is gated. Taking a product *down* stays
+  // available whatever the merchant's status — an unverified shop must never
+  // be trapped with a listing it cannot withdraw.
+  if (activating) {
+    const gate = await requireVerified("product.publish")
+    if (!gate.ok) return { success: false, error: gate.error }
+  }
+
+  await db.product.update({
+    where: { id: product.id },
+    data: {
+      isActive: activating,
+      // Stamped on the first publish only, so a later pause-and-relist keeps
+      // the original go-live date and never reads as a draft again.
+      ...(activating && product.publishedAt === null ? { publishedAt: new Date() } : {}),
+    },
+  })
   return { success: true }
 }
 
@@ -190,6 +224,11 @@ export async function bulkImportProducts(rows: unknown): Promise<BulkImportResul
 
   if (!Array.isArray(rows) || rows.length === 0) return { success: false, error: "No rows to import." }
   if (rows.length > 500) return { success: false, error: "A single import is limited to 500 rows." }
+
+  // Progressive KYC: same rule as createMyProduct — an unverified merchant
+  // may import their whole catalogue, it just lands as drafts. Checked once
+  // here rather than per row, since the answer cannot change mid-import.
+  const gate = await requireVerified("product.publish")
 
   const categories = await db.category.findMany({ where: { type: "PRODUCT", isActive: true } })
   const categoryIdByName = new Map(categories.map((c) => [c.name.trim().toLowerCase(), c.id]))
@@ -228,6 +267,8 @@ export async function bulkImportProducts(rows: unknown): Promise<BulkImportResul
         price: data.price,
         discountPrice: data.discountPrice ? Number(data.discountPrice) : undefined,
         images: data.imageUrl ? [data.imageUrl] : [],
+        isActive: gate.ok,
+        publishedAt: gate.ok ? new Date() : null,
         inventory: { create: { currentStock: data.stock } },
       },
     })

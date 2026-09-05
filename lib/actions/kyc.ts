@@ -3,6 +3,7 @@
 import { z } from "zod"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
+import { markVerificationPending } from "@/lib/verification-gate"
 import { checkKycDuplicate, buildKycDedupeFields, KYC_DUPLICATE_ERROR } from "@/lib/kyc-duplicate-check"
 
 const submitKycSchema = z.object({
@@ -49,6 +50,7 @@ export async function submitKycDocument(input: unknown): Promise<SubmitKycDocume
         },
       })
       await tx.user.update({ where: { id: session.user.id }, data: { kycStatus: "PENDING" } })
+      await markVerificationPending(tx, session.user.id)
     }, { timeout: 60000, maxWait: 10000 })
     return { success: true }
   } catch {
@@ -100,6 +102,7 @@ export async function submitBusinessPermitDocument(input: unknown): Promise<Subm
         },
       })
       await tx.user.update({ where: { id: userId }, data: { kycStatus: "PENDING" } })
+      await markVerificationPending(tx, userId)
     }, { timeout: 60000, maxWait: 10000 })
     return { success: true }
   } catch {
@@ -169,10 +172,87 @@ export async function submitProviderKycDocument(input: unknown): Promise<SubmitP
         },
       })
       await tx.user.update({ where: { id: userId }, data: { kycStatus: "PENDING" } })
+      await markVerificationPending(tx, userId)
     }, { timeout: 60000, maxWait: 10000 })
     // Two base64 photos (ID + selfie) can take longer to write than
     // Prisma's 5s transaction default over this environment's slow DB
     // connection — see the confirmed failure in completeShopkeeperOnboarding.
+    return { success: true }
+  } catch {
+    return { success: false, error: "Couldn't reach the server. Please check your connection and try again." }
+  }
+}
+
+/**
+ * Why the last submission was rejected, for the wizard to display.
+ *
+ * Deliberately narrow: everything else the wizard needs about an account's
+ * standing (BASIC / PENDING / VERIFIED, and whether the last verdict was a
+ * rejection) already travels in the session, so the dialog renders without
+ * waiting on the network and only this one string arrives late.
+ */
+export async function getMyRejectionReason(): Promise<string | null> {
+  const session = await auth()
+  if (!session?.user?.id) return null
+
+  const doc = await db.kycDocument.findFirst({
+    where: { userId: session.user.id },
+    orderBy: { submittedAt: "desc" },
+    select: { rejectionReason: true },
+  })
+  return doc?.rejectionReason ?? null
+}
+
+export type SubmitIdentityVerificationResult = { success: true } | { success: false; error: string }
+
+/**
+ * Role-agnostic identity submission — the one the shared verification wizard
+ * (components/kyc/verification-gate-dialog.tsx) calls.
+ *
+ * submitProviderKycDocument above does the same work but refuses anyone whose
+ * role isn't "provider", which was fine when only the provider portal had a
+ * verification screen. Under progressive KYC a customer, shopkeeper or
+ * distributor can be asked to verify at any gated action, so the submission
+ * path can't be tied to one role. Provider submissions still go through the
+ * older action, so its behaviour is untouched.
+ */
+export async function submitIdentityVerification(input: unknown): Promise<SubmitIdentityVerificationResult> {
+  const session = await auth()
+  if (!session?.user?.id) {
+    return { success: false, error: "You must be signed in to verify your identity." }
+  }
+
+  const parsed = providerKycSchema.safeParse(input)
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message ?? "Please complete all verification fields before submitting." }
+  }
+  const data = parsed.data
+  const userId = session.user.id
+
+  const dup = await checkKycDuplicate({ excludeUserId: userId, documentNumber: data.idNumber, idFileUrl: data.idFile, idBackFileUrl: data.idFileBack })
+  if (dup.isDuplicate) {
+    return { success: false, error: KYC_DUPLICATE_ERROR }
+  }
+
+  try {
+    // 60s for the same reason as every other KYC write in this file: two
+    // base64 photos over this environment's slow pooler blow past Prisma's
+    // 5s interactive-transaction default.
+    await db.$transaction(async (tx) => {
+      await tx.kycDocument.create({
+        data: {
+          userId,
+          documentType: KYC_DOC_TYPE_TO_DB[data.idType],
+          documentNumber: data.idNumber,
+          idFileUrl: data.idFile,
+          idBackFileUrl: data.idFileBack,
+          selfieFileUrl: data.selfieFile,
+          ...buildKycDedupeFields({ documentNumber: data.idNumber, idFileUrl: data.idFile, idBackFileUrl: data.idFileBack }),
+        },
+      })
+      await tx.user.update({ where: { id: userId }, data: { kycStatus: "PENDING" } })
+      await markVerificationPending(tx, userId)
+    }, { timeout: 60000, maxWait: 10000 })
     return { success: true }
   } catch {
     return { success: false, error: "Couldn't reach the server. Please check your connection and try again." }

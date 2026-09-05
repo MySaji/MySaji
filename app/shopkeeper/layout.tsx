@@ -102,12 +102,25 @@ export default function ShopkeeperLayout({ children }: { children: React.ReactNo
 
   const isShopLocked = user?.role === "shopkeeper" && user?.kycStatus !== "approved"
 
+  // Progressive KYC: an unverified shop now keeps its whole portal. This
+  // used to be the same condition as above, which greyed out every non-exempt
+  // nav item and bounced direct URLs back to the dashboard — the single
+  // biggest source of merchant signup abandonment, since a new shopkeeper met a
+  // locked portal before ever seeing what it did. The restricted actions
+  // (publishing, accepting orders, payouts) now refuse themselves server-side
+  // instead; see lib/verification-gate.ts.
+  //
+  // Kept as a named constant rather than deleting the nav-lock branches
+  // below, so the mechanism is still there if a future policy — a fraud hold,
+  // a suspension — needs to lock navigation again.
+  const isShopNavLocked = false
+
   // Sidebar links are disabled for non-exempt pages, but a locked shopkeeper
   // could still reach them by typing the URL directly — redirect those back
   // to the Dashboard so the gate isn't just cosmetic.
   useEffect(() => {
     if (!mounted || isLoading || !isAuthenticated || user?.role !== "shopkeeper") return
-    if (isShopLocked && pathname && !isExemptPath(pathname)) {
+    if (isShopNavLocked && pathname && !isExemptPath(pathname)) {
       router.replace("/shopkeeper")
     }
   }, [mounted, isLoading, isAuthenticated, user, isShopLocked, pathname, router])
@@ -259,7 +272,7 @@ export default function ShopkeeperLayout({ children }: { children: React.ReactNo
             {menuItems.map((item, i) => {
               const IconComponent = item.icon
               const active = item.href === "/shopkeeper" ? isExactActive(item.href) : isActive(item.href)
-              const locked = isShopLocked && !isExemptPath(item.href)
+              const locked = isShopNavLocked && !isExemptPath(item.href)
               const showGroupLabel = item.group && item.group !== menuItems[i - 1]?.group
               const groupLabel = showGroupLabel && (
                 <p className={`px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-amber-200/70 ${isCollapsed ? "lg:hidden" : ""}`}>
@@ -490,7 +503,7 @@ export default function ShopkeeperLayout({ children }: { children: React.ReactNo
           {bottomNavItems.map((item) => {
             const IconComponent = item.icon
             const active = item.href === "/shopkeeper" ? isExactActive(item.href) : isActive(item.href)
-            const locked = isShopLocked && !isExemptPath(item.href)
+            const locked = isShopNavLocked && !isExemptPath(item.href)
             if (locked) {
               return (
                 <div
@@ -551,7 +564,7 @@ export default function ShopkeeperLayout({ children }: { children: React.ReactNo
                   {moreNavItems.map((item) => {
                     const IconComponent = item.icon
                     const active = item.href === "/shopkeeper" ? isExactActive(item.href) : isActive(item.href)
-                    const locked = isShopLocked && !isExemptPath(item.href)
+                    const locked = isShopNavLocked && !isExemptPath(item.href)
                     if (locked) {
                       return (
                         <div

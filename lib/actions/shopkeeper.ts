@@ -3,6 +3,7 @@
 import { z } from "zod"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
+import { markVerificationPending } from "@/lib/verification-gate"
 import { checkKycDuplicate, buildKycDedupeFields, KYC_DUPLICATE_ERROR } from "@/lib/kyc-duplicate-check"
 
 const onboardingSchema = z.object({
@@ -89,6 +90,7 @@ export async function completeShopkeeperOnboarding(input: unknown): Promise<Comp
       })
 
       await tx.user.update({ where: { id: userId }, data: { kycStatus: "PENDING" } })
+      await markVerificationPending(tx, userId)
     }, { timeout: 60000, maxWait: 10000 })
     // Prisma's interactive-transaction default timeout is 5000ms — this
     // transaction writes two base64-encoded ID photos (often several MB)

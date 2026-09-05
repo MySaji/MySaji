@@ -7,9 +7,6 @@ import { useAuthContext } from "@/lib/auth-context"
 import ProviderSidebar from "@/components/provider-sidebar"
 import ProviderTopbar from "@/components/provider-topbar"
 import FloatingChatButton from "@/components/floating-chat-button"
-import { AccountMenu } from "@/components/account-menu"
-import { Button } from "@/components/ui/button"
-import { ShieldCheck } from "lucide-react"
 import { AccountSuspendedScreen } from "@/components/account-status/account-suspended-screen"
 import { DisputeBanner } from "@/components/account-status/dispute-banner"
 import { getMyAccountStatus, type MyOpenDispute } from "@/lib/actions/account-status"
@@ -50,56 +47,6 @@ export default function ProviderLayout({ children }: { children: React.ReactNode
   const isSuspended = user?.role === "provider" && user?.isActive === false
   if (!isLoading && isSuspended && !pathname?.startsWith("/provider/messages")) {
     return <AccountSuspendedScreen messagesBasePath="/provider/messages" onLogout={logout} />
-  }
-
-  const isProviderPending = user?.role === "provider" && user?.kycStatus !== "approved"
-
-  // Every new provider starts PENDING, so this gate decides what they can do
-  // before an admin approves them. Verification obviously has to be reachable —
-  // and so does onboarding, which is where they choose Solo vs Business and fill
-  // in the professional profile their storefront is built from. Blocking it
-  // meant the Solo/Business choice could never be reached by anyone: signup
-  // routed them to /provider/onboarding and this screen replaced it.
-  const PENDING_ALLOWED_PATHS = ["/provider/profile/verification", "/provider/onboarding"]
-  const isPendingAllowedPath = PENDING_ALLOWED_PATHS.some((allowed) => pathname?.startsWith(allowed))
-
-  if (!isLoading && isProviderPending && !isPendingAllowedPath) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-6">
-        {/* Pending KYC otherwise has no way back except signing out entirely
-            — but this account may already hold (or want to add) a Customer/
-            Shopkeeper profile, so the switcher needs to stay reachable here
-            too, not just once verification is approved. */}
-        <div className="fixed top-4 right-4 z-10">
-          <AccountMenu />
-        </div>
-        <div className="max-w-3xl w-full rounded-[32px] border border-slate-200 bg-white p-10 shadow-2xl dark:border-gray-800 dark:bg-gray-950">
-          <div className="flex flex-col gap-4 text-center">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300">
-              <ShieldCheck className="h-8 w-8" />
-            </div>
-            <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">{t("provider.layout.verificationRequiredTitle")}</h1>
-            <p className="max-w-xl text-xs text-slate-600 dark:text-slate-400">
-              {t("provider.layout.verificationRequiredBody")}
-            </p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-gray-800 dark:bg-gray-900">
-                <p className="text-xs text-slate-500 dark:text-slate-400">{t("provider.layout.currentStatus")}</p>
-                <p className="mt-2 text-lg font-semibold text-slate-900 dark:text-white">{user?.kycStatus === "rejected" ? t("provider.layout.statusRejected") : t("provider.layout.statusPendingReview")}</p>
-              </div>
-              <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-gray-800 dark:bg-gray-900">
-                <p className="text-xs text-slate-500 dark:text-slate-400">{t("provider.layout.nextStep")}</p>
-                <p className="mt-2 text-lg font-semibold text-slate-900 dark:text-white">{t("provider.layout.nextStepSubmitDocs")}</p>
-              </div>
-            </div>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Button onClick={() => router.push("/provider/profile/verification")} className="rounded-2xl px-6 py-3">{t("provider.layout.completeVerification")}</Button>
-              <Button variant="outline" onClick={() => router.push("/auth/login")} className="rounded-2xl px-6 py-3">{t("auth.logout")}</Button>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
   }
 
   // Deliberately keyed on `user` rather than `isLoading`/`isAuthenticated`:
@@ -148,6 +95,15 @@ export default function ProviderLayout({ children }: { children: React.ReactNode
         {/* pb-36 / lg:pb-24 reserve the floating chat button's footprint as
             well as the bottom nav's; see app/customer/layout.tsx. */}
         <main id="main-content" className="min-h-screen pb-36 lg:pb-24">
+          {/* Progressive KYC deliberately adds nothing to this screen. The
+              home screen is built to a fixed design (see the rebuild in
+              c269f4d) in which the status card sits directly below the
+              topbar, so a verification banner here would push every element
+              below it out of place. Nothing is lost: the restricted actions
+              refuse themselves server-side (lib/verification-gate.ts) and
+              open the wizard at the moment they are attempted, which is what
+              "progressive" means here — the ask arrives with the action, not
+              as a permanent fixture above unrelated work. */}
           {openDisputes.length > 0 && (
             <div className="px-4 lg:px-6 pt-4">
               <DisputeBanner disputes={openDisputes} messagesBasePath="/provider/messages" />

@@ -106,6 +106,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             role: user.role,
             phone: user.phone,
             kycStatus: user.kycStatus,
+            verificationStatus: user.verificationStatus,
             isActive: user.isActive,
             language: user.language,
             currency: user.currency,
@@ -203,11 +204,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // sign-in only.
         if (user.id) {
           const fresh = await db.user
-            .findUnique({ where: { id: user.id }, select: { role: true, kycStatus: true } })
+            .findUnique({ where: { id: user.id }, select: { role: true, kycStatus: true, verificationStatus: true } })
             .catch(() => null)
           if (fresh) {
             user.role = fresh.role as unknown as typeof user.role
             user.kycStatus = fresh.kycStatus as unknown as typeof user.kycStatus
+            user.verificationStatus = fresh.verificationStatus as unknown as typeof user.verificationStatus
           }
         }
         // `user.role` is a raw Prisma enum value ("CUSTOMER", "SUB_ADMIN", ...)
@@ -226,6 +228,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // check (e.g. app/agent/layout.tsx, app/provider/layout.tsx) expect
         // lowercase ("approved"). Lowercase once, here.
         token.kycStatus = (user.kycStatus as unknown as string)?.toLowerCase() as typeof token.kycStatus
+        // Same lowercase normalization as role/kycStatus. Defaulted rather
+        // than left undefined so a token minted for an account created
+        // before this field existed still gates correctly (as "basic")
+        // instead of failing every `satisfies` lookup.
+        token.verificationStatus =
+          ((user.verificationStatus as unknown as string)?.toLowerCase() as typeof token.verificationStatus) ?? "basic"
         token.isActive = user.isActive
         token.language = user.language ?? "en"
         token.currency = user.currency ?? "KES"
@@ -248,6 +256,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.phone = freshUser.phone
           token.picture = freshUser.image
           token.kycStatus = (freshUser.kycStatus as unknown as string)?.toLowerCase() as typeof token.kycStatus
+          token.verificationStatus =
+            ((freshUser.verificationStatus as unknown as string)?.toLowerCase() as typeof token.verificationStatus) ?? "basic"
           token.isActive = freshUser.isActive
           token.language = freshUser.language ?? "en"
           token.currency = freshUser.currency ?? "KES"
@@ -264,6 +274,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.phone = token.phone
         session.user.image = token.picture
         session.user.kycStatus = token.kycStatus
+        session.user.verificationStatus = token.verificationStatus ?? "basic"
         session.user.isActive = token.isActive
         session.user.language = token.language
         session.user.currency = token.currency
@@ -296,7 +307,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           where: { id: user.id },
           data: {
             role: ROLE_APP_TO_DB[appRole],
-            kycStatus: appRole === "customer" ? "APPROVED" : "PENDING",
+            // Under progressive KYC nobody is approved at signup — customers
+            // included. `kycStatus` is now strictly the verdict on documents
+            // this account actually submitted, and a fresh account has
+            // submitted none; what it may *do* is `verificationStatus`, which
+            // starts BASIC by schema default for every role.
+            kycStatus: "PENDING",
           },
         })
         .catch(() => {})

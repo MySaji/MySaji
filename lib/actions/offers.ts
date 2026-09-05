@@ -4,6 +4,7 @@ import { z } from "zod"
 import type { Prisma } from "@prisma/client"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
+import { requireVerified } from "@/lib/verification-gate"
 import { getEffectivePlatformPreferences } from "@/lib/actions/admin-settings"
 import { getMySubscriptionStatus } from "@/lib/actions/provider-subscription"
 import { getOrCreateConversation, sendMessage } from "@/lib/actions/messages"
@@ -206,6 +207,14 @@ export async function checkOfferLicenseRequirement(categoryId: string): Promise<
 export async function publishOffer(input: unknown): Promise<OfferActionResult> {
   const providerId = await requireProviderId()
   if (!providerId) return { success: false, error: "You must be signed in as a provider." }
+
+  // Progressive KYC: drafting an offer is open to every provider — solo,
+  // Saji Pro and business alike. Publishing is what puts a name in front of
+  // customers, so that is the step that needs a verified identity behind it.
+  // Deliberately before the UNDER_REVIEW write below, so a blocked publish
+  // leaves the offer a clean DRAFT rather than stranding it mid-review.
+  const gate = await requireVerified("offer.publish")
+  if (!gate.ok) return { success: false, error: gate.error }
 
   const parsed = idSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: "Invalid input" }
@@ -568,10 +577,18 @@ export type PublicOfferListItem = {
  * app/customer/services/more and the unified search results — each LIVE
  * Offer is interleaved with regular Services there, distinguished by a
  * "Saji Pro" badge rather than living in its own separate marketplace. */
-export async function getLiveOffers(): Promise<PublicOfferListItem[]> {
+/**
+ * `limit` is optional and unbounded by default, because the browse-all page
+ * (app/customer/services/more) genuinely wants the whole catalogue. The home
+ * feed passes one: offer images are stored inline as base64 data URLs, so an
+ * unbounded list grows the response by megabytes as offers are published,
+ * and the home screen only ever renders the first handful anyway.
+ */
+export async function getLiveOffers(limit?: number): Promise<PublicOfferListItem[]> {
   const offers = await db.offer.findMany({
     where: { status: "LIVE" },
     orderBy: { createdAt: "desc" },
+    ...(limit != null ? { take: limit } : {}),
     include: { provider: { include: { user: true } }, category: true },
   })
 
@@ -714,6 +731,11 @@ export async function createOfferBooking(input: unknown): Promise<CreateOfferBoo
     return { success: false, error: "You must be signed in as a customer to continue." }
   }
 
+  // Progressive KYC: same commitment as a service booking — a provider's
+  // time is reserved and money moves — so the same gate applies.
+  const gate = await requireVerified("booking.create")
+  if (!gate.ok) return { success: false, error: gate.error }
+
   const parsed = createOfferBookingSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
   const data = parsed.data
@@ -797,6 +819,11 @@ export async function requestOfferQuote(input: unknown): Promise<RequestOfferRes
   if (!session?.user?.id || session.user.role !== "customer") {
     return { success: false, error: "You must be signed in as a customer to continue." }
   }
+
+  // Progressive KYC: opens a real conversation with the provider, so it
+  // is gated like any other approach to a provider.
+  const gate = await requireVerified("service.request")
+  if (!gate.ok) return { success: false, error: gate.error }
 
   const parsed = requestOfferSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }

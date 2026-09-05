@@ -18,6 +18,8 @@ import {
 } from "@/lib/actions/shopkeeper-products"
 import { parseCsv } from "@/lib/csv"
 import { useLocalization } from "@/lib/hooks/useLocalization"
+import { useGatedAction } from "@/lib/hooks/useGatedAction"
+import { useVerificationPrompt } from "@/lib/verification-prompt-context"
 
 type ProductFormState = {
   name: string
@@ -33,6 +35,8 @@ const EMPTY_FORM: ProductFormState = { name: "", price: "", discountPrice: "", s
 
 export default function ShopkeeperProductsPage() {
   const { t, formatMoney, currency } = useLocalization()
+  const { handleGateFailure } = useGatedAction()
+  const { promptVerification } = useVerificationPrompt()
   const [isLoading, setIsLoading] = useState(true)
   const [productsList, setProductsList] = useState<ShopkeeperProduct[]>([])
   const [categories, setCategories] = useState<ShopkeeperProductCategoryOption[]>([])
@@ -203,15 +207,27 @@ export default function ShopkeeperProductsPage() {
       images: newProductForm.images,
     })
     setIsSaving(false)
-    if (!result.success) { setFormError(result.error); return }
+    if (!result.success) {
+      if (handleGateFailure(result)) return
+      setFormError(result.error)
+      return
+    }
     setShowAddModal(false)
     await refresh()
+    // The product saved, but as a draft, because this shop isn't verified
+    // yet. Saying nothing here would leave the merchant wondering why their
+    // new product isn't showing up for customers.
+    if (result.draft) promptVerification()
   }
 
   const handleToggleActive = async (id: string) => {
-    setProductsList((prev) => prev.map((p) => p.id === id ? { ...p, status: p.status === "inactive" ? "active" : "inactive" } : p))
-    await toggleMyProductActive({ id })
+    setProductsList((prev) => prev.map((p) => p.id === id ? { ...p, status: p.status === "inactive" || p.status === "draft" ? "active" : "inactive" } : p))
+    // The result matters now that publishing is gated: without this, a
+    // refused publish would silently snap back on the next refresh with no
+    // explanation, since the row above updates optimistically.
+    const result = await toggleMyProductActive({ id })
     await refresh()
+    if (!result.success) handleGateFailure(result)
   }
 
   const handleDeleteProduct = async (productId: string) => {
@@ -223,6 +239,7 @@ export default function ShopkeeperProductsPage() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
+      case "draft": return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
       case "active": return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
       case "low_stock": return "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
       case "out_of_stock": return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
@@ -232,6 +249,7 @@ export default function ShopkeeperProductsPage() {
 
   const getStatusText = (status: string) => {
     switch (status) {
+      case "draft": return t("shopkeeper.products.statusDraft")
       case "active": return t("shopkeeper.products.statusActive")
       case "low_stock": return t("shopkeeper.products.statusLowStock")
       case "out_of_stock": return t("shopkeeper.products.statusOutOfStock")
@@ -384,7 +402,7 @@ export default function ShopkeeperProductsPage() {
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => handleToggleActive(product.id)} className="flex-1 bg-transparent">
                       <Eye className="w-3 h-3 mr-1" />
-                      {product.status === "inactive" ? t("shopkeeper.products.showButton") : t("shopkeeper.products.hideButton")}
+                      {product.status === "draft" ? t("shopkeeper.products.publishButton") : product.status === "inactive" ? t("shopkeeper.products.showButton") : t("shopkeeper.products.hideButton")}
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => handleDeleteProduct(product.id)} className="bg-transparent text-red-600">
                       <Trash2 className="w-3 h-3" />
@@ -426,7 +444,7 @@ export default function ShopkeeperProductsPage() {
                       </Button>
                       <Button size="sm" variant="outline" onClick={() => handleToggleActive(product.id)} className="bg-transparent">
                         <Eye className="w-3 h-3 mr-1" />
-                        {product.status === "inactive" ? t("shopkeeper.products.showButton") : t("shopkeeper.products.hideButton")}
+                        {product.status === "draft" ? t("shopkeeper.products.publishButton") : product.status === "inactive" ? t("shopkeeper.products.showButton") : t("shopkeeper.products.hideButton")}
                       </Button>
                       <Button size="sm" variant="outline" onClick={() => handleDeleteProduct(product.id)} className="bg-transparent text-red-600">
                         <Trash2 className="w-3 h-3 mr-1" />

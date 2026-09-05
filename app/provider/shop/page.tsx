@@ -14,6 +14,7 @@ import { acceptJob, completeJob, declineJob } from "@/lib/actions/provider-jobs"
 import { publishOffer, unpublishOffer, deleteOffer } from "@/lib/actions/offers"
 import { getMyRentalBookingsAsProvider, markRentalPickedUp, returnRentalBooking, cancelRentalBooking, type ProviderRentalBookingItem } from "@/lib/actions/rentals"
 import { useLocalization } from "@/lib/hooks/useLocalization"
+import { useGatedAction } from "@/lib/hooks/useGatedAction"
 import { useProviderWorkspace } from "@/lib/hooks/useProviderWorkspace"
 import { withTimeout } from "@/lib/swr-utils"
 
@@ -95,6 +96,7 @@ function StockEditor({ product, onSaved }: { product: MyProductItem; onSaved: (s
 }
 
 export default function ProviderShopPage() {
+  const { handleGateFailure } = useGatedAction()
   const { t, formatMoney } = useLocalization()
   // Reuses the same SWR-cached subscription check the sidebar's Team nav
   // item already fires (see useProviderWorkspace's own doc comment) instead
@@ -189,7 +191,15 @@ export default function ProviderShopPage() {
 
   const handleTogglePublish = async (p: MyProductItem) => {
     const result = p.status === "LIVE" ? await unpublishOffer({ id: p.offerId }) : await publishOffer({ id: p.offerId })
-    if (!result.success) { alert(result.error); return }
+    if (!result.success) {
+      // Only the publish direction can be refused for verification;
+      // unpublishing stays open, so nobody is stuck with a live listing they
+      // cannot take down. The rental and delete handlers above call ungated
+      // actions and keep their plain alert.
+      if (handleGateFailure(result)) return
+      alert(result.error)
+      return
+    }
     await refreshProducts()
   }
 

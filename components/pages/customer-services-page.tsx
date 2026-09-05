@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useJsApiLoader } from "@react-google-maps/api"
 import { GOOGLE_MAPS_LIBRARIES, GOOGLE_MAPS_LOADER_ID, isGoogleMapsConfigured } from "@/lib/google-maps"
 import { useLocalization } from "@/lib/hooks/useLocalization"
+import { useGatedAction } from "@/lib/hooks/useGatedAction"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -69,6 +70,7 @@ function EmptyOrErrorState({
 }
 
 export function CustomerServicesPage() {
+  const { handleGateFailure } = useGatedAction()
   const { t, formatMoney } = useLocalization()
   const STATUS_STYLE: Record<ServiceListItem["status"], { label: string; badge: string }> = {
     available: { label: t("customer.services.statusAvailable"), badge: "bg-emerald-500/90 text-white" },
@@ -348,6 +350,9 @@ export function CustomerServicesPage() {
       })
       setIsBookingSubmitting(false)
       if (!bookingResult.success) {
+        // A verification refusal opens the wizard rather than leaving the
+        // customer with a message and nowhere to act on it.
+        if (handleGateFailure(bookingResult)) return
         setBookingError(bookingResult.error)
         return
       }

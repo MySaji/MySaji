@@ -3,6 +3,7 @@
 import { z } from "zod"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
+import { markVerificationPending } from "@/lib/verification-gate"
 import { checkKycDuplicate, buildKycDedupeFields, KYC_DUPLICATE_ERROR } from "@/lib/kyc-duplicate-check"
 
 const onboardingSchema = z.object({
@@ -87,6 +88,7 @@ export async function completeDistributorOnboarding(input: unknown): Promise<Com
       })
 
       await tx.user.update({ where: { id: userId }, data: { kycStatus: "PENDING" } })
+      await markVerificationPending(tx, userId)
     }, { timeout: 60000, maxWait: 10000 })
     // Same 60s timeout as completeShopkeeperOnboarding — this transaction writes
     // several base64-encoded photos over this environment's slow pooler

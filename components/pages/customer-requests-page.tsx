@@ -16,6 +16,7 @@ import {
 import { getServiceCategories } from "@/lib/actions/home"
 import { getProductCategories } from "@/lib/actions/products"
 import { useLocalization } from "@/lib/hooks/useLocalization"
+import { useGatedAction } from "@/lib/hooks/useGatedAction"
 
 type CategoryOption = { id: string; name: string; type: "SERVICE" | "PRODUCT" }
 
@@ -28,6 +29,7 @@ const STATUS_STYLE: Record<string, string> = {
 }
 
 export function CustomerRequestsPage() {
+  const { handleGateFailure } = useGatedAction()
   const { t, formatMoney } = useLocalization()
   const router = useRouter()
   const [requests, setRequests] = useState<MyRequestItem[]>([])
@@ -105,7 +107,13 @@ export function CustomerRequestsPage() {
       location,
     })
     setIsPosting(false)
-    if (!result.success) { setPostError(result.error); return }
+    if (!result.success) {
+      // A verification refusal opens the wizard rather than leaving the
+      // customer with a message and nowhere to act on it.
+      if (handleGateFailure(result)) return
+      setPostError(result.error)
+      return
+    }
     setShowPostModal(false)
     await refresh()
   }

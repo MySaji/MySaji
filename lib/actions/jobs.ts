@@ -3,6 +3,7 @@
 import { z } from "zod"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
+import { requireVerified } from "@/lib/verification-gate"
 import { customerHasOpenDispute } from "@/lib/actions/account-status"
 import { distanceKm } from "@/lib/google-maps"
 import { resolveJobCancellation } from "@/lib/job-cancellation"
@@ -98,6 +99,11 @@ export async function createBooking(input: unknown): Promise<CreateBookingResult
     return { success: false, error: "You must be signed in as a customer to book a service." }
   }
 
+  // Progressive KYC: a booking commits a provider's time and starts an
+  // escrow payment, so it needs a verified customer behind it.
+  const gate = await requireVerified("booking.create")
+  if (!gate.ok) return { success: false, error: gate.error }
+
   if (await customerHasOpenDispute(session.user.id)) {
     return { success: false, error: "New bookings are restricted while you have an open dispute. Message admin support for help." }
   }
@@ -179,6 +185,11 @@ export async function createEmergencyBooking(input: unknown): Promise<CreateEmer
   if (!session?.user?.id || session.user.role !== "customer") {
     return { success: false, error: "You must be signed in as a customer to book emergency service." }
   }
+
+  // Progressive KYC: same gate as an ordinary booking — urgency does not
+  // remove the need to know who is dispatching a provider.
+  const gate = await requireVerified("booking.create")
+  if (!gate.ok) return { success: false, error: gate.error }
 
   if (await customerHasOpenDispute(session.user.id)) {
     return { success: false, error: "New bookings are restricted while you have an open dispute. Message admin support for help." }

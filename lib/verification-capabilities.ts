@@ -1,0 +1,88 @@
+/**
+ * Progressive KYC — the policy itself, with no server dependencies.
+ *
+ * Deliberately separate from lib/verification-gate.ts: that module imports
+ * `auth` and the Prisma client to enforce the policy, and the client-side
+ * mirror (lib/hooks/useVerificationGate.ts) needs to *read* the same policy
+ * without dragging any of that into the browser bundle. Importing the guard
+ * from a client component pulls auth.ts, rate-limit.ts and Prisma along with
+ * it, which is a build error, not merely wasteful.
+ *
+ * So: the table lives here and both sides import it. A button's enabled state
+ * and the action behind it are still decided by one rule.
+ */
+
+/** Mirrors Prisma's VerificationStatus, lowercased for the session/UI — the
+ *  same normalization `role` and `kycStatus` already get in auth.ts. */
+export type VerificationStatus = "basic" | "pending" | "verified" | "premium_verified"
+
+/**
+ * Every action progressive KYC gates, named by what the user is trying to do
+ * rather than by the function that implements it — several actions map to one
+ * capability (a booking can start from a service, an offer, or a rental) and
+ * the copy shown should depend on the intent, not the call site.
+ */
+export type Capability =
+  // ---- Customer ----
+  | "wallet.deposit"
+  | "wallet.withdraw"
+  | "wallet.addPaymentMethod"
+  | "order.place"
+  | "booking.create"
+  | "service.request"
+  | "payment.make"
+  // ---- Merchant (shopkeeper / distributor) ----
+  | "product.publish"
+  | "order.accept"
+  | "payout.receive"
+  // ---- Provider (solo, Saji Pro, business) ----
+  | "offer.publish"
+  | "job.accept"
+  | "offer.submit"
+  | "escrow.participate"
+
+/**
+ * What each capability demands. Only "verified" is in use today —
+ * PREMIUM_VERIFIED exists in the schema for a future enhanced tier and
+ * already satisfies every requirement below, so adding it later is a
+ * one-line change here rather than an audit of every call site.
+ */
+const REQUIREMENT: Record<Capability, Exclude<VerificationStatus, "basic" | "pending">> = {
+  "wallet.deposit": "verified",
+  "wallet.withdraw": "verified",
+  "wallet.addPaymentMethod": "verified",
+  "order.place": "verified",
+  "booking.create": "verified",
+  "service.request": "verified",
+  "payment.make": "verified",
+  "product.publish": "verified",
+  "order.accept": "verified",
+  "payout.receive": "verified",
+  "offer.publish": "verified",
+  "job.accept": "verified",
+  "offer.submit": "verified",
+  "escrow.participate": "verified",
+}
+
+/** Ascending capability order — a status satisfies a requirement when it
+ *  ranks at least as high. Keeps the check a comparison rather than a set of
+ *  equality tests that would need revisiting for every new tier. */
+const RANK: Record<VerificationStatus, number> = {
+  basic: 0,
+  pending: 1,
+  verified: 2,
+  premium_verified: 3,
+}
+
+export function satisfies(status: VerificationStatus | undefined, capability: Capability): boolean {
+  if (!status) return false
+  return RANK[status] >= RANK[REQUIREMENT[capability]]
+}
+
+/**
+ * The message shown when a gate blocks an action. Kept verbatim from the
+ * product copy so every entry point says the same thing; the wizard the user
+ * is then handed to is components/kyc/verification-gate-dialog.tsx.
+ */
+export const VERIFICATION_REQUIRED_MESSAGE =
+  "Complete your identity verification to continue. Verification helps us protect customers, providers and merchants on SAJI."

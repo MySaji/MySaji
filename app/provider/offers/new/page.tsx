@@ -20,6 +20,7 @@ import {
   type OfferCategoryOption, type OfferDraftDetail, type OfferLicenseCheck,
 } from "@/lib/actions/offers"
 import type { PriceBand, DemandSignal } from "@/lib/ai/offer-enhancement"
+import { compressImageToDataUrl } from "@/lib/compress-image"
 import type { ImageGuidance } from "@/lib/offer-image-guidance"
 import { CategoryPicker } from "@/components/offers/category-picker"
 import { getMyCertifications, getMySkills, type ProviderCertification } from "@/lib/actions/provider-credentials"
@@ -31,6 +32,7 @@ import {
 } from "@/lib/offer-constants"
 import type { OfferAttributeFieldDef } from "@/lib/offer-attribute-schema"
 import { useLocalization } from "@/lib/hooks/useLocalization"
+import { useGatedAction } from "@/lib/hooks/useGatedAction"
 
 const TOTAL_STEPS = 10
 const STEP_TITLES = [
@@ -228,6 +230,7 @@ function StepChrome({ step, title, onBack, children, footer, preview }: { step: 
 }
 
 function CreateOfferWizard() {
+  const { handleGateFailure } = useGatedAction()
   const router = useRouter()
   const searchParams = useSearchParams()
   const { formatMoney } = useLocalization()
@@ -353,7 +356,16 @@ function CreateOfferWizard() {
     else setError("")
     if (valid.length === 0) return
 
-    const uris = await Promise.all(valid.map(fileToDataUri))
+    // Downscaled exactly like every other image upload in this app (KYC
+    // photos, product photos, provider content, order photos). Offer photos
+    // were the one path still storing the raw camera file: a single offer in
+    // the live database carries 1.7 MB of base64 this way, and because
+    // getLiveOffers ships every LIVE offer's images inline, that one row was
+    // enough to push the customer home feed's "Recommended for you" request
+    // past its 25s timeout so the section silently rendered nothing.
+    // handleAddDocument below deliberately keeps the raw reader — documents
+    // may be PDFs, which cannot go through a canvas.
+    const uris = await Promise.all(valid.map((f) => compressImageToDataUrl(f)))
     setData((p) => ({ ...p, images: [...p.images, ...uris] }))
   }
 
@@ -1010,7 +1022,13 @@ function CreateOfferWizard() {
     setError("")
     const result = await publishOffer({ id: data.id })
     setIsPublishing(false)
-    if (!result.success) { setError(result.error); return }
+    if (!result.success) {
+      // A verification refusal opens the wizard rather than leaving the user
+      // with a message and nowhere to act on it.
+      if (handleGateFailure(result)) return
+      setError(result.error)
+      return
+    }
     router.push("/provider/offers")
   }
 

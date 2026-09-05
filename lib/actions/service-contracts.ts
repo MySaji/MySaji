@@ -3,6 +3,7 @@
 import { z } from "zod"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
+import { requireVerified } from "@/lib/verification-gate"
 import { requirePro } from "@/lib/actions/provider-subscription"
 import { logJobEvent } from "@/lib/actions/job-events"
 import { notifyUser } from "@/lib/actions/notify"
@@ -36,6 +37,13 @@ export async function createServiceRequest(input: unknown): Promise<CreateReques
   if (!session?.user?.id || session.user.role !== "customer") {
     return { success: false, error: "You must be signed in as a customer to request a quote." }
   }
+
+  // Progressive KYC: gated here rather than at each caller, because this is
+  // the single entry point for formal quote requests —
+  // requestOfferFormalQuote in lib/actions/offers.ts has no auth check of
+  // its own and relies entirely on this one.
+  const gate = await requireVerified("service.request")
+  if (!gate.ok) return { success: false, error: gate.error }
 
   const parsed = createRequestSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
@@ -87,6 +95,12 @@ export async function submitContractQuote(input: unknown): Promise<ContractActio
   if (!providerId) return { success: false, error: "You must be signed in as a provider." }
   const denied = await requirePro()
   if (denied) return denied
+
+  // Progressive KYC: a contract quote is the provider's entry into an
+  // escrowed, milestone-based engagement — the deepest financial commitment
+  // on the platform.
+  const gate = await requireVerified("escrow.participate")
+  if (!gate.ok) return { success: false, error: gate.error }
 
   const parsed = submitQuoteSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
@@ -143,6 +157,11 @@ export async function respondToContractQuote(input: unknown): Promise<RespondToQ
   if (!session?.user?.id || session.user.role !== "customer") {
     return { success: false, error: "You must be signed in as a customer." }
   }
+
+  // Progressive KYC: accepting the quote is what commits the customer's
+  // money to escrow, so both sides of the contract are gated.
+  const gate = await requireVerified("escrow.participate")
+  if (!gate.ok) return { success: false, error: gate.error }
 
   const parsed = respondSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: "Invalid input" }

@@ -1,5 +1,6 @@
 import type { DefaultSession } from "next-auth"
 import type { UserRole } from "@/lib/types"
+import type { VerificationStatus } from "@/lib/verification-capabilities"
 
 declare module "next-auth" {
   interface Session {
@@ -8,6 +9,7 @@ declare module "next-auth" {
       role: UserRole
       phone: string | null
       kycStatus: string
+      verificationStatus: VerificationStatus
       isActive: boolean
       language: string
       currency: string
@@ -21,6 +23,11 @@ declare module "next-auth" {
     role: string
     phone: string | null
     kycStatus: string
+    // Same loose typing as `role`/`kycStatus` above and for the same reason:
+    // on the Credentials path this is still the raw Prisma enum ("BASIC"),
+    // and the `jwt` callback in auth.ts lowercases it before it reaches
+    // JWT/Session — which do use the strict union.
+    verificationStatus: string
     isActive: boolean
     language: string
     currency: string
@@ -33,6 +40,7 @@ declare module "next-auth/jwt" {
     role: UserRole
     phone: string | null
     kycStatus: string
+    verificationStatus: VerificationStatus
     isActive: boolean
     language: string
     currency: string
@@ -45,6 +53,7 @@ declare module "@auth/core/jwt" {
     role: UserRole
     phone: string | null
     kycStatus: string
+    verificationStatus: VerificationStatus
     isActive: boolean
     language: string
     currency: string

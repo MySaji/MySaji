@@ -12,6 +12,7 @@ import {
 } from "@/lib/actions/offers"
 import { OFFER_ACTION_LABEL } from "@/lib/offer-constants"
 import { useLocalization } from "@/lib/hooks/useLocalization"
+import { useGatedAction } from "@/lib/hooks/useGatedAction"
 
 const STATUS_STYLE: Record<ProviderOfferItem["status"], { label: string; className: string }> = {
   DRAFT: { label: "Draft", className: "bg-muted text-muted-foreground" },
@@ -21,6 +22,7 @@ const STATUS_STYLE: Record<ProviderOfferItem["status"], { label: string; classNa
 
 export default function OffersPage() {
   const { formatMoney } = useLocalization()
+  const { handleGateFailure } = useGatedAction()
   const [isLoading, setIsLoading] = useState(true)
   const [offers, setOffers] = useState<ProviderOfferItem[]>([])
   const [drafts, setDrafts] = useState<OfferDraftSummary[]>([])
@@ -46,7 +48,7 @@ export default function OffersPage() {
     setPublishingId(id)
     const result = await publishOffer({ id })
     setPublishingId(null)
-    if (!result.success) { alert(result.error) }
+    if (!result.success && !handleGateFailure(result)) { alert(result.error) }
     await refresh()
   }
 

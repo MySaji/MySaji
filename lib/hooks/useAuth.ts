@@ -3,6 +3,7 @@
 import { useCallback } from "react"
 import { useSession, signIn as nextAuthSignIn, signOut as nextAuthSignOut, getSession } from "next-auth/react"
 import type { UserRole } from "@/lib/types"
+import type { VerificationStatus } from "@/lib/verification-gate"
 import { clearSessionHeartbeat } from "@/lib/session-heartbeat"
 
 export interface AuthUser {
@@ -13,6 +14,10 @@ export interface AuthUser {
   role: UserRole
   avatar?: string | null
   kycStatus?: string
+  /** Progressive KYC tier — what this account may actually do. Read it
+   *  through useVerificationGate() rather than comparing it by hand, so the
+   *  UI and lib/verification-gate.ts can never disagree. */
+  verificationStatus: VerificationStatus
   isActive: boolean
 }
 
@@ -33,6 +38,7 @@ export function useAuth() {
         role: session.user.role,
         avatar: session.user.image,
         kycStatus: session.user.kycStatus,
+        verificationStatus: session.user.verificationStatus ?? "basic",
         isActive: session.user.isActive,
       }
     : null

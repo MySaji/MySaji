@@ -584,7 +584,9 @@ export function CustomerHome() {
     "recommended-shops", () => withTimeout(getRecommendedShops(), DASHBOARD_FETCH_TIMEOUT_MS),
   )
   const { data: liveOffers } = useSWR(
-    "live-offers", () => withTimeout(getLiveOffers(), DASHBOARD_FETCH_TIMEOUT_MS),
+    // 10 matches what RecommendedSection actually renders below, so the
+    // feed never pays to transfer offers it will discard.
+    "live-offers", () => withTimeout(getLiveOffers(10), DASHBOARD_FETCH_TIMEOUT_MS),
   )
   const { data: popularRequests } = useSWR(
     "popular-requests", () => withTimeout(getPopularOpenRequests(3), DASHBOARD_FETCH_TIMEOUT_MS),

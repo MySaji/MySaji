@@ -111,7 +111,11 @@ export async function registerUser(input: unknown): Promise<RegisterResult> {
           phone,
           password: passwordHash,
           role: dbRole,
-          kycStatus: role === "customer" ? "APPROVED" : "PENDING",
+          // See the matching note in auth.ts's createUser event: no role is
+          // approved at signup any more. Access is governed by
+          // `verificationStatus` (BASIC by default), and `kycStatus` only
+          // ever describes documents that were genuinely submitted.
+          kycStatus: "PENDING",
         },
       })
 
@@ -221,6 +225,13 @@ export async function registerTeamMember(input: unknown): Promise<RegisterTeamMe
         password: passwordHash,
         role: dbRole,
         kycStatus: "APPROVED",
+        // Internal staff are provisioned by an admin, never self-signed-up,
+        // so progressive KYC does not apply to them — without this they
+        // would default to BASIC and be gated out of the staff actions
+        // (secretary payments, agent verifications) they exist to perform.
+        // scripts/backfill-verification-status.js applies the same rule to
+        // the staff accounts that predate it.
+        verificationStatus: "VERIFIED",
       },
     })
     await tx.wallet.create({ data: { userId: created.id } })

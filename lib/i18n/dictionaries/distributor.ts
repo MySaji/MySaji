@@ -78,7 +78,7 @@ const en = {
   "distributor.layout.underReviewTitle": "Company registration under review",
   "distributor.layout.underReviewBody": "Other distributor features stay locked until an admin approves your registration. We'll notify you once it's reviewed.",
   "distributor.layout.completeRegistrationTitle": "Complete your company registration",
-  "distributor.layout.completeRegistrationBody": "Locations, products, and orders unlock once your registration is submitted and approved.",
+  "distributor.layout.completeRegistrationBody": "Look around and set up your company now. Publishing products, taking orders and getting paid unlock once your registration is approved.",
   "distributor.layout.getStarted": "Get started",
   "distributor.layout.more": "More",
 
@@ -505,7 +505,7 @@ const sw: Record<keyof typeof en, string> = {
   "distributor.layout.underReviewTitle": "Usajili wa kampuni unakaguliwa",
   "distributor.layout.underReviewBody": "Vipengele vingine vya msambazaji vinabaki vimefungwa hadi msimamizi athibitishe usajili wako. Tutakujulisha mara ukaguliwe.",
   "distributor.layout.completeRegistrationTitle": "Kamilisha usajili wa kampuni yako",
-  "distributor.layout.completeRegistrationBody": "Maeneo, bidhaa, na maagizo hufunguliwa mara usajili wako uwasilishwe na kuthibitishwa.",
+  "distributor.layout.completeRegistrationBody": "Angalia na uandae kampuni yako sasa. Kuchapisha bidhaa, kupokea maagizo na kulipwa kutafunguliwa mara usajili wako utakapokubaliwa.",
   "distributor.layout.getStarted": "Anza",
   "distributor.layout.more": "Zaidi",
 
@@ -921,7 +921,7 @@ const fr: Record<keyof typeof en, string> = {
   "distributor.layout.underReviewTitle": "Enregistrement de l'entreprise en cours d'examen",
   "distributor.layout.underReviewBody": "Les autres fonctionnalités du distributeur restent verrouillées jusqu'à ce qu'un administrateur approuve votre enregistrement. Nous vous informerons dès son examen.",
   "distributor.layout.completeRegistrationTitle": "Complétez l'enregistrement de votre entreprise",
-  "distributor.layout.completeRegistrationBody": "Emplacements, produits et commandes se débloquent une fois votre enregistrement soumis et approuvé.",
+  "distributor.layout.completeRegistrationBody": "Explorez et configurez votre entreprise dès maintenant. La publication de produits, les commandes et les paiements se débloquent une fois votre enregistrement approuvé.",
   "distributor.layout.getStarted": "Commencer",
   "distributor.layout.more": "Plus",
 

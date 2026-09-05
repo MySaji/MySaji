@@ -11,6 +11,7 @@ import {
   type WalletPaymentMethod,
 } from "@/lib/actions/wallet"
 import { useLocalization } from "@/lib/hooks/useLocalization"
+import { useGatedAction } from "@/lib/hooks/useGatedAction"
 import type { TranslationKey } from "@/lib/i18n"
 
 const TYPE_LABEL_KEY: Record<string, TranslationKey> = {
@@ -19,6 +20,7 @@ const TYPE_LABEL_KEY: Record<string, TranslationKey> = {
 }
 
 export default function PaymentMethodsPage() {
+  const { handleGateFailure } = useGatedAction()
   const { t } = useLocalization()
   const [isLoading, setIsLoading] = useState(true)
   const [payments, setPayments] = useState<WalletPaymentMethod[]>([])
@@ -47,7 +49,15 @@ export default function PaymentMethodsPage() {
       { type: newMethodType, cardNumber: newMethodDetails, cvv: "000" }
     const result = await addPaymentMethod(payload)
     setIsSaving(false)
-    if (!result.success) { setMethodError(result.error); return }
+    if (!result.success) {
+      // A verification refusal opens the wizard rather than leaving the user
+      // with a message and nowhere to act on it. updatePaymentMethod below is
+      // deliberately not gated — editing an existing destination is not the
+      // step that needs checking.
+      if (handleGateFailure(result)) return
+      setMethodError(result.error)
+      return
+    }
 
     setShowAddModal(false)
     setNewMethodDetails("")

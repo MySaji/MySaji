@@ -3,6 +3,7 @@
 import { z } from "zod"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
+import { requireVerified } from "@/lib/verification-gate"
 import { pushToUser } from "@/lib/actions/push"
 import { notifyUser } from "@/lib/actions/notify"
 import { getActiveEscrowJobs, type ActiveEscrowJob } from "@/lib/actions/jobs"
@@ -211,8 +212,10 @@ export type BankTransferTopupResult =
   | { success: false; error: string }
 
 export async function initiateBankTransferTopup(input: unknown): Promise<BankTransferTopupResult> {
-  const session = await auth()
-  if (!session?.user?.id) return { success: false, error: "You must be signed in." }
+  // Progressive KYC: money entering the platform is the point an
+  // unverified identity stops being acceptable.
+  const gate = await requireVerified("wallet.deposit")
+  if (!gate.ok) return { success: false, error: gate.error }
 
   const parsed = bankTopupSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
@@ -231,7 +234,7 @@ export async function initiateBankTransferTopup(input: unknown): Promise<BankTra
       currency: "KES",
       status: "PENDING",
       contextType: "WALLET_TOPUP",
-      payerId: session.user.id,
+      payerId: gate.userId,
       externalRef: `bank-ref-${parsed.data.reference}`,
     },
   })
@@ -289,19 +292,21 @@ const withdrawSchema = z.object({
 const DB_METHOD_TO_WITHDRAWAL: Record<string, "MPESA" | "CARD" | "PAYPAL"> = { MPESA: "MPESA", CARD: "CARD", PAYPAL: "PAYPAL", BANK: "CARD" }
 
 export async function requestWithdrawal(input: unknown): Promise<WalletActionResult> {
-  const session = await auth()
-  if (!session?.user?.id) return { success: false, error: "You must be signed in." }
+  // Progressive KYC: money leaving the platform is the highest-risk
+  // action here, so it is gated like every other cash movement.
+  const gate = await requireVerified("wallet.withdraw")
+  if (!gate.ok) return { success: false, error: gate.error }
 
   const parsed = withdrawSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
   const { amount, paymentMethodId } = parsed.data
 
-  const wallet = await db.wallet.findUnique({ where: { userId: session.user.id } })
+  const wallet = await db.wallet.findUnique({ where: { userId: gate.userId } })
   if (!wallet) return { success: false, error: "Wallet not found." }
   if (Number(wallet.balance) < amount) return { success: false, error: "Insufficient balance." }
 
   const destination = await db.paymentMethod.findUnique({ where: { id: paymentMethodId } })
-  if (!destination || destination.userId !== session.user.id) return { success: false, error: "Select a valid payment method to withdraw to." }
+  if (!destination || destination.userId !== gate.userId) return { success: false, error: "Select a valid payment method to withdraw to." }
 
   const destinationLabel = destination.provider ?? destination.type
   const balanceBefore = Number(wallet.balance)
@@ -309,7 +314,7 @@ export async function requestWithdrawal(input: unknown): Promise<WalletActionRes
 
   await db.$transaction([
     db.wallet.update({
-      where: { userId: session.user.id },
+      where: { userId: gate.userId },
       data: { balance: balanceAfter, pendingBalance: { increment: amount } },
     }),
     db.transaction.create({
@@ -326,7 +331,7 @@ export async function requestWithdrawal(input: unknown): Promise<WalletActionRes
     }),
     db.withdrawalRequest.create({
       data: {
-        userId: session.user.id,
+        userId: gate.userId,
         amount,
         method: DB_METHOD_TO_WITHDRAWAL[destination.type] ?? "CARD",
         // Snapshotting the encrypted phone here (rather than re-reading the
@@ -344,7 +349,7 @@ export async function requestWithdrawal(input: unknown): Promise<WalletActionRes
     }),
     db.notification.create({
       data: {
-        userId: session.user.id,
+        userId: gate.userId,
         title: "Withdrawal requested",
         message: `Your withdrawal of KES ${amount.toLocaleString()} to ${destinationLabel} (${destination.accountNumber}) is pending review.`,
         type: "PAYMENT",
@@ -353,7 +358,7 @@ export async function requestWithdrawal(input: unknown): Promise<WalletActionRes
     }),
   ])
 
-  await pushToUser(session.user.id, {
+  await pushToUser(gate.userId, {
     title: "Withdrawal requested",
     body: `KES ${amount.toLocaleString()} to ${destinationLabel} is pending review.`,
     url: "/customer/wallet",
@@ -376,8 +381,11 @@ const ADD_METHOD_TO_DB: Record<string, "MPESA" | "CARD" | "PAYPAL" | "BANK"> = {
 }
 
 export async function addPaymentMethod(input: unknown): Promise<WalletActionResult> {
-  const session = await auth()
-  if (!session?.user?.id) return { success: false, error: "You must be signed in." }
+  // Progressive KYC: gated at attach time rather than only at payout,
+  // so an unverified account cannot quietly stage a destination for
+  // funds it is not yet allowed to move.
+  const gate = await requireVerified("wallet.addPaymentMethod")
+  if (!gate.ok) return { success: false, error: gate.error }
 
   const parsed = addPaymentMethodSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: "Invalid input" }
@@ -410,11 +418,11 @@ export async function addPaymentMethod(input: unknown): Promise<WalletActionResu
     masked = `***${data.paypalEmail.slice(data.paypalEmail.indexOf("@"))}`
   }
 
-  const existingCount = await db.paymentMethod.count({ where: { userId: session.user.id } })
+  const existingCount = await db.paymentMethod.count({ where: { userId: gate.userId } })
 
   await db.paymentMethod.create({
     data: {
-      userId: session.user.id,
+      userId: gate.userId,
       type: ADD_METHOD_TO_DB[data.type],
       provider: name,
       accountNumber: masked,
