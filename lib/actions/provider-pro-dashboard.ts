@@ -61,6 +61,22 @@ export type ProDashboardOverview = {
   rating: number
   reviewCount: number
   isVerified: boolean
+  /**
+   * The merchant half of Saji Pro, present only when this account also runs a
+   * shop. Carried on the overview the home screen already fetches rather than
+   * as its own action: the two portals merged, so one screen now describes
+   * both halves, and a second round trip to say "no shop" for every plain
+   * service provider is waste.
+   */
+  shop: {
+    shopName: string
+    logo: string | null
+    isVerified: boolean
+    categoryName: string | null
+    productCount: number
+    newOrders: number
+    products: { key: string; title: string; image: string | null; price: number | null; inStock: boolean }[]
+  } | null
   profileViews: number
   requests: ProDashboardStat
   bookings: ProDashboardStat
@@ -90,6 +106,44 @@ export async function getProDashboardOverview(): Promise<ProDashboardOverview> {
   const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
 
   const wallet = await db.wallet.findUnique({ where: { userId: session.user.id } })
+
+  // Saji Pro merged the provider and merchant portals, but each half keeps
+  // its own catalogue: a provider sells BUY-actionType Offers, a shopkeeper
+  // sells Product rows with their own inventory and order pipeline. When this
+  // account has a shop, the home screen's "My Shop" and "What I'm selling"
+  // should describe that shop rather than the service offers it was written
+  // against. Null for an account with no shop, which is what lets the screen
+  // keep its existing offer-derived behaviour untouched.
+  const shopProfile = await db.shopkeeperProfile.findUnique({ where: { userId: session.user.id } })
+  const shop = shopProfile
+    ? await (async () => {
+        const [shopProducts, productCount, newOrders] = await Promise.all([
+          db.product.findMany({
+            where: { shopkeeperId: shopProfile.id, isActive: true },
+            orderBy: { createdAt: "desc" },
+            take: 4,
+            include: { inventory: true },
+          }),
+          db.product.count({ where: { shopkeeperId: shopProfile.id, isActive: true } }),
+          db.order.count({ where: { shopkeeperId: shopProfile.id, status: "PENDING" } }),
+        ])
+        return {
+          shopName: shopProfile.shopName,
+          logo: shopProfile.shopLogoUrl,
+          isVerified: shopProfile.isVerified,
+          categoryName: shopProfile.shopCategory,
+          productCount,
+          newOrders,
+          products: shopProducts.map((sp) => ({
+            key: sp.id,
+            title: sp.name,
+            image: sp.images[0] ?? null,
+            price: Number(sp.price),
+            inStock: (sp.inventory?.currentStock ?? 0) > 0,
+          })),
+        }
+      })()
+    : null
 
   const [
     offers, earningsThisWeekAgg, earningsLastWeekAgg, earningsThisMonthAgg, earningsLastMonthAgg, monthTx, recentTx,
@@ -163,6 +217,7 @@ export async function getProDashboardOverview(): Promise<ProDashboardOverview> {
     rating: Number(profile.rating),
     reviewCount: profile.reviewCount,
     isVerified: isVerifiedStatus(session.user.verificationStatus),
+    shop,
     profileViews,
     requests: { value: quotesThisWeek, changePct: pctChange(quotesThisWeek, quotesLastWeek) },
     bookings: { value: bookingsThisWeek, changePct: pctChange(bookingsThisWeek, bookingsLastWeek) },

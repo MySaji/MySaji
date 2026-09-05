@@ -14,7 +14,7 @@ import { useProviderWorkspace } from "@/lib/hooks/useProviderWorkspace"
 import { getProDashboardOverview } from "@/lib/actions/provider-pro-dashboard"
 import { getProviderDashboardData } from "@/lib/actions/provider-dashboard"
 import { getOpenOpportunities, type OpportunityItem } from "@/lib/actions/opportunities"
-import { getMyProducts, getMyProductOrders, type MyProductItem } from "@/lib/actions/provider-products"
+import { getMyProducts, getMyProductOrders } from "@/lib/actions/provider-products"
 import { getProviderAvailability, getMyOnlineStatus, setOnlineStatus, type WeeklySchedule } from "@/lib/actions/provider-availability"
 import { getMySubscriptionStatus } from "@/lib/actions/provider-subscription"
 import { getProviderClients } from "@/lib/actions/provider-clients"
@@ -203,14 +203,25 @@ export default function ProviderHomePage() {
   const { isOpen: shopOpen, closesAt } = openState(schedule)
   const hourRows = groupedHours(schedule, t)
 
-  const liveProducts = (products ?? []).filter((p) => p.status === "LIVE")
-  const newOrders = (productOrders ?? []).filter((o) => o.status === "PENDING").length
+  // The merchant half, when this account runs a shop — carried on the same
+  // overview fetch as everything else on this screen.
+  const shop = pro?.shop ?? null
+
+  const offerProducts = (products ?? []).filter((p) => p.status === "LIVE")
+  const sellingItems = shop
+    ? shop.products
+    : offerProducts.map((p) => ({ key: p.offerId, title: p.title, image: p.image, price: p.price, inStock: true }))
+  const productCount = shop ? shop.productCount : offerProducts.length
+  const newOrders = shop ? shop.newOrders : (productOrders ?? []).filter((o) => o.status === "PENDING").length
   const activeOffers = (pro?.offers ?? []).filter((o) => o.status === "LIVE").length
 
   const repeatClients = (clients ?? []).filter((c) => c.totalJobs > 1).length
   const repeatPct = (clients ?? []).length > 0 ? Math.round((repeatClients / (clients ?? []).length) * 100) : 0
 
-  const shopName = pro?.businessName || pro?.name || t("provider.home.myShopFallbackName")
+  const shopName = shop?.shopName || pro?.businessName || pro?.name || t("provider.home.myShopFallbackName")
+  const shopLogo = shop ? shop.logo : pro?.avatar ?? null
+  const shopVerified = shop ? shop.isVerified : Boolean(pro?.isVerified)
+  const shopCategory = shop ? shop.categoryName : pro?.categoryName ?? null
 
   const quickActions: { key: string; icon: ComponentType<{ className?: string }>; title: string; sub: string; href: string }[] = [
     { key: "offer", icon: Plus, title: t("provider.home.createOffer"), sub: t("provider.home.createOfferSub"), href: "/provider/offers/new" },
@@ -360,15 +371,19 @@ export default function ProviderHomePage() {
 
         {/* My shop */}
         <section>
-          <SectionHeader title={t("provider.home.myShop")} action={t("provider.home.manageShop")} href="/provider/shop" />
+          <SectionHeader
+            title={t("provider.home.myShop")}
+            action={t("provider.home.manageShop")}
+            href={shop ? "/shopkeeper" : "/provider/shop"}
+          />
           <div className="grid gap-3 lg:grid-cols-2">
             <div className="flex gap-3 rounded-xl border border-border bg-card p-3">
               {/* ProviderProfile has no shop-logo column, so this is the
                   provider's own profile image — the only real picture the
                   shop has — falling back to a store glyph when unset. */}
               <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
-                {pro?.avatar ? (
-                  <NextImage src={pro.avatar} alt={shopName} fill sizes="64px" className="object-cover" />
+                {shopLogo ? (
+                  <NextImage src={shopLogo} alt={shopName} fill sizes="64px" className="object-cover" />
                 ) : (
                   <Store className="absolute inset-0 m-auto h-6 w-6 text-muted-foreground" />
                 )}
@@ -377,13 +392,13 @@ export default function ProviderHomePage() {
               <div className="min-w-0 flex-1">
               <div className="flex items-start gap-2">
                 <h3 className="truncate text-sm font-bold text-foreground">{shopName}</h3>
-                {pro?.isVerified && (
+                {shopVerified && (
                   <span className="mt-0.5 inline-flex flex-shrink-0 items-center gap-1 rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
                     <BadgeCheck className="h-3 w-3" /> {t("provider.home.verifiedBadge")}
                   </span>
                 )}
               </div>
-              {pro?.categoryName && <p className="mt-1 truncate text-[11px] text-muted-foreground">{pro.categoryName}</p>}
+              {shopCategory && <p className="mt-1 truncate text-[11px] text-muted-foreground">{shopCategory}</p>}
               <p className="mt-2 flex items-center gap-1.5 text-[11px]">
                 <span className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${shopOpen ? "bg-emerald-500" : "bg-muted-foreground"}`} />
                 <span className={shopOpen ? "font-semibold text-emerald-700 dark:text-emerald-400" : "text-muted-foreground"}>
@@ -394,7 +409,7 @@ export default function ProviderHomePage() {
                 )}
               </p>
               <p className="mt-2 text-[11px] text-muted-foreground">
-                {t("provider.home.productsCount", { count: liveProducts.length })} ·{" "}
+                {t("provider.home.productsCount", { count: productCount })} ·{" "}
                 {t("provider.home.newOrdersCount", { count: newOrders })}
               </p>
               </div>
@@ -419,12 +434,16 @@ export default function ProviderHomePage() {
 
         {/* What I'm selling */}
         <section>
-          <SectionHeader title={t("provider.home.whatImSelling")} action={t("provider.home.manageProducts")} href="/provider/shop" />
+          <SectionHeader
+            title={t("provider.home.whatImSelling")}
+            action={t("provider.home.manageProducts")}
+            href={shop ? "/shopkeeper/products" : "/provider/shop"}
+          />
           <div className="flex gap-3 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-hide sm:mx-0 sm:grid sm:grid-cols-3 sm:px-0 lg:grid-cols-5">
-            {liveProducts.slice(0, 4).map((p: MyProductItem) => (
+            {sellingItems.slice(0, 4).map((p) => (
               <Link
-                key={p.offerId}
-                href="/provider/shop"
+                key={p.key}
+                href={shop ? "/shopkeeper/products" : "/provider/shop"}
                 className="flex w-40 flex-shrink-0 items-center gap-2.5 rounded-xl border border-border bg-card p-2 transition-shadow hover:shadow-md sm:w-auto"
               >
                 <div className="relative h-11 w-11 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
@@ -439,19 +458,19 @@ export default function ProviderHomePage() {
                   {p.price != null && <p className="mt-0.5 text-[10px] text-muted-foreground">{formatMoney(p.price)}</p>}
                   <span
                     className={`mt-1 inline-flex rounded px-1.5 py-0.5 text-[9px] font-semibold ${
-                      p.stockQuantity === null || p.stockQuantity > 0
+                      p.inStock
                         ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
                         : "bg-muted text-muted-foreground"
                     }`}
                   >
-                    {p.stockQuantity === null || p.stockQuantity > 0 ? t("provider.home.inStock") : t("provider.home.outOfStock")}
+                    {p.inStock ? t("provider.home.inStock") : t("provider.home.outOfStock")}
                   </span>
                 </div>
               </Link>
             ))}
 
             <Link
-              href="/provider/offers/new"
+              href={shop ? "/shopkeeper/products" : "/provider/offers/new"}
               className="flex w-40 flex-shrink-0 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-border bg-card p-3 text-center transition-colors hover:border-primary/50 sm:w-auto"
             >
               <Plus className="h-5 w-5 text-muted-foreground" />
