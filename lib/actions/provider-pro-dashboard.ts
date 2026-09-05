@@ -73,6 +73,11 @@ export type ProDashboardOverview = {
     logo: string | null
     isVerified: boolean
     categoryName: string | null
+    /** The shop's own trading hours, which are a single open/close pair for
+     *  every day — distinct from ProviderAvailability's per-day working
+     *  schedule, and what the home screen should show for a shop. */
+    openingTime: string | null
+    closingTime: string | null
     productCount: number
     newOrders: number
     products: { key: string; title: string; image: string | null; price: number | null; inStock: boolean }[]
@@ -132,6 +137,8 @@ export async function getProDashboardOverview(): Promise<ProDashboardOverview> {
           logo: shopProfile.shopLogoUrl,
           isVerified: shopProfile.isVerified,
           categoryName: shopProfile.shopCategory,
+          openingTime: shopProfile.openingTime,
+          closingTime: shopProfile.closingTime,
           productCount,
           newOrders,
           products: shopProducts.map((sp) => ({

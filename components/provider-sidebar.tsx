@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { Home, Briefcase, MessageCircle, Wallet, User, ChevronDown, ChevronLeft, ChevronRight, ImageIcon, Calendar, Wrench, BarChart3, FileText, Users, Store, Gift, Award, ClipboardList, X, MoreHorizontal, Megaphone, LayoutDashboard, Building2, TrendingUp, Navigation, Crown, Rocket, Package, Handshake, Radar } from "lucide-react"
+import { Home, Briefcase, MessageCircle, Wallet, User, ChevronDown, ChevronLeft, ChevronRight, ImageIcon, Calendar, Wrench, BarChart3, FileText, Users, Store, Gift, Award, ClipboardList, X, MoreHorizontal, Megaphone, LayoutDashboard, Building2, TrendingUp, Navigation, Crown, Rocket, Package, Handshake, Radar, Plus} from "lucide-react"
 import Link from "next/link"
 import { usePathname, useSearchParams } from "next/navigation"
 import { Logo } from "@/components/logo"
@@ -193,7 +193,33 @@ export default function ProviderSidebar({ isOpen, onClose, isCollapsed, onToggle
   // linear row like every other tab, the same "home icon front and center"
   // pattern most consumer apps use. The rest of the primary items split
   // evenly on either side of it.
-  const [mobileHomeItem, ...mobileOtherPrimary] = menuItems.slice(0, primaryCount)
+  //
+  // Saji Pro's own bar is defined outright rather than derived from the menu
+  // list above, because the design puts Create in the raised slot and Home
+  // beside it — the opposite of the derived shape, where menuItems[0] (Home)
+  // is what gets raised. It applies to the solo workspace only: that is the
+  // experience the design describes, and a Business Manager's or Field
+  // Technician's bar answers to a different job.
+  //
+  // No "More" tab here: the five slots are the design, and everything else is
+  // still one tap away through the topbar's menu button, which opens this
+  // same sidebar as a drawer.
+  const sajiProBottomNav: MenuItem[] | null =
+    workspaceType === "solo"
+      ? [
+          { icon: Home, label: "Home", href: "/provider", exact: true, group: null },
+          { icon: Rocket, label: "Offers", href: "/provider/offers", group: null },
+          { icon: Plus, label: "Create", href: "/provider/offers/new", group: null },
+          { icon: Briefcase, label: "Work", href: "/provider/jobs", badge: pendingJobs || undefined, group: null },
+          { icon: MessageCircle, label: "Inbox", href: "/provider/messages", badge: unreadMessages || undefined, group: null },
+        ]
+      : null
+
+  const [mobileHomeItem, ...mobileOtherPrimary] = sajiProBottomNav
+    ? // Create sits in the middle of the five, so it is the raised one and the
+      // other four split evenly around it.
+      [sajiProBottomNav[2], sajiProBottomNav[0], sajiProBottomNav[1], sajiProBottomNav[3], sajiProBottomNav[4]]
+    : menuItems.slice(0, primaryCount)
   const mobileHalf = Math.ceil(mobileOtherPrimary.length / 2)
   const mobileLeftItems = mobileOtherPrimary.slice(0, mobileHalf)
   const mobileRightItems = mobileOtherPrimary.slice(mobileHalf)
@@ -414,6 +440,11 @@ export default function ProviderSidebar({ isOpen, onClose, isCollapsed, onToggle
             )
           })}
 
+          {/* Saji Pro's bar is exactly the five slots the design specifies, so
+              it has no "More" tab; everything outside them stays reachable
+              through the topbar's menu button, which opens this sidebar as a
+              drawer. The other workspaces keep theirs. */}
+          {!sajiProBottomNav && (
           <div ref={moreMenuRef} className="relative">
             <button
               onClick={() => setShowMoreMenu(!showMoreMenu)}
@@ -468,6 +499,7 @@ export default function ProviderSidebar({ isOpen, onClose, isCollapsed, onToggle
               </div>
             )}
           </div>
+          )}
         </div>
       </nav>
     </>

@@ -200,12 +200,39 @@ export default function ProviderHomePage() {
   }
 
   const schedule = availability?.weeklySchedule
-  const { isOpen: shopOpen, closesAt } = openState(schedule)
-  const hourRows = groupedHours(schedule, t)
+  const providerHours = openState(schedule)
 
   // The merchant half, when this account runs a shop — carried on the same
   // overview fetch as everything else on this screen.
   const shop = pro?.shop ?? null
+
+  // A shop trades on one open/close pair every day; a provider works to a
+  // per-day availability schedule. Both feed the same card, so whichever
+  // describes this account is what it shows.
+  const shopHours =
+    shop?.openingTime && shop?.closingTime
+      ? (() => {
+          const [oh, om] = shop.openingTime.split(":").map(Number)
+          const [ch, cm] = shop.closingTime.split(":").map(Number)
+          if (![oh, om, ch, cm].every((n) => Number.isFinite(n))) return null
+          const now = new Date()
+          const mins = now.getHours() * 60 + now.getMinutes()
+          const isOpen = mins >= oh * 60 + om && mins < ch * 60 + cm
+          return {
+            isOpen,
+            closesAt: isOpen ? formatTime12h(shop.closingTime) : null,
+            rows: [
+              {
+                label: t("provider.home.everyDayLabel"),
+                value: `${formatTime12h(shop.openingTime)} - ${formatTime12h(shop.closingTime)}`,
+              },
+            ],
+          }
+        })()
+      : null
+
+  const { isOpen: shopOpen, closesAt } = shopHours ?? providerHours
+  const hourRows = shopHours ? shopHours.rows : groupedHours(schedule, t)
 
   const offerProducts = (products ?? []).filter((p) => p.status === "LIVE")
   const sellingItems = shop
@@ -425,7 +452,7 @@ export default function ProviderHomePage() {
                   </div>
                 ))}
               </dl>
-              <Link href="/provider/availability" className="mt-2 inline-flex text-[11px] font-semibold text-primary hover:underline">
+              <Link href={shopHours ? "/shopkeeper/settings" : "/provider/availability"} className="mt-2 inline-flex text-[11px] font-semibold text-primary hover:underline">
                 {t("provider.home.editHours")}
               </Link>
             </div>
