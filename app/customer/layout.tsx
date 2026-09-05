@@ -14,7 +14,7 @@ import { formatRelativeTime } from "@/lib/format"
 import {
   Home, Store, Briefcase, Users, MessageCircle, UserSearch, Settings,
   Bell, User, Menu, X, LogOut, ChevronRight, ChevronLeft, Wallet, Heart, MapPin,
-  HelpCircle, Gift, ShoppingCart, Package, Award, ClipboardList, FileText, RefreshCw, Search, Plus, Activity} from "lucide-react"
+  HelpCircle, Gift, ShoppingCart, Package, MoreHorizontal, Award, ClipboardList, FileText, RefreshCw, Search, Plus, Activity} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
 import FloatingChatButton from "@/components/floating-chat-button"
@@ -33,6 +33,8 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
   const { isCollapsed, toggle: toggleCollapsed } = useSidebarCollapsed()
   const [showNotifications, setShowNotifications] = useState(false)
   const cartCount = useCartCount()
+  const [showMoreMenu, setShowMoreMenu] = useState(false)
+  const moreMenuRef = useRef<HTMLDivElement>(null)
   const [openDisputes, setOpenDisputes] = useState<MyOpenDispute[]>([])
 
   const navItems = [
@@ -58,6 +60,11 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
     { icon: Activity, label: t("customer.layout.navActivity"), href: "/customer/jobs" },
     { icon: MessageCircle, label: t("customer.layout.navInbox"), href: "/customer/messages" },
   ]
+
+  // Everything the five designed slots cannot reach — orders, favourites,
+  // wallet, settings and the rest. Without this the only way to them on a
+  // phone was the header's drawer, which is not where people look.
+  const moreItemsForBar = () => sidebarItems.filter((item) => !mobileBar.some((slot) => slot.href === item.href))
 
   const sidebarItems = [
     ...navItems.map((item) => ({ ...item, group: null as string | null })),
@@ -92,6 +99,14 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
     if (!user) return
     getMyAccountStatus().then((status) => setOpenDisputes(status.openDisputes))
   }, [user])
+
+  useEffect(() => {
+    function onClickOutside(event: MouseEvent) {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(event.target as Node)) setShowMoreMenu(false)
+    }
+    document.addEventListener("mousedown", onClickOutside)
+    return () => document.removeEventListener("mousedown", onClickOutside)
+  }, [])
 
   const handleNotificationClick = (notification: Parameters<typeof markRead>[0]) => {
     markRead(notification)
@@ -295,11 +310,14 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
             </div>
 
             {/* Mobile Logo */}
-            <Link href="/customer/home" className="lg:hidden flex items-center gap-2">
+            <Link href="/customer/home" className="lg:hidden flex flex-shrink-0 items-center gap-2">
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                 <span className="text-primary-foreground font-bold text-base">S</span>
               </div>
-              <span className="font-bold text-base text-foreground">SAJI</span>
+              {/* The wordmark steps aside below 640px so the location control
+                  has room; the mark still carries the brand. See the matching
+                  note in components/saji-pro-badge.tsx. */}
+              <span className="hidden font-bold text-base text-foreground sm:inline">SAJI</span>
             </Link>
 
             {/* Where this customer is shopping from, beside the wordmark as in
@@ -447,6 +465,49 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
                 </Link>
               )
             })}
+
+            {/* "More" — everything outside the five slots. */}
+            <div ref={moreMenuRef} className="relative flex-1">
+              <button
+                onClick={() => setShowMoreMenu(!showMoreMenu)}
+                aria-label={t("customer.layout.moreLabel")}
+                aria-expanded={showMoreMenu}
+                className={`flex w-full flex-col items-center justify-center py-2 transition-colors ${
+                  showMoreMenu ? "text-primary" : "text-muted-foreground"
+                }`}
+              >
+                <MoreHorizontal className="h-5 w-5" />
+                <span className="mt-1 text-[10px] font-medium">{t("customer.layout.moreLabel")}</span>
+              </button>
+
+              {showMoreMenu && (
+                <div className="absolute bottom-full right-0 mb-2 max-h-[70vh] w-56 overflow-y-auto rounded-xl border border-border bg-card py-1.5 shadow-2xl z-50">
+                  {moreItemsForBar().map((item, i, arr) => {
+                    const active = pathname === item.href || pathname.startsWith(item.href + "/")
+                    const showGroupLabel = item.group && item.group !== arr[i - 1]?.group
+                    return (
+                      <div key={item.href}>
+                        {showGroupLabel && (
+                          <p className="px-4 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                            {SIDEBAR_GROUP_LABEL[item.group as string]}
+                          </p>
+                        )}
+                        <Link
+                          href={item.href}
+                          onClick={() => setShowMoreMenu(false)}
+                          className={`flex items-center gap-3 px-4 py-2.5 text-xs transition-colors ${
+                            active ? "bg-primary/10 font-semibold text-primary" : "text-foreground hover:bg-muted"
+                          }`}
+                        >
+                          <item.icon className="h-4 w-4 flex-shrink-0" />
+                          <span className="flex-1 truncate">{item.label}</span>
+                        </Link>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </nav>
       </div>

@@ -159,7 +159,31 @@ export default function ProviderSidebar({ isOpen, onClose, isCollapsed, onToggle
 
   // Everything beyond the primary bottom-nav items — reachable via the
   // "More" tab as well as the full hamburger drawer above.
-  const moreItems = menuItems.slice(primaryCount)
+  //
+  // Saji Pro's own bar is defined outright rather than derived from the menu
+  // list above, because the design puts Create in the raised slot and Home
+  // beside it — the opposite of the derived shape, where menuItems[0] (Home)
+  // is what gets raised. It applies to the solo workspace only: that is the
+  // experience the design describes, and a Business Manager's or Field
+  // Technician's bar answers to a different job.
+  //
+  // No "More" tab here: the five slots are the design, and everything else is
+  // still one tap away through the topbar's menu button, which opens this
+  // same sidebar as a drawer.
+  const sajiProBottomNav: MenuItem[] | null =
+    workspaceType === "solo"
+      ? [
+          { icon: Home, label: "Home", href: "/provider", exact: true, group: null },
+          { icon: Rocket, label: "Offers", href: "/provider/offers", group: null },
+          { icon: Plus, label: "Create", href: "/provider/offers/new", group: null },
+          { icon: Briefcase, label: "Work", href: "/provider/jobs", badge: pendingJobs || undefined, group: null },
+          { icon: MessageCircle, label: "Inbox", href: "/provider/messages", badge: unreadMessages || undefined, group: null },
+        ]
+      : null
+
+  const moreItems = sajiProBottomNav
+    ? menuItems.filter((item) => !sajiProBottomNav.some((slot) => slot.href === item.href))
+    : menuItems.slice(primaryCount)
 
   const profileMenuItems = [
     { label: "Professional Profile", href: "/provider/profile/professional" },
@@ -193,28 +217,6 @@ export default function ProviderSidebar({ isOpen, onClose, isCollapsed, onToggle
   // linear row like every other tab, the same "home icon front and center"
   // pattern most consumer apps use. The rest of the primary items split
   // evenly on either side of it.
-  //
-  // Saji Pro's own bar is defined outright rather than derived from the menu
-  // list above, because the design puts Create in the raised slot and Home
-  // beside it — the opposite of the derived shape, where menuItems[0] (Home)
-  // is what gets raised. It applies to the solo workspace only: that is the
-  // experience the design describes, and a Business Manager's or Field
-  // Technician's bar answers to a different job.
-  //
-  // No "More" tab here: the five slots are the design, and everything else is
-  // still one tap away through the topbar's menu button, which opens this
-  // same sidebar as a drawer.
-  const sajiProBottomNav: MenuItem[] | null =
-    workspaceType === "solo"
-      ? [
-          { icon: Home, label: "Home", href: "/provider", exact: true, group: null },
-          { icon: Rocket, label: "Offers", href: "/provider/offers", group: null },
-          { icon: Plus, label: "Create", href: "/provider/offers/new", group: null },
-          { icon: Briefcase, label: "Work", href: "/provider/jobs", badge: pendingJobs || undefined, group: null },
-          { icon: MessageCircle, label: "Inbox", href: "/provider/messages", badge: unreadMessages || undefined, group: null },
-        ]
-      : null
-
   const [mobileHomeItem, ...mobileOtherPrimary] = sajiProBottomNav
     ? // Create sits in the middle of the five, so it is the raised one and the
       // other four split evenly around it.
@@ -440,11 +442,11 @@ export default function ProviderSidebar({ isOpen, onClose, isCollapsed, onToggle
             )
           })}
 
-          {/* Saji Pro's bar is exactly the five slots the design specifies, so
-              it has no "More" tab; everything outside them stays reachable
-              through the topbar's menu button, which opens this sidebar as a
-              drawer. The other workspaces keep theirs. */}
-          {!sajiProBottomNav && (
+          {/* "More" stays on every workspace, Saji Pro included. The five
+              designed slots cannot reach Offers, Rentals, Earnings, Team,
+              Quotes, the Business group or the Insights group, and the
+              topbar's menu button is not where people look for them — this
+              is. */}
           <div ref={moreMenuRef} className="relative">
             <button
               onClick={() => setShowMoreMenu(!showMoreMenu)}
@@ -499,7 +501,6 @@ export default function ProviderSidebar({ isOpen, onClose, isCollapsed, onToggle
               </div>
             )}
           </div>
-          )}
         </div>
       </nav>
     </>

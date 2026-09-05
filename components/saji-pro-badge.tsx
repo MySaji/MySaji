@@ -1,4 +1,4 @@
-import { Logo } from "@/components/logo"
+import { LogoMark } from "@/components/logo"
 
 /**
  * The "PRO" pill that sits beside the wordmark throughout the Saji Pro portal.
@@ -32,12 +32,27 @@ export function SajiProLogo({
   size?: "sm" | "md" | "lg" | "xl"
   showText?: boolean
 }) {
+  const iconPx = { sm: 24, md: 32, lg: 40, xl: 56 }[size]
+  const textSize = { sm: "text-lg", md: "text-xl", lg: "text-2xl", xl: "text-3xl" }[size]
+
   return (
-    <span className="flex items-center gap-1.5">
-      <Logo size={size} showText={showText} />
-      {/* Hidden alongside a collapsed, icon-only sidebar, where there is no
-          wordmark for it to qualify. */}
-      {showText && <SajiProBadge />}
+    <span className="flex flex-shrink-0 items-center gap-1.5">
+      <LogoMark size={iconPx} />
+      {showText && (
+        <>
+          {/* The wordmark steps aside below 640px. The header there also
+              carries a menu button, the location control and three actions,
+              and something has to give for the location to have any room at
+              320px — the mark and the PRO pill still say whose portal this
+              is, which the wordmark was only repeating. */}
+          <span
+            className={`hidden bg-gradient-to-r from-blue-500 via-blue-800 to-orange-500 bg-clip-text font-bold text-transparent sm:inline ${textSize}`}
+          >
+            SAJI
+          </span>
+          <SajiProBadge />
+        </>
+      )}
     </span>
   )
 }
