@@ -12,6 +12,7 @@ export type CustomerProfileData = {
   location: string
   avatar: string | null
   kycStatus: string
+  verificationStatus: string
   hasSubmittedKyc: boolean
   completedServices: number
   reviewsWritten: number
@@ -40,6 +41,7 @@ export async function getCustomerProfile(): Promise<CustomerProfileData> {
     location: user.customerProfile?.location ?? "",
     avatar: user.image,
     kycStatus: user.kycStatus,
+    verificationStatus: user.verificationStatus,
     hasSubmittedKyc: kycDocCount > 0,
     completedServices,
     reviewsWritten,

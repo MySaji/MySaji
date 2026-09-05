@@ -61,7 +61,19 @@ export type SwitchRoleResult =
  * there. A User has exactly one `role` at a time, but customerProfile/
  * providerProfile/shopkeeperProfile are independent optional relations, so
  * the account keeps every profile it's ever created — `role` is just which
- * portal is active right now, free to flip back and forth. */
+ * portal is active right now, free to flip back and forth.
+ *
+ * Deliberately writes `role` and nothing else. This used to rewrite
+ * `kycStatus` on every switch — APPROVED when switching to customer, and
+ * PENDING/APPROVED from the destination profile's own verified flag
+ * otherwise — which made two false claims once progressive KYC gave that
+ * field a single meaning: it said an account's identity documents had been
+ * approved when none had been submitted, and it overwrote a genuine
+ * APPROVED verdict with PENDING just because the profile being switched to
+ * was new. Verification belongs to the person, not to whichever portal is
+ * open, so neither `kycStatus` nor `verificationStatus` is touched here. The
+ * per-portal registration banners now read their own profile's isVerified
+ * flag instead (see app/shopkeeper/layout.tsx). */
 export async function switchActiveRole(targetRole: SwitchableRole): Promise<SwitchRoleResult> {
   const session = await auth()
   if (!session?.user?.id || !isSwitchableRole(session.user.role)) {
@@ -81,11 +93,11 @@ export async function switchActiveRole(targetRole: SwitchableRole): Promise<Swit
 
   if (targetRole === "customer") {
     if (user.customerProfile) {
-      await db.user.update({ where: { id: user.id }, data: { role: dbRole, kycStatus: "APPROVED" } })
+      await db.user.update({ where: { id: user.id }, data: { role: dbRole } })
       return { success: true, isFirstTime: false }
     }
     await db.$transaction(async (tx) => {
-      await tx.user.update({ where: { id: user.id }, data: { role: dbRole, kycStatus: "APPROVED" } })
+      await tx.user.update({ where: { id: user.id }, data: { role: dbRole } })
       await tx.customerProfile.create({ data: { userId: user.id } })
     })
     return { success: true, isFirstTime: true }
@@ -93,14 +105,11 @@ export async function switchActiveRole(targetRole: SwitchableRole): Promise<Swit
 
   if (targetRole === "provider") {
     if (user.providerProfile) {
-      await db.user.update({
-        where: { id: user.id },
-        data: { role: dbRole, kycStatus: user.providerProfile.verified ? "APPROVED" : "PENDING" },
-      })
+      await db.user.update({ where: { id: user.id }, data: { role: dbRole } })
       return { success: true, isFirstTime: false }
     }
     await db.$transaction(async (tx) => {
-      await tx.user.update({ where: { id: user.id }, data: { role: dbRole, kycStatus: "PENDING" } })
+      await tx.user.update({ where: { id: user.id }, data: { role: dbRole } })
       const providerProfile = await tx.providerProfile.create({ data: { userId: user.id } })
       await tx.providerProfile.update({
         where: { id: providerProfile.id },
@@ -112,14 +121,11 @@ export async function switchActiveRole(targetRole: SwitchableRole): Promise<Swit
 
   // targetRole === "shopkeeper"
   if (user.shopkeeperProfile) {
-    await db.user.update({
-      where: { id: user.id },
-      data: { role: dbRole, kycStatus: user.shopkeeperProfile.isVerified ? "APPROVED" : "PENDING" },
-    })
+    await db.user.update({ where: { id: user.id }, data: { role: dbRole } })
     return { success: true, isFirstTime: false }
   }
   await db.$transaction(async (tx) => {
-    await tx.user.update({ where: { id: user.id }, data: { role: dbRole, kycStatus: "PENDING" } })
+    await tx.user.update({ where: { id: user.id }, data: { role: dbRole } })
     await tx.shopkeeperProfile.create({ data: { userId: user.id, shopName: `${user.name}'s Shop` } })
   })
   return { success: true, isFirstTime: true }

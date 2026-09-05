@@ -134,13 +134,20 @@ export async function switchToShopkeeperAccount(): Promise<SwitchAccountResult> 
   if (!user || user.role !== "PROVIDER") return { success: false, error: "This account is no longer a provider." }
 
   // Already been through the one-time conversion before — just flip the
-  // active portal back, no re-approval needed, and restore *this* profile's
-  // own verification state rather than whatever the provider side left
-  // `kycStatus` at.
+  // active portal back, no re-approval needed.
+  //
+  // This used to also rewrite `kycStatus` from the shop profile's own
+  // isVerified flag, to undo whatever the provider side had left it at. That
+  // shuffling is no longer needed or correct: under progressive KYC
+  // `kycStatus` is the verdict on submitted identity documents and belongs
+  // to the person, not to whichever portal is active, and each portal's
+  // registration banner now reads its own profile's isVerified directly
+  // (see app/shopkeeper/layout.tsx). Same reasoning as switchActiveRole in
+  // lib/actions/account-switch.ts.
   if (user.shopkeeperProfile) {
     await db.user.update({
       where: { id: user.id },
-      data: { role: "SHOPKEEPER", kycStatus: user.shopkeeperProfile.isVerified ? "APPROVED" : "PENDING" },
+      data: { role: "SHOPKEEPER" },
     })
     return { success: true, isFirstTime: false }
   }
@@ -154,7 +161,7 @@ export async function switchToShopkeeperAccount(): Promise<SwitchAccountResult> 
   await db.$transaction(async (tx) => {
     await tx.user.update({
       where: { id: user.id },
-      data: { role: "SHOPKEEPER", kycStatus: "PENDING" },
+      data: { role: "SHOPKEEPER" },
     })
     await tx.shopkeeperProfile.create({
       data: { userId: user.id, shopName: `${user.name}'s Shop` },
@@ -179,7 +186,7 @@ export async function switchToProviderAccount(): Promise<ShopUpgradeActionResult
 
   await db.user.update({
     where: { id: user.id },
-    data: { role: "PROVIDER", kycStatus: user.providerProfile.verified ? "APPROVED" : "PENDING" },
+    data: { role: "PROVIDER" },
   })
 
   return { success: true }

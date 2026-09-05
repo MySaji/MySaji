@@ -2,6 +2,7 @@
 
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
+import { isVerifiedStatus } from "@/lib/verification-capabilities"
 
 async function requireProviderProfile() {
   const session = await auth()
@@ -93,7 +94,10 @@ export async function getProviderDashboardData(): Promise<ProviderDashboardData>
     { label: "Add skills & work area", done: profile.skills.length > 0 && profile.workAreas.length > 0, href: "/provider/profile/skills" },
     { label: "Upload proof of work", done: portfolioCount > 0, href: "/provider/profile/proof" },
     { label: "Add payment method", done: paymentMethodCount > 0, href: "/provider/profile/payments" },
-    { label: "Get identity verified", done: session.user.kycStatus === "approved", href: "/provider/profile/verification" },
+    // verificationStatus, not kycStatus: the first is what actually unlocks
+    // publishing and payouts, and is what the provider is being sent to the
+    // verification page to change.
+    { label: "Get identity verified", done: isVerifiedStatus(session.user.verificationStatus), href: "/provider/profile/verification" },
     { label: "Add certifications", done: certificationCount > 0, href: "/provider/profile/certifications" },
     { label: "Set your availability", done: Boolean(availability), href: "/provider/availability" },
   ]

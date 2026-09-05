@@ -86,3 +86,10 @@ export function satisfies(status: VerificationStatus | undefined, capability: Ca
  */
 export const VERIFICATION_REQUIRED_MESSAGE =
   "Complete your identity verification to continue. Verification helps us protect customers, providers and merchants on SAJI."
+
+/** "Is this account verified at all", for the many places that only need the
+ *  yes/no rather than a specific capability — a profile badge, an onboarding
+ *  checklist item. Accepts the loosely-typed session value. */
+export function isVerifiedStatus(status: string | undefined): boolean {
+  return status === "verified" || status === "premium_verified"
+}

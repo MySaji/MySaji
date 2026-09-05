@@ -76,6 +76,13 @@ export default function ShopkeeperLayout({ children }: { children: React.ReactNo
   const [messageBadge, setMessageBadge] = useState(0)
   const [hasSubmittedRegistration, setHasSubmittedRegistration] = useState(false)
   const [rejectionReason, setRejectionReason] = useState<string | null>(null)
+  // The shop's own approval state, read from the shop profile rather than the
+  // account-wide kycStatus. Those were the same field until progressive KYC;
+  // now kycStatus is the verdict on submitted identity documents, which says
+  // nothing about whether this particular shop has been registered. Starts
+  // null so the banner stays hidden until the real answer arrives instead of
+  // flashing "complete your registration" at a verified shop on every load.
+  const [shopVerified, setShopVerified] = useState<boolean | null>(null)
   const { notifications, unreadCount, markRead, markAllRead } = useNotificationBell(
     10, mounted && isAuthenticated && user?.role === "shopkeeper",
   )
@@ -100,7 +107,7 @@ export default function ShopkeeperLayout({ children }: { children: React.ReactNo
     }
   }, [isAuthenticated, isLoading, user, router, mounted])
 
-  const isShopLocked = user?.role === "shopkeeper" && user?.kycStatus !== "approved"
+  const isShopLocked = user?.role === "shopkeeper" && shopVerified === false
 
   // Progressive KYC: an unverified shop now keeps its whole portal. This
   // used to be the same condition as above, which greyed out every non-exempt
@@ -133,6 +140,7 @@ export default function ShopkeeperLayout({ children }: { children: React.ReactNo
       if (account) {
         setHasSubmittedRegistration(account.hasSubmittedRegistration)
         setRejectionReason(account.rejectionReason)
+        setShopVerified(account.isVerified)
       }
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -448,7 +456,7 @@ export default function ShopkeeperLayout({ children }: { children: React.ReactNo
         <main id="main-content" className="flex-1 pb-36 lg:pb-24">
           {isShopLocked && !pathname?.startsWith("/shopkeeper/register") && (
             <div className="m-4 lg:m-6 mb-0">
-              {user?.kycStatus === "rejected" ? (
+              {rejectionReason ? (
                 <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 dark:border-red-900/50 dark:bg-red-900/20 p-4">
                   <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">

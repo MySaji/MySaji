@@ -117,7 +117,10 @@ export function CustomerProfilePage() {
   ]
 
   const verificationStep: "none" | "waiting" | "verified" | "rejected" =
-    profile.kycStatus === "APPROVED" ? "verified" :
+    // The badge tracks what the account can actually do, so it reads
+    // verificationStatus; kycStatus only distinguishes a rejection from a
+    // submission that was never made.
+    profile.verificationStatus === "VERIFIED" || profile.verificationStatus === "PREMIUM_VERIFIED" ? "verified" :
     profile.kycStatus === "REJECTED" ? "rejected" :
     profile.hasSubmittedKyc ? "waiting" : "none"
 

@@ -2,6 +2,7 @@
 
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
+import { isVerifiedStatus } from "@/lib/verification-capabilities"
 
 async function requireProviderProfile() {
   const session = await auth()
@@ -161,7 +162,7 @@ export async function getProDashboardOverview(): Promise<ProDashboardOverview> {
     avatar: profile.user.image,
     rating: Number(profile.rating),
     reviewCount: profile.reviewCount,
-    isVerified: session.user.kycStatus === "approved",
+    isVerified: isVerifiedStatus(session.user.verificationStatus),
     profileViews,
     requests: { value: quotesThisWeek, changePct: pctChange(quotesThisWeek, quotesLastWeek) },
     bookings: { value: bookingsThisWeek, changePct: pctChange(bookingsThisWeek, bookingsLastWeek) },

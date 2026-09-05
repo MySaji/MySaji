@@ -77,6 +77,11 @@ export default function DistributorLayout({ children }: { children: React.ReactN
   const [isVerified, setIsVerified] = useState(false)
   const [hasSubmittedRegistration, setHasSubmittedRegistration] = useState(false)
   const [rejectionReason, setRejectionReason] = useState<string | null>(null)
+  // The company's own approval state, read from the distributor profile
+  // rather than the account-wide kycStatus — see the matching note in
+  // app/shopkeeper/layout.tsx. Null until loaded so the banner cannot flash
+  // at an already-registered company.
+  const [companyVerified, setCompanyVerified] = useState<boolean | null>(null)
   const { notifications, unreadCount, markRead, markAllRead } = useNotificationBell(
     10, mounted && isAuthenticated && user?.role === "distributor",
   )
@@ -93,7 +98,7 @@ export default function DistributorLayout({ children }: { children: React.ReactN
     }
   }, [isAuthenticated, isLoading, user, router, mounted])
 
-  const isCompanyLocked = user?.role === "distributor" && user?.kycStatus !== "approved"
+  const isCompanyLocked = user?.role === "distributor" && companyVerified === false
 
   // Progressive KYC: an unverified company now keeps its whole portal. This
   // used to be the same condition as above, which greyed out every non-exempt
@@ -128,6 +133,7 @@ export default function DistributorLayout({ children }: { children: React.ReactN
         setIsVerified(account.isVerified)
         setHasSubmittedRegistration(account.hasSubmittedRegistration)
         setRejectionReason(account.rejectionReason)
+        setCompanyVerified(account.isVerified)
       }
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -446,7 +452,7 @@ export default function DistributorLayout({ children }: { children: React.ReactN
         <main className="flex-1 pb-36 lg:pb-24">
           {isCompanyLocked && !pathname?.startsWith("/distributor/register") && (
             <div className="m-4 lg:m-6 mb-0">
-              {user?.kycStatus === "rejected" ? (
+              {rejectionReason ? (
                 <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 dark:border-red-900/50 dark:bg-red-900/20 p-4">
                   <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
