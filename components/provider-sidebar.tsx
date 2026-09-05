@@ -5,6 +5,7 @@ import { Home, Briefcase, MessageCircle, Wallet, User, ChevronDown, ChevronLeft,
 import Link from "next/link"
 import { usePathname, useSearchParams } from "next/navigation"
 import { Logo } from "@/components/logo"
+import { SajiProLogo } from "@/components/saji-pro-badge"
 import { AccountMenu } from "@/components/account-menu"
 import { getProviderJobStats } from "@/lib/actions/provider-jobs"
 import { getUnreadMessageCount } from "@/lib/actions/messages"
@@ -195,7 +196,7 @@ export default function ProviderSidebar({ isOpen, onClose, isCollapsed, onToggle
         {/* Sidebar Header */}
         <div className={`p-5 border-b border-gray-200 dark:border-gray-700 flex items-start justify-between ${isCollapsed ? "lg:justify-center" : ""}`}>
           <div className={isCollapsed ? "lg:hidden" : ""}>
-            <Logo size="md" showText />
+            <SajiProLogo size="md" showText />
             <p className="text-[11px] text-muted-foreground mt-1">Service Provider Portal</p>
           </div>
           <div className={`hidden ${isCollapsed ? "lg:block" : ""}`}>

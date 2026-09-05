@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { Menu, Bell, Wallet, MessageCircle, X } from "lucide-react"
-import { Logo } from "@/components/logo"
+import { SajiProLogo } from "@/components/saji-pro-badge"
 import { AccountMenu } from "@/components/account-menu"
 import { useNotificationBell } from "@/lib/hooks/useNotificationBell"
 import { formatRelativeTime } from "@/lib/format"
@@ -76,7 +76,7 @@ export default function ProviderTopbar({ onMenuClick }: { onMenuClick: () => voi
 
         {/* Mobile logo */}
         <Link href="/provider" className="lg:hidden flex-1 flex justify-center">
-          <Logo size="sm" showText />
+          <SajiProLogo size="sm" showText />
         </Link>
 
         {/* Desktop page title */}
