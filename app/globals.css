@@ -192,9 +192,16 @@
      * culprit — see StatCard/MoneyText below) from ever widening the page
      * itself into horizontal scroll. It does nothing for that element's own
      * card visually stretching/breaking its layout — that still needs
-     * min-w-0 + wrapping at the source, which is the actual fix. */
+     * min-w-0 + wrapping at the source, which is the actual fix.
+     *
+     * `clip`, not `hidden`, and that difference matters: any overflow value
+     * other than `visible` makes the element a scroll container, and a
+     * sticky descendant then pins to *it* rather than to the viewport —
+     * which is what stopped the mobile top bars staying put while the page
+     * scrolled. `clip` does the same horizontal clamping without becoming a
+     * scroll container, so sticky keeps working. */
     max-width: 100%;
-    overflow-x: hidden;
+    overflow-x: clip;
   }
   body {
     @apply bg-background text-foreground;

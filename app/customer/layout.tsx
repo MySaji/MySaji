@@ -13,8 +13,7 @@ import { formatRelativeTime } from "@/lib/format"
 import {
   Home, Store, Briefcase, Users, MessageCircle, UserSearch, Settings,
   Bell, User, Menu, X, LogOut, ChevronRight, ChevronLeft, Wallet, Heart, MapPin,
-  HelpCircle, Gift, ShoppingCart, Package, MoreHorizontal, Award, ClipboardList, FileText, RefreshCw
-} from "lucide-react"
+  HelpCircle, Gift, ShoppingCart, Package, Award, ClipboardList, FileText, RefreshCw, Search, Plus, Activity} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
 import FloatingChatButton from "@/components/floating-chat-button"
@@ -32,8 +31,6 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { isCollapsed, toggle: toggleCollapsed } = useSidebarCollapsed()
   const [showNotifications, setShowNotifications] = useState(false)
-  const [showMoreMenu, setShowMoreMenu] = useState(false)
-  const moreMenuRef = useRef<HTMLDivElement>(null)
   const cartCount = useCartCount()
   const [openDisputes, setOpenDisputes] = useState<MyOpenDispute[]>([])
 
@@ -43,6 +40,22 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
     { icon: Briefcase, label: t("nav.myJobs"), href: "/customer/jobs" },
     { icon: Users, label: t("customer.layout.navCommunity"), href: "/customer/community" },
     { icon: MessageCircle, label: t("customer.layout.navChat"), href: "/customer/messages" },
+  ]
+
+  // The mobile bar the design specifies: five slots with Request raised in
+  // the middle. Defined separately from navItems, which still feeds the
+  // desktop sidebar below — the two answer to different layouts and the
+  // sidebar should not lose its Marketplace/Community entries.
+  //
+  // No "More" tab: the five slots are the design, and everything else stays
+  // one tap away through the header's menu button, which opens the same
+  // navigation as a drawer.
+  const mobileBar = [
+    { icon: Home, label: t("nav.home"), href: "/customer/home" },
+    { icon: Search, label: t("customer.layout.navExplore"), href: "/customer/services" },
+    { icon: Plus, label: t("customer.layout.navRequest"), href: "/customer/requests", raised: true },
+    { icon: Activity, label: t("customer.layout.navActivity"), href: "/customer/jobs" },
+    { icon: MessageCircle, label: t("customer.layout.navInbox"), href: "/customer/messages" },
   ]
 
   const sidebarItems = [
@@ -71,7 +84,6 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
   // bottom nav only has room for those 5 plus this "More" tab, so the rest
   // (already grouped for the hamburger drawer above) are reachable from
   // here too instead of only via the drawer.
-  const moreItems = sidebarItems.slice(navItems.length)
 
   const { notifications, unreadCount, markRead, markAllRead } = useNotificationBell(4)
 
@@ -79,16 +91,6 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
     if (!user) return
     getMyAccountStatus().then((status) => setOpenDisputes(status.openDisputes))
   }, [user])
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (moreMenuRef.current && !moreMenuRef.current.contains(event.target as Node)) {
-        setShowMoreMenu(false)
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [])
 
   const handleNotificationClick = (notification: Parameters<typeof markRead>[0]) => {
     markRead(notification)
@@ -405,64 +407,38 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
         {/* Mobile Bottom Navigation */}
         <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border z-40">
           <div className="flex items-center justify-around h-16 px-2">
-            {navItems.map((item) => {
+            {mobileBar.map((item) => {
               const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
+              // The middle slot is a raised, filled circle rather than a flat
+              // tab — the design's primary action, lifted out of the row.
+              if (item.raised) {
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="flex flex-1 flex-col items-center justify-center"
+                    aria-label={item.label}
+                  >
+                    <span className="-mt-6 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg">
+                      <item.icon className="h-6 w-6" />
+                    </span>
+                    <span className="mt-0.5 text-[10px] font-medium text-muted-foreground">{item.label}</span>
+                  </Link>
+                )
+              }
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex flex-col items-center justify-center flex-1 py-2 transition-colors ${
+                  className={`flex flex-1 flex-col items-center justify-center py-2 transition-colors ${
                     isActive ? "text-primary" : "text-muted-foreground"
                   }`}
                 >
-                  <item.icon className={`w-5 h-5 ${isActive ? "text-primary" : ""}`} />
-                  <span className="text-[10px] mt-1 font-medium">{item.label}</span>
+                  <item.icon className="h-5 w-5" />
+                  <span className="mt-1 text-[10px] font-medium">{item.label}</span>
                 </Link>
               )
             })}
-            <div ref={moreMenuRef} className="relative flex-1">
-              <button
-                onClick={() => setShowMoreMenu(!showMoreMenu)}
-                className={`w-full flex flex-col items-center justify-center py-2 transition-colors ${
-                  showMoreMenu || moreItems.some((item) => pathname === item.href || pathname.startsWith(item.href + "/"))
-                    ? "text-primary"
-                    : "text-muted-foreground"
-                }`}
-              >
-                <MoreHorizontal className="w-5 h-5" />
-                <span className="text-[10px] mt-1 font-medium">{t("customer.layout.moreLabel")}</span>
-              </button>
-
-              {showMoreMenu && (
-                <div className="absolute bottom-full right-0 mb-2 w-56 max-h-[70vh] overflow-y-auto bg-card rounded-xl shadow-2xl border border-border py-1.5 z-50">
-                  {moreItems.map((item, i) => {
-                    const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
-                    const showGroupLabel = item.group && item.group !== moreItems[i - 1]?.group
-                    return (
-                      <div key={item.href}>
-                        {showGroupLabel && (
-                          <p className="px-4 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-                            {SIDEBAR_GROUP_LABEL[item.group as string]}
-                          </p>
-                        )}
-                        <Link
-                          href={item.href}
-                          onClick={() => setShowMoreMenu(false)}
-                          className={`flex items-center gap-3 px-4 py-2.5 text-xs transition-colors ${
-                            isActive
-                              ? "bg-primary/10 text-primary font-medium"
-                              : "text-foreground hover:bg-muted"
-                          }`}
-                        >
-                          <item.icon className="w-4 h-4" />
-                          {item.label}
-                        </Link>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
           </div>
         </nav>
       </div>
