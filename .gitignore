@@ -37,3 +37,5 @@ build-output.txt
 # like harmless tooling config. scheduled_tasks.lock is local runtime state.
 .claude/settings.local.json
 .claude/scheduled_tasks.lock
+# Originals saved by scripts/reencode-oversized-images.js --backup
+image-backup/
