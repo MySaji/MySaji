@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import Image from "next/image"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -48,6 +48,17 @@ export function CustomerRequestsPage() {
   const [detail, setDetail] = useState<CustomerRequestDetail>(null)
   const [isLoadingDetail, setIsLoadingDetail] = useState(false)
   const [acceptingResponseId, setAcceptingResponseId] = useState<string | null>(null)
+
+  // ?describe=... arrives from the home page's "Solve a problem" voice
+  // button — open the composer with what the customer said already in the
+  // description, so speaking the problem goes straight to posting it.
+  const searchParams = useSearchParams()
+  const describeParam = searchParams.get("describe")
+  useEffect(() => {
+    if (!describeParam) return
+    setDescription(describeParam)
+    setShowPostModal(true)
+  }, [describeParam])
   const [acceptError, setAcceptError] = useState("")
 
   const STATUS_LABEL: Record<string, string> = {

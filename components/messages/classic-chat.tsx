@@ -5,13 +5,15 @@ import { useSearchParams } from "next/navigation"
 import Image from "next/image"
 import {
   Search, SlidersHorizontal, Plus, ArrowLeft, MoreVertical, Send, Paperclip, Smile, Mic,
-  Check, CheckCheck, Loader2, Play, MapPin, ImageIcon, File as FileIcon, Lock, ShieldCheck,
+  Check, CheckCheck, Loader2, MapPin, ImageIcon, File as FileIcon, Lock, ShieldCheck,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { NewConversationModal } from "@/components/messages/new-conversation-modal"
 import { CallButton } from "@/components/messages/call-button"
+import { VoiceMessagePlayer } from "@/components/messages/voice-message-player"
+import { StaticLocationMap } from "@/components/maps/static-location-map"
 import {
   getConversations, sendMessage, getOrCreateConversation, clearConversation,
   type ConversationSummary,
@@ -191,11 +193,6 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
   }
   const handleStopRecording = () => { mediaRecorderRef.current?.stop(); setIsRecording(false) }
 
-  const playVoiceMessage = (attachmentUrl: string | null) => {
-    if (!attachmentUrl) return
-    new Audio(attachmentUrl).play().catch(() => {})
-  }
-
   const handleMenuAction = async (action: "mute" | "block" | "report" | "clear") => {
     if (action === "clear") {
       if (activeChat) { await clearConversation({ conversationId: activeChat }); mutateMessages([], { revalidate: false }) }
@@ -329,7 +326,7 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
                 {isLoadingMessages ? (
                   <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
                 ) : (
-                  <MessageList messages={messages} onPlayVoice={playVoiceMessage} t={t} />
+                  <MessageList messages={messages} t={t} />
                 )}
                 <div ref={messagesEndRef} />
               </div>
@@ -424,7 +421,21 @@ function dayLabel(iso: string, t: (key: any, params?: Record<string, string | nu
   return date.toLocaleDateString([], { month: "short", day: "numeric", year: date.getFullYear() !== today.getFullYear() ? "numeric" : undefined })
 }
 
-function MessageList({ messages, onPlayVoice, t }: { messages: ChatMessage[]; onPlayVoice: (url: string | null) => void; t: (key: any, params?: Record<string, string | number>) => string }) {
+/** LOCATION messages store their coordinates as the human-readable content
+ * string ("-1.2410, 36.8984"), so they're parsed back out here to drive a
+ * real map. Returns null for anything that isn't a coordinate pair, which
+ * keeps older or malformed messages on the plain text fallback. */
+function parseLatLng(content: string | null): { lat: number; lng: number } | null {
+  const match = content?.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/)
+  if (!match) return null
+  const lat = Number(match[1])
+  const lng = Number(match[2])
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null
+  return { lat, lng }
+}
+
+function MessageList({ messages, t }: { messages: ChatMessage[]; t: (key: any, params?: Record<string, string | number>) => string }) {
   if (messages.length === 0) return null
   let lastDay = ""
   return (
@@ -456,19 +467,57 @@ function MessageList({ messages, onPlayVoice, t }: { messages: ChatMessage[]; on
                   </div>
                 )}
                 {message.type === "VOICE" && (
-                  <div className="flex min-w-[160px] items-center gap-2.5">
-                    <button onClick={() => onPlayVoice(message.attachmentUrl)} aria-label={t("chat.playVoiceMessage")} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-black/10 hover:bg-black/20 dark:bg-white/10 dark:hover:bg-white/20"><Play className="h-4 w-4" /></button>
-                    <p className="text-xs opacity-80">{message.content}</p>
-                  </div>
+                  <VoiceMessagePlayer
+                    src={message.attachmentUrl}
+                    label={message.content ?? ""}
+                    playLabel={t("chat.playVoiceMessage")}
+                    pauseLabel={t("chat.pauseVoiceMessage")}
+                    unavailableLabel={t("chat.voiceUnavailable")}
+                  />
                 )}
-                {message.type === "LOCATION" && (
-                  <div className="space-y-1.5">
-                    <div className="flex h-28 w-48 items-center justify-center rounded-xl bg-black/10 dark:bg-white/10">
-                      <div className="text-center"><MapPin className="mx-auto mb-0.5 h-6 w-6" /><p className="text-xs font-medium">{t("chat.locationShared")}</p></div>
+                {message.type === "LOCATION" && (() => {
+                  const coords = parseLatLng(message.content)
+                  if (!coords) {
+                    return (
+                      <div className="space-y-1.5">
+                        <div className="flex h-28 w-48 items-center justify-center rounded-xl bg-black/10 dark:bg-white/10">
+                          <div className="text-center">
+                            <MapPin className="mx-auto mb-0.5 h-6 w-6" />
+                            <p className="text-xs font-medium">{t("chat.locationShared")}</p>
+                          </div>
+                        </div>
+                        <p className="text-[10px] opacity-70">{message.content}</p>
+                      </div>
+                    )
+                  }
+                  return (
+                    <div className="space-y-1.5">
+                      <div className="overflow-hidden rounded-xl">
+                        <StaticLocationMap
+                          latitude={coords.lat}
+                          longitude={coords.lng}
+                          label={t("chat.locationShared")}
+                          className="h-28 w-48"
+                        />
+                      </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-[10px] opacity-70">{message.content}</p>
+                        {/* Universal maps URL — hands off to the device's
+                            own maps app on mobile, google.com/maps on
+                            desktop, so directions work without this app
+                            shipping a routing UI. */}
+                        <a
+                          href={`https://www.google.com/maps/search/?api=1&query=${coords.lat},${coords.lng}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-shrink-0 text-[10px] font-semibold underline underline-offset-2 opacity-80 hover:opacity-100"
+                        >
+                          {t("chat.openInMaps")}
+                        </a>
+                      </div>
                     </div>
-                    <p className="text-[10px] opacity-70">{message.content}</p>
-                  </div>
-                )}
+                  )
+                })()}
                 <div className={`mt-1 flex items-center gap-1 ${message.isMine ? "justify-end" : "justify-start"}`}>
                   <span className="text-[10px] opacity-60">{new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                   {message.isMine && (message.isRead ? <CheckCheck className="h-3.5 w-3.5 text-blue-600 dark:text-blue-300" /> : <Check className="h-3.5 w-3.5 opacity-50" />)}

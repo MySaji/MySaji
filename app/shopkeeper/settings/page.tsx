@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import {
   Bell, Lock, User, Shield, Eye, EyeOff,
-  ChevronRight, Save, AlertCircle, CheckCircle2, Mail, Phone, MapPin, Loader2, Clock, PlaneTakeoff
+  ChevronRight, Save, AlertCircle, CheckCircle2, Mail, Phone, MapPin, Loader2, Clock, PlaneTakeoff, LocateFixed
 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -33,6 +33,11 @@ export default function ShopkeeperSettingsPage() {
   const [accountForm, setAccountForm] = useState({ shopName: "", businessLicense: "", phone: "", location: "", shopDescription: "", shopCategory: "", openingTime: "", closingTime: "", deliveryFee: "500" })
   const [isSavingAccount, setIsSavingAccount] = useState(false)
   const [accountError, setAccountError] = useState("")
+  // Shop coordinates are captured from the device rather than geocoded from
+  // the address text — there's no geocoding service configured — and they're
+  // what lets customers see a real distance to this shop.
+  const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null)
+  const [isLocating, setIsLocating] = useState(false)
 
   const [notifPrefs, setNotifPrefs] = useState<ShopNotificationPreferences | null>(null)
   const [isSavingNotifs, setIsSavingNotifs] = useState(false)
@@ -59,6 +64,9 @@ export default function ShopkeeperSettingsPage() {
         })
         setVacationEnabled(acc.isOnVacation)
         setVacationNote(acc.vacationNote ?? "")
+        if (acc.latitude != null && acc.longitude != null) {
+          setCoords({ latitude: acc.latitude, longitude: acc.longitude })
+        }
       }
       setNotifPrefs(prefs)
     }).finally(() => setIsLoading(false))
@@ -77,10 +85,30 @@ export default function ShopkeeperSettingsPage() {
     }
     setIsSavingAccount(true)
     setAccountError("")
-    const result = await updateMyShopAccount({ ...accountForm, deliveryFee })
+    const result = await updateMyShopAccount({ ...accountForm, deliveryFee, ...(coords ?? {}) })
     setIsSavingAccount(false)
     if (!result.success) { setAccountError(result.error); return }
     flashSuccess()
+  }
+
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setAccountError(t("shopkeeper.settings.geoUnsupported"))
+      return
+    }
+    setIsLocating(true)
+    setAccountError("")
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setIsLocating(false)
+        setCoords({ latitude: position.coords.latitude, longitude: position.coords.longitude })
+      },
+      () => {
+        setIsLocating(false)
+        setAccountError(t("shopkeeper.settings.geoError"))
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    )
   }
 
   const handleToggleVacation = async (next: boolean) => {
@@ -291,15 +319,36 @@ export default function ShopkeeperSettingsPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                      <MapPin className="w-5 h-5 text-amber-600 flex-shrink-0" />
-                      <div className="flex-1">
+                    <div className="flex items-start gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <MapPin className="w-5 h-5 text-amber-600 flex-shrink-0 mt-1" />
+                      <div className="flex-1 min-w-0">
                         <p className="text-xs text-muted-foreground">{t("shopkeeper.settings.shopLocationLabel")}</p>
                         <Input
                           value={accountForm.location}
                           onChange={(e) => setAccountForm({ ...accountForm, location: e.target.value })}
                           className="mt-1 bg-white dark:bg-gray-700"
                         />
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleUseCurrentLocation}
+                            disabled={isLocating}
+                            className="gap-1.5 bg-transparent"
+                          >
+                            {isLocating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <LocateFixed className="w-3.5 h-3.5" />}
+                            {t("shopkeeper.settings.useCurrentLocation")}
+                          </Button>
+                          <p className="text-[11px] text-muted-foreground">
+                            {coords
+                              ? t("shopkeeper.settings.pinSet", {
+                                  lat: coords.latitude.toFixed(5),
+                                  lng: coords.longitude.toFixed(5),
+                                })
+                              : t("shopkeeper.settings.pinMissing")}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>

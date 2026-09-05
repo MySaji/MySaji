@@ -717,6 +717,11 @@ const en = {
   "shopkeeper.requests.messagePlaceholder": "Let them know what you can offer...",
   "shopkeeper.requests.priceLabel": "Your price (KES)",
   "shopkeeper.requests.submitResponse": "Send Response",
+  "shopkeeper.settings.useCurrentLocation": "Use my current location",
+  "shopkeeper.settings.pinSet": "Pinned at {{lat}}, {{lng}} - customers see the distance to your shop",
+  "shopkeeper.settings.pinMissing": "No map pin yet - set one so nearby customers can see how far you are",
+  "shopkeeper.settings.geoUnsupported": "This browser can't share your location.",
+  "shopkeeper.settings.geoError": "Couldn't get your location. Check location permissions and try again.",
 } as const
 
 const sw: Record<keyof typeof en, string> = {
@@ -1437,6 +1442,11 @@ const sw: Record<keyof typeof en, string> = {
   "shopkeeper.requests.messagePlaceholder": "Waeleze unachoweza kutoa...",
   "shopkeeper.requests.priceLabel": "Bei yako (KES)",
   "shopkeeper.requests.submitResponse": "Tuma Jibu",
+  "shopkeeper.settings.useCurrentLocation": "Tumia mahali nilipo sasa",
+  "shopkeeper.settings.pinSet": "Imewekwa {{lat}}, {{lng}} - wateja wanaona umbali hadi dukani kwako",
+  "shopkeeper.settings.pinMissing": "Bado hakuna alama ya ramani - weka moja ili wateja wa karibu waone umbali wako",
+  "shopkeeper.settings.geoUnsupported": "Kivinjari hiki hakiwezi kushiriki mahali ulipo.",
+  "shopkeeper.settings.geoError": "Imeshindwa kupata mahali ulipo. Angalia ruhusa za mahali kisha ujaribu tena.",
 }
 
 const fr: Record<keyof typeof en, string> = {
@@ -2157,6 +2167,11 @@ const fr: Record<keyof typeof en, string> = {
   "shopkeeper.requests.messagePlaceholder": "Indiquez ce que vous pouvez offrir...",
   "shopkeeper.requests.priceLabel": "Votre prix (KES)",
   "shopkeeper.requests.submitResponse": "Envoyer la Réponse",
+  "shopkeeper.settings.useCurrentLocation": "Utiliser ma position actuelle",
+  "shopkeeper.settings.pinSet": "Position {{lat}}, {{lng}} - les clients voient la distance jusqu'a votre boutique",
+  "shopkeeper.settings.pinMissing": "Aucun point sur la carte - ajoutez-en un pour que les clients proches voient votre distance",
+  "shopkeeper.settings.geoUnsupported": "Ce navigateur ne peut pas partager votre position.",
+  "shopkeeper.settings.geoError": "Impossible d'obtenir votre position. Verifiez les autorisations et reessayez.",
 }
 
 export const shopkeeperDictionary = { en, sw, fr }

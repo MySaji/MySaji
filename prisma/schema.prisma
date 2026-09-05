@@ -94,6 +94,7 @@ enum WishlistTargetType {
   PROVIDER
   SERVICE
   PRODUCT
+  SHOP
 }
 
 enum OrderStatus {
@@ -961,6 +962,7 @@ model ShopkeeperProfile {
   portfolioItems             ShopPortfolioItem[]
   shopReviews                Review[]            @relation("ReviewShopkeeper")
   blockedCustomers           BlockedShopCustomer[]
+  wishlistedBy               WishlistItem[]      @relation("WishlistedShop")
 
   @@map("shopkeeper_profiles")
 }
@@ -2416,12 +2418,14 @@ model WishlistItem {
   providerId String?
   serviceId  String?
   productId  String?
+  shopId     String?
   createdAt  DateTime           @default(now())
 
   customer User             @relation(fields: [customerId], references: [id], onDelete: Cascade)
   provider ProviderProfile? @relation("WishlistedProvider", fields: [providerId], references: [id], onDelete: Cascade)
   service  Service?         @relation("WishlistedService", fields: [serviceId], references: [id], onDelete: Cascade)
   product  Product?         @relation("WishlistedProduct", fields: [productId], references: [id], onDelete: Cascade)
+  shop     ShopkeeperProfile? @relation("WishlistedShop", fields: [shopId], references: [id], onDelete: Cascade)
 
   @@index([customerId])
   @@map("wishlist_items")

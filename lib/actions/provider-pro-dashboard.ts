@@ -54,6 +54,7 @@ export type ProDashboardChartPoint = { date: string; earnings: number }
 
 export type ProDashboardOverview = {
   name: string
+  businessName: string | null
   categoryName: string | null
   avatar: string | null
   rating: number
@@ -155,6 +156,7 @@ export async function getProDashboardOverview(): Promise<ProDashboardOverview> {
 
   return {
     name: profile.user.name,
+    businessName: profile.businessName,
     categoryName: profile.category?.name ?? null,
     avatar: profile.user.image,
     rating: Number(profile.rating),

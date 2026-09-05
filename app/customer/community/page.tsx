@@ -23,6 +23,8 @@ import {
   type PostItem, type GroupItem, type TrendingTopic, type SuggestedUser, type CommentItem,
 } from "@/lib/actions/community"
 import { useLocalization } from "@/lib/hooks/useLocalization"
+import { getActiveProviderStories } from "@/lib/actions/provider-stories"
+import { ProviderStoryRing } from "@/components/provider-story-ring"
 
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -64,6 +66,7 @@ export default function CommunityPage() {
   const { data: groupsData, mutate: mutateGroups } = useSWR("community-groups", getGroups)
   const { data: trendingTopicsData, mutate: mutateTrending } = useSWR("community-trending", getTrendingTopics)
   const { data: suggestedUsersData, mutate: mutateSuggested } = useSWR("community-suggested-users", getSuggestedUsers)
+  const { data: providerStoryGroups } = useSWR("provider-stories", getActiveProviderStories, { refreshInterval: 60_000 })
 
   const posts = postsData ?? []
   const followingIds = followingIdsData ?? []
@@ -446,6 +449,15 @@ export default function CommunityPage() {
                 </button>
               </div>
             </Card>
+
+            {/* Work in Action — expiring before/after stories from providers,
+                shown above the permanent post feed. */}
+            {activeTab === "feed" && (providerStoryGroups ?? []).length > 0 && (
+              <div className="mb-4">
+                <h2 className="mb-3 text-sm font-bold text-foreground">{t("customer.home.workInActionTitle")}</h2>
+                <ProviderStoryRing groups={providerStoryGroups ?? []} />
+              </div>
+            )}
 
             {/* Search */}
             {activeTab === "feed" && (

@@ -145,6 +145,9 @@ const en = {
   "chat.searchPeoplePlaceholder": "Search by name, email, or phone...",
   "chat.noMatchingUsers": "No matching users found.",
   "chat.startTypingToSearch": "Start typing to find someone to message.",
+  "chat.pauseVoiceMessage": "Pause voice message",
+  "chat.voiceUnavailable": "Audio unavailable",
+  "chat.openInMaps": "Open in Maps",
 } as const
 
 const sw: Record<keyof typeof en, string> = {
@@ -285,6 +288,9 @@ const sw: Record<keyof typeof en, string> = {
   "chat.searchPeoplePlaceholder": "Tafuta kwa jina, barua pepe, au namba ya simu...",
   "chat.noMatchingUsers": "Hakuna watumiaji wanaolingana walipatikana.",
   "chat.startTypingToSearch": "Anza kuandika kupata mtu wa kutuma ujumbe.",
+  "chat.pauseVoiceMessage": "Sitisha ujumbe wa sauti",
+  "chat.voiceUnavailable": "Sauti haipatikani",
+  "chat.openInMaps": "Fungua kwenye Ramani",
 }
 
 const fr: Record<keyof typeof en, string> = {
@@ -425,6 +431,9 @@ const fr: Record<keyof typeof en, string> = {
   "chat.searchPeoplePlaceholder": "Rechercher par nom, email ou téléphone...",
   "chat.noMatchingUsers": "Aucun utilisateur correspondant trouvé.",
   "chat.startTypingToSearch": "Commencez à taper pour trouver quelqu'un à qui écrire.",
+  "chat.pauseVoiceMessage": "Mettre en pause le message vocal",
+  "chat.voiceUnavailable": "Audio indisponible",
+  "chat.openInMaps": "Ouvrir dans Maps",
 }
 
 export const commonDictionary = { en, sw, fr }

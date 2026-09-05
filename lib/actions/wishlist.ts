@@ -5,12 +5,13 @@ import { auth } from "@/auth"
 import { db } from "@/lib/db"
 import type { Prisma } from "@prisma/client"
 
-export type WishlistTargetKind = "PROVIDER" | "SERVICE" | "PRODUCT"
+export type WishlistTargetKind = "PROVIDER" | "SERVICE" | "PRODUCT" | "SHOP"
 
-const ID_FIELD: Record<WishlistTargetKind, "providerId" | "serviceId" | "productId"> = {
+const ID_FIELD: Record<WishlistTargetKind, "providerId" | "serviceId" | "productId" | "shopId"> = {
   PROVIDER: "providerId",
   SERVICE: "serviceId",
   PRODUCT: "productId",
+  SHOP: "shopId",
 }
 
 export async function getWishlistIds(targetType: WishlistTargetKind): Promise<string[]> {
@@ -22,7 +23,7 @@ export async function getWishlistIds(targetType: WishlistTargetKind): Promise<st
 }
 
 const toggleSchema = z.object({
-  targetType: z.enum(["PROVIDER", "SERVICE", "PRODUCT"]),
+  targetType: z.enum(["PROVIDER", "SERVICE", "PRODUCT", "SHOP"]),
   targetId: z.string().trim().min(1),
 })
 
@@ -86,5 +87,42 @@ export async function getWishlistedProviders(): Promise<WishlistedProvider[]> {
       hourlyRate: item.provider!.hourlyRate != null ? Number(item.provider!.hourlyRate) : null,
       verified: item.provider!.verified,
       completedJobs: item.provider!.completedJobs,
+    }))
+}
+
+export type WishlistedShop = {
+  id: string
+  name: string
+  image: string | null
+  category: string | null
+  rating: number
+  reviewCount: number
+  isVerified: boolean
+}
+
+/** The shop equivalent of getWishlistedProviders — powers the saved-shops
+ * view on /customer/favorites and lets the home page's Shop local hearts
+ * persist, which they previously couldn't: WishlistTargetType had no SHOP
+ * member, so a shop simply had nowhere to be saved to. */
+export async function getWishlistedShops(): Promise<WishlistedShop[]> {
+  const session = await auth()
+  if (!session?.user?.id) return []
+
+  const items = await db.wishlistItem.findMany({
+    where: { customerId: session.user.id, targetType: "SHOP" },
+    include: { shop: true },
+    orderBy: { createdAt: "desc" },
+  })
+
+  return items
+    .filter((item) => item.shop)
+    .map((item) => ({
+      id: item.shop!.id,
+      name: item.shop!.shopName,
+      image: item.shop!.shopLogoUrl,
+      category: item.shop!.shopCategory,
+      rating: Number(item.shop!.rating),
+      reviewCount: item.shop!.reviewCount,
+      isVerified: item.shop!.isVerified,
     }))
 }

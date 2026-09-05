@@ -43,11 +43,17 @@ export type HomeFeaturedShop = {
   id: string
   name: string
   image: string | null
+  category: string | null
   rating: number
   reviews: number
   isOpen: boolean
   hoursLabel: string | null
   hasSale: boolean
+  /** Straight-line km from the customer's default address to this shop's
+   * saved coordinates. Null whenever either side is missing — which is the
+   * common case until shopkeepers set their location — so the UI must be
+   * able to render a shop card without it. */
+  distanceKm: number | null
 }
 
 type ShopWithPromotions = Prisma.ShopkeeperProfileGetPayload<{ include: { promotions: true } }>
@@ -57,12 +63,68 @@ function mapShop(s: ShopWithPromotions): HomeFeaturedShop {
     id: s.id,
     name: s.shopName,
     image: s.shopLogoUrl,
+    category: s.shopCategory,
     rating: Number(s.rating),
     reviews: s.reviewCount,
     isOpen: isShopCurrentlyOpen(s.openingTime, s.closingTime),
     hoursLabel: formatShopHours(s.openingTime, s.closingTime),
     hasSale: s.promotions.length > 0,
+    distanceKm: null,
   }
+}
+
+const EARTH_RADIUS_KM = 6371
+
+function haversineKm(aLat: number, aLng: number, bLat: number, bLng: number): number {
+  const toRad = (deg: number) => (deg * Math.PI) / 180
+  const dLat = toRad(bLat - aLat)
+  const dLng = toRad(bLng - aLng)
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(aLat)) * Math.cos(toRad(bLat)) * Math.sin(dLng / 2) ** 2
+  return 2 * EARTH_RADIUS_KM * Math.asin(Math.sqrt(h))
+}
+
+/** Fills in distanceKm for whichever shops have coordinates, measured from
+ * the customer's default saved address. Straight-line, not travel distance
+ * — there's no routing service wired up, and this is only ever used to
+ * order/label "near me", never to quote a delivery. Returns the list
+ * untouched when the customer has no coordinates saved. */
+async function withShopDistances(shops: HomeFeaturedShop[], customerId: string): Promise<HomeFeaturedShop[]> {
+  if (shops.length === 0) return shops
+
+  const home = await db.address.findFirst({
+    where: { userId: customerId, latitude: { not: null }, longitude: { not: null } },
+    orderBy: { isDefault: "desc" },
+  })
+  if (!home?.latitude || !home?.longitude) return shops
+
+  const owners = await db.shopkeeperProfile.findMany({
+    where: { id: { in: shops.map((s) => s.id) } },
+    select: { id: true, userId: true },
+  })
+  const userIdByShop = new Map(owners.map((o) => [o.id, o.userId]))
+
+  const shopAddresses = await db.address.findMany({
+    where: {
+      userId: { in: owners.map((o) => o.userId) },
+      type: "OFFICE",
+      latitude: { not: null },
+      longitude: { not: null },
+    },
+  })
+  const coordsByUser = new Map(shopAddresses.map((a) => [a.userId, a]))
+
+  const originLat = Number(home.latitude)
+  const originLng = Number(home.longitude)
+
+  return shops.map((shop) => {
+    const userId = userIdByShop.get(shop.id)
+    const addr = userId ? coordsByUser.get(userId) : undefined
+    if (!addr?.latitude || !addr?.longitude) return shop
+    const km = haversineKm(originLat, originLng, Number(addr.latitude), Number(addr.longitude))
+    return { ...shop, distanceKm: Math.round(km * 10) / 10 }
+  })
 }
 
 const SHOP_INCLUDE = { promotions: { where: { status: "ACTIVE" as const }, take: 1 } }
@@ -129,7 +191,7 @@ export async function getRecommendedShops(): Promise<HomeFeaturedShop[]> {
     shops = [...shops, ...(await topRatedShops(shops.map((s) => s.id), RECOMMENDED_SHOP_COUNT - shops.length))]
   }
 
-  return shops
+  return withShopDistances(shops, customerId)
 }
 
 export type MixedFeedShop = {

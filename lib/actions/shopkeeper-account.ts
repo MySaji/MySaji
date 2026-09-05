@@ -11,6 +11,10 @@ export type ShopkeeperAccountData = {
   email: string
   phone: string | null
   location: string
+  // Null until the shopkeeper taps "use my current location" — customers
+  // only see a distance to shops that have these.
+  latitude: number | null
+  longitude: number | null
   shopDescription: string
   shopCategory: string
   businessLicense: string
@@ -49,6 +53,8 @@ export async function getMyShopAccount(): Promise<ShopkeeperAccountData> {
     email: user.email,
     phone: user.phone,
     location: address ? [address.address, address.city].filter(Boolean).join(", ") : "",
+    latitude: address?.latitude != null ? Number(address.latitude) : null,
+    longitude: address?.longitude != null ? Number(address.longitude) : null,
     shopDescription: profile.shopDescription ?? "",
     shopCategory: profile.shopCategory ?? "",
     businessLicense: profile.businessLicense ?? "",
@@ -80,6 +86,11 @@ const updateAccountSchema = z.object({
   businessLicense: z.string().trim().optional(),
   phone: z.string().trim().optional(),
   location: z.string().trim().optional(),
+  // Captured from the shopkeeper's device (they're standing in the shop),
+  // not geocoded from the text above — there's no geocoding service wired
+  // up here. Both must arrive together to be stored.
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
   openingTime: timeSchema,
   closingTime: timeSchema,
   deliveryFee: z.number().min(0, "Delivery fee can't be negative").max(50000, "That delivery fee looks too high").optional(),
@@ -91,7 +102,8 @@ export async function updateMyShopAccount(input: unknown): Promise<ShopkeeperAcc
 
   const parsed = updateAccountSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
-  const { shopName, shopDescription, shopCategory, businessLicense, phone, location, openingTime, closingTime, deliveryFee } = parsed.data
+  const { shopName, shopDescription, shopCategory, businessLicense, phone, location, latitude, longitude, openingTime, closingTime, deliveryFee } = parsed.data
+  const coords = latitude != null && longitude != null ? { latitude, longitude } : {}
 
   const profile = await db.shopkeeperProfile.findUnique({ where: { userId: session.user.id } })
   if (!profile) return { success: false, error: "Shop profile not found." }
@@ -114,12 +126,26 @@ export async function updateMyShopAccount(input: unknown): Promise<ShopkeeperAcc
       await tx.user.update({ where: { id: session.user!.id }, data: { phone: phone || null } })
     }
 
-    if (location !== undefined && location.trim().length > 0) {
+    const hasLocationText = location !== undefined && location.trim().length > 0
+    const hasCoords = Object.keys(coords).length > 0
+    if (hasLocationText || hasCoords) {
       const existing = await tx.address.findFirst({ where: { userId: session.user!.id, type: "OFFICE" } })
       if (existing) {
-        await tx.address.update({ where: { id: existing.id }, data: { address: location } })
+        await tx.address.update({
+          where: { id: existing.id },
+          data: { ...(hasLocationText ? { address: location } : {}), ...coords },
+        })
       } else {
-        await tx.address.create({ data: { userId: session.user!.id, label: "Shop Location", type: "OFFICE", address: location, isDefault: true } })
+        await tx.address.create({
+          data: {
+            userId: session.user!.id,
+            label: "Shop Location",
+            type: "OFFICE",
+            address: hasLocationText ? location! : "",
+            isDefault: true,
+            ...coords,
+          },
+        })
       }
     }
   })

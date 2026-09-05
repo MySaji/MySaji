@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Heart, Star, CheckCircle, Briefcase, X, Loader2 } from "lucide-react"
+import { Heart, Star, CheckCircle, Briefcase, X, Loader2, Store } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
-import { getWishlistedProviders, toggleWishlist, type WishlistedProvider } from "@/lib/actions/wishlist"
+import { getWishlistedProviders, getWishlistedShops, toggleWishlist, type WishlistedProvider, type WishlistedShop } from "@/lib/actions/wishlist"
 import { useLocalization } from "@/lib/hooks/useLocalization"
 
 export function CustomerFavoritesPage() {
@@ -14,10 +14,25 @@ export function CustomerFavoritesPage() {
   const [favorites, setFavorites] = useState<WishlistedProvider[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [lastRemoved, setLastRemoved] = useState<WishlistedProvider | null>(null)
+  // Shops are a separate wishlist target from providers, so they load and
+  // unsave independently of the list above.
+  const [savedShops, setSavedShops] = useState<WishlistedShop[]>([])
 
   useEffect(() => {
-    getWishlistedProviders().then(setFavorites).finally(() => setIsLoading(false))
+    Promise.all([getWishlistedProviders(), getWishlistedShops()])
+      .then(([providers, shops]) => {
+        setFavorites(providers)
+        setSavedShops(shops)
+      })
+      .finally(() => setIsLoading(false))
   }, [])
+
+  const removeShop = async (id: string) => {
+    const previous = savedShops
+    setSavedShops((prev) => prev.filter((s) => s.id !== id))
+    const result = await toggleWishlist({ targetType: "SHOP", targetId: id })
+    if (!result.success) setSavedShops(previous)
+  }
 
   const removeFavorite = async (id: string) => {
     const fav = favorites.find((f) => f.id === id)
@@ -116,6 +131,49 @@ export function CustomerFavoritesPage() {
             </Card>
           )}
         </div>
+
+        {/* Saved shops */}
+        {savedShops.length > 0 && (
+          <div className="mt-8">
+            <h2 className="mb-3 flex items-center gap-2 text-sm font-bold text-foreground">
+              <Store className="h-4 w-4 text-primary" /> {t("customer.favorites.savedShopsTitle")}
+            </h2>
+            <div className="space-y-3">
+              {savedShops.map((shop) => (
+                <Card key={shop.id} className="group border-0 p-4 shadow-sm transition-all hover:shadow-md">
+                  <div className="flex items-center gap-4">
+                    <div className="h-14 w-14 flex-shrink-0 overflow-hidden rounded-2xl bg-muted ring-2 ring-border">
+                      <Image src={shop.image || "/placeholder.svg"} alt={shop.name} width={56} height={56} className="h-full w-full object-cover" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="truncate font-bold text-foreground">{shop.name}</h3>
+                        {shop.isVerified && <CheckCircle className="h-3.5 w-3.5 flex-shrink-0 fill-blue-600 text-white" />}
+                      </div>
+                      {shop.category && <p className="truncate text-xs text-muted-foreground">{shop.category}</p>}
+                      <span className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
+                        <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                        <strong className="text-foreground">{shop.rating.toFixed(1)}</strong> ({shop.reviewCount})
+                      </span>
+                    </div>
+                    <div className="flex flex-shrink-0 items-center gap-2">
+                      <Link href={`/customer/shops/${shop.id}`}>
+                        <Button size="sm" className="h-8 rounded-xl text-[11px]">{t("common.viewDetails")}</Button>
+                      </Link>
+                      <button
+                        onClick={() => removeShop(shop.id)}
+                        aria-label={t("customer.products.removeFromWishlist")}
+                        className="rounded-lg p-1.5 opacity-0 transition-colors hover:bg-red-50 group-hover:opacity-100 dark:hover:bg-red-900/10"
+                      >
+                        <X className="h-4 w-4 text-muted-foreground hover:text-red-500" />
+                      </button>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

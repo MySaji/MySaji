@@ -286,6 +286,43 @@ export async function getOpenRequestsBoard(): Promise<BoardRequestItem[]> {
   }))
 }
 
+export type PopularRequestItem = {
+  id: string
+  title: string
+  categoryName: string
+  responseCount: number
+}
+
+/** The small "Popular requests" teaser on the customer home's Post Board
+ * card. Deliberately NOT getOpenRequestsBoard — that one is the provider/
+ * shopkeeper working list (role-gated, category-scoped, and it returns []
+ * for a customer). This is the customer-facing social-proof view: open,
+ * non-expired requests across the whole board ordered by how many
+ * providers have replied, exposing only the title, category and reply
+ * count — no author, budget, location or description, so nothing
+ * identifying about another customer leaks onto this page.
+ */
+export async function getPopularOpenRequests(take = 3): Promise<PopularRequestItem[]> {
+  const requests = await db.customerRequest.findMany({
+    where: { status: "OPEN", expiresAt: { gt: new Date() } },
+    orderBy: [{ responses: { _count: "desc" } }, { createdAt: "desc" }],
+    take,
+    select: {
+      id: true,
+      title: true,
+      category: { select: { name: true } },
+      _count: { select: { responses: true } },
+    },
+  })
+
+  return requests.map((r) => ({
+    id: r.id,
+    title: r.title,
+    categoryName: r.category.name,
+    responseCount: r._count.responses,
+  }))
+}
+
 const respondSchema = z.object({
   requestId: z.string().trim().min(1),
   message: z.string().trim().min(5, "Add a short message").max(1000),
