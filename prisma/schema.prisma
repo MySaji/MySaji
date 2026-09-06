@@ -1605,6 +1605,12 @@ model Job {
   serviceId        String?
   servicePackageId String?
   offerId          String?
+  /// Set when this job came from a customer accepting a provider's response
+  /// on the request board, rather than from booking a listed service or
+  /// offer. Before this existed, accepting a response only closed the request
+  /// and opened a chat, so the agreed work was never recorded as a job and
+  /// nothing could track its completion or payment.
+  requestId        String?
   title            String
   description      String
   status           JobStatus  @default(PENDING)
@@ -1647,6 +1653,7 @@ model Job {
   service        Service?         @relation(fields: [serviceId], references: [id])
   servicePackage ServicePackage?  @relation(fields: [servicePackageId], references: [id])
   offer          Offer?           @relation(fields: [offerId], references: [id])
+  request        CustomerRequest? @relation(fields: [requestId], references: [id])
 
   review       Review?
   payments     Payment[]
@@ -2309,6 +2316,7 @@ model CustomerRequest {
   customer  User              @relation(fields: [customerId], references: [id])
   category  Category          @relation(fields: [categoryId], references: [id])
   responses RequestResponse[]
+  jobs      Job[]
 
   @@index([customerId])
   @@index([categoryId])

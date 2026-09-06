@@ -62,6 +62,11 @@ export function CustomerRequestsPage() {
     setShowPostModal(true)
   }, [describeParam])
   const [acceptError, setAcceptError] = useState("")
+  // Accepting now schedules the work and creates a real job, so it needs a
+  // date and time — a request carries none of its own.
+  const [schedulingResponse, setSchedulingResponse] = useState<{ id: string; price: number } | null>(null)
+  const [acceptDate, setAcceptDate] = useState("")
+  const [acceptTime, setAcceptTime] = useState("")
 
   const STATUS_LABEL: Record<string, string> = {
     OPEN: t("customer.requests.statusOpen"),
@@ -138,14 +143,28 @@ export function CustomerRequestsPage() {
     closeDetail()
   }
 
-  const handleAccept = async (responseId: string) => {
-    if (!selectedRequestId) return
-    setAcceptingResponseId(responseId)
+  const handleAccept = async () => {
+    if (!selectedRequestId || !schedulingResponse) return
+    if (!acceptDate || !acceptTime) { setAcceptError(t("customer.requests.acceptNeedsSchedule")); return }
+    setAcceptingResponseId(schedulingResponse.id)
     setAcceptError("")
-    const result = await acceptRequestResponse({ requestId: selectedRequestId, responseId })
+    const result = await acceptRequestResponse({
+      requestId: selectedRequestId,
+      responseId: schedulingResponse.id,
+      date: acceptDate,
+      time: acceptTime,
+    })
     setAcceptingResponseId(null)
-    if (!result.success) { setAcceptError(result.error); return }
-    router.push(`/customer/messages?conversation=${result.conversationId}`)
+    if (!result.success) {
+      if (handleGateFailure(result)) return
+      setAcceptError(result.error)
+      return
+    }
+    // Straight to payment for the job this just created. The conversation is
+    // open either way, but leaving the customer in chat was the old bug: the
+    // agreed work went unrecorded and unpaid.
+    setSchedulingResponse(null)
+    router.push(`/customer/booking?resume=${result.jobId}`)
   }
 
   if (isLoading) {
@@ -300,7 +319,7 @@ export function CustomerRequestsPage() {
                           ) : resp.status === "DECLINED" ? (
                             <span className="mt-2 inline-block text-[11px] text-muted-foreground">{t("customer.requests.declined")}</span>
                           ) : detail.status === "OPEN" ? (
-                            <Button size="sm" className="mt-2 rounded-lg h-7 text-[11px]" onClick={() => handleAccept(resp.id)} disabled={acceptingResponseId === resp.id}>
+                            <Button size="sm" className="mt-2 rounded-lg h-7 text-[11px]" onClick={() => { setAcceptError(""); setSchedulingResponse({ id: resp.id, price: resp.price }) }} disabled={acceptingResponseId === resp.id}>
                               {acceptingResponseId === resp.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : t("customer.requests.acceptButton")}
                             </Button>
                           ) : null}
@@ -313,6 +332,58 @@ export function CustomerRequestsPage() {
               </div>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Scheduling — accepting a response creates a real job, and a job needs
+          a date. Shown before the accept goes through rather than after, so
+          the customer is never committed to work with no agreed time. */}
+      <Dialog open={schedulingResponse !== null} onOpenChange={(v) => { if (!v) setSchedulingResponse(null) }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("customer.requests.scheduleTitle")}</DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-muted-foreground">{t("customer.requests.scheduleDesc")}</p>
+
+          {schedulingResponse && (
+            <div className="flex items-center justify-between rounded-xl border border-border bg-muted/40 px-3 py-2">
+              <span className="text-[11px] text-muted-foreground">{t("customer.requests.scheduleAgreedPrice")}</span>
+              <span className="text-sm font-bold text-foreground">{formatMoney(schedulingResponse.price)}</span>
+            </div>
+          )}
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <p className="mb-1.5 text-xs text-muted-foreground">{t("customer.requests.scheduleDate")}</p>
+              <Input
+                type="date"
+                value={acceptDate}
+                min={new Date().toISOString().slice(0, 10)}
+                onChange={(e) => setAcceptDate(e.target.value)}
+                className="rounded-xl"
+              />
+            </div>
+            <div>
+              <p className="mb-1.5 text-xs text-muted-foreground">{t("customer.requests.scheduleTime")}</p>
+              <Input type="time" value={acceptTime} onChange={(e) => setAcceptTime(e.target.value)} className="rounded-xl" />
+            </div>
+          </div>
+
+          {acceptError && <p className="text-xs text-red-600 dark:text-red-400">{acceptError}</p>}
+
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button variant="outline" onClick={() => setSchedulingResponse(null)} className="rounded-xl">
+              {t("common.cancel")}
+            </Button>
+            <Button
+              onClick={handleAccept}
+              disabled={acceptingResponseId !== null}
+              className="gap-2 rounded-xl"
+            >
+              {acceptingResponseId !== null && <Loader2 className="h-4 w-4 animate-spin" />}
+              {t("customer.requests.scheduleConfirm")}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

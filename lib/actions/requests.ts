@@ -6,6 +6,7 @@ import { db } from "@/lib/db"
 import { requireVerified } from "@/lib/verification-gate"
 import { getOrCreateConversation } from "@/lib/actions/messages"
 import { pushToUser } from "@/lib/actions/push"
+import { logJobEvent } from "@/lib/actions/job-events"
 
 const REQUEST_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000
 const MAX_NOTIFIED_PROVIDERS = 15
@@ -412,9 +413,20 @@ export async function respondToRequest(input: unknown): Promise<RequestActionRes
 
 // ============================= ACCEPT (customer) =============================
 
-export type AcceptResponseResult = { success: true; conversationId: string } | { success: false; error: string }
+export type AcceptResponseResult =
+  | { success: true; conversationId: string; jobId: string; amount: number }
+  | { success: false; error: string }
 
-const acceptSchema = z.object({ requestId: z.string().trim().min(1), responseId: z.string().trim().min(1) })
+const acceptSchema = z.object({
+  requestId: z.string().trim().min(1),
+  responseId: z.string().trim().min(1),
+  // A request carries no date of its own, so the customer supplies one when
+  // they accept — same as booking a listed service. Without it the job would
+  // have to invent a scheduled date, and the provider would have no idea when
+  // they are expected.
+  date: z.string().trim().min(1, "Choose a date"),
+  time: z.string().trim().min(1, "Choose a time"),
+})
 
 export async function acceptRequestResponse(input: unknown): Promise<AcceptResponseResult> {
   const session = await auth()
@@ -433,6 +445,54 @@ export async function acceptRequestResponse(input: unknown): Promise<AcceptRespo
   const chosen = request.responses.find((r) => r.id === parsed.data.responseId)
   if (!chosen) return { success: false, error: "Response not found." }
 
+  // Accepting has to produce a real job. Until now it only closed the request
+  // and opened a chat, so the agreed work existed nowhere the system could
+  // track: no status to advance, no payment to take, no completion to record,
+  // and nothing for the provider's earnings or the customer's order history.
+  const responderProfile = await db.providerProfile.findUnique({
+    where: { userId: chosen.responderId },
+    select: { id: true },
+  })
+  if (!responderProfile) {
+    // Only providers can respond to SERVICE requests (see respondToRequest),
+    // so this means the responder's provider profile has gone since. Refusing
+    // is right: silently closing the request with no job is the very bug this
+    // is fixing.
+    return { success: false, error: "That provider is no longer available. Please choose another response." }
+  }
+
+  const scheduledDate = new Date(`${parsed.data.date}T${parsed.data.time}:00`)
+  if (Number.isNaN(scheduledDate.getTime())) {
+    return { success: false, error: "Invalid date or time." }
+  }
+
+  const amount = Number(chosen.price)
+
+  // PENDING_PAYMENT, exactly as createBooking leaves a new booking: the
+  // customer pays into escrow next, and that payment is what moves the job
+  // into the normal pipeline.
+  const job = await db.job.create({
+    data: {
+      customerId: session.user.id,
+      providerId: responderProfile.id,
+      requestId: request.id,
+      title: request.title,
+      description: request.description,
+      price: amount,
+      location: request.location,
+      scheduledDate,
+      status: "PENDING_PAYMENT",
+    },
+  })
+
+  await logJobEvent({
+    jobId: job.id,
+    type: "JOB_CREATED",
+    actor: "CUSTOMER",
+    actorUserId: session.user.id,
+    description: `Customer accepted a response to "${request.title}"`,
+  })
+
   await db.$transaction([
     db.requestResponse.update({ where: { id: chosen.id }, data: { status: "ACCEPTED" } }),
     db.requestResponse.updateMany({
@@ -444,11 +504,11 @@ export async function acceptRequestResponse(input: unknown): Promise<AcceptRespo
       data: {
         userId: chosen.responderId,
         title: "Your offer was accepted!",
-        message: `Your offer for "${request.title}" was accepted. Head to messages to continue.`,
+        message: `Your offer for "${request.title}" was accepted. The job is now in your jobs list.`,
         type: "JOB",
         relatedType: "CUSTOMER_REQUEST",
         relatedId: request.id,
-        actionUrl: "/customer/messages",
+        actionUrl: "/provider/jobs",
       },
     }),
   ])
@@ -462,5 +522,5 @@ export async function acceptRequestResponse(input: unknown): Promise<AcceptRespo
   const convResult = await getOrCreateConversation({ otherUserId: chosen.responderId })
   if (!convResult.success) return convResult
 
-  return { success: true, conversationId: convResult.conversationId }
+  return { success: true, conversationId: convResult.conversationId, jobId: job.id, amount }
 }
