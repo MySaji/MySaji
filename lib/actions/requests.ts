@@ -169,6 +169,10 @@ export type CustomerRequestDetail = {
   title: string
   description: string
   categoryName: string
+  /// Which pipeline accepting a response settles into — a SERVICE request
+  /// becomes a Job and needs scheduling, a PRODUCT request becomes an Order
+  /// and does not. The accept UI branches on this.
+  categoryType: "SERVICE" | "PRODUCT"
   budgetMin: number | null
   budgetMax: number | null
   location: string
@@ -185,7 +189,7 @@ export async function getCustomerRequestById(id: string): Promise<CustomerReques
   const request = await db.customerRequest.findUnique({
     where: { id },
     include: {
-      category: { select: { name: true } },
+      category: { select: { name: true, type: true } },
       responses: {
         orderBy: { createdAt: "desc" },
         include: { responder: { select: { id: true, name: true, image: true } } },
@@ -199,6 +203,7 @@ export async function getCustomerRequestById(id: string): Promise<CustomerReques
     title: request.title,
     description: request.description,
     categoryName: request.category.name,
+    categoryType: request.category.type === "PRODUCT" ? "PRODUCT" : "SERVICE",
     budgetMin: request.budgetMin != null ? Number(request.budgetMin) : null,
     budgetMax: request.budgetMax != null ? Number(request.budgetMax) : null,
     location: request.location,
@@ -334,6 +339,13 @@ const respondSchema = z.object({
   requestId: z.string().trim().min(1),
   message: z.string().trim().min(5, "Add a short message").max(1000),
   price: z.number().positive("Enter a valid price"),
+  // A shopkeeper answering a PRODUCT request names the catalogue item they
+  // are offering. Accepting turns it into a real order line, which cannot
+  // exist without a real product — so the item is collected here, at the
+  // point the shopkeeper knows what they are selling, rather than guessed at
+  // acceptance time. Providers answering SERVICE requests leave both unset.
+  productId: z.string().trim().min(1).optional(),
+  quantity: z.coerce.number().int().positive().max(999).optional(),
 })
 
 export async function respondToRequest(input: unknown): Promise<RequestActionResult> {
@@ -382,10 +394,28 @@ export async function respondToRequest(input: unknown): Promise<RequestActionRes
   const existing = await db.requestResponse.findFirst({ where: { requestId: request.id, responderId: session.user.id } })
   if (existing) return { success: false, error: "You've already responded to this request." }
 
+  // Validate the offered item belongs to this shop and is sellable, here
+  // rather than at acceptance: the customer should never accept an offer that
+  // then cannot become an order.
+  let productId: string | undefined
+  if (session.user.role === "shopkeeper") {
+    if (!parsed.data.productId) {
+      return { success: false, error: "Choose which product you're offering." }
+    }
+    const shop = await db.shopkeeperProfile.findUnique({ where: { userId: session.user.id }, select: { id: true } })
+    const product = shop
+      ? await db.product.findFirst({ where: { id: parsed.data.productId, shopkeeperId: shop.id, isActive: true }, select: { id: true } })
+      : null
+    if (!product) return { success: false, error: "That product isn't available in your shop." }
+    productId = product.id
+  }
+
   await db.requestResponse.create({
     data: {
       requestId: request.id,
       responderId: session.user.id,
+      productId,
+      quantity: parsed.data.quantity ?? 1,
       message: parsed.data.message,
       price: parsed.data.price,
     },
@@ -414,7 +444,8 @@ export async function respondToRequest(input: unknown): Promise<RequestActionRes
 // ============================= ACCEPT (customer) =============================
 
 export type AcceptResponseResult =
-  | { success: true; conversationId: string; jobId: string; amount: number }
+  | { success: true; conversationId: string; kind: "job"; jobId: string; amount: number }
+  | { success: true; conversationId: string; kind: "order"; orderId: string; amount: number }
   | { success: false; error: string }
 
 const acceptSchema = z.object({
@@ -424,8 +455,10 @@ const acceptSchema = z.object({
   // they accept — same as booking a listed service. Without it the job would
   // have to invent a scheduled date, and the provider would have no idea when
   // they are expected.
-  date: z.string().trim().min(1, "Choose a date"),
-  time: z.string().trim().min(1, "Choose a time"),
+  // Only a service needs scheduling. A product order has nothing to schedule,
+  // so these are optional and required below only for the job branch.
+  date: z.string().trim().optional(),
+  time: z.string().trim().optional(),
 })
 
 export async function acceptRequestResponse(input: unknown): Promise<AcceptResponseResult> {
@@ -437,7 +470,7 @@ export async function acceptRequestResponse(input: unknown): Promise<AcceptRespo
 
   const request = await db.customerRequest.findUnique({
     where: { id: parsed.data.requestId },
-    include: { responses: true },
+    include: { responses: true, category: { select: { type: true } } },
   })
   if (!request || request.customerId !== session.user.id) return { success: false, error: "Request not found." }
   if (request.status !== "OPEN") return { success: false, error: "This request is no longer open." }
@@ -445,53 +478,93 @@ export async function acceptRequestResponse(input: unknown): Promise<AcceptRespo
   const chosen = request.responses.find((r) => r.id === parsed.data.responseId)
   if (!chosen) return { success: false, error: "Response not found." }
 
-  // Accepting has to produce a real job. Until now it only closed the request
-  // and opened a chat, so the agreed work existed nowhere the system could
-  // track: no status to advance, no payment to take, no completion to record,
-  // and nothing for the provider's earnings or the customer's order history.
-  const responderProfile = await db.providerProfile.findUnique({
-    where: { userId: chosen.responderId },
-    select: { id: true },
-  })
-  if (!responderProfile) {
-    // Only providers can respond to SERVICE requests (see respondToRequest),
-    // so this means the responder's provider profile has gone since. Refusing
-    // is right: silently closing the request with no job is the very bug this
-    // is fixing.
-    return { success: false, error: "That provider is no longer available. Please choose another response." }
-  }
-
-  const scheduledDate = new Date(`${parsed.data.date}T${parsed.data.time}:00`)
-  if (Number.isNaN(scheduledDate.getTime())) {
-    return { success: false, error: "Invalid date or time." }
-  }
-
+  // Accepting has to produce something the system can track. Until now it
+  // only closed the request and opened a chat, so the agreed work existed
+  // nowhere: no status to advance, no payment to take, no completion to
+  // record, and nothing in the provider's earnings or the customer's history.
+  //
+  // Which record depends on what was asked for: a SERVICE request settles
+  // into a Job on the booking pipeline, a PRODUCT request into an Order on
+  // the shop pipeline. respondToRequest already guarantees the responder
+  // matches the request type.
   const amount = Number(chosen.price)
+  const isProduct = request.category.type === "PRODUCT"
 
-  // PENDING_PAYMENT, exactly as createBooking leaves a new booking: the
-  // customer pays into escrow next, and that payment is what moves the job
-  // into the normal pipeline.
-  const job = await db.job.create({
-    data: {
-      customerId: session.user.id,
-      providerId: responderProfile.id,
-      requestId: request.id,
-      title: request.title,
-      description: request.description,
-      price: amount,
-      location: request.location,
-      scheduledDate,
-      status: "PENDING_PAYMENT",
-    },
-  })
+  let jobId: string | null = null
+  let orderId: string | null = null
 
-  await logJobEvent({
-    jobId: job.id,
-    type: "JOB_CREATED",
-    actor: "CUSTOMER",
-    actorUserId: session.user.id,
-    description: `Customer accepted a response to "${request.title}"`,
-  })
+  if (isProduct) {
+    const product = chosen.productId
+      ? await db.product.findUnique({ where: { id: chosen.productId }, select: { id: true, shopkeeperId: true } })
+      : null
+    if (!product) {
+      // Responses made before the shopkeeper had to name an item, or an item
+      // since removed. Refusing beats closing the request with nothing behind
+      // it, which is the bug being fixed.
+      return { success: false, error: "That offer is no longer available. Please choose another response." }
+    }
+
+    const quantity = chosen.quantity || 1
+    const unitPrice = amount / quantity
+    const order = await db.order.create({
+      data: {
+        orderNumber: `ORD-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`,
+        customerId: session.user.id,
+        shopkeeperId: product.shopkeeperId,
+        requestId: request.id,
+        status: "PENDING",
+        subtotal: amount,
+        total: amount,
+        notes: `From request: ${request.title}`,
+        items: {
+          create: [{ productId: product.id, quantity, unitPrice, totalPrice: amount }],
+        },
+      },
+    })
+    orderId = order.id
+  } else {
+    const responderProfile = await db.providerProfile.findUnique({
+      where: { userId: chosen.responderId },
+      select: { id: true },
+    })
+    if (!responderProfile) {
+      return { success: false, error: "That provider is no longer available. Please choose another response." }
+    }
+
+    if (!parsed.data.date || !parsed.data.time) {
+      return { success: false, error: "Choose a date and time for the work." }
+    }
+    const scheduledDate = new Date(`${parsed.data.date}T${parsed.data.time}:00`)
+    if (Number.isNaN(scheduledDate.getTime())) {
+      return { success: false, error: "Invalid date or time." }
+    }
+
+    // PENDING_PAYMENT, exactly as createBooking leaves a new booking: the
+    // customer pays into escrow next, and that payment is what moves the job
+    // into the normal pipeline.
+    const job = await db.job.create({
+      data: {
+        customerId: session.user.id,
+        providerId: responderProfile.id,
+        requestId: request.id,
+        title: request.title,
+        description: request.description,
+        price: amount,
+        location: request.location,
+        scheduledDate,
+        status: "PENDING_PAYMENT",
+      },
+    })
+    jobId = job.id
+
+    await logJobEvent({
+      jobId: job.id,
+      type: "JOB_CREATED",
+      actor: "CUSTOMER",
+      actorUserId: session.user.id,
+      description: `Customer accepted a response to "${request.title}"`,
+    })
+  }
 
   await db.$transaction([
     db.requestResponse.update({ where: { id: chosen.id }, data: { status: "ACCEPTED" } }),
@@ -504,11 +577,13 @@ export async function acceptRequestResponse(input: unknown): Promise<AcceptRespo
       data: {
         userId: chosen.responderId,
         title: "Your offer was accepted!",
-        message: `Your offer for "${request.title}" was accepted. The job is now in your jobs list.`,
+        message: isProduct
+          ? `Your offer for "${request.title}" was accepted. The order is now in your orders list.`
+          : `Your offer for "${request.title}" was accepted. The job is now in your jobs list.`,
         type: "JOB",
         relatedType: "CUSTOMER_REQUEST",
         relatedId: request.id,
-        actionUrl: "/provider/jobs",
+        actionUrl: isProduct ? "/shopkeeper/orders" : "/provider/jobs",
       },
     }),
   ])
@@ -522,5 +597,7 @@ export async function acceptRequestResponse(input: unknown): Promise<AcceptRespo
   const convResult = await getOrCreateConversation({ otherUserId: chosen.responderId })
   if (!convResult.success) return convResult
 
-  return { success: true, conversationId: convResult.conversationId, jobId: job.id, amount }
+  return orderId
+    ? { success: true, conversationId: convResult.conversationId, kind: "order", orderId, amount }
+    : { success: true, conversationId: convResult.conversationId, kind: "job", jobId: jobId as string, amount }
 }

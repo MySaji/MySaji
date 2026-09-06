@@ -143,16 +143,23 @@ export function CustomerRequestsPage() {
     closeDetail()
   }
 
+  // A product request settles into an order, which has nothing to schedule.
+  const isProductRequest = detail?.categoryType === "PRODUCT"
+
   const handleAccept = async () => {
     if (!selectedRequestId || !schedulingResponse) return
-    if (!acceptDate || !acceptTime) { setAcceptError(t("customer.requests.acceptNeedsSchedule")); return }
+    // Only a service needs scheduling; a product offer has nothing to schedule.
+    if (!isProductRequest && (!acceptDate || !acceptTime)) {
+      setAcceptError(t("customer.requests.acceptNeedsSchedule"))
+      return
+    }
     setAcceptingResponseId(schedulingResponse.id)
     setAcceptError("")
     const result = await acceptRequestResponse({
       requestId: selectedRequestId,
       responseId: schedulingResponse.id,
-      date: acceptDate,
-      time: acceptTime,
+      date: isProductRequest ? undefined : acceptDate,
+      time: isProductRequest ? undefined : acceptTime,
     })
     setAcceptingResponseId(null)
     if (!result.success) {
@@ -160,11 +167,11 @@ export function CustomerRequestsPage() {
       setAcceptError(result.error)
       return
     }
-    // Straight to payment for the job this just created. The conversation is
-    // open either way, but leaving the customer in chat was the old bug: the
-    // agreed work went unrecorded and unpaid.
+    // Straight to what this just created. The conversation is open either
+    // way, but leaving the customer in chat was the old bug: the agreed work
+    // went unrecorded and unpaid.
     setSchedulingResponse(null)
-    router.push(`/customer/booking?resume=${result.jobId}`)
+    router.push(result.kind === "order" ? `/customer/orders/${result.orderId}` : `/customer/booking?resume=${result.jobId}`)
   }
 
   if (isLoading) {
@@ -341,9 +348,13 @@ export function CustomerRequestsPage() {
       <Dialog open={schedulingResponse !== null} onOpenChange={(v) => { if (!v) setSchedulingResponse(null) }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{t("customer.requests.scheduleTitle")}</DialogTitle>
+            <DialogTitle>
+              {isProductRequest ? t("customer.requests.acceptOrderTitle") : t("customer.requests.scheduleTitle")}
+            </DialogTitle>
           </DialogHeader>
-          <p className="text-xs text-muted-foreground">{t("customer.requests.scheduleDesc")}</p>
+          <p className="text-xs text-muted-foreground">
+            {isProductRequest ? t("customer.requests.acceptOrderDesc") : t("customer.requests.scheduleDesc")}
+          </p>
 
           {schedulingResponse && (
             <div className="flex items-center justify-between rounded-xl border border-border bg-muted/40 px-3 py-2">
@@ -352,6 +363,8 @@ export function CustomerRequestsPage() {
             </div>
           )}
 
+          {/* Scheduling is service-only; an order has no date to agree. */}
+          {!isProductRequest && (
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <p className="mb-1.5 text-xs text-muted-foreground">{t("customer.requests.scheduleDate")}</p>
@@ -368,6 +381,7 @@ export function CustomerRequestsPage() {
               <Input type="time" value={acceptTime} onChange={(e) => setAcceptTime(e.target.value)} className="rounded-xl" />
             </div>
           </div>
+          )}
 
           {acceptError && <p className="text-xs text-red-600 dark:text-red-400">{acceptError}</p>}
 
@@ -381,7 +395,7 @@ export function CustomerRequestsPage() {
               className="gap-2 rounded-xl"
             >
               {acceptingResponseId !== null && <Loader2 className="h-4 w-4 animate-spin" />}
-              {t("customer.requests.scheduleConfirm")}
+              {isProductRequest ? t("customer.requests.acceptOrderConfirm") : t("customer.requests.scheduleConfirm")}
             </Button>
           </div>
         </DialogContent>

@@ -1470,6 +1470,7 @@ model Product {
   reviews         Review[]
   cartItems       CartItem[]
   orderItems      OrderItem[]
+  requestResponses RequestResponse[]
   wishlistedBy    WishlistItem[]        @relation("WishlistedProduct")
   liveSessionFeatures LiveSessionProduct[]
   restockedByWholesaleItems WholesaleOrderItem[] @relation("ProductRestockSource")
@@ -2317,6 +2318,7 @@ model CustomerRequest {
   category  Category          @relation(fields: [categoryId], references: [id])
   responses RequestResponse[]
   jobs      Job[]
+  orders    Order[]
 
   @@index([customerId])
   @@index([categoryId])
@@ -2338,11 +2340,19 @@ model RequestResponse {
   responderId String
   message     String
   price       Decimal               @db.Decimal(12, 2)
+  /// Which catalogue item a shopkeeper is offering against a PRODUCT request,
+  /// and how many. Accepting the response turns these into a real Order line,
+  /// which is only possible because the item is a genuine Product — an order
+  /// line cannot exist without one. Null for a provider answering a SERVICE
+  /// request, where accepting creates a Job instead.
+  productId   String?
+  quantity    Int                   @default(1)
   status      RequestResponseStatus @default(PENDING)
   createdAt   DateTime              @default(now())
 
   request   CustomerRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
   responder User            @relation(fields: [responderId], references: [id])
+  product   Product?        @relation(fields: [productId], references: [id])
 
   @@index([requestId])
   @@index([responderId])
@@ -2489,6 +2499,10 @@ model Order {
   orderNumber  String      @unique
   customerId   String
   shopkeeperId String
+  /// Set when this order came from a customer accepting a shopkeeper's
+  /// response on the request board rather than from a normal checkout, so
+  /// the request it settles can be traced. Mirrors Job.requestId.
+  requestId    String?
   addressId    String?
   status       OrderStatus @default(PENDING)
   subtotal     Decimal     @db.Decimal(14, 2)
@@ -2506,6 +2520,7 @@ model Order {
 
   customer   User              @relation("CustomerOrders", fields: [customerId], references: [id])
   shopkeeper ShopkeeperProfile @relation("ShopkeeperOrders", fields: [shopkeeperId], references: [id])
+  request    CustomerRequest?  @relation(fields: [requestId], references: [id])
   address    Address?          @relation(fields: [addressId], references: [id])
 
   items    OrderItem[]

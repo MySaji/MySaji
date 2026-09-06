@@ -8,6 +8,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { MapPin, MessageSquare, Loader2, CheckCircle2, ClipboardList } from "lucide-react"
 import { getOpenRequestsBoard, respondToRequest, type BoardRequestItem } from "@/lib/actions/requests"
+import { getMyProducts, type ShopkeeperProduct } from "@/lib/actions/shopkeeper-products"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useLocalization } from "@/lib/hooks/useLocalization"
 
 export default function ShopkeeperRequestsPage() {
@@ -18,6 +20,12 @@ export default function ShopkeeperRequestsPage() {
   const [activeRequest, setActiveRequest] = useState<BoardRequestItem | null>(null)
   const [message, setMessage] = useState("")
   const [price, setPrice] = useState("")
+  // Accepting this response creates a real order, and an order line needs a
+  // real catalogue item — so the shop names it here, where they know what
+  // they are selling, rather than it being guessed at acceptance.
+  const [products, setProducts] = useState<ShopkeeperProduct[]>([])
+  const [productId, setProductId] = useState("")
+  const [quantity, setQuantity] = useState("1")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formError, setFormError] = useState("")
 
@@ -25,12 +33,17 @@ export default function ShopkeeperRequestsPage() {
 
   useEffect(() => {
     refresh().finally(() => setIsLoading(false))
+    getMyProducts()
+      .then((rows) => setProducts(rows.filter((r) => r.status !== "draft")))
+      .catch(() => {})
   }, [])
 
   const openRespond = (req: BoardRequestItem) => {
     setActiveRequest(req)
     setMessage("")
     setPrice("")
+    setProductId("")
+    setQuantity("1")
     setFormError("")
   }
 
@@ -38,7 +51,13 @@ export default function ShopkeeperRequestsPage() {
     if (!activeRequest) return
     setIsSubmitting(true)
     setFormError("")
-    const result = await respondToRequest({ requestId: activeRequest.id, message, price: Number(price) })
+    const result = await respondToRequest({
+      requestId: activeRequest.id,
+      message,
+      price: Number(price),
+      productId,
+      quantity: Number(quantity) || 1,
+    })
     setIsSubmitting(false)
     if (!result.success) { setFormError(result.error); return }
     setActiveRequest(null)
@@ -112,8 +131,32 @@ export default function ShopkeeperRequestsPage() {
               <label className="text-xs font-medium mb-1.5 block">{t("shopkeeper.requests.priceLabel")}</label>
               <Input type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0" />
             </div>
+
+            <div>
+              <p className="mb-1.5 text-[11px] text-gray-500 dark:text-gray-400">{t("shopkeeper.requests.productLabel")}</p>
+              <Select value={productId} onValueChange={setProductId}>
+                <SelectTrigger className="rounded-xl">
+                  <SelectValue placeholder={t("shopkeeper.requests.productPlaceholder")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {products.map((prod) => (
+                    <SelectItem key={prod.id} value={prod.id}>
+                      {prod.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {products.length === 0 && (
+                <p className="mt-1 text-[11px] text-amber-600 dark:text-amber-500">{t("shopkeeper.requests.noProducts")}</p>
+              )}
+            </div>
+
+            <div>
+              <p className="mb-1.5 text-[11px] text-gray-500 dark:text-gray-400">{t("shopkeeper.requests.quantityLabel")}</p>
+              <Input type="number" min="1" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
+            </div>
             {formError && <p className="text-[11px] text-red-600">{formError}</p>}
-            <Button className="w-full rounded-xl" onClick={handleSubmit} disabled={isSubmitting || message.trim().length < 5 || !(Number(price) > 0)}>
+            <Button className="w-full rounded-xl" onClick={handleSubmit} disabled={isSubmitting || message.trim().length < 5 || !(Number(price) > 0) || !productId}>
               {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : t("shopkeeper.requests.submitResponse")}
             </Button>
           </div>
