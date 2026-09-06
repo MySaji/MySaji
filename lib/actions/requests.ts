@@ -444,8 +444,10 @@ export async function respondToRequest(input: unknown): Promise<RequestActionRes
 // ============================= ACCEPT (customer) =============================
 
 export type AcceptResponseResult =
-  | { success: true; conversationId: string; kind: "job"; jobId: string; amount: number }
-  | { success: true; conversationId: string; kind: "order"; orderId: string; amount: number }
+  // conversationId is nullable: opening the chat is a convenience alongside
+  // the real outcome, not a condition of it. See the note where it is created.
+  | { success: true; conversationId: string | null; kind: "job"; jobId: string; amount: number }
+  | { success: true; conversationId: string | null; kind: "order"; orderId: string; amount: number }
   | { success: false; error: string }
 
 const acceptSchema = z.object({
@@ -594,10 +596,17 @@ export async function acceptRequestResponse(input: unknown): Promise<AcceptRespo
     url: "/messages",
   }, "job")
 
+  // Opening the chat must not be able to fail the acceptance. By this point
+  // the job or order exists, the response is accepted and the request is
+  // closed — all committed. Returning the conversation's failure here undid
+  // none of that; it just told the customer their acceptance had failed while
+  // the record sat in the database, and stopped the client sending them on to
+  // pay for it. canMessage() refusing the pair (see lib/message-permissions.ts)
+  // is a real possibility, so this is not theoretical.
   const convResult = await getOrCreateConversation({ otherUserId: chosen.responderId })
-  if (!convResult.success) return convResult
+  const conversationId = convResult.success ? convResult.conversationId : null
 
   return orderId
-    ? { success: true, conversationId: convResult.conversationId, kind: "order", orderId, amount }
-    : { success: true, conversationId: convResult.conversationId, kind: "job", jobId: jobId as string, amount }
+    ? { success: true, conversationId, kind: "order", orderId, amount }
+    : { success: true, conversationId, kind: "job", jobId: jobId as string, amount }
 }
