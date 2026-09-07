@@ -7,15 +7,17 @@ import { LoadingScreen } from "@/components/loading-screen"
 import { CustomerSearchPage } from "@/components/pages/customer-search-page"
 
 export default function SearchPage() {
-  const { isAuthenticated, isLoading, user } = useAuthContext()
+  const { isLoading, user } = useAuthContext()
   const router = useRouter()
 
+  // Search is open to everyone, signed in or not — see the matching note in
+  // app/customer/services/page.tsx. A signed-in non-customer still goes to
+  // their own portal.
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) router.push("/")
     if (!isLoading && user && user.role !== "customer") router.push("/")
-  }, [isAuthenticated, isLoading, user, router])
+  }, [isLoading, user, router])
 
-  if (isLoading || !isAuthenticated) return <LoadingScreen />
+  if (isLoading) return <LoadingScreen />
   return (
     <Suspense>
       <CustomerSearchPage />
