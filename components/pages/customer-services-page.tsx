@@ -236,7 +236,13 @@ export function CustomerServicesPage() {
       setLiveOffers(offers)
     })
 
-    Promise.all([loadServices(), loadProducts()]).finally(() => setIsLoading(false))
+    // The spinner waits on the services only. Trending products are a strip
+    // further down the page, and blocking the whole marketplace on them meant
+    // a visitor stared at a spinner until the slower of the two finished —
+    // for no reason, since services are what they came for. Products fill in
+    // when they arrive.
+    loadServices().finally(() => setIsLoading(false))
+    loadProducts()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
