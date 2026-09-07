@@ -40,6 +40,7 @@ import { createBooking, createEmergencyBooking } from "@/lib/actions/jobs"
 import { getAddresses } from "@/lib/actions/addresses"
 import PaymentMethods from "@/components/payment/payment-methods"
 import { withTimeout, DASHBOARD_FETCH_TIMEOUT_MS } from "@/lib/swr-utils"
+import { useAuthContext } from "@/lib/auth-context"
 import { CATEGORY_STYLE, DEFAULT_CATEGORY_STYLE, CATEGORY_ICONS } from "@/lib/customer/category-style"
 
 const EMERGENCY_FEE = 2000
@@ -201,6 +202,8 @@ export function CustomerServicesPage() {
     })
   }
 
+  const { isAuthenticated } = useAuthContext()
+
   const loadServices = () => {
     setServicesLoadFailed(false)
     return withTimeout(getAllServices(), DASHBOARD_FETCH_TIMEOUT_MS)
@@ -225,16 +228,10 @@ export function CustomerServicesPage() {
     // this same catch-and-forget Promise.all.
     Promise.all([
       withTimeout(getServiceCategories(), DASHBOARD_FETCH_TIMEOUT_MS).catch(() => []),
-      withTimeout(getWishlistIds("SERVICE"), DASHBOARD_FETCH_TIMEOUT_MS).catch(() => []),
-      withTimeout(getCart(), DASHBOARD_FETCH_TIMEOUT_MS).catch(() => []),
-      withTimeout(getWalletSummary(), DASHBOARD_FETCH_TIMEOUT_MS).catch(() => null),
       withTimeout(getEmergencyCategoryOptions(), DASHBOARD_FETCH_TIMEOUT_MS).catch(() => []),
       withTimeout(getLiveOffers(), DASHBOARD_FETCH_TIMEOUT_MS).catch(() => []),
-    ]).then(([cats, wishlistIds, cart, wallet, emergencyCats, offers]) => {
+    ]).then(([cats, emergencyCats, offers]) => {
       setCategories(cats)
-      setFavorites(wishlistIds)
-      setCartItems(cart)
-      setWalletBalance(wallet?.balance ?? 0)
       setEmergencyCategories(emergencyCats)
       setLiveOffers(offers)
     })
@@ -242,6 +239,23 @@ export function CustomerServicesPage() {
     Promise.all([loadServices(), loadProducts()]).finally(() => setIsLoading(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // The signed-in half — a wishlist, a cart and a wallet balance a guest does
+  // not have. These used to fire for everyone on what is now the marketplace's
+  // most public page, and each one costs a round trip and one of only five
+  // pooled connections to return an empty result to someone with no account.
+  useEffect(() => {
+    if (!isAuthenticated) return
+    Promise.all([
+      withTimeout(getWishlistIds("SERVICE"), DASHBOARD_FETCH_TIMEOUT_MS).catch(() => []),
+      withTimeout(getCart(), DASHBOARD_FETCH_TIMEOUT_MS).catch(() => []),
+      withTimeout(getWalletSummary(), DASHBOARD_FETCH_TIMEOUT_MS).catch(() => null),
+    ]).then(([wishlistIds, cart, wallet]) => {
+      setFavorites(wishlistIds)
+      setCartItems(cart)
+      setWalletBalance(wallet?.balance ?? 0)
+    })
+  }, [isAuthenticated])
 
   // Curated top-rated preview — independent of the customer's active
   // search/filter state below, same "small curated row above the full
