@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Loader2, CheckCircle2, XCircle, Landmark } from "lucide-react"
 import { checkWalletTopupStatus, initiateBankTransferTopup, getBankTransferDetails } from "@/lib/actions/wallet"
+import { useGatedAction } from "@/lib/hooks/useGatedAction"
 
 type TopupState = "idle" | "bank-form" | "awaiting-provider" | "success" | "failed"
 
 export function WalletTopupMethods({ amount, onSuccess, returnPath = "/customer/wallet" }: { amount: number; onSuccess: () => void; returnPath?: string }) {
+  const { handleGateFailure } = useGatedAction()
   const [phone, setPhone] = useState("")
   const [bankReference, setBankReference] = useState("")
   const [bankDetails, setBankDetails] = useState<{ bankName: string; accountName: string; accountNumber: string } | null | undefined>(undefined)
@@ -103,6 +105,9 @@ export function WalletTopupMethods({ amount, onSuccess, returnPath = "/customer/
     const result = await initiateBankTransferTopup({ amount, reference: bankReference })
     setLoading(false)
     if (!result.success) {
+      // A verification refusal opens the wizard rather than leaving the user
+      // with a message and nowhere to act on it.
+      if (handleGateFailure(result)) return
       setMessage(result.error)
       return
     }

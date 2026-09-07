@@ -31,6 +31,7 @@ import { WarrantyPanel } from "@/components/warranty-panel"
 import { SafetySosButton } from "@/components/safety-sos-button"
 import { IdentityVerificationPanel } from "@/components/identity-verification-panel"
 import { useLocalization } from "@/lib/hooks/useLocalization"
+import { useGatedAction } from "@/lib/hooks/useGatedAction"
 import type { TranslationKey } from "@/lib/i18n"
 
 const LOCATION_SHARE_MIN_INTERVAL_MS = 15000
@@ -87,6 +88,7 @@ const STATUS_COLOR: Record<string, string> = {
 }
 
 export default function ProviderJobsPage() {
+  const { handleGateFailure } = useGatedAction()
   const { t, formatMoney } = useLocalization()
   const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState<TabKey>("active")
@@ -176,7 +178,16 @@ export default function ProviderJobsPage() {
     setActionInFlight(jobId)
     const result = await acceptJob({ jobId })
     setActionInFlight(null)
-    if (result.success) { setShowJobDetails(false); await refresh() }
+    if (!result.success) {
+      // This used to discard the failure silently: an unverified provider
+      // tapping Accept saw nothing happen at all, with no message and no
+      // way to find out why.
+      if (handleGateFailure(result)) return
+      alert(result.error)
+      return
+    }
+    setShowJobDetails(false)
+    await refresh()
   }
 
   const handleDeclineJob = async (jobId: string) => {

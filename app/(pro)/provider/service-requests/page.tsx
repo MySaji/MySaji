@@ -12,6 +12,7 @@ import {
   type ContractListItem, type ContractDetail,
 } from "@/lib/actions/service-contracts"
 import { useLocalization } from "@/lib/hooks/useLocalization"
+import { useGatedAction } from "@/lib/hooks/useGatedAction"
 
 const STATUS_STYLE: Record<string, { label: string; className: string }> = {
   REQUESTED: { label: "Needs Quote", className: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },
@@ -31,6 +32,7 @@ const TABS = [
 ] as const
 
 export default function ProviderServiceRequestsPage() {
+  const { handleGateFailure } = useGatedAction()
   const { formatMoney } = useLocalization()
   const [requests, setRequests] = useState<ContractListItem[]>([])
   const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("REQUESTED")
@@ -79,7 +81,13 @@ export default function ProviderServiceRequestsPage() {
       labourNotes: quoteForm.labourNotes || undefined, terms: quoteForm.terms || undefined,
     })
     setIsSaving(false)
-    if (!result.success) { setFormError(result.error); return }
+    if (!result.success) {
+      // A verification refusal opens the wizard rather than leaving the user
+      // with a message and nowhere to act on it.
+      if (handleGateFailure(result)) return
+      setFormError(result.error)
+      return
+    }
     setShowQuoteDialog(false)
     await refreshList()
     getContractDetail(selectedId).then(setDetail)

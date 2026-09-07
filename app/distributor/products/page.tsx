@@ -18,6 +18,7 @@ import {
   type DistributorProductRow, type DistributorProductCategoryOption, type DistributorLocationOption,
 } from "@/lib/actions/distributor-products"
 import { useLocalization } from "@/lib/hooks/useLocalization"
+import { useGatedAction } from "@/lib/hooks/useGatedAction"
 
 type ProductFormState = {
   name: string
@@ -36,6 +37,7 @@ const EMPTY_FORM: ProductFormState = {
 }
 
 export default function DistributorProductsPage() {
+  const { handleGateFailure } = useGatedAction()
   const { t, formatMoney } = useLocalization()
   const [isLoading, setIsLoading] = useState(true)
   const [productsList, setProductsList] = useState<DistributorProductRow[]>([])
@@ -123,7 +125,13 @@ export default function DistributorProductsPage() {
       initialStock,
     })
     setIsSaving(false)
-    if (!result.success) { setFormError(result.error); return }
+    if (!result.success) {
+      // A verification refusal opens the wizard rather than leaving the user
+      // with a message and nowhere to act on it.
+      if (handleGateFailure(result)) return
+      setFormError(result.error)
+      return
+    }
     setShowAddModal(false)
     await refresh()
   }
@@ -150,8 +158,9 @@ export default function DistributorProductsPage() {
   }
 
   const handleToggleActive = async (id: string) => {
-    await toggleDistributorProductActive({ id })
+    const toggleResult = await toggleDistributorProductActive({ id })
     await refresh()
+    if (!toggleResult.success) handleGateFailure(toggleResult)
   }
 
   const handleDeleteProduct = async (id: string) => {

@@ -145,7 +145,7 @@ export async function submitSupplierQuote(input: unknown): Promise<ProcurementAc
   })
 
   await notifyUser({
-    userId: request.businessUserId, title: "Supplier quote received", message: `A supplier quoted KES ${parsed.data.price.toLocaleString()} for "${request.productName}"`, type: "SYSTEM", actionUrl: "/business/procurement",
+    userId: request.businessUserId, title: "Supplier quote received", message: `A supplier quoted KES ${parsed.data.price.toLocaleString()} for "${request.productName}"`, type: "SYSTEM", actionUrl: "/provider/business/procurement",
   })
 
   return { success: true }

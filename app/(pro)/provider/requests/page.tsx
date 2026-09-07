@@ -9,8 +9,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { MapPin, MessageSquare, Loader2, CheckCircle2, ClipboardList } from "lucide-react"
 import { getOpenRequestsBoard, respondToRequest, type BoardRequestItem } from "@/lib/actions/requests"
 import { useLocalization } from "@/lib/hooks/useLocalization"
+import { useGatedAction } from "@/lib/hooks/useGatedAction"
 
 export default function ProviderRequestsPage() {
+  const { handleGateFailure } = useGatedAction()
   const { t, formatMoney } = useLocalization()
   const [requests, setRequests] = useState<BoardRequestItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -40,7 +42,13 @@ export default function ProviderRequestsPage() {
     setFormError("")
     const result = await respondToRequest({ requestId: activeRequest.id, message, price: Number(price) })
     setIsSubmitting(false)
-    if (!result.success) { setFormError(result.error); return }
+    if (!result.success) {
+      // A verification refusal opens the wizard rather than leaving the user
+      // with a message and nowhere to act on it.
+      if (handleGateFailure(result)) return
+      setFormError(result.error)
+      return
+    }
     setActiveRequest(null)
     await refresh()
   }

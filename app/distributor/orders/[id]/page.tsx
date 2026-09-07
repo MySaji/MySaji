@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeft, Loader2, CheckCircle2, Clock, Package, AlertCircle, Truck } from "lucide-react"
 import { getIncomingWholesaleOrders, advanceWholesaleOrderStatus, type IncomingWholesaleOrder } from "@/lib/actions/wholesale-orders"
 import { useLocalization } from "@/lib/hooks/useLocalization"
+import { useGatedAction } from "@/lib/hooks/useGatedAction"
 
 const STATUS_COLOR: Record<string, string> = {
   PENDING: "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400",
@@ -36,6 +37,7 @@ const NEXT_STATUS: Record<string, { labelKey: "distributor.orderDetail.markProce
 }
 
 export default function DistributorOrderDetailPage() {
+  const { handleGateFailure } = useGatedAction()
   const { t, formatMoney } = useLocalization()
   const params = useParams<{ id: string }>()
   const router = useRouter()
@@ -59,7 +61,13 @@ export default function DistributorOrderDetailPage() {
     setIsAdvancing(true)
     const result = await advanceWholesaleOrderStatus({ wholesaleOrderId: order.id, status: next.value })
     setIsAdvancing(false)
-    if (!result.success) { alert(result.error); return }
+    if (!result.success) {
+      // A verification refusal opens the wizard rather than leaving the user
+      // with a message and nowhere to act on it.
+      if (handleGateFailure(result)) return
+      alert(result.error)
+      return
+    }
     await refresh()
   }
 

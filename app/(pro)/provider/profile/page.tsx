@@ -94,9 +94,12 @@ export default function ProviderProfilePage() {
             {provider.rating} • {provider.providerSince}
           </p>
           <p className="text-xs text-gray-600 dark:text-gray-400 mb-4">{t("provider.profile.completedJobsLabel", { count: provider.completedJobs })}</p>
-          {/* Edit Profile Button */}
+          {/* Edit Profile Button — /provider/profile/edit never existed, so
+              this was a dead link on every provider's profile. The account
+              page is what edits the details shown just above it: name,
+              contact and location. */}
           <Link
-            href="/provider/profile/edit"
+            href="/provider/profile/account"
             className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg py-2 font-medium flex items-center justify-center gap-2 transition-colors"
           >
             <Edit className="w-4 h-4" />

@@ -14,10 +14,12 @@ import {
   type ShopkeeperEarningsSummary,
 } from "@/lib/actions/shopkeeper-earnings"
 import { useWalletTopupReturn } from "@/lib/hooks/useWalletTopupReturn"
+import { useGatedAction } from "@/lib/hooks/useGatedAction"
 import { WalletTopupMethods } from "@/components/payment/wallet-topup-methods"
 import { useLocalization } from "@/lib/hooks/useLocalization"
 
 export default function ShopkeeperEarningsPage() {
+  const { handleGateFailure } = useGatedAction()
   const { t, tn, formatMoney, currency } = useLocalization()
   const paymentMethods = [
     { id: "mpesa", name: t("payment.mpesa"), icon: Smartphone, description: t("shopkeeper.earnings.mpesaMethodDesc") },
@@ -118,7 +120,13 @@ export default function ShopkeeperEarningsPage() {
     })
     setIsSubmitting(false)
 
-    if (!result.success) { setError(result.error); return }
+    if (!result.success) {
+      // A verification refusal opens the wizard rather than leaving the
+      // merchant with a message and nowhere to act on it.
+      if (handleGateFailure(result)) return
+      setError(result.error)
+      return
+    }
 
     const methodName = paymentMethods.find(m => m.id === selectedPaymentMethod)?.name
     setSuccess(t("shopkeeper.earnings.withdrawalSuccess", { amount: formatMoney(parseFloat(withdrawAmount)), method: methodName ?? "" }))

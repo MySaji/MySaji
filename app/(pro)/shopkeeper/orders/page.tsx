@@ -25,8 +25,10 @@ import {
   type ShopkeeperOrder, type ShopkeeperOrderStatus, type ShopOrderDispute,
 } from "@/lib/actions/shopkeeper-orders"
 import { useLocalization } from "@/lib/hooks/useLocalization"
+import { useGatedAction } from "@/lib/hooks/useGatedAction"
 
 export default function ShopkeeperOrdersPage() {
+  const { handleGateFailure } = useGatedAction()
   const { t, formatMoney } = useLocalization()
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("all")
@@ -108,7 +110,13 @@ export default function ShopkeeperOrdersPage() {
     setBusyOrderId(orderId)
     const result = await advanceOrderStatus({ orderId, status })
     setBusyOrderId(null)
-    if (!result.success) { alert(result.error); return }
+    if (!result.success) {
+      // A verification refusal opens the wizard rather than leaving the
+      // merchant with a message and nowhere to act on it.
+      if (handleGateFailure(result)) return
+      alert(result.error)
+      return
+    }
     await refresh()
   }
 

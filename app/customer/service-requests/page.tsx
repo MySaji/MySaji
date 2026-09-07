@@ -13,6 +13,7 @@ import {
 } from "@/lib/actions/service-contracts"
 import { getContractTimeline, getJobTimeline, type JobTimelineEvent } from "@/lib/actions/job-events"
 import { useLocalization } from "@/lib/hooks/useLocalization"
+import { useGatedAction } from "@/lib/hooks/useGatedAction"
 
 const STATUS_STYLE: Record<string, { label: string; className: string }> = {
   REQUESTED: { label: "Awaiting Quote", className: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },
@@ -25,6 +26,7 @@ const STATUS_STYLE: Record<string, { label: string; className: string }> = {
 }
 
 export default function CustomerServiceRequestsPage() {
+  const { handleGateFailure } = useGatedAction()
   const { formatMoney } = useLocalization()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -62,7 +64,12 @@ export default function CustomerServiceRequestsPage() {
     setError("")
     const result = await respondToContractQuote({ contractId: selectedId, accept: true })
     setIsResponding(false)
-    if (!result.success) { setError(result.error); return }
+    if (!result.success) {
+      // Accepting a quote is the gated direction; declining below is not.
+      if (handleGateFailure(result)) return
+      setError(result.error)
+      return
+    }
     if (result.jobId) { router.push(`/customer/booking?resume=${result.jobId}`); return }
     await refreshList()
     getContractDetail(selectedId).then(setDetail)

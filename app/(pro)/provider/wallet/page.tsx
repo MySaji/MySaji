@@ -13,9 +13,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { getProviderWalletSummary, requestProviderWithdrawal, type ProviderWalletSummary } from "@/lib/actions/provider-wallet"
 import { useLocalization } from "@/lib/hooks/useLocalization"
+import { useGatedAction } from "@/lib/hooks/useGatedAction"
 import type { TranslationKey } from "@/lib/i18n"
 
 export default function ProviderWalletPage() {
+  const { handleGateFailure } = useGatedAction()
   const { t, formatMoney, currency } = useLocalization()
 
   const withdrawMethods: { id: string; nameKey: TranslationKey; icon: typeof Smartphone; detailKey: TranslationKey; placeholderKey: TranslationKey; default?: boolean }[] = [
@@ -62,7 +64,13 @@ export default function ProviderWalletPage() {
     setIsWithdrawing(true)
     const result = await requestProviderWithdrawal({ amount, method: withdrawMethod, details: withdrawDetails })
     setIsWithdrawing(false)
-    if (!result.success) { setWithdrawError(result.error); return }
+    if (!result.success) {
+      // A verification refusal opens the wizard rather than leaving the user
+      // with a message and nowhere to act on it.
+      if (handleGateFailure(result)) return
+      setWithdrawError(result.error)
+      return
+    }
 
     setShowWithdraw(false)
     setWithdrawAmount("")

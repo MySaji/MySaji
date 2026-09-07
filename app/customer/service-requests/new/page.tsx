@@ -8,8 +8,10 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { createServiceRequest } from "@/lib/actions/service-contracts"
+import { useGatedAction } from "@/lib/hooks/useGatedAction"
 
 export default function NewServiceRequestPage() {
+  const { handleGateFailure } = useGatedAction()
   const router = useRouter()
   const searchParams = useSearchParams()
   const providerId = searchParams.get("provider") ?? ""
@@ -26,7 +28,13 @@ export default function NewServiceRequestPage() {
     setError("")
     const result = await createServiceRequest({ providerId, title, description, location })
     setIsSubmitting(false)
-    if (!result.success) { setError(result.error); return }
+    if (!result.success) {
+      // A verification refusal opens the wizard rather than leaving the user
+      // with a message and nowhere to act on it.
+      if (handleGateFailure(result)) return
+      setError(result.error)
+      return
+    }
     router.push(`/customer/service-requests?id=${result.contractId}`)
   }
 

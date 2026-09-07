@@ -10,10 +10,12 @@ import { Textarea } from "@/components/ui/textarea"
 import { getOfferDetail, requestOfferQuote, requestOfferFormalQuote, type OfferDetail } from "@/lib/actions/offers"
 import { OFFER_ACTION_LABEL } from "@/lib/offer-constants"
 import { useLocalization } from "@/lib/hooks/useLocalization"
+import { useGatedAction } from "@/lib/hooks/useGatedAction"
 
 const PRICED_ACTIONS = ["BOOK", "HIRE", "BUY"]
 
 export default function OfferDetailPage() {
+  const { handleGateFailure } = useGatedAction()
   const params = useParams()
   const id = params.id as string
   const router = useRouter()
@@ -45,7 +47,13 @@ export default function OfferDetailPage() {
       ? await requestOfferFormalQuote({ offerId: id, description: message, location: quoteLocation })
       : await requestOfferQuote({ offerId: id, message })
     setIsSending(false)
-    if (!result.success) { setSendError(result.error); return }
+    if (!result.success) {
+      // A verification refusal opens the wizard rather than leaving the user
+      // with a message and nowhere to act on it.
+      if (handleGateFailure(result)) return
+      setSendError(result.error)
+      return
+    }
     if ("contractId" in result) setContractId(result.contractId)
     setSent(true)
   }
