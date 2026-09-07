@@ -1,6 +1,7 @@
 "use server"
 
 import { z } from "zod"
+import { confirmRentalBookingPayment } from "@/lib/settlement-core"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
 import { requireVerified } from "@/lib/verification-gate"
@@ -357,12 +358,6 @@ export async function getRentalBookingForPayment(bookingId: string): Promise<Ren
     totalAmount: Number(booking.totalAmount),
     currency: booking.offer.currency,
   }
-}
-
-/** Called by /api/payments/initiate once a RENTAL-context payment
- * completes (simulated or real gateway confirmation). */
-export async function confirmRentalBookingPayment(bookingId: string): Promise<void> {
-  await db.rentalBooking.updateMany({ where: { id: bookingId, status: "PENDING_PAYMENT" }, data: { status: "CONFIRMED" } })
 }
 
 export type RentalBookingPaymentStatus = { status: "PENDING_PAYMENT" | "CONFIRMED"; paymentStatus: "PENDING" | "COMPLETED" | "FAILED"; failureReason?: string | null }

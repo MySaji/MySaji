@@ -1,6 +1,7 @@
 "use server"
 
 import { z } from "zod"
+import { awardLoyaltyPoints } from "@/lib/settlement-core"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
 import { requireVerified } from "@/lib/verification-gate"
@@ -10,7 +11,7 @@ import { maybeRewardReferralForProvider } from "@/lib/actions/referrals"
 import { providerHasOpenDispute } from "@/lib/actions/account-status"
 import { getEffectivePlatformPreferences } from "@/lib/actions/admin-settings"
 import { getEffectiveCommissionRate, splitByCommission } from "@/lib/commission"
-import { awardLoyaltyPoints } from "@/lib/actions/loyalty"
+
 import { canAcceptAnotherJob, BUSINESS_STAFF_MAX_CONCURRENT_JOBS } from "@/lib/job-limits"
 import { resolveJobCancellation } from "@/lib/job-cancellation"
 import { logJobEvent } from "@/lib/actions/job-events"

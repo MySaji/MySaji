@@ -1,6 +1,7 @@
 "use server"
 
 import { auth } from "@/auth"
+import { confirmProSubscriptionPayment } from "@/lib/settlement-core"
 import { db } from "@/lib/db"
 import { getEffectivePlatformPreferences } from "@/lib/actions/admin-settings"
 
@@ -125,19 +126,3 @@ export async function checkProSubscriptionPaymentStatus(paymentId: string): Prom
   return { status: (fresh?.status as ProSubscriptionPaymentStatus["status"]) ?? "PENDING", failureReason: fresh?.failureReason ?? null }
 }
 
-/** Called by /api/payments/initiate once a SUBSCRIPTION-context payment
- * actually completes (real STK confirmation, or the sandbox-simulation
- * path) — extends from whichever is later, "now" or the current period
- * end, so renewing a few days early doesn't forfeit the remaining time. */
-export async function confirmProSubscriptionPayment(providerId: string, amount: number): Promise<void> {
-  const existing = await db.providerSubscription.findUnique({ where: { providerId } })
-  const now = new Date()
-  const base = existing?.currentPeriodEnd && existing.currentPeriodEnd > now ? existing.currentPeriodEnd : now
-  const currentPeriodEnd = new Date(base.getTime() + SUBSCRIPTION_PERIOD_DAYS * 86400000)
-
-  await db.providerSubscription.upsert({
-    where: { providerId },
-    update: { status: "ACTIVE", currentPeriodEnd, lastPaymentAmount: amount, lastPaymentAt: now },
-    create: { providerId, status: "ACTIVE", currentPeriodEnd, lastPaymentAmount: amount, lastPaymentAt: now },
-  })
-}

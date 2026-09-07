@@ -1,12 +1,12 @@
 "use server"
 
 import { z } from "zod"
+import { awardLoyaltyPoints } from "@/lib/settlement-core"
 import { db } from "@/lib/db"
 import { requireVerified } from "@/lib/verification-gate"
 import { requireShopkeeper } from "@/lib/actions/shopkeeper-dashboard"
 import { pushToUser } from "@/lib/actions/push"
 import { reverseOrder } from "@/lib/order-cancellation"
-import { awardLoyaltyPoints } from "@/lib/actions/loyalty"
 
 export type ShopkeeperOrderStatus = "pending" | "processing" | "shipped" | "delivered" | "cancelled" | "refunded"
 

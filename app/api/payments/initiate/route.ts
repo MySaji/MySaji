@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server"
-import { initiateMpesaPayment, initiateAirtelPayment, initiatePaypalPayment, createStripeCheckout, markPaymentCompleted, confirmJobPayment } from "@/lib/actions/payments"
-import { confirmWalletTopup } from "@/lib/actions/wallet"
-import { confirmProSubscriptionPayment } from "@/lib/actions/provider-subscription"
-import { confirmRentalBookingPayment } from "@/lib/actions/rentals"
+import { confirmProSubscriptionPayment, confirmRentalBookingPayment } from "@/lib/settlement-core"
+import { markPaymentCompleted, confirmJobPayment } from "@/lib/payment-core"
+import { initiateMpesaPayment, initiateAirtelPayment, initiatePaypalPayment, createStripeCheckout } from "@/lib/actions/payments"
+
 import { getEffectivePlatformPreferences } from "@/lib/actions/admin-settings"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
+import { confirmWalletTopup } from "@/lib/wallet-core"
 import { requireVerified } from "@/lib/verification-gate"
 
 const WALLET_TOPUP_METHOD_LABEL: Record<string, string> = { mpesa: "M-Pesa", airtel: "Airtel Money", paypal: "PayPal", card: "Card", stripe: "Card" }

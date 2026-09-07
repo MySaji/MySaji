@@ -3,9 +3,10 @@
 import crypto from "crypto"
 import { z } from "zod"
 import { db } from "@/lib/db"
+import { confirmWalletTopup, failWalletTopup } from "@/lib/wallet-core"
 import { requireSecretary } from "@/lib/actions/secretary-dashboard"
 import { logAdminAction } from "@/lib/actions/admin-dashboard"
-import { confirmWalletTopup, failWalletTopup } from "@/lib/actions/wallet"
+
 import { createAndEmailReceipt } from "@/lib/actions/receipts"
 import { initiateB2CPayment } from "@/lib/actions/payments"
 import { pushToUser } from "@/lib/actions/push"

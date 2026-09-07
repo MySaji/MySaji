@@ -9,6 +9,10 @@ import { notifyUser } from "@/lib/actions/notify"
 import { getActiveEscrowJobs, type ActiveEscrowJob } from "@/lib/actions/jobs"
 import { createAndEmailReceipt } from "@/lib/actions/receipts"
 import { encryptAccountNumber } from "@/lib/payment-method-crypto"
+// Wallet money movement lives in a plain module, not here: an export of a
+// "use server" file is a public HTTP endpoint, and crediting a balance must
+// never be one. See lib/wallet-core.ts.
+import { confirmWalletTopup, failWalletTopup } from "@/lib/wallet-core"
 
 export type WalletTransaction = {
   id: string
@@ -102,80 +106,13 @@ export type WalletActionResult = { success: true } | { success: false; error: st
  * sandbox-simulated gateway response, a real M-Pesa/Stripe/PayPal callback,
  * or a secretary manually confirming a bank transfer) — the one place that
  * actually moves money into the wallet. */
-export async function creditWalletTopup(userId: string, amount: number, methodLabel: string): Promise<void> {
-  const wallet = await db.wallet.findUnique({ where: { userId } })
-  if (!wallet) return
-
-  const balanceBefore = Number(wallet.balance)
-  const balanceAfter = balanceBefore + amount
-
-  await db.$transaction([
-    db.wallet.update({ where: { userId }, data: { balance: balanceAfter, totalEarned: { increment: amount } } }),
-    db.transaction.create({
-      data: {
-        walletId: wallet.id,
-        type: "CREDIT",
-        amount,
-        description: `Added via ${methodLabel}`,
-        referenceType: "TOPUP",
-        status: "COMPLETED",
-        balanceBefore,
-        balanceAfter,
-      },
-    }),
-    db.notification.create({
-      data: {
-        userId,
-        title: "Wallet topped up",
-        message: `KES ${amount.toLocaleString()} was added to your wallet via ${methodLabel}.`,
-        type: "PAYMENT",
-        actionUrl: "/customer/wallet",
-      },
-    }),
-  ])
-
-  await pushToUser(userId, {
-    title: "Wallet topped up",
-    body: `KES ${amount.toLocaleString()} was added via ${methodLabel}.`,
-    url: "/customer/wallet",
-  }, "payment")
-
-  // Replaces the old plain-text confirmation email — the receipt (PDF
-  // attached, verify link included) is a strict superset of it, so
-  // sending both would just be two emails for one event.
-  void createAndEmailReceipt({
-    userId,
-    type: "DEPOSIT",
-    paymentMethod: methodLabel,
-    lineItems: [{ label: "Wallet Top-Up", quantity: 1, amount }],
-    totalAmount: amount,
-    balanceAfter,
-  })
-}
 
 /** Called once a wallet top-up Payment (contextType WALLET_TOPUP) actually
  * succeeds — from a real gateway callback, active status poll, or a
  * secretary manually confirming a bank transfer. Idempotent: a payment
  * that's already been completed (or isn't a wallet top-up) is a no-op, so
  * this is safe to call from multiple possible completion paths. */
-export async function confirmWalletTopup(paymentId: string, methodLabel = "your payment method"): Promise<void> {
-  const payment = await db.payment.findUnique({ where: { id: paymentId } })
-  if (!payment || payment.contextType !== "WALLET_TOPUP" || payment.status !== "PENDING") return
 
-  await db.payment.update({ where: { id: paymentId }, data: { status: "COMPLETED", paidAt: new Date() } })
-  await creditWalletTopup(payment.payerId, Number(payment.amount), methodLabel)
-}
-
-export async function failWalletTopup(paymentId: string, reason?: string): Promise<void> {
-  const payment = await db.payment.findUnique({ where: { id: paymentId } })
-  if (!payment || payment.contextType !== "WALLET_TOPUP" || payment.status !== "PENDING") return
-
-  await db.payment.update({ where: { id: paymentId }, data: { status: "FAILED", failureReason: reason ?? null } })
-  const failMessage = reason
-    ? `${reason} (KES ${Number(payment.amount).toLocaleString()} top-up)`
-    : `Your wallet top-up of KES ${Number(payment.amount).toLocaleString()} could not be completed.`
-  await notifyUser({ userId: payment.payerId, title: "Top-up failed", message: failMessage, type: "PAYMENT", actionUrl: "/customer/wallet" })
-}
 
 // ============================= BANK TRANSFER =============================
 // No real bank aggregator integration exists anywhere in this app (same gap

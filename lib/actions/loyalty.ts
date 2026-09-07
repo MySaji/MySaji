@@ -2,6 +2,7 @@
 
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
+import { creditWalletTopup } from "@/lib/wallet-core"
 import { pushToUser } from "@/lib/actions/push"
 
 // 1 point per KES 100 spent, redeemable 1:1 for wallet credit (so 1 point =
@@ -46,47 +47,6 @@ export async function getLoyaltySummary(): Promise<LoyaltySummary> {
       createdAt: t.createdAt.toISOString(),
     })),
   }
-}
-
-/** Awards points for a completed purchase/job — called after an Order hits
- * DELIVERED (lib/actions/shopkeeper-orders.ts) or a Job hits COMPLETED
- * (lib/actions/provider-jobs.ts), mirroring where referral rewards already
- * fire (same "side effect after a terminal status transition" pattern).
- * amountSpent should exclude shipping/tax — the goods value only. */
-export async function awardLoyaltyPoints(
-  userId: string,
-  amountSpent: number,
-  reference: { referenceType: string; referenceId: string },
-): Promise<void> {
-  const points = Math.floor(amountSpent * EARN_RATE_PER_KES)
-  if (points <= 0) return
-
-  const account = await db.loyaltyAccount.upsert({
-    where: { userId },
-    update: {},
-    create: { userId },
-  })
-  const balanceBefore = account.points
-  const balanceAfter = balanceBefore + points
-
-  await db.$transaction([
-    db.loyaltyAccount.update({
-      where: { userId },
-      data: { points: balanceAfter, lifetimePoints: { increment: points } },
-    }),
-    db.loyaltyTransaction.create({
-      data: {
-        accountId: account.id,
-        type: "EARN",
-        points,
-        description: `Earned from ${reference.referenceType.toLowerCase()}`,
-        referenceType: reference.referenceType,
-        referenceId: reference.referenceId,
-        balanceBefore,
-        balanceAfter,
-      },
-    }),
-  ])
 }
 
 export type RedeemLoyaltyResult = { success: true; creditedAmount: number } | { success: false; error: string }

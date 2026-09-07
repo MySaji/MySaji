@@ -1,9 +1,10 @@
 "use server"
 
 import { z } from "zod"
+import { confirmJobPayment, failJobPayment } from "@/lib/payment-core"
 import { db } from "@/lib/db"
 import { requireAdmin, logAdminAction } from "@/lib/actions/admin-dashboard"
-import { queryMpesaPayment, retrieveStripeSessionStatus, confirmJobPayment, failJobPayment } from "@/lib/actions/payments"
+import { queryMpesaPayment, retrieveStripeSessionStatus } from "@/lib/actions/payments"
 
 export type AdminPaymentStatus = "Completed" | "Pending" | "Processing" | "Failed" | "Refunded"
 
