@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import {
   ArrowLeft, Search, Star, MapPin, CheckCircle, Calendar, Briefcase, Video,
@@ -49,6 +49,9 @@ export default function FindSpecialistsPage() {
   const [isDetailLoading, setIsDetailLoading] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
   const [profileTab, setProfileTab] = useState("overview")
+  // The work sample opened full-size from the Portfolio grid.
+  type PortfolioSample = NonNullable<SpecialistDetail>["portfolio"][number]
+  const [openSample, setOpenSample] = useState<PortfolioSample | null>(null)
   const [isFavorite, setIsFavorite] = useState(false)
 
   const [specialists, setSpecialists] = useState<SpecialistCard[]>([])
@@ -446,11 +449,21 @@ export default function FindSpecialistsPage() {
                       {selectedSpecialist.portfolio.length > 0 ? (
                         <div className="grid grid-cols-2 gap-2">
                           {selectedSpecialist.portfolio.map((sample) => (
-                            <div key={sample.id} className="relative aspect-video rounded-xl overflow-hidden group cursor-pointer">
+                            // These tiles were styled as clickable but had no
+                            // handler, so a customer could never see a sample
+                            // bigger than a 2-column thumbnail or read what the
+                            // job involved.
+                            <button
+                              type="button"
+                              key={sample.id}
+                              onClick={() => setOpenSample(sample)}
+                              aria-label={sample.title}
+                              className="relative aspect-video rounded-xl overflow-hidden group cursor-pointer text-left"
+                            >
                               <NextImage src={sample.imageUrl} alt={sample.title} fill className="object-cover group-hover:scale-105 transition-transform" />
                               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
                               <p className="absolute bottom-2 left-2 right-2 text-white text-[11px] font-medium truncate">{sample.title}</p>
-                            </div>
+                            </button>
                           ))}
                         </div>
                       ) : (
@@ -466,8 +479,9 @@ export default function FindSpecialistsPage() {
                         <div className="grid grid-cols-1 gap-3">
                           {selectedSpecialist.portfolio.filter((p) => p.videoUrl).map((item) => (
                             <div key={item.id}>
-                              <video src={item.videoUrl!} controls className="w-full rounded-xl aspect-video object-cover" />
+                              <video src={item.videoUrl!} controls preload="metadata" className="w-full rounded-xl aspect-video object-cover" />
                               <p className="text-[11px] font-medium text-foreground mt-1.5">{item.title}</p>
+                              {item.description && <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">{item.description}</p>}
                             </div>
                           ))}
                         </div>
@@ -535,6 +549,31 @@ export default function FindSpecialistsPage() {
                     <Briefcase className="w-4 h-4" /> {t("customer.serviceDetail.bookNow")}
                   </Button>
                 </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* One work sample, full width, with whatever the provider wrote about
+          it. Its own dialog rather than a nested one so closing it returns to
+          the provider sheet instead of dismissing everything. */}
+      <Dialog open={openSample !== null} onOpenChange={(open) => !open && setOpenSample(null)}>
+        <DialogContent className="max-w-lg p-0 overflow-hidden">
+          {openSample && (
+            <>
+              <DialogHeader className="sr-only"><DialogTitle>{openSample.title}</DialogTitle></DialogHeader>
+              <div className="relative aspect-video w-full bg-muted">
+                <NextImage src={openSample.imageUrl} alt={openSample.title} fill className="object-contain" />
+              </div>
+              <div className="p-4">
+                <p className="text-sm font-semibold text-foreground">{openSample.title}</p>
+                {openSample.description && (
+                  <p className="mt-1 whitespace-pre-line text-xs leading-relaxed text-muted-foreground">{openSample.description}</p>
+                )}
+                {openSample.videoUrl && (
+                  <video src={openSample.videoUrl} controls preload="metadata" className="mt-3 aspect-video w-full rounded-xl object-cover" />
+                )}
               </div>
             </>
           )}

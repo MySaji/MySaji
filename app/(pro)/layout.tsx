@@ -109,8 +109,14 @@ export default function SajiProLayout({ children }: { children: React.ReactNode 
       <div className={isCollapsed ? "lg:pl-20" : "lg:pl-64"}>
         <ProviderTopbar onMenuClick={() => setMobileNavOpen(true)} />
         {/* pb-36 / lg:pb-24 reserve the floating chat button's footprint as
-            well as the bottom nav's; see app/customer/layout.tsx. */}
-        <main id="main-content" className="min-h-screen pb-36 lg:pb-24">
+            well as the bottom nav's; see app/customer/layout.tsx.
+
+            The min-height subtracts the topbar rather than being a plain
+            min-h-screen: <main> starts below that 64px bar, so demanding a
+            full viewport here made every page 64px taller than the screen and
+            left the whole portal scrollable by that much — visible on any
+            page built to fill the viewport exactly, such as Messages. */}
+        <main id="main-content" className="min-h-[calc(100dvh-4rem)] pb-36 lg:pb-24">
           {/* Progressive KYC deliberately adds nothing to this screen. The
               home screen is built to a fixed design (see the rebuild in
               c269f4d) in which the status card sits directly below the

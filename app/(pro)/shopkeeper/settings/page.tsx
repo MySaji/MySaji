@@ -30,7 +30,8 @@ export default function ShopkeeperSettingsPage() {
   const [showPassword, setShowPassword] = useState(false)
 
   const [account, setAccount] = useState<ShopkeeperAccountData>(null)
-  const [accountForm, setAccountForm] = useState({ shopName: "", businessLicense: "", phone: "", location: "", shopDescription: "", shopCategory: "", openingTime: "", closingTime: "", deliveryFee: "500" })
+  const [accountForm, setAccountForm] = useState({ shopName: "", businessLicense: "", phone: "", location: "", shopDescription: "", shopCategory: "", openingTime: "", closingTime: "", deliveryFee: "500",
+    sundayOpeningTime: "", sundayClosingTime: "", holidayOpeningTime: "", holidayClosingTime: "" })
   const [isSavingAccount, setIsSavingAccount] = useState(false)
   const [accountError, setAccountError] = useState("")
   // Shop coordinates are captured from the device rather than geocoded from
@@ -60,6 +61,8 @@ export default function ShopkeeperSettingsPage() {
           shopName: acc.shopName, businessLicense: acc.businessLicense, phone: acc.phone ?? "",
           location: acc.location, shopDescription: acc.shopDescription, shopCategory: acc.shopCategory,
           openingTime: acc.openingTime ?? "", closingTime: acc.closingTime ?? "",
+          sundayOpeningTime: acc.sundayOpeningTime ?? "", sundayClosingTime: acc.sundayClosingTime ?? "",
+          holidayOpeningTime: acc.holidayOpeningTime ?? "", holidayClosingTime: acc.holidayClosingTime ?? "",
           deliveryFee: String(acc.deliveryFee),
         })
         setVacationEnabled(acc.isOnVacation)
@@ -269,31 +272,49 @@ export default function ShopkeeperSettingsPage() {
                 </div>
 
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">{t("shopkeeper.settings.workingHoursTitle")}</h3>
-                  <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                    <Clock className="w-5 h-5 text-amber-600 flex-shrink-0" />
-                    <div className="flex-1 grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-[11px] text-muted-foreground mb-1">{t("shopkeeper.settings.opensAtLabel")}</label>
-                        <Input
-                          type="time"
-                          value={accountForm.openingTime}
-                          onChange={(e) => setAccountForm({ ...accountForm, openingTime: e.target.value })}
-                          className="bg-white dark:bg-gray-700"
-                        />
+                  <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
+                    <Clock className="h-4 w-4 flex-shrink-0 text-amber-600" />
+                    {t("shopkeeper.settings.workingHoursTitle")}
+                  </h3>
+                  {/* All three periods share one panel and one row template, so
+                      they line up exactly. Mon-Sat is the pair every shop has;
+                      Sunday and public holidays are optional, and left blank the
+                      shop simply trades its Mon-Sat hours. */}
+                  <div className="space-y-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    {([
+                      ["openingTime", "closingTime", "weekdayOpensLabel", "weekdayClosesLabel"],
+                      ["sundayOpeningTime", "sundayClosingTime", "sundayOpensLabel", "sundayClosesLabel"],
+                      ["holidayOpeningTime", "holidayClosingTime", "holidayOpensLabel", "holidayClosesLabel"],
+                    ] as const).map(([openField, closeField, openLabel, closeLabel]) => (
+                      <div key={openField}>
+                        {/* Two columns need ~130px each before a native time
+                            input clips its AM/PM; below roughly 380px there is
+                            not that much room, so the pair stacks instead. */}
+                        <div className="grid grid-cols-1 gap-3 min-[380px]:grid-cols-2">
+                          <div>
+                            <label className="block text-[11px] text-muted-foreground mb-1">{t(`shopkeeper.settings.${openLabel}`)}</label>
+                            <Input
+                              type="time"
+                              value={accountForm[openField]}
+                              onChange={(e) => setAccountForm({ ...accountForm, [openField]: e.target.value })}
+                              className="bg-white dark:bg-gray-700"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] text-muted-foreground mb-1">{t(`shopkeeper.settings.${closeLabel}`)}</label>
+                            <Input
+                              type="time"
+                              value={accountForm[closeField]}
+                              onChange={(e) => setAccountForm({ ...accountForm, [closeField]: e.target.value })}
+                              className="bg-white dark:bg-gray-700"
+                            />
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-[11px] text-muted-foreground mb-1">{t("shopkeeper.settings.closesAtLabel")}</label>
-                        <Input
-                          type="time"
-                          value={accountForm.closingTime}
-                          onChange={(e) => setAccountForm({ ...accountForm, closingTime: e.target.value })}
-                          className="bg-white dark:bg-gray-700"
-                        />
-                      </div>
-                    </div>
+                    ))}
                   </div>
                   <p className="text-[11px] text-muted-foreground mt-2">{t("shopkeeper.settings.workingHoursHint")}</p>
+                  <p className="text-[11px] text-muted-foreground">{t("shopkeeper.settings.optionalHoursHint")}</p>
                 </div>
 
                 <div>

@@ -1,7 +1,15 @@
 "use server"
 
 import { db } from "@/lib/db"
-import { isShopCurrentlyOpen, formatShopHours, getNextOpeningLabel } from "@/lib/format"
+import { isShopCurrentlyOpen, formatShopHours, getNextOpeningLabel, resolveShopHoursForToday } from "@/lib/format"
+
+
+/** Today's applicable pair as a tuple, so the three call sites below read the
+ *  same hours the customer is shown. */
+function todayPair(shop: Parameters<typeof resolveShopHoursForToday>[0]): [string | null, string | null] {
+  const { openingTime, closingTime } = resolveShopHoursForToday(shop)
+  return [openingTime, closingTime]
+}
 
 export type ShopDetail = {
   id: string
@@ -47,9 +55,9 @@ export async function getShopById(id: string): Promise<ShopDetail> {
     rating: Number(shop.rating),
     reviewCount: shop.reviewCount,
     isVerified: shop.isVerified,
-    isOpen: isShopCurrentlyOpen(shop.openingTime, shop.closingTime),
-    hoursLabel: formatShopHours(shop.openingTime, shop.closingTime),
-    nextOpeningLabel: getNextOpeningLabel(shop.openingTime, shop.closingTime),
+    isOpen: isShopCurrentlyOpen(...todayPair(shop)),
+    hoursLabel: formatShopHours(...todayPair(shop)),
+    nextOpeningLabel: getNextOpeningLabel(shop),
     hasSale: shop.promotions.length > 0,
     location: shopAddress ? [shopAddress.address, shopAddress.city].filter(Boolean).join(", ") : null,
     latitude: shopAddress?.latitude != null ? Number(shopAddress.latitude) : null,

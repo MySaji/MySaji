@@ -1,6 +1,7 @@
 "use server"
 
 import { z } from "zod"
+import { MAX_PHOTOS, MAX_PHOTO_CHARS } from "@/lib/request-photos"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
 import { requireVerified } from "@/lib/verification-gate"
@@ -36,6 +37,14 @@ const createSchema = z.object({
   budgetMin: z.number().positive().optional(),
   budgetMax: z.number().positive().optional(),
   location: z.string().trim().min(1, "Location is required").max(200),
+  // Compressed data URLs from compressImageToDataUrl. Capped in count and in
+  // size because these land in a Postgres column, not object storage: four
+  // photos at the 1.5MB ceiling is already a heavy row, and letting an
+  // arbitrary string through here would make the request board unloadable.
+  photos: z
+    .array(z.string().startsWith("data:image/", "Attachments must be images").max(MAX_PHOTO_CHARS, "That photo is too large"))
+    .max(MAX_PHOTOS, `You can attach up to ${MAX_PHOTOS} photos`)
+    .optional(),
 })
 
 export type RequestActionResult = { success: true } | { success: false; error: string }
@@ -61,7 +70,7 @@ export async function createCustomerRequest(input: unknown): Promise<CreateReque
 
   const parsed = createSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
-  const { title, description, categoryId, budgetMin, budgetMax, location } = parsed.data
+  const { title, description, categoryId, budgetMin, budgetMax, location, photos } = parsed.data
   if (budgetMin != null && budgetMax != null && budgetMin > budgetMax) {
     return { success: false, error: "Minimum budget can't be more than the maximum." }
   }
@@ -78,6 +87,7 @@ export async function createCustomerRequest(input: unknown): Promise<CreateReque
       budgetMin,
       budgetMax,
       location,
+      photos: photos?.length ? { create: photos.map((dataUrl) => ({ dataUrl })) } : undefined,
       expiresAt: new Date(Date.now() + REQUEST_LIFETIME_MS),
     },
   })
@@ -179,6 +189,7 @@ export type CustomerRequestDetail = {
   status: string
   createdAt: string
   expiresAt: string
+  photos: string[]
   responses: RequestResponseItem[]
 } | null
 
@@ -190,6 +201,7 @@ export async function getCustomerRequestById(id: string): Promise<CustomerReques
     where: { id },
     include: {
       category: { select: { name: true, type: true } },
+      photos: { orderBy: { createdAt: "asc" }, select: { dataUrl: true } },
       responses: {
         orderBy: { createdAt: "desc" },
         include: { responder: { select: { id: true, name: true, image: true } } },
@@ -210,6 +222,7 @@ export async function getCustomerRequestById(id: string): Promise<CustomerReques
     status: isExpired(request) ? "EXPIRED" : request.status,
     createdAt: request.createdAt.toISOString(),
     expiresAt: request.expiresAt.toISOString(),
+    photos: request.photos.map((p) => p.dataUrl),
     responses: request.responses.map((r) => ({
       id: r.id,
       responderId: r.responderId,
@@ -250,6 +263,9 @@ export type BoardRequestItem = {
   budgetMax: number | null
   location: string
   responseCount: number
+  /// Count only — the photos themselves are fetched when a provider opens the
+  /// request, so a board of ten requests is not tens of megabytes of base64.
+  photoCount: number
   myResponse: { price: number; status: string } | null
   createdAt: string
   expiresAt: string
@@ -278,7 +294,7 @@ export async function getOpenRequestsBoard(): Promise<BoardRequestItem[]> {
     orderBy: { createdAt: "desc" },
     include: {
       category: { select: { name: true } },
-      _count: { select: { responses: true } },
+      _count: { select: { responses: true, photos: true } },
       responses: { where: { responderId: session.user.id }, select: { price: true, status: true } },
     },
   })
@@ -292,10 +308,60 @@ export async function getOpenRequestsBoard(): Promise<BoardRequestItem[]> {
     budgetMax: r.budgetMax != null ? Number(r.budgetMax) : null,
     location: r.location,
     responseCount: r._count.responses,
+    photoCount: r._count.photos,
     myResponse: r.responses[0] ? { price: Number(r.responses[0].price), status: r.responses[0].status } : null,
     createdAt: r.createdAt.toISOString(),
     expiresAt: r.expiresAt.toISOString(),
   }))
+}
+
+/**
+ * The photos on one open request, fetched only when a provider or shopkeeper
+ * actually opens it to respond.
+ *
+ * Deliberately separate from getOpenRequestsBoard: these are base64 data URLs
+ * in Postgres, so folding them into the list would put every photo of every
+ * open request on the wire to draw a board that shows none of them. The board
+ * carries photoCount; this fills in the pictures on demand.
+ *
+ * Scoped the same way the board is — a caller only ever gets photos for a
+ * request they could already see there, or for their own request.
+ */
+export async function getRequestPhotos(requestId: string): Promise<string[]> {
+  const session = await auth()
+  if (!session?.user?.id) return []
+
+  const request = await db.customerRequest.findUnique({
+    where: { id: requestId },
+    select: {
+      customerId: true,
+      status: true,
+      expiresAt: true,
+      categoryId: true,
+      category: { select: { type: true } },
+      photos: { orderBy: { createdAt: "asc" }, select: { dataUrl: true } },
+    },
+  })
+  if (!request) return []
+
+  if (request.customerId !== session.user.id) {
+    // Anyone else must be a provider or shopkeeper looking at a request that
+    // is still open to them, matching getOpenRequestsBoard's filter.
+    if (request.status !== "OPEN" || request.expiresAt <= new Date()) return []
+    const provider = session.user.role === "provider" ? await requireProvider() : null
+    const shopkeeper = session.user.role === "shopkeeper" ? await requireShopkeeper() : null
+    if (provider) {
+      // Providers are category-scoped on the board, so they are here too.
+      if (request.category.type !== "SERVICE") return []
+      if (provider.categoryId && request.categoryId !== provider.categoryId) return []
+    } else if (shopkeeper) {
+      if (request.category.type !== "PRODUCT") return []
+    } else {
+      return []
+    }
+  }
+
+  return request.photos.map((p) => p.dataUrl)
 }
 
 export type PopularRequestItem = {
@@ -579,9 +645,12 @@ export async function acceptRequestResponse(input: unknown): Promise<AcceptRespo
       data: {
         userId: chosen.responderId,
         title: "Your offer was accepted!",
+        // A service job is still PENDING_PAYMENT at this point, so it is not
+        // visible to the provider yet — promising it was already in their list
+        // sent them looking for something that wasn't there.
         message: isProduct
           ? `Your offer for "${request.title}" was accepted. The order is now in your orders list.`
-          : `Your offer for "${request.title}" was accepted. The job is now in your jobs list.`,
+          : `Your offer for "${request.title}" was accepted. It moves into your active jobs once the customer's payment clears.`,
         type: "JOB",
         relatedType: "CUSTOMER_REQUEST",
         relatedId: request.id,

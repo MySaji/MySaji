@@ -14,11 +14,14 @@ export async function requireShopkeeper(): Promise<{ userId: string; shopkeeperI
   const session = await auth()
   if (!session?.user?.id) return null
 
-  if (session.user.role !== "shopkeeper") {
-    if (session.user.role !== "provider") return null
-    const providerProfile = await db.providerProfile.findUnique({ where: { userId: session.user.id }, select: { isBusinessOwner: true } })
-    if (!providerProfile?.isBusinessOwner) return null
-  }
+  // Owning a ShopkeeperProfile is what makes an account a shopkeeper — the
+  // lookup below scopes everything to that one shop, so a provider who runs a
+  // shop manages only their own. This used to additionally require
+  // isBusinessOwner, which locked solo providers out of their own shop pages
+  // while the Saji Pro sidebar still listed them (it shows the shop group on
+  // `!!user.shopkeeperProfile` alone — see getMyRoleProfiles). Shop Earnings
+  // was the visible symptom: the page spun forever.
+  if (session.user.role !== "shopkeeper" && session.user.role !== "provider") return null
 
   const profile = await db.shopkeeperProfile.findUnique({ where: { userId: session.user.id } })
   if (!profile) return null

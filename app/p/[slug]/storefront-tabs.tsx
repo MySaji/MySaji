@@ -1,9 +1,10 @@
 "use client"
 
-import { useMemo, useState } from "react"
-import { BadgeCheck, GraduationCap, Star, Trophy } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
+import { BadgeCheck, ChevronLeft, ChevronRight, GraduationCap, Play, Star, Trophy, X } from "lucide-react"
 import { OfferCard, OfferCardGrid } from "@/components/offers/offer-card"
 import type { StorefrontData, StorefrontOffer } from "@/lib/actions/storefront"
+import { offerHref } from "@/lib/offer-constants"
 
 /**
  * Storefront tabs. Only tabs with content are rendered, so a translator with
@@ -42,7 +43,9 @@ export default function StorefrontTabs({ data }: { data: Data }) {
 
   return (
     <div>
-      <div role="tablist" aria-label="Provider listings" className="flex gap-1 overflow-x-auto border-b dark:border-gray-700 mb-4">
+      {/* Bleeds to the screen edge on mobile so a half-cut tab reads as
+          "scroll me" rather than as a clipped layout. */}
+      <div role="tablist" aria-label="Provider listings" className="-mx-4 mb-4 flex gap-1 overflow-x-auto border-b px-4 scrollbar-hide dark:border-gray-700 sm:mx-0 sm:px-0">
         {tabs.map((tab) => {
           const selected = tab.id === active
           return (
@@ -54,7 +57,7 @@ export default function StorefrontTabs({ data }: { data: Data }) {
               aria-controls={`panel-${tab.id}`}
               id={`tab-${tab.id}`}
               onClick={() => setActive(tab.id)}
-              className={`whitespace-nowrap px-4 py-2.5 text-sm font-medium border-b-2 transition ${
+              className={`whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition sm:px-4 ${
                 selected
                   ? "border-blue-600 text-blue-600"
                   : "border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
@@ -87,7 +90,7 @@ function OfferGrid({ offers }: { offers: StorefrontOffer[] }) {
           key={offer.id}
           data={{
             id: offer.id,
-            href: `/customer/offers/${offer.id}`,
+            href: offerHref(offer.actionType, offer.id),
             title: offer.title,
             subtitle: offer.description,
             image: offer.image,
@@ -105,19 +108,148 @@ function OfferGrid({ offers }: { offers: StorefrontOffer[] }) {
   )
 }
 
+/**
+ * The provider's work samples.
+ *
+ * Every tile opens full-screen: the grid thumbnail is far too small to judge a
+ * finished job by, and a sample that has a video was previously showing only
+ * its cover photo — the video never rendered anywhere on the public profile at
+ * all. Two columns from the smallest phone up, because one giant tile per row
+ * turns four samples into a lot of scrolling.
+ */
 function Portfolio({ items }: { items: Data["portfolio"] }) {
+  const [openIndex, setOpenIndex] = useState<number | null>(null)
+  const open = openIndex === null ? null : items[openIndex] ?? null
+
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {items.map((item) => (
-        <figure key={item.id} className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 overflow-hidden">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={item.imageUrl} alt={item.title} className="w-full h-44 object-cover" />
-          <figcaption className="p-4">
-            <h3 className="font-semibold">{item.title}</h3>
-            {item.description && <p className="mt-1 text-sm text-gray-500">{item.description}</p>}
-          </figcaption>
-        </figure>
-      ))}
+    <>
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
+        {items.map((item, i) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => setOpenIndex(i)}
+            className="group overflow-hidden rounded-xl border bg-white text-left transition hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 dark:border-gray-700 dark:bg-gray-800"
+          >
+            <span className="relative block aspect-[4/3] overflow-hidden bg-gray-100 dark:bg-gray-900">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={item.imageUrl} alt={item.title} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+              {item.videoUrl && (
+                <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-medium text-white">
+                  <Play className="h-2.5 w-2.5 fill-current" aria-hidden="true" /> Video
+                </span>
+              )}
+            </span>
+            <span className="block p-3">
+              <span className="block text-sm font-semibold leading-snug">{item.title}</span>
+              {item.description && (
+                <span className="mt-1 line-clamp-2 block text-xs leading-relaxed text-gray-500 dark:text-gray-400">{item.description}</span>
+              )}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {open && (
+        <PortfolioLightbox
+          item={open}
+          hasPrev={openIndex! > 0}
+          hasNext={openIndex! < items.length - 1}
+          onPrev={() => setOpenIndex((i) => Math.max(0, (i ?? 0) - 1))}
+          onNext={() => setOpenIndex((i) => Math.min(items.length - 1, (i ?? 0) + 1))}
+          onClose={() => setOpenIndex(null)}
+        />
+      )}
+    </>
+  )
+}
+
+/**
+ * Full-screen viewer for one sample. Plain fixed overlay rather than a dialog
+ * component because this page is server-rendered for search engines and has no
+ * dialog provider mounted.
+ */
+function PortfolioLightbox({
+  item, hasPrev, hasNext, onPrev, onNext, onClose,
+}: {
+  item: Data["portfolio"][number]
+  hasPrev: boolean
+  hasNext: boolean
+  onPrev: () => void
+  onNext: () => void
+  onClose: () => void
+}) {
+  // Escape closes, arrows page — a gallery that traps you until you find the
+  // small X is worse than no gallery.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose()
+      if (e.key === "ArrowLeft" && hasPrev) onPrev()
+      if (e.key === "ArrowRight" && hasNext) onNext()
+    }
+    document.addEventListener("keydown", onKey)
+    // Stop the page behind scrolling under the overlay on touch devices.
+    const previous = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    return () => {
+      document.removeEventListener("keydown", onKey)
+      document.body.style.overflow = previous
+    }
+  }, [hasPrev, hasNext, onPrev, onNext, onClose])
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={item.title}
+      className="fixed inset-0 z-50 flex flex-col bg-black"
+      onClick={onClose}
+    >
+      <div className="flex flex-shrink-0 items-center justify-between gap-3 p-4 text-white">
+        <p className="min-w-0 truncate text-sm font-semibold">{item.title}</p>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-white/10 hover:bg-white/20"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+
+      {/* Clicks inside the media area must not fall through to the backdrop. */}
+      <div className="flex min-h-0 flex-1 items-center justify-center px-4" onClick={(e) => e.stopPropagation()}>
+        {item.videoUrl ? (
+          <video src={item.videoUrl} poster={item.imageUrl} controls autoPlay playsInline className="max-h-full w-full max-w-3xl rounded-xl" />
+        ) : (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img src={item.imageUrl} alt={item.title} className="max-h-full w-full max-w-3xl rounded-xl object-contain" />
+        )}
+      </div>
+
+      <div className="flex-shrink-0 p-4 text-white" onClick={(e) => e.stopPropagation()}>
+        {item.description && (
+          <p className="mx-auto mb-3 max-w-3xl whitespace-pre-line text-xs leading-relaxed text-white/80">{item.description}</p>
+        )}
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={onPrev}
+            disabled={!hasPrev}
+            className="inline-flex items-center gap-1 rounded-full bg-white/10 px-4 py-2 text-xs font-medium disabled:opacity-30 enabled:hover:bg-white/20"
+          >
+            <ChevronLeft className="h-4 w-4" /> Previous
+          </button>
+          <button
+            type="button"
+            onClick={onNext}
+            disabled={!hasNext}
+            className="inline-flex items-center gap-1 rounded-full bg-white/10 px-4 py-2 text-xs font-medium disabled:opacity-30 enabled:hover:bg-white/20"
+          >
+            Next <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

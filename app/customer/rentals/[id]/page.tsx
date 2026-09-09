@@ -2,10 +2,12 @@
 
 import { useEffect, useRef, useState } from "react"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
-import { ArrowLeft, Star, ShieldCheck, Loader2, CheckCircle2, XCircle, CalendarDays, MapPin, Package } from "lucide-react"
+import { ArrowLeft, Star, ShieldCheck, Loader2, CheckCircle2, XCircle, CalendarDays, MapPin, Package, MessageSquare, Send } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { requestOfferQuote } from "@/lib/actions/offers"
 import {
   getRentalOfferDetail, getRentalBookedRanges, createRentalBooking, getRentalBookingForPayment,
   checkRentalBookingPaymentStatus, type RentalOfferDetail, type RentalBookingForPayment,
@@ -40,6 +42,11 @@ export default function RentalDetailPage() {
   const [phone, setPhone] = useState("")
   const [view, setView] = useState<View>("form")
   const [message, setMessage] = useState<string | null>(null)
+  const [showAsk, setShowAsk] = useState(false)
+  const [askMessage, setAskMessage] = useState("")
+  const [askError, setAskError] = useState("")
+  const [isAsking, setIsAsking] = useState(false)
+  const [askSent, setAskSent] = useState(false)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
@@ -96,6 +103,22 @@ export default function RentalDetailPage() {
 
   const days = startDate && endDate ? Math.max(0, Math.round((new Date(endDate).getTime() - new Date(startDate).getTime()) / 86400000)) : 0
   const estimatedTotal = listing && days > 0 ? listing.pricePerDay * days + listing.depositAmount : 0
+
+  const handleAsk = async () => {
+    if (!askMessage.trim()) return
+    setIsAsking(true)
+    setAskError("")
+    const result = await requestOfferQuote({ offerId: id, message: askMessage })
+    setIsAsking(false)
+    if (!result.success) {
+      // A verification refusal opens the wizard rather than leaving the user
+      // with a message and nowhere to act on it.
+      if (handleGateFailure(result)) return
+      setAskError(result.error)
+      return
+    }
+    setAskSent(true)
+  }
 
   const handleReserve = async () => {
     if (!startDate || !endDate || !location.trim()) { setFormError("Fill in dates and a pickup/delivery location."); return }
@@ -223,6 +246,42 @@ export default function RentalDetailPage() {
                   <p className="flex items-center gap-1 text-[11px] text-muted-foreground"><Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" /> {listing.providerRating.toFixed(1)} ({listing.providerReviewCount})</p>
                 </div>
               </div>
+
+              {/* Reserving a rental is a real commitment — dates, a deposit,
+                  a pickup arrangement — and this screen had no way to ask
+                  about any of it first. Same conversation the offer page
+                  opens, so the provider gets it in Messages either way. */}
+              {!bookingId && (
+                askSent ? (
+                  <div className="mt-4 rounded-xl bg-emerald-50 p-3 text-center dark:bg-emerald-900/20">
+                    <p className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">Sent to {listing.providerName}</p>
+                    <Button variant="outline" size="sm" className="mt-2 bg-transparent" onClick={() => router.push("/customer/messages")}>
+                      Go to Messages
+                    </Button>
+                  </div>
+                ) : showAsk ? (
+                  <div className="mt-4 space-y-2">
+                    <Textarea
+                      value={askMessage}
+                      onChange={(e) => setAskMessage(e.target.value)}
+                      placeholder="Ask about availability, condition, delivery…"
+                      className="min-h-[80px]"
+                    />
+                    {askError && <p className="text-[11px] text-red-600">{askError}</p>}
+                    <div className="flex gap-2">
+                      <Button size="sm" className="gap-1.5" disabled={!askMessage.trim() || isAsking} onClick={handleAsk}>
+                        {isAsking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                        Send
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => setShowAsk(false)}>Cancel</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button variant="outline" size="sm" className="mt-4 w-full gap-1.5 bg-transparent" onClick={() => setShowAsk(true)}>
+                    <MessageSquare className="h-3.5 w-3.5" /> Ask {listing.providerName} a question
+                  </Button>
+                )
+              )}
             </Card>
 
             {!bookingId ? (

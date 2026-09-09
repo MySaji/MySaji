@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { usePathname } from "next/navigation"
 import { Bot } from "lucide-react"
 import { getChatbotUnreadCount } from "@/lib/actions/chatbot"
 import { ChatbotWidget } from "@/components/chatbot-widget"
@@ -8,6 +9,7 @@ import { ChatbotWidget } from "@/components/chatbot-widget"
 export default function FloatingChatButton() {
   const [unreadCount, setUnreadCount] = useState(0)
   const [isOpen, setIsOpen] = useState(false)
+  const pathname = usePathname()
 
   useEffect(() => {
     const load = () => getChatbotUnreadCount().then(setUnreadCount).catch(() => {})
@@ -15,6 +17,12 @@ export default function FloatingChatButton() {
     const interval = setInterval(load, 30000)
     return () => clearInterval(interval)
   }, [])
+
+  // Not on the messages pages. The button floats exactly where the chat
+  // composer's send button sits and swallowed taps meant for it — and a
+  // "chat with us" bubble on top of a chat the user is already having is
+  // noise even where it doesn't overlap.
+  if (pathname?.endsWith("/messages")) return null
 
   return (
     <>

@@ -6,6 +6,7 @@ import { ChevronRight } from "lucide-react"
 import { OfferCard, type OfferCardData } from "@/components/offers/offer-card"
 import { useLocalization } from "@/lib/hooks/useLocalization"
 import type { PublicOfferListItem } from "@/lib/actions/offers"
+import { offerHref } from "@/lib/offer-constants"
 
 // Same wrapper classes the marketplace's other curated rows already use
 // (Trending Products, Popular Services): a horizontal-scroll strip on
@@ -17,7 +18,7 @@ function toOfferCardData(o: PublicOfferListItem): OfferCardData {
   const isRental = o.actionType === "RENT"
   return {
     id: o.offerId,
-    href: `/customer/offers/${o.offerId}`,
+    href: offerHref(o.actionType, o.offerId),
     title: o.title,
     image: o.image,
     providerName: o.providerName,

@@ -43,8 +43,21 @@ export async function confirmJobPayment(jobId: string) {
   // actually serve the customer either.
   const canAccept = job.providerId ? await canAcceptAnotherJob(db, job.providerId) : false
 
+  // A job that came from the request board needs no second acceptance. The
+  // provider read the request, chose to bid on it and named a price; the
+  // customer picked that bid and scheduled it. Routing it through PENDING
+  // asked the provider to approve work they had already offered to do, and
+  // left it sitting in "Awaiting approval" instead of Active Jobs — which is
+  // where the customer was told it had gone. requestId is set only by
+  // acceptRequestResponse, so this cannot catch an ordinary booking.
+  const fromAcceptedBid = job.requestId != null
+
   let newStatus: "ACCEPTED" | "PENDING"
-  if (isEmergency) {
+  if (fromAcceptedBid) {
+    // Still subject to the concurrent-job cap, same as every other branch —
+    // stacking work onto an already-full provider serves nobody.
+    newStatus = job.providerId && canAccept ? "ACCEPTED" : "PENDING"
+  } else if (isEmergency) {
     // Emergency dispatch always accepts a real match immediately, regardless
     // of that provider's ordinary autoAccept preference — urgency shouldn't
     // be gated behind a setting meant for routine bookings.
@@ -147,9 +160,14 @@ export async function confirmJobPayment(jobId: string) {
       if (provider) {
         const isAutoAccepted = newStatus === "ACCEPTED"
         const title = isAutoAccepted ? "New job added to your schedule" : "New job request"
-        const message = isAutoAccepted
-          ? `"${job.title}" was automatically added to your schedule.`
-          : `You have a new job request: "${job.title}". Review and respond in your job list.`
+        // "Automatically" is right for an autoAccept booking, but wrong for a
+        // bid the provider made themselves — there the customer chose them and
+        // picked the time, and saying so tells them where the job came from.
+        const message = !isAutoAccepted
+          ? `You have a new job request: "${job.title}". Review and respond in your job list.`
+          : fromAcceptedBid
+            ? `Your offer for "${job.title}" was accepted and scheduled. It's now in your active jobs.`
+            : `"${job.title}" was automatically added to your schedule.`
         await db.notification.create({
           data: {
             userId: provider.userId,

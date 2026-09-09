@@ -20,6 +20,10 @@ export type ShopkeeperAccountData = {
   businessLicense: string
   shopLogoUrl: string | null
   openingTime: string | null
+  sundayOpeningTime: string | null
+  sundayClosingTime: string | null
+  holidayOpeningTime: string | null
+  holidayClosingTime: string | null
   closingTime: string | null
   deliveryFee: number
   isVerified: boolean
@@ -60,6 +64,10 @@ export async function getMyShopAccount(): Promise<ShopkeeperAccountData> {
     businessLicense: profile.businessLicense ?? "",
     shopLogoUrl: profile.shopLogoUrl,
     openingTime: profile.openingTime,
+    sundayOpeningTime: profile.sundayOpeningTime,
+    sundayClosingTime: profile.sundayClosingTime,
+    holidayOpeningTime: profile.holidayOpeningTime,
+    holidayClosingTime: profile.holidayClosingTime,
     closingTime: profile.closingTime,
     deliveryFee: Number(profile.deliveryFee),
     isVerified: profile.isVerified,
@@ -92,6 +100,10 @@ const updateAccountSchema = z.object({
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
   openingTime: timeSchema,
+  sundayOpeningTime: timeSchema,
+  sundayClosingTime: timeSchema,
+  holidayOpeningTime: timeSchema,
+  holidayClosingTime: timeSchema,
   closingTime: timeSchema,
   deliveryFee: z.number().min(0, "Delivery fee can't be negative").max(50000, "That delivery fee looks too high").optional(),
 })
@@ -102,7 +114,8 @@ export async function updateMyShopAccount(input: unknown): Promise<ShopkeeperAcc
 
   const parsed = updateAccountSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
-  const { shopName, shopDescription, shopCategory, businessLicense, phone, location, latitude, longitude, openingTime, closingTime, deliveryFee } = parsed.data
+  const { shopName, shopDescription, shopCategory, businessLicense, phone, location, latitude, longitude, openingTime, closingTime, deliveryFee,
+    sundayOpeningTime, sundayClosingTime, holidayOpeningTime, holidayClosingTime } = parsed.data
   const coords = latitude != null && longitude != null ? { latitude, longitude } : {}
 
   const profile = await db.shopkeeperProfile.findUnique({ where: { userId: session.user.id } })
@@ -117,6 +130,10 @@ export async function updateMyShopAccount(input: unknown): Promise<ShopkeeperAcc
         shopCategory: shopCategory ?? undefined,
         businessLicense: businessLicense ?? undefined,
         openingTime: openingTime !== undefined ? (openingTime || null) : undefined,
+        sundayOpeningTime: sundayOpeningTime !== undefined ? (sundayOpeningTime || null) : undefined,
+        sundayClosingTime: sundayClosingTime !== undefined ? (sundayClosingTime || null) : undefined,
+        holidayOpeningTime: holidayOpeningTime !== undefined ? (holidayOpeningTime || null) : undefined,
+        holidayClosingTime: holidayClosingTime !== undefined ? (holidayClosingTime || null) : undefined,
         closingTime: closingTime !== undefined ? (closingTime || null) : undefined,
         deliveryFee: deliveryFee ?? undefined,
       },

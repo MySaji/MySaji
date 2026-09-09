@@ -78,6 +78,10 @@ export type ProDashboardOverview = {
      *  schedule, and what the home screen should show for a shop. */
     openingTime: string | null
     closingTime: string | null
+    sundayOpeningTime: string | null
+    sundayClosingTime: string | null
+    holidayOpeningTime: string | null
+    holidayClosingTime: string | null
     productCount: number
     newOrders: number
     products: { key: string; title: string; image: string | null; price: number | null; inStock: boolean }[]
@@ -139,6 +143,10 @@ export async function getProDashboardOverview(): Promise<ProDashboardOverview> {
           categoryName: shopProfile.shopCategory,
           openingTime: shopProfile.openingTime,
           closingTime: shopProfile.closingTime,
+          sundayOpeningTime: shopProfile.sundayOpeningTime,
+          sundayClosingTime: shopProfile.sundayClosingTime,
+          holidayOpeningTime: shopProfile.holidayOpeningTime,
+          holidayClosingTime: shopProfile.holidayClosingTime,
           productCount,
           newOrders,
           products: shopProducts.map((sp) => ({

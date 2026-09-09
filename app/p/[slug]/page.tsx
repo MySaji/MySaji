@@ -42,19 +42,22 @@ export default async function StorefrontPage({ params }: Props) {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* ---- Overview ---- */}
       <header className="bg-white dark:bg-gray-800 border-b dark:border-gray-700">
-        <div className="max-w-5xl mx-auto px-4 py-8">
-          <div className="flex flex-col sm:flex-row sm:items-start gap-5">
+        <div className="mx-auto max-w-5xl px-4 py-6 sm:py-8">
+          {/* Avatar beside the name on every width. Stacking them on mobile
+              spent a full 96px band on the photo alone and pushed the provider's
+              name, rating and stats below the fold on a small phone. */}
+          <div className="flex items-start gap-4 sm:gap-5">
             {data.avatar ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={data.avatar}
                 alt=""
-                className="w-24 h-24 rounded-2xl object-cover border dark:border-gray-700"
+                className="h-16 w-16 flex-shrink-0 rounded-2xl border object-cover dark:border-gray-700 sm:h-24 sm:w-24"
               />
             ) : (
               <div
                 aria-hidden="true"
-                className="w-24 h-24 rounded-2xl bg-blue-600 text-white grid place-items-center text-3xl font-bold"
+                className="grid h-16 w-16 flex-shrink-0 place-items-center rounded-2xl bg-blue-600 text-2xl font-bold text-white sm:h-24 sm:w-24 sm:text-3xl"
               >
                 {displayName.charAt(0).toUpperCase()}
               </div>
@@ -62,7 +65,7 @@ export default async function StorefrontPage({ params }: Props) {
 
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-2xl font-bold">{displayName}</h1>
+                <h1 className="text-xl font-bold sm:text-2xl">{displayName}</h1>
                 {data.verified && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 dark:bg-blue-900/40 px-2 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-300">
                     <BadgeCheck className="w-3.5 h-3.5" aria-hidden="true" />
@@ -111,7 +114,7 @@ export default async function StorefrontPage({ params }: Props) {
           </div>
 
           {/* Social proof */}
-          <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="mt-5 grid grid-cols-2 gap-2.5 sm:mt-6 sm:grid-cols-4 sm:gap-3">
             <Stat
               value={data.reviewCount > 0 ? data.rating.toFixed(1) : "—"}
               label={`${data.reviewCount} review${data.reviewCount === 1 ? "" : "s"}`}

@@ -18,27 +18,27 @@ import {
   Bell,
   Building2,
   LayoutDashboard,
+  type LucideIcon,
 } from "lucide-react"
 import Link from "next/link"
 import { useAuthContext } from "@/lib/auth-context"
 import { useLocalization } from "@/lib/hooks/useLocalization"
-import { getMyProviderBusinessInfo } from "@/lib/actions/provider-business"
+import { getMyProviderBusinessInfo, type ProviderBusinessInfo } from "@/lib/actions/provider-business"
 
 export default function ProviderProfilePage() {
   const { t } = useLocalization()
   const { logout } = useAuthContext()
-  const [provider] = useState({
-    name: "Mike R.",
-    rating: 4.7,
-    reviews: 200,
-    providerSince: "January 2025",
-    completedJobs: 12,
-  })
-  const [isBusinessOwner, setIsBusinessOwner] = useState(false)
+  // This header used to be a hardcoded "Mike R. / 4.7 / 200 reviews / 12 jobs"
+  // placeholder shown to every provider, and real details only appeared once
+  // they opened My Account. It now comes from the same call the page already
+  // made for isBusinessOwner, so there is no second round trip.
+  const [info, setInfo] = useState<ProviderBusinessInfo | null>(null)
 
   useEffect(() => {
-    getMyProviderBusinessInfo().then((info) => setIsBusinessOwner(Boolean(info?.isBusinessOwner)))
+    getMyProviderBusinessInfo().then(setInfo).catch(() => {})
   }, [])
+
+  const isBusinessOwner = Boolean(info?.isBusinessOwner)
 
   const handleLogout = () => {
     // logout() (see lib/auth-context.tsx) already navigates to "/" itself
@@ -50,11 +50,15 @@ export default function ProviderProfilePage() {
     logout()
   }
 
-  const menuItems = [
+  // `badge` is typed in rather than inferred: no row carries one today (the
+  // Proof of Work row used to show a hardcoded "2 New" to every provider,
+  // including the ones with an empty portfolio), and the renderer below still
+  // supports one for whenever a real count is wired up.
+  const menuItems: { icon: LucideIcon; title: string; href: string; badge?: string }[] = [
     { icon: User, title: t("provider.profile.menuMyAccount"), href: "/provider/profile/account" },
     { icon: Award, title: t("provider.profile.menuWorkAreaSkills"), href: "/provider/profile/skills" },
     { icon: Shield, title: t("provider.profile.menuVerification"), href: "/provider/profile/verification" },
-    { icon: FileText, title: t("provider.profile.menuProofOfWork"), badge: t("provider.profile.badgeTwoNew"), href: "/provider/profile/proof" },
+    { icon: FileText, title: t("provider.profile.menuProofOfWork"), href: "/provider/portfolio" },
     { icon: Wallet, title: t("provider.profile.menuPaymentMethods"), href: "/provider/profile/payments" },
     { icon: Star, title: t("provider.profile.menuStarRating"), href: "/provider/profile/ratings" },
     ...(isBusinessOwner ? [
@@ -80,20 +84,46 @@ export default function ProviderProfilePage() {
       <div className="p-4 space-y-4 max-w-2xl">
         {/* Profile Card */}
         <div className="bg-white dark:bg-gray-800 rounded-lg p-6 text-center border dark:border-gray-700">
-          <div className="w-24 h-24 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full mx-auto mb-4"></div>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">{provider.name}</h2>
-          <div className="flex justify-center gap-1 my-2">
-            {[...Array(5)].map((_, i) => (
-              <Star
-                key={i}
-                className={`w-4 h-4 ${i < Math.floor(provider.rating) ? "fill-yellow-400 text-yellow-400" : "text-gray-300 dark:text-gray-600"}`}
-              />
-            ))}
+          {/* Was an empty gradient disc for everyone; shows the provider's
+              own photo when they have one, and their initial when they don't. */}
+          <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-blue-400 to-blue-600">
+            {info?.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={info.avatarUrl} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <span className="text-3xl font-bold text-white">{info?.displayName?.trim().charAt(0).toUpperCase() ?? ""}</span>
+            )}
           </div>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+            {info ? info.displayName : <span className="inline-block h-6 w-40 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />}
+          </h2>
+          {/* A provider with no reviews yet gets the honest version of this row
+              rather than a hollow five-star rail reading 0. */}
+          {info && info.reviewCount > 0 && (
+            <div className="flex justify-center gap-1 my-2">
+              {[...Array(5)].map((_, i) => (
+                <Star
+                  key={i}
+                  className={`w-4 h-4 ${i < Math.round(info.rating) ? "fill-yellow-400 text-yellow-400" : "text-gray-300 dark:text-gray-600"}`}
+                />
+              ))}
+            </div>
+          )}
           <p className="text-xs text-gray-600 dark:text-gray-400">
-            {provider.rating} • {provider.providerSince}
+            {info
+              ? [
+                  info.reviewCount > 0
+                    ? `${info.rating.toFixed(1)} (${info.reviewCount})`
+                    : t("provider.profile.noRatingsYet"),
+                  t("provider.profile.providerSince", {
+                    date: new Date(info.memberSince).toLocaleDateString(undefined, { month: "long", year: "numeric" }),
+                  }),
+                ].join(" • ")
+              : " "}
           </p>
-          <p className="text-xs text-gray-600 dark:text-gray-400 mb-4">{t("provider.profile.completedJobsLabel", { count: provider.completedJobs })}</p>
+          <p className="text-xs text-gray-600 dark:text-gray-400 mb-4">
+            {info ? t("provider.profile.completedJobsLabel", { count: info.completedJobs }) : " "}
+          </p>
           {/* Edit Profile Button — /provider/profile/edit never existed, so
               this was a dead link on every provider's profile. The account
               page is what edits the details shown just above it: name,

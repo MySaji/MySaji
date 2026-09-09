@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
-import { Send, X, Loader2, LogIn } from "lucide-react"
+import { Send, X, LogIn } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { TypingBubble } from "@/components/typing-indicator"
 import { LogoMark } from "@/components/logo"
 import { sendGuestChatbotMessage } from "@/lib/actions/guest-chatbot"
 
@@ -95,15 +96,7 @@ export function GuestChatbotWidget({ onClose }: { onClose: () => void }) {
         })}
 
         {isSending && (
-          <div className="flex justify-start gap-2.5">
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-full">
-              <LogoMark size={32} className="h-full w-full object-cover" />
-            </div>
-            <div className="flex gap-2 rounded-lg rounded-tl-none bg-gray-100 px-4 py-3 dark:bg-gray-700">
-              <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-              <span className="text-sm text-gray-600 dark:text-gray-300">Thinking...</span>
-            </div>
-          </div>
+          <TypingBubble avatar={<LogoMark size={32} className="h-full w-full object-cover" />} label="SAJI Assistant is typing" />
         )}
 
         {aiUnconfigured && (

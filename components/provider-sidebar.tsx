@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { Home, Briefcase, MessageCircle, Wallet, User, ChevronDown, ChevronLeft, ChevronRight, ImageIcon, Calendar, Wrench, BarChart3, FileText, Users, Store, Gift, Award, ClipboardList, X, MoreHorizontal, Megaphone, LayoutDashboard, Building2, TrendingUp, Navigation, Crown, Rocket, Package, Handshake, Radar, Plus} from "lucide-react"
+import { Home, Briefcase, MessageCircle, Wallet, User, ChevronDown, ChevronLeft, ChevronRight, ImageIcon, Calendar, Wrench, BarChart3, FileText, Users, Store, Gift, Award, ClipboardList, X, MoreHorizontal, Megaphone, LayoutDashboard, Building2, TrendingUp, Navigation, Crown, Rocket, Package, Handshake, Radar, Plus, Camera} from "lucide-react"
 import Link from "next/link"
 import { usePathname, useSearchParams } from "next/navigation"
 import { Logo } from "@/components/logo"
@@ -81,6 +81,10 @@ export default function ProviderSidebar({ isOpen, onClose, isCollapsed, onToggle
       { icon: Package, label: "Rentals", href: "/provider/rentals", group: null },
       { icon: Store, label: "My Shop", href: "/provider/shop", group: "business" },
       { icon: Users, label: "Customers", href: "/provider/clients", group: "business" },
+      // "My Work" is the permanent portfolio (photos and videos of finished
+      // jobs, shown on the public profile); "Showcase" is the feed — posts and
+      // before/after stories that expire. Different things, so both are here.
+      { icon: Camera, label: "My Work", href: "/provider/portfolio", group: "business" },
       { icon: ImageIcon, label: "Showcase", href: "/provider/content", group: "business" },
       { icon: MessageCircle, label: "Messages", href: "/provider/messages", badge: unreadMessages || undefined, group: "business" },
       { icon: Wallet, label: "My Wallet", href: "/provider/wallet", group: "business" },
@@ -127,6 +131,7 @@ export default function ProviderSidebar({ isOpen, onClose, isCollapsed, onToggle
       { icon: Radar, label: "Opportunities", href: "/provider/opportunities", group: null },
       { icon: MessageCircle, label: "Messages", href: "/provider/messages", badge: unreadMessages || undefined, group: null },
       { icon: Store, label: "My Shop", href: "/provider/shop", group: "business" },
+      { icon: Camera, label: "My Work", href: "/provider/portfolio", group: "business" },
       { icon: ImageIcon, label: "My Content", href: "/provider/content", group: "business" },
       { icon: FileText, label: "Invoices", href: "/provider/invoices", group: "business" },
       { icon: BarChart3, label: "Analytics", href: "/provider/analytics", group: "insights" },
@@ -192,7 +197,7 @@ export default function ProviderSidebar({ isOpen, onClose, isCollapsed, onToggle
     { label: "Verification", href: "/provider/profile/verification" },
     { label: "Certifications", href: "/provider/profile/certifications" },
     { label: "Driver Profile", href: "/provider/profile/driver" },
-    { label: "Proof of Work", href: "/provider/profile/proof" },
+    { label: "My Work", href: "/provider/portfolio" },
     { label: "Payment Methods", href: "/provider/profile/payments" },
     { label: "Star Ratings", href: "/provider/profile/ratings" },
     { label: "Help & Support", href: "/provider/profile/help" },

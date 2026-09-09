@@ -17,6 +17,21 @@ export const OFFER_KIND: Record<OfferActionType, "product" | "service" | "rental
   REQUEST: "service",
 }
 
+/**
+ * Where a customer tapping an offer card should land.
+ *
+ * RENT is the reason this exists. A rental is a date-range RentalBooking with
+ * a deposit and availability windows, and it has its own screen for that —
+ * but every offer list linked to /customer/offers/[id] regardless of action
+ * type, so rentals arrived at the generic offer page and were handed a
+ * "send the provider a message" box instead of a booking form. Anything that
+ * links to an offer must go through this, so the rule lives in one place
+ * rather than being re-derived per list.
+ */
+export function offerHref(actionType: OfferActionType, offerId: string): string {
+  return actionType === "RENT" ? `/customer/rentals/${offerId}` : `/customer/offers/${offerId}`
+}
+
 export const OFFER_ACTION_LABEL: Record<OfferActionType, string> = {
   BOOK: "Book",
   HIRE: "Hire",

@@ -4,7 +4,7 @@ import { z } from "zod"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
 import { requireVerified } from "@/lib/verification-gate"
-import { isShopCurrentlyOpen, getNextOpeningLabel } from "@/lib/format"
+import { isShopCurrentlyOpen, getNextOpeningLabel, resolveShopHoursForToday } from "@/lib/format"
 import { getEffectiveCommissionRate, splitByCommission } from "@/lib/commission"
 import { pushToUser } from "@/lib/actions/push"
 import { resolvePromoDiscount } from "@/lib/promo-code"
@@ -34,6 +34,19 @@ export type CartLine =
       shopDeliveryFee: number
       shopIsOnVacation: boolean
       shopVacationNote: string | null
+    }
+  | {
+      kind: "offer"
+      cartItemId: string
+      offerId: string
+      name: string
+      image: string | null
+      providerName: string
+      price: number
+      quantity: number
+      /// null when the provider does not track stock on this offer, which is
+      /// the default — same meaning as Offer.stockQuantity itself.
+      stock: number | null
     }
   | {
       kind: "service"
@@ -67,6 +80,7 @@ export async function getCart(): Promise<CartLine[]> {
     orderBy: { createdAt: "asc" },
     include: {
       product: { include: { shopkeeper: true, inventory: true } },
+      offer: { include: { provider: { include: { user: true } } } },
       service: { include: { provider: { include: { user: true } } } },
       servicePackage: true,
     },
@@ -74,7 +88,7 @@ export async function getCart(): Promise<CartLine[]> {
 
   return items.map((item): CartLine => {
     if (item.product) {
-      const { openingTime, closingTime } = item.product.shopkeeper
+      const { openingTime, closingTime } = resolveShopHoursForToday(item.product.shopkeeper)
       const shopIsOpen = isShopCurrentlyOpen(openingTime, closingTime)
       return {
         kind: "product",
@@ -86,10 +100,25 @@ export async function getCart(): Promise<CartLine[]> {
         quantity: item.quantity,
         stock: item.product.inventory ? Math.max(item.product.inventory.currentStock - item.product.inventory.reservedStock, 0) : 0,
         shopIsOpen,
-        shopNextOpeningLabel: shopIsOpen ? null : getNextOpeningLabel(openingTime, closingTime),
+        shopNextOpeningLabel: shopIsOpen ? null : getNextOpeningLabel(item.product.shopkeeper),
         shopDeliveryFee: Number(item.product.shopkeeper.deliveryFee),
         shopIsOnVacation: item.product.shopkeeper.isOnVacation,
         shopVacationNote: item.product.shopkeeper.vacationNote,
+      }
+    }
+
+    if (item.offer) {
+      const offer = item.offer
+      return {
+        kind: "offer",
+        cartItemId: item.id,
+        offerId: offer.id,
+        name: offer.title,
+        image: offer.images[0] ?? null,
+        providerName: offer.provider.businessName || offer.provider.user.name,
+        price: Number(offer.price ?? 0),
+        quantity: item.quantity,
+        stock: offer.stockQuantity,
       }
     }
 
@@ -258,6 +287,101 @@ export async function removeServiceCartItem(input: unknown): Promise<CartActionR
   return { success: true }
 }
 
+// ============================= OFFER LINES =============================
+
+const addOfferToCartSchema = z.object({
+  offerId: z.string().trim().min(1),
+  quantity: z.number().int().min(1).max(99).default(1),
+})
+
+/**
+ * Adds a BUY-actionType Offer to the cart.
+ *
+ * Deliberately NOT gated on verification: filling a cart stays open, and
+ * checkout() is where order.place is enforced — the same rule products
+ * already follow. Only BUY reaches here; BOOK and HIRE reserve a provider's
+ * time so they keep going through the booking screen, and RENT has its own
+ * date-range flow.
+ */
+export async function addOfferToCart(input: unknown): Promise<CartActionResult> {
+  const customerId = await requireCustomerId()
+  if (!customerId) return { success: false, error: "You must be signed in." }
+
+  const parsed = addOfferToCartSchema.safeParse(input)
+  if (!parsed.success) return { success: false, error: "Invalid input" }
+  const { offerId, quantity } = parsed.data
+
+  const offer = await db.offer.findUnique({
+    where: { id: offerId },
+    include: { provider: { include: { availability: true } } },
+  })
+  if (!offer || offer.status !== "LIVE") return { success: false, error: "This offer is no longer available." }
+  if (offer.actionType !== "BUY") return { success: false, error: "This offer can't be added to a cart." }
+  if (offer.price == null) return { success: false, error: "This offer has no price yet." }
+  if (offer.provider?.availability?.isOnVacation) {
+    return { success: false, error: "This provider is currently unavailable for new orders." }
+  }
+
+  const isBlocked = await db.blockedClient.findUnique({
+    where: { providerId_customerId: { providerId: offer.providerId, customerId } },
+  })
+  if (isBlocked) return { success: false, error: "This provider isn't able to accept orders from your account." }
+
+  const existing = await db.cartItem.findUnique({ where: { customerId_offerId: { customerId, offerId } } })
+  const nextQuantity = (existing?.quantity ?? 0) + quantity
+
+  // Friendly early rejection only. The race-safe decrement still happens when
+  // payment clears, exactly as createOfferBooking documents.
+  if (offer.stockQuantity != null && offer.stockQuantity < nextQuantity) {
+    return {
+      success: false,
+      error: offer.stockQuantity === 0 ? "This is out of stock." : `Only ${offer.stockQuantity} left in stock.`,
+    }
+  }
+
+  await db.cartItem.upsert({
+    where: { customerId_offerId: { customerId, offerId } },
+    update: { quantity: nextQuantity },
+    create: { customerId, offerId, quantity },
+  })
+
+  return { success: true }
+}
+
+const offerCartItemSchema = z.object({
+  cartItemId: z.string().trim().min(1),
+  quantity: z.number().int().min(0).max(99),
+})
+
+/** Quantity 0 removes the line, matching updateCartItemQuantity for products. */
+export async function updateOfferCartItemQuantity(input: unknown): Promise<CartActionResult> {
+  const customerId = await requireCustomerId()
+  if (!customerId) return { success: false, error: "You must be signed in." }
+
+  const parsed = offerCartItemSchema.safeParse(input)
+  if (!parsed.success) return { success: false, error: "Invalid input" }
+  const { cartItemId, quantity } = parsed.data
+
+  const where = { id: cartItemId, customerId, offerId: { not: null } }
+  if (quantity <= 0) {
+    await db.cartItem.deleteMany({ where })
+  } else {
+    await db.cartItem.updateMany({ where, data: { quantity } })
+  }
+  return { success: true }
+}
+
+export async function removeOfferCartItem(input: unknown): Promise<CartActionResult> {
+  const customerId = await requireCustomerId()
+  if (!customerId) return { success: false, error: "You must be signed in." }
+
+  const parsed = removeServiceSchema.safeParse(input)
+  if (!parsed.success) return { success: false, error: "Invalid input" }
+
+  await db.cartItem.deleteMany({ where: { id: parsed.data.cartItemId, customerId, offerId: { not: null } } })
+  return { success: true }
+}
+
 // ============================= CHECKOUT (SPLITTER) =============================
 
 const checkoutSchema = z.object({
@@ -304,6 +428,7 @@ export async function checkout(input: unknown): Promise<CheckoutResult> {
     where: { customerId },
     include: {
       product: { include: { inventory: true, shopkeeper: true } },
+      offer: { include: { provider: { include: { user: true, availability: true } } } },
       service: { include: { provider: { include: { user: true, availability: true } } } },
       servicePackage: true,
     },
@@ -312,6 +437,7 @@ export async function checkout(input: unknown): Promise<CheckoutResult> {
 
   const productItems = cartItems.filter((item) => item.productId)
   const serviceItems = cartItems.filter((item) => item.serviceId)
+  const offerItems = cartItems.filter((item) => item.offerId)
 
   const vacationingItem = productItems.find((item) => item.product!.shopkeeper.isOnVacation)
   if (vacationingItem) {
@@ -330,6 +456,29 @@ export async function checkout(input: unknown): Promise<CheckoutResult> {
     const available = item.product!.inventory ? item.product!.inventory.currentStock - item.product!.inventory.reservedStock : 0
     if (item.quantity > available) {
       return { success: false, error: `${item.product!.name} only has ${Math.max(available, 0)} left in stock.` }
+    }
+  }
+
+  // A BUY offer can go dark, run out or have its provider go on holiday
+  // between adding it and paying, exactly like a product can.
+  for (const item of offerItems) {
+    const offer = item.offer!
+    if (offer.status !== "LIVE" || offer.actionType !== "BUY" || offer.price == null) {
+      return { success: false, error: `${offer.title} is no longer available.` }
+    }
+    if (offer.provider.availability?.isOnVacation) {
+      return { success: false, error: `${offer.provider.businessName || offer.provider.user.name} is currently unavailable for new orders.` }
+    }
+    if (offer.stockQuantity != null && offer.stockQuantity < item.quantity) {
+      return { success: false, error: `${offer.title} only has ${Math.max(offer.stockQuantity, 0)} left in stock.` }
+    }
+  }
+  const offerProviderIds = [...new Set(offerItems.map((item) => item.offer!.providerId))]
+  if (offerProviderIds.length > 0) {
+    const blocked = await db.blockedClient.findFirst({ where: { customerId, providerId: { in: offerProviderIds } } })
+    if (blocked) {
+      const blockedItem = offerItems.find((item) => item.offer!.providerId === blocked.providerId)
+      return { success: false, error: `${blockedItem?.offer!.provider.businessName || "One of these providers"} isn't able to accept your order. Please remove their item from your cart.` }
     }
   }
 
@@ -377,6 +526,9 @@ export async function checkout(input: unknown): Promise<CheckoutResult> {
   const shippingTotal = [...byShop.keys()].reduce((sum, shopkeeperId) => sum + (shopkeeperDeliveryFeeById.get(shopkeeperId) ?? DEFAULT_SHIPPING_COST), 0)
   const productsSubtotal = productItems.reduce((sum, item) => sum + Number(item.product!.discountPrice ?? item.product!.price) * item.quantity, 0)
   const servicesSubtotal = serviceItems.reduce((sum, item) => sum + Number(item.servicePackage?.price ?? item.service!.basePrice) * item.quantity, 0)
+  // No delivery fee is added for offer lines: a provider has no per-shop
+  // deliveryFee setting, and fulfilment is arranged with them directly.
+  const offersSubtotal = offerItems.reduce((sum, item) => sum + Number(item.offer!.price) * item.quantity, 0)
 
   // Resolved once, before the transaction, and trusted as-is inside it (no
   // re-check at commit time) — that keeps grandTotal (what the customer is
@@ -391,10 +543,11 @@ export async function checkout(input: unknown): Promise<CheckoutResult> {
     promo = result
   }
   const discountAmount = promo?.discountAmount ?? 0
-  const grandTotal = productsSubtotal + shippingTotal - discountAmount + servicesSubtotal
+  const grandTotal = productsSubtotal + shippingTotal - discountAmount + servicesSubtotal + offersSubtotal
   const partsSummary = [
     byShop.size > 0 ? `${byShop.size} shop${byShop.size > 1 ? "s" : ""}` : null,
     serviceItems.length > 0 ? `${serviceItems.length} service${serviceItems.length > 1 ? "s" : ""}` : null,
+    offerItems.length > 0 ? `${offerItems.length} Pro offer${offerItems.length > 1 ? "s" : ""}` : null,
   ].filter(Boolean).join(", ")
 
   const wallet = await db.wallet.findUnique({ where: { userId: customerId } })
@@ -597,6 +750,69 @@ export async function checkout(input: unknown): Promise<CheckoutResult> {
         },
       })
       providerNotifications.push({ providerUserId: service.provider.userId, serviceTitle: service.title, jobId: job.id })
+    }
+
+    // A BUY offer settles into the same Job pipeline createOfferBooking uses,
+    // so payments, disputes and reviews all behave identically however the
+    // offer was bought. Like services (see the function doc comment), the
+    // provider is paid on completion rather than here.
+    //
+    // scheduledDate is the order time, not an appointment. Buying goods
+    // reserves none of the provider's time — asking for a date and slot was
+    // exactly what was wrong with routing BUY through the booking screen —
+    // but Job.scheduledDate is non-null and is read in ~79 places (calendars,
+    // reminders, provider lists), so widening it for this one case would be a
+    // far larger change than the behaviour warrants. "Placed now, fulfil it"
+    // is the honest reading for a purchase.
+    const orderedAt = new Date()
+    for (const item of offerItems) {
+      const offer = item.offer!
+      const price = Number(offer.price) * item.quantity
+
+      const job = await tx.job.create({
+        data: {
+          customerId,
+          providerId: offer.providerId,
+          offerId: offer.id,
+          title: offer.title,
+          description: offer.description,
+          price,
+          currency: offer.currency,
+          location: shippingAddress,
+          scheduledDate: orderedAt,
+          status: "PENDING",
+        },
+      })
+      jobIds.push(job.id)
+
+      if (offer.stockQuantity != null) {
+        await tx.offer.update({ where: { id: offer.id }, data: { stockQuantity: { decrement: item.quantity } } })
+      }
+
+      await tx.payment.create({
+        data: {
+          amount: price,
+          status: "COMPLETED",
+          contextType: "JOB",
+          jobId: job.id,
+          payerId: customerId,
+          payeeId: offer.provider.userId,
+          paidAt: new Date(),
+        },
+      })
+
+      await tx.notification.create({
+        data: {
+          userId: offer.provider.userId,
+          title: "New order received",
+          message: `${offer.title} x${item.quantity} was ordered for KES ${price.toLocaleString()}.`,
+          type: "JOB",
+          relatedType: "JOB",
+          relatedId: job.id,
+          actionUrl: "/provider/jobs",
+        },
+      })
+      providerNotifications.push({ providerUserId: offer.provider.userId, serviceTitle: offer.title, jobId: job.id })
     }
 
     await tx.transaction.create({

@@ -156,10 +156,23 @@ export default function ShopkeeperEarningsPage() {
     return date.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })
   }
 
-  if (isLoading || !data) {
+  if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  // Loaded, but the account has no shop to report on. This used to share the
+  // branch above, so anything that made the fetch come back empty left the
+  // page spinning forever with nothing to act on.
+  if (!data) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 px-6 text-center">
+        <AlertCircle className="h-8 w-8 text-muted-foreground" />
+        <p className="text-sm font-semibold text-foreground">{t("shopkeeper.earnings.unavailableTitle")}</p>
+        <p className="max-w-xs text-xs text-muted-foreground">{t("shopkeeper.earnings.unavailableBody")}</p>
       </div>
     )
   }

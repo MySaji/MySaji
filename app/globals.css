@@ -314,6 +314,30 @@
   animation: shake-nudge 4s ease-in-out infinite;
 }
 
+/* Chat typing indicator (components/typing-indicator.tsx). Kept here rather
+   than inline so it honours prefers-reduced-motion: with motion reduced the
+   dots hold a steady mid-opacity instead of bouncing, so the bubble still
+   reads as "the assistant is composing" without any movement. */
+@keyframes saji-typing {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.35;
+  }
+  30% {
+    transform: translateY(-3px);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [style*="saji-typing"] {
+    animation: none !important;
+    opacity: 0.7 !important;
+  }
+}
+
 /* Hide scrollbar for horizontal scrolls */
 .scrollbar-hide::-webkit-scrollbar {
   display: none;

@@ -34,18 +34,38 @@ export type ProviderBusinessInfo = {
   registrationNumber: string | null
   hqAddress: string | null
   parentBusinessId: string | null
+  /// The header fields on /provider/profile. They live on this call, which
+  /// that page already makes, rather than on a second fetch: the page used to
+  /// render a hardcoded "Mike R., 4.7, 200 reviews" placeholder to every
+  /// provider, and real numbers only appeared once they opened My Account.
+  displayName: string
+  avatarUrl: string | null
+  rating: number
+  reviewCount: number
+  completedJobs: number
+  /// ISO date the provider profile was created — "Provider since".
+  memberSince: string
 }
 
 export async function getMyProviderBusinessInfo(): Promise<ProviderBusinessInfo | null> {
   const provider = await requireProvider()
   if (!provider) return null
-  const profile = await db.providerProfile.findUnique({ where: { id: provider.providerId } })
+  const profile = await db.providerProfile.findUnique({
+    where: { id: provider.providerId },
+    include: { user: { select: { name: true, image: true } } },
+  })
   if (!profile) return null
   return {
     isBusinessOwner: profile.isBusinessOwner,
     registrationNumber: profile.registrationNumber,
     hqAddress: profile.hqAddress,
     parentBusinessId: profile.parentBusinessId,
+    displayName: profile.businessName || profile.user.name,
+    avatarUrl: profile.user.image,
+    rating: Number(profile.rating),
+    reviewCount: profile.reviewCount,
+    completedJobs: profile.completedJobs,
+    memberSince: profile.createdAt.toISOString(),
   }
 }
 

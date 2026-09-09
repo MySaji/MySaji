@@ -192,7 +192,7 @@ export default function ProDashboardPage() {
               { icon: Package, label: "Add Rental", href: "/provider/rentals", color: "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400" },
               { icon: MapPin, label: "Add Service Area", href: "/provider/profile/skills", color: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400" },
               { icon: FileText, label: "Create Quote", href: "/provider/quotes", color: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400" },
-              { icon: Upload, label: "Upload Work", href: "/provider/profile/proof", color: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400" },
+              { icon: Upload, label: "Upload Work", href: "/provider/portfolio", color: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400" },
               { icon: Rocket, label: "Promote Profile", href: "/provider/pro", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },
             ].map((action) => (
               <Link key={action.label} href={action.href} className="flex flex-col items-center gap-2 text-center">
@@ -273,7 +273,7 @@ export default function ProDashboardPage() {
           <div className="space-y-1">
             {[
               { icon: ClipboardCheck, title: "Add more offers", desc: "More offers = more visibility", href: "/provider/offers", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" },
-              { icon: UploadCloud, title: "Upload more work", desc: "Show your skills and build trust", href: "/provider/profile/proof", color: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400" },
+              { icon: UploadCloud, title: "Upload more work", desc: "Show your skills and build trust", href: "/provider/portfolio", color: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400" },
               { icon: Star, title: "Get verified", desc: "Verified profiles get 3x more bookings", href: "/provider/profile/verification", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },
               { icon: Sparkles, title: "Promote your profile", desc: "Reach more customers in your area", href: "/provider/pro", color: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400" },
             ].map((tip) => (

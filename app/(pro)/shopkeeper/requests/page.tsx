@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { MapPin, MessageSquare, Loader2, CheckCircle2, ClipboardList } from "lucide-react"
-import { getOpenRequestsBoard, respondToRequest, type BoardRequestItem } from "@/lib/actions/requests"
+import Image from "next/image"
+import { MapPin, MessageSquare, Loader2, CheckCircle2, ClipboardList, ImageIcon } from "lucide-react"
+import { getOpenRequestsBoard, respondToRequest, getRequestPhotos, type BoardRequestItem } from "@/lib/actions/requests"
 import { getMyProducts, type ShopkeeperProduct } from "@/lib/actions/shopkeeper-products"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useLocalization } from "@/lib/hooks/useLocalization"
@@ -40,6 +41,11 @@ export default function ShopkeeperRequestsPage() {
       .catch(() => {})
   }, [])
 
+  // Photos are fetched per request rather than carried on the board, which
+  // only knows how many there are — see getRequestPhotos.
+  const [photos, setPhotos] = useState<string[]>([])
+  const [isLoadingPhotos, setIsLoadingPhotos] = useState(false)
+
   const openRespond = (req: BoardRequestItem) => {
     setActiveRequest(req)
     setMessage("")
@@ -47,6 +53,13 @@ export default function ShopkeeperRequestsPage() {
     setProductId("")
     setQuantity("1")
     setFormError("")
+    setPhotos([])
+    if (req.photoCount > 0) {
+      setIsLoadingPhotos(true)
+      getRequestPhotos(req.id)
+        .then(setPhotos)
+        .finally(() => setIsLoadingPhotos(false))
+    }
   }
 
   const handleSubmit = async () => {
@@ -105,6 +118,9 @@ export default function ShopkeeperRequestsPage() {
                     <div className="flex items-center gap-4 mt-3 text-[11px] text-muted-foreground">
                       <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{req.location}</span>
                       <span className="flex items-center gap-1"><MessageSquare className="w-3 h-3" />{t("shopkeeper.requests.responseCount", { count: req.responseCount })}</span>
+                      {req.photoCount > 0 && (
+                        <span className="flex items-center gap-1"><ImageIcon className="w-3 h-3" />{t("shopkeeper.requests.photoCount", { count: req.photoCount })}</span>
+                      )}
                       {(req.budgetMin != null || req.budgetMax != null) && (
                         <span>{req.budgetMin != null ? formatMoney(req.budgetMin) : "?"} – {req.budgetMax != null ? formatMoney(req.budgetMax) : "?"}</span>
                       )}
@@ -131,6 +147,22 @@ export default function ShopkeeperRequestsPage() {
         <DialogContent className="max-w-md rounded-2xl">
           <DialogHeader><DialogTitle>{t("shopkeeper.requests.respondModalTitle")}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
+            {(isLoadingPhotos || photos.length > 0) && (
+              <div>
+                <label className="text-xs font-medium mb-1.5 block">{t("shopkeeper.requests.customerPhotos")}</label>
+                {isLoadingPhotos ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {photos.map((src, i) => (
+                      <a key={i} href={src} target="_blank" rel="noopener noreferrer" className="relative h-20 w-20 overflow-hidden rounded-lg border border-border">
+                        <Image src={src} alt="" fill sizes="80px" className="object-cover" unoptimized />
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
             <div>
               <label className="text-xs font-medium mb-1.5 block">{t("shopkeeper.requests.messageLabel")}</label>
               <Textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder={t("shopkeeper.requests.messagePlaceholder")} className="min-h-[80px]" />

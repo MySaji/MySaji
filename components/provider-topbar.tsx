@@ -43,6 +43,7 @@ const TITLE_BY_PREFIX: [string, string][] = [
   ["/provider/availability", "Availability"],
   ["/provider/quotes", "Quotes"],
   ["/provider/shop", "My Shop"],
+  ["/provider/portfolio", "My Work"],
   ["/provider/content", "My Content"],
   ["/provider/messages", "Messages"],
   ["/provider/wallet", "Wallet"],

@@ -19,7 +19,6 @@ import { revalidateCartCount } from "@/lib/hooks/useCartCount"
 import Image from "next/image"
 import Link from "next/link"
 import { StaticLocationMap } from "@/components/maps/static-location-map"
-import { getNextOpeningLabel } from "@/lib/format"
 import { useLocalization } from "@/lib/hooks/useLocalization"
 import { compressImageToDataUrl } from "@/lib/compress-image"
 

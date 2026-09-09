@@ -73,7 +73,10 @@ export async function getSpecialists(): Promise<SpecialistCard[]> {
 export type SpecialistDetail = SpecialistCard & {
   bio: string | null
   phone: string | null
-  portfolio: { id: string; title: string; imageUrl: string; videoUrl: string | null }[]
+  /// The provider's work samples — what they photographed or filmed on a
+  /// finished job. `description` is carried so the customer can read what the
+  /// job actually involved rather than just seeing a caption-less thumbnail.
+  portfolio: { id: string; title: string; description: string | null; imageUrl: string; videoUrl: string | null }[]
   endorsements: { id: string; shopName: string; ownerName: string; message: string; avatar: string | null }[]
   bookableCategoryId: string | null
   isWishlisted: boolean
@@ -133,7 +136,7 @@ export async function getSpecialistDetail(providerId: string): Promise<Specialis
     // Message both go through the in-app conversation/voice-call system
     // (userId above), never a raw tel: link.
     phone: null,
-    portfolio: provider.portfolio.map((item) => ({ id: item.id, title: item.title, imageUrl: item.imageUrl, videoUrl: item.videoUrl })),
+    portfolio: provider.portfolio.map((item) => ({ id: item.id, title: item.title, description: item.description, imageUrl: item.imageUrl, videoUrl: item.videoUrl })),
     endorsements: endorsements.map((e) => ({
       id: e.id,
       shopName: e.fromUser.shopkeeperProfile?.shopName ?? e.fromUser.name,

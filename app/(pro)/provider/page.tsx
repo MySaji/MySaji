@@ -12,6 +12,7 @@ import {
 import { useLocalization } from "@/lib/hooks/useLocalization"
 import { useProviderWorkspace } from "@/lib/hooks/useProviderWorkspace"
 import { getProDashboardOverview } from "@/lib/actions/provider-pro-dashboard"
+import { resolveShopHoursForToday, shopHoursRows, isShopCurrentlyOpen } from "@/lib/format"
 import { getProviderDashboardData } from "@/lib/actions/provider-dashboard"
 import { getOpenOpportunities, type OpportunityItem } from "@/lib/actions/opportunities"
 import { getMyProducts, getMyProductOrders } from "@/lib/actions/provider-products"
@@ -206,30 +207,28 @@ export default function ProviderHomePage() {
   // overview fetch as everything else on this screen.
   const shop = pro?.shop ?? null
 
-  // A shop trades on one open/close pair every day; a provider works to a
-  // per-day availability schedule. Both feed the same card, so whichever
-  // describes this account is what it shows.
-  const shopHours =
-    shop?.openingTime && shop?.closingTime
-      ? (() => {
-          const [oh, om] = shop.openingTime.split(":").map(Number)
-          const [ch, cm] = shop.closingTime.split(":").map(Number)
-          if (![oh, om, ch, cm].every((n) => Number.isFinite(n))) return null
-          const now = new Date()
-          const mins = now.getHours() * 60 + now.getMinutes()
-          const isOpen = mins >= oh * 60 + om && mins < ch * 60 + cm
-          return {
-            isOpen,
-            closesAt: isOpen ? formatTime12h(shop.closingTime) : null,
-            rows: [
-              {
-                label: t("provider.home.everyDayLabel"),
-                value: `${formatTime12h(shop.openingTime)} - ${formatTime12h(shop.closingTime)}`,
-              },
-            ],
-          }
-        })()
-      : null
+  // A shop can keep three sets of hours — Mon-Sat, Sunday, public holidays —
+  // while a provider works to a per-day availability schedule. Both feed the
+  // same card, so whichever describes this account is what it shows. The
+  // open/closed line uses whichever pair applies today; holiday hours are
+  // displayed but never decide it, since nothing here knows the calendar.
+  const shopHours = (() => {
+    if (!shop) return null
+    const { openingTime, closingTime } = resolveShopHoursForToday(shop)
+    const rows = shopHoursRows(shop, {
+      weekday: t("provider.home.hoursWeekday"),
+      sunday: t("provider.home.hoursSunday"),
+      holiday: t("provider.home.hoursHoliday"),
+      closed: t("provider.home.closedLabel"),
+    })
+    if (!rows.length) return null
+    const isOpen = isShopCurrentlyOpen(openingTime, closingTime)
+    return {
+      isOpen,
+      closesAt: isOpen && closingTime ? formatTime12h(closingTime) : null,
+      rows,
+    }
+  })()
 
   const { isOpen: shopOpen, closesAt } = shopHours ?? providerHours
   const hourRows = shopHours ? shopHours.rows : groupedHours(schedule, t)
@@ -446,9 +445,14 @@ export default function ProviderHomePage() {
               <p className="text-xs font-bold text-foreground">{t("provider.home.openingHours")}</p>
               <dl className="mt-2 space-y-1">
                 {hourRows.map((row) => (
-                  <div key={row.label} className="flex items-center justify-between gap-3 text-[11px]">
-                    <dt className="text-muted-foreground">{row.label}</dt>
-                    <dd className="truncate font-medium text-foreground">{row.value}</dd>
+                  // The label is the part allowed to wrap: Swahili's
+                  // "Jumatatu - Jumamosi" is long enough to overflow this card
+                  // at 320px, while the time itself must stay on one line to
+                  // stay readable. `truncate` alone did nothing here — a flex
+                  // child needs min-w-0 before it will shrink at all.
+                  <div key={row.label} className="flex items-start justify-between gap-3 text-[11px]">
+                    <dt className="min-w-0 text-muted-foreground">{row.label}</dt>
+                    <dd className="shrink-0 whitespace-nowrap font-medium text-foreground">{row.value}</dd>
                   </div>
                 ))}
               </dl>

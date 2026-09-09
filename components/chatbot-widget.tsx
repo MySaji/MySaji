@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { Send, X, AlertCircle, Loader2, Sparkles, PhoneCall, MessageSquare, Headset, RotateCcw, History as HistoryIcon, ArrowLeft, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { TypingBubble } from "@/components/typing-indicator"
 import { LogoMark } from "@/components/logo"
 import { useAuthContext } from "@/lib/auth-context"
 import {
@@ -429,16 +430,19 @@ export function ChatbotWidget({ onClose }: { onClose: () => void }) {
               )
             })}
 
+            {/* The customer's own message is already on screen by now (added
+                optimistically above), so this wait is the reply being composed
+                — show it as the replier typing, and name whoever that is once
+                the conversation has been handed to a person. */}
             {isSending && (
-              <div className="flex gap-2.5 justify-start">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
-                  <LogoMark size={32} className="w-full h-full object-cover" />
-                </div>
-                <div className="bg-gray-100 dark:bg-gray-700 px-4 py-3 rounded-lg rounded-tl-none flex gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
-                  <span className="text-sm text-gray-600 dark:text-gray-300">Sending...</span>
-                </div>
-              </div>
+              <TypingBubble
+                avatar={
+                  status === "ESCALATED"
+                    ? <span className="flex h-full w-full items-center justify-center bg-gradient-to-br from-emerald-500 to-emerald-600"><Headset className="h-4 w-4 text-white" /></span>
+                    : <LogoMark size={32} className="w-full h-full object-cover" />
+                }
+                label={status === "ESCALATED" ? "SAJI Support is typing" : "SAJI Assistant is typing"}
+              />
             )}
 
             {aiUnconfigured && (

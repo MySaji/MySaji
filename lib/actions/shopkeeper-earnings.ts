@@ -31,7 +31,12 @@ export async function getShopkeeperEarningsSummary(): Promise<ShopkeeperEarnings
     where: { userId: shopkeeper.userId },
     include: { transactions: { orderBy: { createdAt: "desc" }, take: 20 } },
   })
-  if (!wallet) return null
+  // A shop that has never been paid may have no Wallet row yet. That is an
+  // empty ledger, not a failure — returning null here made the page render a
+  // spinner that never resolved.
+  if (!wallet) {
+    return { totalEarnings: 0, thisMonth: 0, available: 0, pending: 0, transactions: [] }
+  }
 
   const now = new Date()
   const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1)

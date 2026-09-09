@@ -92,7 +92,7 @@ export async function getProviderDashboardData(): Promise<ProviderDashboardData>
   const onboarding: OnboardingStep[] = [
     { label: "Complete your profile", done: Boolean(profile.bio && profile.businessName), href: "/provider/profile/account" },
     { label: "Add skills & work area", done: profile.skills.length > 0 && profile.workAreas.length > 0, href: "/provider/profile/skills" },
-    { label: "Upload proof of work", done: portfolioCount > 0, href: "/provider/profile/proof" },
+    { label: "Upload proof of work", done: portfolioCount > 0, href: "/provider/portfolio" },
     { label: "Add payment method", done: paymentMethodCount > 0, href: "/provider/profile/payments" },
     // verificationStatus, not kycStatus: the first is what actually unlocks
     // publishing and payouts, and is what the provider is being sent to the

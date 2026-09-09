@@ -814,6 +814,7 @@ model Offer {
   category Category?       @relation(fields: [categoryId], references: [id])
   jobs     Job[]
   rentalBookings RentalBooking[]
+  cartItems      CartItem[]
 
   @@index([providerId])
   @@index([categoryId])
@@ -970,8 +971,21 @@ model ShopkeeperProfile {
   totalSales      Decimal  @default(0) @db.Decimal(14, 2)
   isVerified      Boolean  @default(false)
   isFeatured      Boolean  @default(false)
+  /// Mon-Sat trading hours. Kept as the original two columns so no existing
+  /// shop's hours had to be migrated: a shop that never sets the Sunday or
+  /// holiday pairs below simply trades these hours every day, exactly as
+  /// before.
   openingTime     String?
   closingTime     String?
+  /// Sunday, when a shop keeps different hours. Null means "same as Mon-Sat".
+  sundayOpeningTime String?
+  sundayClosingTime String?
+  /// Public holidays. Displayed to customers, but deliberately NOT used to
+  /// decide whether a shop is open right now — that would need a holiday
+  /// calendar per country, which does not exist here. See
+  /// resolveShopHoursForToday in lib/format.ts.
+  holidayOpeningTime String?
+  holidayClosingTime String?
   // Flat delivery fee this shop charges on retail orders, self-managed by
   // the shopkeeper (see app/shopkeeper/settings) — replaces what used to be
   // a single hardcoded platform-wide constant in checkout().
@@ -2317,6 +2331,7 @@ model CustomerRequest {
   customer  User              @relation(fields: [customerId], references: [id])
   category  Category          @relation(fields: [categoryId], references: [id])
   responses RequestResponse[]
+  photos    CustomerRequestPhoto[]
   jobs      Job[]
   orders    Order[]
 
@@ -2324,6 +2339,28 @@ model CustomerRequest {
   @@index([categoryId])
   @@index([status])
   @@map("customer_requests")
+}
+
+/// Photos a customer attached when posting a request — the home screen has
+/// always promised "speak or take a photo and we'll match you with the right
+/// help", and this is the photo half of it.
+///
+/// A child table rather than a String[] on CustomerRequest so the request
+/// board can show "2 photos" via _count without pulling the base64 itself:
+/// these are compressed data URLs in Postgres (there is no object storage
+/// here), so a handful of rows would otherwise be megabytes on every list
+/// query — and the database is in another region to the functions.
+model CustomerRequestPhoto {
+  id        String   @id @default(cuid())
+  requestId String
+  /// Compressed data URL, produced by compressImageToDataUrl.
+  dataUrl   String
+  createdAt DateTime @default(now())
+
+  request CustomerRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+  @@map("customer_request_photos")
 }
 
 enum CustomerRequestStatus {
@@ -2453,6 +2490,14 @@ model CartItem {
   productId      String?
   serviceId      String?
   servicePackageId String?
+  /// A BUY-actionType Offer in the cart. A Saji Pro provider selling goods
+  /// had no cart at all before this — "Buy" sent the customer to the
+  /// appointment booking screen and asked them for a date and time — so a
+  /// BUY offer now behaves like the Product it is. It stays an Offer rather
+  /// than being copied into Product because the provider's whole catalogue,
+  /// its LIVE lifecycle and its stock count all live on Offer; checkout
+  /// settles it into the same Job pipeline createOfferBooking already uses.
+  offerId        String?
   scheduledDate  DateTime?
   notes          String?
   quantity       Int       @default(1)
@@ -2462,8 +2507,12 @@ model CartItem {
   product        Product?        @relation(fields: [productId], references: [id], onDelete: Cascade)
   service        Service?        @relation(fields: [serviceId], references: [id], onDelete: Cascade)
   servicePackage ServicePackage? @relation(fields: [servicePackageId], references: [id], onDelete: Cascade)
+  offer          Offer?          @relation(fields: [offerId], references: [id], onDelete: Cascade)
 
   @@unique([customerId, productId])
+  /// Same shape as the product line above: one row per offer, so adding the
+  /// same offer twice bumps the quantity instead of stacking duplicate rows.
+  @@unique([customerId, offerId])
   @@index([customerId, serviceId])
   @@map("cart_items")
 }
@@ -2875,11 +2924,18 @@ model Message {
   isRead          Boolean     @default(false)
   readAt          DateTime?
   relatedStatusId String?
+  /// The message this one is a reply to — set by swiping a bubble to reply.
+  /// SetNull rather than Cascade so deleting the quoted message leaves the
+  /// reply standing (it just stops showing a quote) instead of silently
+  /// destroying an unrelated part of the conversation.
+  replyToId       String?
   createdAt       DateTime    @default(now())
 
   conversation   Conversation    @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   sender         User            @relation("MessageSender", fields: [senderId], references: [id])
   relatedStatus  ProviderStatus? @relation("MessageRelatedStatus", fields: [relatedStatusId], references: [id], onDelete: SetNull)
+  replyTo        Message?        @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies        Message[]       @relation("MessageReplies")
 
   @@index([conversationId])
   @@index([senderId])
@@ -3351,12 +3407,14 @@ model PostComment {
   @@map("post_comments")
 }
 
-// A provider's "before/after" status — WhatsApp-Status-style: shown in a
-// circular ring on the customer home feed and gone 12 hours after posting.
-// The 12h window is enforced by filtering on `createdAt` at read time (this
+// A provider's "before/after" status — Instagram/WhatsApp-Status-style: a row
+// of circular rings under the search bar on the customer home feed, gone 24
+// hours after posting.
+// The 24h window is enforced by filtering on `createdAt` at read time (this
 // project's cron infra is once-daily at finest, too coarse for a real-time
 // expiry); a daily cron additionally hard-deletes rows past that window so
-// they don't accumulate indefinitely.
+// they don't accumulate indefinitely. STORY_LIFETIME_MS in
+// lib/actions/provider-stories.ts is the single source of that number.
 model ProviderStatus {
   id          String   @id @default(cuid())
   providerId  String

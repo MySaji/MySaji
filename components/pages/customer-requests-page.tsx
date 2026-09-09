@@ -13,6 +13,8 @@ import {
   getMyCustomerRequests, createCustomerRequest, getCustomerRequestById, cancelCustomerRequest, acceptRequestResponse,
   type MyRequestItem, type CustomerRequestDetail,
 } from "@/lib/actions/requests"
+import { RequestPhotoPicker } from "@/components/customer/request-photo-picker"
+import { MAX_PHOTOS, takePendingRequestPhoto } from "@/lib/request-photos"
 import { getServiceCategories } from "@/lib/actions/home"
 import { getProductCategories } from "@/lib/actions/products"
 import { useLocalization } from "@/lib/hooks/useLocalization"
@@ -43,6 +45,7 @@ export function CustomerRequestsPage() {
   const [budgetMin, setBudgetMin] = useState("")
   const [budgetMax, setBudgetMax] = useState("")
   const [location, setLocation] = useState("")
+  const [photos, setPhotos] = useState<string[]>([])
   const [postError, setPostError] = useState("")
   const [isPosting, setIsPosting] = useState(false)
 
@@ -61,6 +64,18 @@ export function CustomerRequestsPage() {
     setDescription(describeParam)
     setShowPostModal(true)
   }, [describeParam])
+
+  // A photo taken from the home screen's camera buttons is parked in
+  // sessionStorage rather than the URL — see lib/request-photos.ts —
+  // and ?photo=1 is the signal that one is waiting.
+  const hasPendingPhoto = searchParams.get("photo") === "1"
+  useEffect(() => {
+    if (!hasPendingPhoto) return
+    const pending = takePendingRequestPhoto()
+    if (!pending) return
+    setPhotos((current) => (current.length ? current : [pending]))
+    setShowPostModal(true)
+  }, [hasPendingPhoto])
   const [acceptError, setAcceptError] = useState("")
   // Accepting now schedules the work and creates a real job, so it needs a
   // date and time — a request carries none of its own.
@@ -96,6 +111,7 @@ export function CustomerRequestsPage() {
     setBudgetMin("")
     setBudgetMax("")
     setLocation("")
+    setPhotos([])
     setPostError("")
   }
 
@@ -110,6 +126,7 @@ export function CustomerRequestsPage() {
       budgetMin: budgetMin ? Number(budgetMin) : undefined,
       budgetMax: budgetMax ? Number(budgetMax) : undefined,
       location,
+      photos,
     })
     setIsPosting(false)
     if (!result.success) {
@@ -235,6 +252,7 @@ export function CustomerRequestsPage() {
               <label className="text-xs font-medium mb-1.5 block">{t("customer.requests.descriptionLabel")}</label>
               <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t("customer.requests.descriptionPlaceholder")} className="min-h-[90px]" />
             </div>
+            <RequestPhotoPicker photos={photos} onChange={setPhotos} max={MAX_PHOTOS} />
             <div>
               <label className="text-xs font-medium mb-2 block">{t("customer.requests.categoryLabel")}</label>
               <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
@@ -287,6 +305,15 @@ export function CustomerRequestsPage() {
               <DialogHeader><DialogTitle>{detail.title}</DialogTitle></DialogHeader>
               <div className="space-y-4 py-2">
                 <p className="text-xs text-muted-foreground">{detail.description}</p>
+                {detail.photos.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {detail.photos.map((src, i) => (
+                      <a key={i} href={src} target="_blank" rel="noopener noreferrer" className="relative h-20 w-20 overflow-hidden rounded-lg border border-border">
+                        <Image src={src} alt="" fill sizes="80px" className="object-cover" unoptimized />
+                      </a>
+                    ))}
+                  </div>
+                )}
                 <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
                   <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{detail.location}</span>
                   {(detail.budgetMin != null || detail.budgetMax != null) && (

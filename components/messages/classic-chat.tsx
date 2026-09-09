@@ -6,6 +6,7 @@ import Image from "next/image"
 import {
   Search, SlidersHorizontal, Plus, ArrowLeft, MoreVertical, Send, Paperclip, Smile, Mic,
   Check, CheckCheck, Loader2, MapPin, ImageIcon, File as FileIcon, Lock, ShieldCheck,
+  Trash2, Reply, Copy, X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,8 +17,10 @@ import { VoiceMessagePlayer } from "@/components/messages/voice-message-player"
 import { StaticLocationMap } from "@/components/maps/static-location-map"
 import {
   getConversations, sendMessage, getOrCreateConversation, clearConversation,
+  deleteConversation, deleteMessage,
   type ConversationSummary,
 } from "@/lib/actions/messages"
+import { useLongPress, useSwipeToReply } from "@/lib/hooks/useMessageGestures"
 import { useConversationMessages, type ChatMessage } from "@/lib/hooks/useConversationMessages"
 import { formatRelativeTime } from "@/lib/format"
 import { useLocalization } from "@/lib/hooks/useLocalization"
@@ -68,6 +71,24 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
 
   const [messageInput, setMessageInput] = useState("")
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const [showAttachMenu, setShowAttachMenu] = useState(false)
+  // The message being replied to, and the one held to act on. Only ever one
+  // of each: this is a quote-and-act UI, not multi-select.
+  const [replyTo, setReplyTo] = useState<ChatMessage | null>(null)
+  const [selectedMessage, setSelectedMessage] = useState<ChatMessage | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<ConversationSummary | null>(null)
+
+  /**
+   * Both overlays below are opened by a press-and-hold, and lifting the finger
+   * makes the browser synthesise a click at that same point — which lands on
+   * the backdrop that just appeared and dismisses it again, so the sheet
+   * flashed open and shut for any message not near the bottom of the screen.
+   *
+   * Dismissing on pointerdown rather than click fixes it without a timer: the
+   * press that opened the overlay went down on the bubble, before the backdrop
+   * existed, so only a genuinely new press can close it.
+   */
+  const openOverlay = <T,>(set: (v: T) => void, value: T) => set(value)
   const [isRecording, setIsRecording] = useState(false)
   const [recordingTime, setRecordingTime] = useState(0)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -79,6 +100,60 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
   const recordingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const { messages, mutateMessages, isLoadingMessages } = useConversationMessages(activeChat)
+
+  /**
+   * Size the shell to the space actually left on screen, so the page itself
+   * never scrolls and only the panels inside it do.
+   *
+   * Measured rather than hardcoded: this one component is rendered by eight
+   * portals whose chrome differs (customer, Saji Pro, distributor, admin,
+   * agent, secretary, sub-admin), and each mobile nav bar is a different
+   * height. A fixed `100dvh - 8rem` was right for none of them and left the
+   * composer under the nav on some.
+   */
+  const shellRef = useRef<HTMLDivElement>(null)
+  const [shellHeight, setShellHeight] = useState<number | null>(null)
+
+  useEffect(() => {
+    const measure = () => {
+      const el = shellRef.current
+      if (!el) return
+      const top = el.getBoundingClientRect().top
+      let bottomChrome = 0
+      document.querySelectorAll("nav").forEach((node) => {
+        const nav = node as HTMLElement
+        const style = window.getComputedStyle(nav)
+        // Only bars pinned to the very bottom of the viewport steal height.
+        if (style.position === "fixed" && Math.abs(parseFloat(style.bottom || "0")) < 1 && nav.offsetHeight > 0) {
+          bottomChrome = Math.max(bottomChrome, nav.offsetHeight)
+        }
+      })
+      setShellHeight(Math.max(360, window.innerHeight - top - bottomChrome))
+    }
+
+    measure()
+    // The portals' mobile nav bars mount after this component does, so a
+    // single measurement on mount finds no bottom chrome and sizes the shell
+    // straight over the nav — which put the composer underneath it. Watching
+    // the document catches the nav appearing, the keyboard opening, and a
+    // rotation, without polling.
+    const observer = new ResizeObserver(measure)
+    observer.observe(document.documentElement)
+    if (document.body) observer.observe(document.body)
+
+    window.addEventListener("resize", measure)
+    // The mobile keyboard resizes the visual viewport without firing resize.
+    window.visualViewport?.addEventListener("resize", measure)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener("resize", measure)
+      window.visualViewport?.removeEventListener("resize", measure)
+    }
+    // Re-runs once loading finishes: the first pass happens while this
+    // component is still rendering its spinner, so shellRef.current is null
+    // and there is nothing to measure. Without this dependency the shell kept
+    // its natural content height and the last messages sat under the nav bar.
+  }, [isLoading])
 
   const emojiMap: Record<string, string> = { thumbsup: "👍", heart: "❤️", fire: "🔥", star: "⭐", wave: "👋", clap: "👏", check: "✅", "100": "💯", sparkle: "✨", pray: "🙏", muscle: "💪", smile: "😊" }
 
@@ -121,11 +196,52 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
 
   const doSend = async (type: ChatMessage["type"], content?: string, attachmentUrl?: string) => {
     if (!activeChat) return
-    const result = await sendMessage({ conversationId: activeChat, type: type as any, content, attachmentUrl })
+    // Captured before the await so a quote can't attach to a later message if
+    // the user starts another one while this is in flight.
+    const quotedId = replyTo?.id
+    setReplyTo(null)
+    setShowAttachMenu(false)
+    const result = await sendMessage({ conversationId: activeChat, type: type as any, content, attachmentUrl, replyToId: quotedId })
     if (result.success) {
       mutateMessages((prev) => [...(prev ?? []), result.message], { revalidate: false })
       refreshConversations()
     }
+  }
+
+  const handleDeleteConversation = async () => {
+    if (!pendingDelete) return
+    const id = pendingDelete.id
+    setPendingDelete(null)
+    if (activeChat === id) setActiveChat(null)
+    // Dropped from the list first. Waiting on the round trip left the row
+    // sitting there for seconds after the confirm, which reads as "nothing
+    // happened"; a failure puts it straight back.
+    setConversations((prev) => prev.filter((c) => c.id !== id))
+    const result = await deleteConversation({ conversationId: id })
+    if (!result.success) {
+      await refreshConversations()
+      return
+    }
+    await refreshConversations()
+  }
+
+  const handleDeleteMessage = async () => {
+    const target = selectedMessage
+    setSelectedMessage(null)
+    if (!target) return
+    const result = await deleteMessage({ messageId: target.id })
+    if (!result.success) return
+    mutateMessages((prev) => (prev ?? []).filter((m) => m.id !== target.id), { revalidate: false })
+    refreshConversations()
+  }
+
+  const handleCopyMessage = async () => {
+    const text = selectedMessage?.content
+    setSelectedMessage(null)
+    if (!text) return
+    // Clipboard access is refused outside a secure context and in some
+    // in-app browsers; a failed copy should be quiet, not a crash.
+    await navigator.clipboard?.writeText(text).catch(() => {})
   }
 
   const handleSendText = async () => {
@@ -207,9 +323,21 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
   }
 
   return (
-    <div className="flex h-[calc(100dvh-4rem)] w-full flex-col overflow-hidden bg-[#F4F5FB] dark:bg-slate-950 lg:h-screen">
-      {/* Page header — spans both panels, matches the reference design */}
-      <div className="flex-shrink-0 border-b border-border/60 bg-[#EEF0FA] px-4 py-4 dark:bg-slate-900 sm:px-6">
+    // The negative bottom margin cancels the pb-36/lg:pb-24 every portal's
+    // <main> reserves for its floating chat button. On a page sized to the
+    // viewport that reservation is just dead space under the composer, and it
+    // was what made the whole page scroll.
+    <div
+      ref={shellRef}
+      style={shellHeight ? { height: shellHeight } : undefined}
+      className="-mb-36 flex w-full flex-col overflow-hidden bg-[#F4F5FB] dark:bg-slate-950 lg:-mb-24"
+    >
+      {/* Page header — spans both panels. Hidden on a phone once a
+          conversation is open: there the thread replaces the inbox rather
+          than sitting beside it, so a 200px title band above the messages is
+          pure loss on the one screen with the least room. On lg the two
+          panels are side by side and the header belongs to both. */}
+      <div className={`flex-shrink-0 border-b border-border/60 bg-[#EEF0FA] px-4 py-4 dark:bg-slate-900 sm:px-6 ${activeChat ? "hidden lg:block" : ""}`}>
         <div className="flex items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-extrabold tracking-tight text-foreground">{t("chat.title")}</h1>
@@ -261,26 +389,13 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
               </div>
             ) : (
               filteredConversations.map((c) => (
-                <button
+                <ConversationRow
                   key={c.id}
-                  onClick={() => setActiveChat(c.id)}
-                  className={`flex w-full items-start gap-3 border-b border-border/40 px-4 py-3 text-left transition-colors hover:bg-muted/60 ${activeChat === c.id ? "bg-blue-50 dark:bg-blue-900/20" : ""}`}
-                >
-                  <div className="relative flex-shrink-0">
-                    <Image src={c.avatar || "/placeholder.svg"} alt={c.name} width={48} height={48} className="h-12 w-12 rounded-full object-cover" />
-                    {c.isOnline === true && <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-card bg-emerald-500" />}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <h3 className="truncate text-sm font-semibold text-foreground">{c.name}</h3>
-                      <span className="flex-shrink-0 text-[11px] text-muted-foreground">{c.lastMessageAt ? formatRelativeTime(c.lastMessageAt) : ""}</span>
-                    </div>
-                    <div className="mt-0.5 flex items-center justify-between gap-2">
-                      <p className={`truncate text-sm ${c.unreadCount > 0 ? "font-medium text-foreground" : "text-muted-foreground"}`}>{c.lastMessage}</p>
-                      {c.unreadCount > 0 && <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white">{c.unreadCount}</span>}
-                    </div>
-                  </div>
-                </button>
+                  conversation={c}
+                  isActive={activeChat === c.id}
+                  onOpen={() => setActiveChat(c.id)}
+                  onRequestDelete={() => openOverlay(setPendingDelete, c)}
+                />
               ))
             )}
           </div>
@@ -326,7 +441,12 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
                 {isLoadingMessages ? (
                   <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
                 ) : (
-                  <MessageList messages={messages} t={t} />
+                  <MessageList
+                    messages={messages}
+                    t={t}
+                    onReply={(m) => setReplyTo(m)}
+                    onHold={(m) => openOverlay(setSelectedMessage, m)}
+                  />
                 )}
                 <div ref={messagesEndRef} />
               </div>
@@ -345,6 +465,44 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
                 <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.zip,.txt" />
                 <input type="file" ref={imageInputRef} onChange={handleImageUpload} className="hidden" accept="image/*" />
 
+                {/* What you're replying to, with a way out of it. */}
+                {replyTo && (
+                  <div className="mb-2 flex items-start gap-2 rounded-xl border-l-2 border-blue-500 bg-muted/70 px-3 py-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[11px] font-semibold text-blue-600 dark:text-blue-400">
+                        {replyTo.isMine ? t("chat.replyingToYou") : t("chat.replyingToThem")}
+                      </p>
+                      <p className="line-clamp-2 text-[11px] text-muted-foreground">{quotePreview(replyTo, t)}</p>
+                    </div>
+                    <button onClick={() => setReplyTo(null)} aria-label={t("common.cancel")} className="rounded-full p-1 hover:bg-background">
+                      <X className="h-3.5 w-3.5 text-muted-foreground" />
+                    </button>
+                  </div>
+                )}
+
+                {/* Attachments live behind the paperclip now. They used to sit
+                    in an always-visible three-button row under the composer,
+                    which cost a whole band of vertical space on a phone for
+                    controls used a few times a session. */}
+                {showAttachMenu && (
+                  <div className="mb-2 grid grid-cols-3 gap-2 rounded-2xl border border-border/70 bg-muted/60 p-2">
+                    {([
+                      [t("chat.quickPhotos"), ImageIcon, "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400", () => imageInputRef.current?.click()],
+                      [t("chat.quickFiles"), FileIcon, "bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400", () => fileInputRef.current?.click()],
+                      [t("chat.quickLocation"), MapPin, "bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400", handleShareLocation],
+                    ] as const).map(([label, Icon, tint, run]) => (
+                      <button
+                        key={label}
+                        onClick={() => { setShowAttachMenu(false); run() }}
+                        className="flex flex-col items-center gap-1 rounded-xl py-2 transition-colors hover:bg-background"
+                      >
+                        <span className={`flex h-9 w-9 items-center justify-center rounded-lg ${tint}`}><Icon className="h-4 w-4" /></span>
+                        <span className="text-[10px] font-medium text-muted-foreground">{label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
                 {isRecording ? (
                   <div className="flex items-center gap-3 rounded-full bg-red-50 px-4 py-2.5 dark:bg-red-900/20">
                     <div className="h-2.5 w-2.5 animate-pulse rounded-full bg-red-500" />
@@ -353,7 +511,14 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 rounded-full border border-border/70 bg-muted/60 p-1.5">
-                    <button onClick={() => fileInputRef.current?.click()} aria-label={t("chat.attachFile")} className="flex-shrink-0 rounded-full p-2 hover:bg-background"><Paperclip className="h-5 w-5 text-muted-foreground" /></button>
+                    <button
+                      onClick={() => { setShowAttachMenu((v) => !v); setShowEmojiPicker(false) }}
+                      aria-label={t("chat.attachFile")}
+                      aria-expanded={showAttachMenu}
+                      className={`flex-shrink-0 rounded-full p-2 transition-colors hover:bg-background ${showAttachMenu ? "bg-background text-blue-600" : ""}`}
+                    >
+                      <Paperclip className={`h-5 w-5 ${showAttachMenu ? "text-blue-600" : "text-muted-foreground"}`} />
+                    </button>
                     <Input
                       value={messageInput}
                       onChange={(e) => setMessageInput(e.target.value)}
@@ -361,7 +526,7 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
                       placeholder={t("chat.typeMessage")}
                       className="h-9 flex-1 border-0 bg-transparent px-1 shadow-none focus-visible:ring-0"
                     />
-                    <button onClick={() => setShowEmojiPicker((v) => !v)} aria-label={t("chat.toggleEmoji")} className="flex-shrink-0 rounded-full p-2 hover:bg-background"><Smile className="h-5 w-5 text-muted-foreground" /></button>
+                    <button onClick={() => { setShowEmojiPicker((v) => !v); setShowAttachMenu(false) }} aria-label={t("chat.toggleEmoji")} className="flex-shrink-0 rounded-full p-2 hover:bg-background"><Smile className="h-5 w-5 text-muted-foreground" /></button>
                     {messageInput.trim() ? (
                       <button onClick={handleSendText} aria-label={t("chat.sendMessage")} className="flex-shrink-0 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 p-2.5 text-white shadow-md"><Send className="h-4 w-4" /></button>
                     ) : (
@@ -370,23 +535,6 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
                   </div>
                 )}
 
-                {/* Quick actions — always-visible one-tap row, matching the
-                    reference design (minus "Payment", which has no real
-                    feature behind it in this app). */}
-                <div className="mt-2.5 grid grid-cols-3 gap-2">
-                  <button onClick={() => imageInputRef.current?.click()} className="flex flex-col items-center gap-1 rounded-xl py-1.5 transition-colors hover:bg-muted">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400"><ImageIcon className="h-4 w-4" /></div>
-                    <span className="text-[10px] font-medium text-muted-foreground">{t("chat.quickPhotos")}</span>
-                  </button>
-                  <button onClick={handleShareLocation} className="flex flex-col items-center gap-1 rounded-xl py-1.5 transition-colors hover:bg-muted">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400"><MapPin className="h-4 w-4" /></div>
-                    <span className="text-[10px] font-medium text-muted-foreground">{t("chat.quickLocation")}</span>
-                  </button>
-                  <button onClick={() => fileInputRef.current?.click()} className="flex flex-col items-center gap-1 rounded-xl py-1.5 transition-colors hover:bg-muted">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400"><FileIcon className="h-4 w-4" /></div>
-                    <span className="text-[10px] font-medium text-muted-foreground">{t("chat.quickFiles")}</span>
-                  </button>
-                </div>
               </div>
             </>
           ) : (
@@ -398,6 +546,54 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
         </div>
       </div>
 
+      {/* Held-message actions. A sheet on the bottom edge rather than a menu
+          pinned to the bubble: the bubble may be anywhere on screen, and on a
+          phone the bottom is the only place a thumb reliably reaches. */}
+      {selectedMessage && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onPointerDown={() => setSelectedMessage(null)}>
+          <div className="w-full max-w-md rounded-t-2xl bg-card p-2 pb-4 shadow-xl" onPointerDown={(e) => e.stopPropagation()}>
+            <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-muted-foreground/30" />
+            <p className="line-clamp-2 px-3 pb-2 text-[11px] text-muted-foreground">{quotePreview(selectedMessage, t)}</p>
+            <button
+              onClick={() => { const m = selectedMessage; setSelectedMessage(null); setReplyTo(m) }}
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm hover:bg-muted"
+            >
+              <Reply className="h-4 w-4 text-muted-foreground" /> {t("chat.replyAction")}
+            </button>
+            {selectedMessage.content && (
+              <button onClick={handleCopyMessage} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm hover:bg-muted">
+                <Copy className="h-4 w-4 text-muted-foreground" /> {t("chat.copyAction")}
+              </button>
+            )}
+            {/* Only your own — deleting the other person's words is not on
+                offer, and the action would fail server-side anyway. */}
+            {selectedMessage.isMine && (
+              <button onClick={handleDeleteMessage} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm text-red-600 hover:bg-muted dark:text-red-400">
+                <Trash2 className="h-4 w-4" /> {t("chat.deleteMessageAction")}
+              </button>
+            )}
+            <button onClick={() => setSelectedMessage(null)} className="mt-1 w-full rounded-xl px-3 py-3 text-sm font-medium text-muted-foreground hover:bg-muted">
+              {t("common.cancel")}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Deleting a conversation removes it for both people — there is no
+          per-person hide in the data model — so the copy says so plainly. */}
+      {pendingDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-6" onPointerDown={() => setPendingDelete(null)}>
+          <div className="w-full max-w-sm rounded-2xl bg-card p-5 shadow-xl" onPointerDown={(e) => e.stopPropagation()}>
+            <p className="text-sm font-semibold text-foreground">{t("chat.deleteChatTitle", { name: pendingDelete.name })}</p>
+            <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{t("chat.deleteChatBody")}</p>
+            <div className="mt-4 flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setPendingDelete(null)} className="rounded-xl bg-transparent">{t("common.cancel")}</Button>
+              <Button onClick={handleDeleteConversation} className="rounded-xl bg-red-600 text-white hover:bg-red-700">{t("common.delete")}</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <NewConversationModal
         open={showNewChat}
         onClose={() => setShowNewChat(false)}
@@ -408,6 +604,47 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
         }}
       />
     </div>
+  )
+}
+
+/**
+ * One row in the inbox. Press and hold the person's name to delete the
+ * conversation — the same gesture on desktop is a right-click, since there is
+ * no hold there.
+ */
+function ConversationRow({
+  conversation: c, isActive, onOpen, onRequestDelete,
+}: {
+  conversation: ConversationSummary
+  isActive: boolean
+  onOpen: () => void
+  onRequestDelete: () => void
+}) {
+  const { didLongPress, handlers } = useLongPress(onRequestDelete)
+
+  return (
+    <button
+      {...handlers}
+      // Without this the hold that opened the delete prompt also counts as a
+      // tap, so the conversation opens behind the dialog.
+      onClick={() => { if (!didLongPress()) onOpen() }}
+      className={`flex w-full select-none items-start gap-3 border-b border-border/40 px-4 py-3 text-left transition-colors hover:bg-muted/60 ${isActive ? "bg-blue-50 dark:bg-blue-900/20" : ""}`}
+    >
+      <div className="relative flex-shrink-0">
+        <Image src={c.avatar || "/placeholder.svg"} alt={c.name} width={48} height={48} className="h-12 w-12 rounded-full object-cover" />
+        {c.isOnline === true && <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-card bg-emerald-500" />}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="truncate text-sm font-semibold text-foreground">{c.name}</h3>
+          <span className="flex-shrink-0 text-[11px] text-muted-foreground">{c.lastMessageAt ? formatRelativeTime(c.lastMessageAt) : ""}</span>
+        </div>
+        <div className="mt-0.5 flex items-center justify-between gap-2">
+          <p className={`truncate text-sm ${c.unreadCount > 0 ? "font-medium text-foreground" : "text-muted-foreground"}`}>{c.lastMessage}</p>
+          {c.unreadCount > 0 && <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white">{c.unreadCount}</span>}
+        </div>
+      </div>
+    </button>
   )
 }
 
@@ -435,7 +672,14 @@ function parseLatLng(content: string | null): { lat: number; lng: number } | nul
   return { lat, lng }
 }
 
-function MessageList({ messages, t }: { messages: ChatMessage[]; t: (key: any, params?: Record<string, string | number>) => string }) {
+function MessageList({
+  messages, t, onReply, onHold,
+}: {
+  messages: ChatMessage[]
+  t: (key: any, params?: Record<string, string | number>) => string
+  onReply: (m: ChatMessage) => void
+  onHold: (m: ChatMessage) => void
+}) {
   if (messages.length === 0) return null
   let lastDay = ""
   return (
@@ -451,82 +695,130 @@ function MessageList({ messages, t }: { messages: ChatMessage[]; t: (key: any, p
                 <span className="rounded-full bg-muted px-3 py-1 text-[11px] font-medium text-muted-foreground">{dayLabel(message.createdAt, t)}</span>
               </div>
             )}
-            <div className={`flex ${message.isMine ? "justify-end" : "justify-start"} mb-1.5`}>
-              <div className={`max-w-[78%] rounded-2xl px-3.5 py-2.5 ${message.isMine ? "rounded-br-md bg-blue-100 text-slate-900 dark:bg-blue-500/20 dark:text-blue-50" : "rounded-bl-md bg-muted text-foreground"}`}>
-                {message.type === "TEXT" && <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{message.content}</p>}
-                {message.type === "IMAGE" && (
-                  <div className="space-y-1">
-                    {/* eslint-disable-next-line @next/next/no-img-element -- data: URLs aren't supported by next/image */}
-                    <img src={message.attachmentUrl ?? undefined} alt={message.content || t("chat.sharedAttachmentAlt")} className="max-h-60 rounded-xl object-cover" />
-                  </div>
-                )}
-                {message.type === "FILE" && (
-                  <div className="flex items-center gap-2 rounded-lg bg-black/5 px-2.5 py-2 dark:bg-white/10">
-                    <FileIcon className="h-4 w-4 flex-shrink-0" />
-                    <p className="truncate text-sm font-medium">{message.content}</p>
-                  </div>
-                )}
-                {message.type === "VOICE" && (
-                  <VoiceMessagePlayer
-                    src={message.attachmentUrl}
-                    label={message.content ?? ""}
-                    playLabel={t("chat.playVoiceMessage")}
-                    pauseLabel={t("chat.pauseVoiceMessage")}
-                    unavailableLabel={t("chat.voiceUnavailable")}
-                  />
-                )}
-                {message.type === "LOCATION" && (() => {
-                  const coords = parseLatLng(message.content)
-                  if (!coords) {
-                    return (
-                      <div className="space-y-1.5">
-                        <div className="flex h-28 w-48 items-center justify-center rounded-xl bg-black/10 dark:bg-white/10">
-                          <div className="text-center">
-                            <MapPin className="mx-auto mb-0.5 h-6 w-6" />
-                            <p className="text-xs font-medium">{t("chat.locationShared")}</p>
-                          </div>
-                        </div>
-                        <p className="text-[10px] opacity-70">{message.content}</p>
-                      </div>
-                    )
-                  }
-                  return (
-                    <div className="space-y-1.5">
-                      <div className="overflow-hidden rounded-xl">
-                        <StaticLocationMap
-                          latitude={coords.lat}
-                          longitude={coords.lng}
-                          label={t("chat.locationShared")}
-                          className="h-28 w-48"
-                        />
-                      </div>
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-[10px] opacity-70">{message.content}</p>
-                        {/* Universal maps URL — hands off to the device's
-                            own maps app on mobile, google.com/maps on
-                            desktop, so directions work without this app
-                            shipping a routing UI. */}
-                        <a
-                          href={`https://www.google.com/maps/search/?api=1&query=${coords.lat},${coords.lng}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex-shrink-0 text-[10px] font-semibold underline underline-offset-2 opacity-80 hover:opacity-100"
-                        >
-                          {t("chat.openInMaps")}
-                        </a>
-                      </div>
-                    </div>
-                  )
-                })()}
-                <div className={`mt-1 flex items-center gap-1 ${message.isMine ? "justify-end" : "justify-start"}`}>
-                  <span className="text-[10px] opacity-60">{new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
-                  {message.isMine && (message.isRead ? <CheckCheck className="h-3.5 w-3.5 text-blue-600 dark:text-blue-300" /> : <Check className="h-3.5 w-3.5 opacity-50" />)}
-                </div>
-              </div>
-            </div>
+            <MessageRow message={message} t={t} onReply={() => onReply(message)} onHold={() => onHold(message)} />
           </div>
         )
       })}
+    </div>
+  )
+}
+
+/** A one-line description of a quoted message, since a reply can quote a
+ *  photo or a voice note as easily as text. */
+function quotePreview(m: { type: string; content: string | null }, t: (key: any) => string): string {
+  if (m.type === "IMAGE") return t("chat.quickPhotos")
+  if (m.type === "FILE") return m.content || t("chat.quickFiles")
+  if (m.type === "VOICE") return m.content || t("chat.voiceUnavailable")
+  if (m.type === "LOCATION") return t("chat.locationShared")
+  return m.content ?? ""
+}
+
+function MessageRow({
+  message, t, onReply, onHold,
+}: {
+  message: ChatMessage
+  t: (key: any, params?: Record<string, string | number>) => string
+  onReply: () => void
+  onHold: () => void
+}) {
+  const swipe = useSwipeToReply(onReply, { mine: message.isMine })
+  const press = useLongPress(onHold)
+
+  return (
+    <div className={`relative flex ${message.isMine ? "justify-end" : "justify-start"} mb-1.5`}>
+      {/* Sits under the bubble and is revealed as it slides away. */}
+      <span
+        aria-hidden="true"
+        style={{ opacity: swipe.progress }}
+        className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-muted-foreground ${message.isMine ? "right-2" : "left-2"}`}
+      >
+        <Reply className="h-4 w-4" />
+      </span>
+
+      <div
+        {...press.handlers}
+        onTouchStart={(e) => { press.handlers.onTouchStart(e); swipe.handlers.onTouchStart(e) }}
+        onTouchMove={(e) => { press.handlers.onTouchMove(e); swipe.handlers.onTouchMove(e) }}
+        onTouchEnd={(e) => { press.handlers.onTouchEnd(); swipe.handlers.onTouchEnd() }}
+        onTouchCancel={() => { press.handlers.onTouchCancel(); swipe.handlers.onTouchCancel() }}
+        style={{
+          transform: swipe.offset ? `translateX(${swipe.offset}px)` : undefined,
+          // Animate back on release, but follow the finger 1:1 while dragging.
+          transition: swipe.offset ? "none" : "transform 160ms ease-out",
+        }}
+        className={`max-w-[78%] select-none rounded-2xl px-3.5 py-2.5 ${message.isMine ? "rounded-br-md bg-blue-100 text-slate-900 dark:bg-blue-500/20 dark:text-blue-50" : "rounded-bl-md bg-muted text-foreground"}`}
+      >
+        {message.replyTo && (
+          <div className={`mb-1.5 rounded-lg border-l-2 px-2 py-1 text-[11px] ${message.isMine ? "border-blue-500/70 bg-black/5 dark:bg-white/10" : "border-muted-foreground/40 bg-black/5 dark:bg-white/10"}`}>
+            <p className="font-semibold opacity-80">{message.replyTo.isMine ? t("chat.replyingToYou") : t("chat.replyingToThem")}</p>
+            <p className="line-clamp-2 opacity-70">{quotePreview(message.replyTo, t)}</p>
+          </div>
+        )}
+
+        {message.type === "TEXT" && <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{message.content}</p>}
+        {message.type === "IMAGE" && (
+          <div className="space-y-1">
+            {/* eslint-disable-next-line @next/next/no-img-element -- data: URLs aren't supported by next/image */}
+            <img src={message.attachmentUrl ?? undefined} alt={message.content || t("chat.sharedAttachmentAlt")} className="max-h-60 rounded-xl object-cover" />
+          </div>
+        )}
+        {message.type === "FILE" && (
+          <div className="flex items-center gap-2 rounded-lg bg-black/5 px-2.5 py-2 dark:bg-white/10">
+            <FileIcon className="h-4 w-4 flex-shrink-0" />
+            <p className="truncate text-sm font-medium">{message.content}</p>
+          </div>
+        )}
+        {message.type === "VOICE" && (
+          <VoiceMessagePlayer
+            src={message.attachmentUrl}
+            label={message.content ?? ""}
+            playLabel={t("chat.playVoiceMessage")}
+            pauseLabel={t("chat.pauseVoiceMessage")}
+            unavailableLabel={t("chat.voiceUnavailable")}
+          />
+        )}
+        {message.type === "LOCATION" && (() => {
+          const coords = parseLatLng(message.content)
+          if (!coords) {
+            return (
+              <div className="space-y-1.5">
+                <div className="flex h-28 w-48 items-center justify-center rounded-xl bg-black/10 dark:bg-white/10">
+                  <div className="text-center">
+                    <MapPin className="mx-auto mb-0.5 h-6 w-6" />
+                    <p className="text-xs font-medium">{t("chat.locationShared")}</p>
+                  </div>
+                </div>
+                <p className="text-[10px] opacity-70">{message.content}</p>
+              </div>
+            )
+          }
+          return (
+            <div className="space-y-1.5">
+              <div className="overflow-hidden rounded-xl">
+                <StaticLocationMap latitude={coords.lat} longitude={coords.lng} label={t("chat.locationShared")} className="h-28 w-48" />
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[10px] opacity-70">{message.content}</p>
+                {/* Universal maps URL — hands off to the device's own maps app
+                    on mobile, google.com/maps on desktop, so directions work
+                    without this app shipping a routing UI. */}
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${coords.lat},${coords.lng}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-shrink-0 text-[10px] font-semibold underline underline-offset-2 opacity-80 hover:opacity-100"
+                >
+                  {t("chat.openInMaps")}
+                </a>
+              </div>
+            </div>
+          )
+        })()}
+        <div className={`mt-1 flex items-center gap-1 ${message.isMine ? "justify-end" : "justify-start"}`}>
+          <span className="text-[10px] opacity-60">{new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+          {message.isMine && (message.isRead ? <CheckCheck className="h-3.5 w-3.5 text-blue-600 dark:text-blue-300" /> : <Check className="h-3.5 w-3.5 opacity-50" />)}
+        </div>
+      </div>
     </div>
   )
 }

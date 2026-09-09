@@ -633,6 +633,12 @@ export type OfferDetail = {
   actionType: OfferActionType
   price: number | null
   depositAmount: number
+  /// BUY only, and null means "not tracked" — same meaning as the column.
+  /// Drives the add-to-cart quantity cap and the out-of-stock state.
+  stockQuantity: number | null
+  /// Whether the provider is away; the detail page hides its action rather
+  /// than letting the customer commit to someone who cannot fulfil it.
+  providerOnVacation: boolean
   currency: string
   location: string
   radiusKm: number | null
@@ -665,6 +671,8 @@ export async function getOfferDetail(offerId: string): Promise<OfferDetail> {
     actionType: offer.actionType as OfferActionType,
     price: offer.price != null ? Number(offer.price) : null,
     depositAmount: Number(offer.depositAmount),
+    stockQuantity: offer.stockQuantity,
+    providerOnVacation: offer.provider.availability?.isOnVacation ?? false,
     currency: offer.currency,
     location: offer.serviceArea || offer.provider.workAreas[0] || "Nairobi",
     radiusKm: offer.radiusKm ?? offer.provider.availability?.travelRadiusKm ?? null,

@@ -18,8 +18,12 @@ import { getPopularOpenRequests, type PopularRequestItem } from "@/lib/actions/r
 import { getLiveOffers, type PublicOfferListItem } from "@/lib/actions/offers"
 import { getWishlistIds, getWishlistedProviders, toggleWishlist, type WishlistedProvider, type WishlistTargetKind } from "@/lib/actions/wishlist"
 import { useLocalization } from "@/lib/hooks/useLocalization"
+import { RequestPhotoButton } from "@/components/customer/request-photo-button"
+import { ProviderStoryRing } from "@/components/provider-story-ring"
+import { getActiveProviderStories } from "@/lib/actions/provider-stories"
 import { withTimeout, DASHBOARD_FETCH_TIMEOUT_MS } from "@/lib/swr-utils"
 import type { TranslationKey } from "@/lib/i18n"
+import { offerHref } from "@/lib/offer-constants"
 
 type Translate = (key: TranslationKey, params?: Record<string, string | number>) => string
 
@@ -182,18 +186,26 @@ function HomeSearch() {
         onChange={(e) => setQuery(e.target.value)}
         placeholder={voice.isListening ? "Listening…" : t("customer.home.searchAnything")}
         aria-label={t("customer.home.searchAnything")}
-        className="h-12 w-full rounded-xl border border-border bg-card pl-11 pr-12 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary"
+        className={`h-12 w-full rounded-xl border border-border bg-card pl-11 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary ${voice.supported ? "pr-20" : "pr-12"}`}
       />
-      {voice.supported && (
-        <button
-          type="button"
-          onClick={voice.toggle}
-          aria-label={voice.isListening ? "Stop voice search" : "Search by voice"}
-          className={`absolute right-3 top-1/2 -translate-y-1/2 transition-colors ${voice.isListening ? "animate-pulse text-red-500" : "text-muted-foreground hover:text-foreground"}`}
-        >
-          {voice.isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-        </button>
-      )}
+      {/* Camera and mic share the right edge, so the input's padding has to
+          account for both — a fixed pr-12 left the camera sitting on the text. */}
+      <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-3">
+        {voice.supported && (
+          <button
+            type="button"
+            onClick={voice.toggle}
+            aria-label={voice.isListening ? "Stop voice search" : "Search by voice"}
+            className={`transition-colors ${voice.isListening ? "animate-pulse text-red-500" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            {voice.isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+          </button>
+        )}
+        <RequestPhotoButton
+          label={t("customer.home.photoSearchLabel")}
+          className="text-muted-foreground transition-colors hover:text-foreground disabled:opacity-60"
+        />
+      </div>
     </form>
   )
 }
@@ -354,22 +366,28 @@ function SolveAProblemSection() {
         </Link>
       </div>
 
-      {voice.supported ? (
-        <button
-          type="button"
-          onClick={voice.toggle}
-          aria-label={voice.isListening ? "Stop describing by voice" : "Describe your problem by voice"}
-          className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full shadow-md transition-colors ${
-            voice.isListening ? "animate-pulse bg-red-500 text-white" : "bg-card text-foreground hover:bg-card/80"
-          }`}
-        >
-          {voice.isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
-        </button>
-      ) : (
-        <div className="hidden h-20 w-20 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 sm:flex">
-          <Wrench className="h-9 w-9 text-primary" />
-        </div>
-      )}
+      {/* The card's own copy promises "speak or take a photo", so both are
+          offered here. Where speech recognition is missing the camera still
+          stands on its own rather than falling back to decoration. */}
+      <div className="flex flex-shrink-0 flex-col gap-2">
+        {voice.supported && (
+          <button
+            type="button"
+            onClick={voice.toggle}
+            aria-label={voice.isListening ? "Stop describing by voice" : "Describe your problem by voice"}
+            className={`flex h-12 w-12 items-center justify-center rounded-full shadow-md transition-colors ${
+              voice.isListening ? "animate-pulse bg-red-500 text-white" : "bg-card text-foreground hover:bg-card/80"
+            }`}
+          >
+            {voice.isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+          </button>
+        )}
+        <RequestPhotoButton
+          label={t("customer.home.photoProblemLabel")}
+          iconClassName="h-5 w-5"
+          className="flex h-12 w-12 items-center justify-center rounded-full bg-card text-foreground shadow-md transition-colors hover:bg-card/80 disabled:opacity-60"
+        />
+      </div>
     </section>
   )
 }
@@ -502,7 +520,7 @@ function RecommendedSection({
           return (
             <Link
               key={offer.offerId}
-              href={`/customer/offers/${offer.offerId}`}
+              href={offerHref(offer.actionType, offer.offerId)}
               className="w-40 flex-shrink-0 overflow-hidden rounded-xl border border-border bg-card transition-shadow hover:shadow-md sm:w-auto"
             >
               <div className="relative h-20 bg-muted">
@@ -594,6 +612,23 @@ export function CustomerHome() {
   const { data: savedProviders } = useSWR(
     "wishlisted-providers", () => withTimeout(getWishlistedProviders(), DASHBOARD_FETCH_TIMEOUT_MS),
   )
+  // Providers' before/after statuses, as a row of rings under the search bar.
+  // Same SWR key the Community page uses, so the two surfaces dedupe into one
+  // request and stay in step. The refresh interval matters here in a way it
+  // does not for the other sections: these expire 24h after posting, and the
+  // ring should empty itself on a tab left open rather than offering a story
+  // that has already gone.
+  // Deliberately NOT wrapped in withTimeout like the sections above. This page
+  // fires half a dozen actions at once, and against a database in another
+  // region the stories call regularly lost that race and was cut off at 25s —
+  // leaving the ring permanently empty here while the same action rendered
+  // fine on Community, which does not impose a deadline. A ring that appears a
+  // beat late is strictly better than one that never appears, and nothing else
+  // on the page waits for it. Same SWR key as Community so the two surfaces
+  // dedupe into one request.
+  const { data: storyGroups } = useSWR(
+    "provider-stories", getActiveProviderStories, { refreshInterval: 60_000 },
+  )
 
   // Providers and shops are separate wishlist target kinds, so they need
   // their own id sets — a shop and a provider can share neither table nor
@@ -633,6 +668,8 @@ export function CustomerHome() {
         </div>
 
         <HomeSearch />
+
+        <ProviderStoryRing groups={storyGroups ?? []} />
 
         <YourActivitySection jobs={recentJobs ?? []} orders={recentOrders ?? []} />
 

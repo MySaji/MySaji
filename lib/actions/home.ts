@@ -3,7 +3,7 @@
 import type { Prisma } from "@prisma/client"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
-import { isShopCurrentlyOpen, formatShopHours } from "@/lib/format"
+import { isShopCurrentlyOpen, formatShopHours, resolveShopHoursForToday } from "@/lib/format"
 
 export type HomeServiceCategory = {
   id: string
@@ -66,8 +66,8 @@ function mapShop(s: ShopWithPromotions): HomeFeaturedShop {
     category: s.shopCategory,
     rating: Number(s.rating),
     reviews: s.reviewCount,
-    isOpen: isShopCurrentlyOpen(s.openingTime, s.closingTime),
-    hoursLabel: formatShopHours(s.openingTime, s.closingTime),
+    isOpen: isShopCurrentlyOpen(resolveShopHoursForToday(s).openingTime, resolveShopHoursForToday(s).closingTime),
+    hoursLabel: formatShopHours(resolveShopHoursForToday(s).openingTime, resolveShopHoursForToday(s).closingTime),
     hasSale: s.promotions.length > 0,
     distanceKm: null,
   }

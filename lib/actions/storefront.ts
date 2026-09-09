@@ -42,6 +42,9 @@ export type StorefrontPortfolioItem = {
   title: string
   description: string | null
   imageUrl: string
+  /// Providers can film a job as well as photograph it, and the public
+  /// profile was dropping the video half of every sample on the floor.
+  videoUrl: string | null
 }
 
 export type StorefrontCredential = {
@@ -192,6 +195,7 @@ export async function getStorefront(slug: string): Promise<StorefrontData> {
       title: p.title,
       description: p.description,
       imageUrl: p.imageUrl,
+      videoUrl: p.videoUrl,
     })),
     reviews: reviews.map((r) => ({
       id: r.id,

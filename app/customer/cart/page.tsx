@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { ShoppingCart, Trash2, Plus, Minus, Wallet, ArrowRight, MapPin, Loader2, Clock, Tag, X, Wrench, CalendarClock } from "lucide-react"
-import { getCart, updateCartItemQuantity, removeCartItem, removeServiceCartItem, checkout, type CartLine } from "@/lib/actions/cart"
+import { ShoppingCart, Trash2, Plus, Minus, Wallet, ArrowRight, MapPin, Loader2, Clock, Tag, X, Wrench, CalendarClock, Crown } from "lucide-react"
+import { getCart, updateCartItemQuantity, removeCartItem, removeServiceCartItem, updateOfferCartItemQuantity, removeOfferCartItem, checkout, type CartLine } from "@/lib/actions/cart"
 import { revalidateCartCount } from "@/lib/hooks/useCartCount"
 import { useGatedAction } from "@/lib/hooks/useGatedAction"
 import { getWalletSummary } from "@/lib/actions/wallet"
@@ -71,6 +71,18 @@ export default function CustomerCartPage() {
   const total = subtotal + shipping - discount
   const canPay = walletBalance >= total
   const canCheckout = canPay && vacationingShops.length === 0
+
+  const updateOfferQuantity = async (cartItemId: string, quantity: number) => {
+    await updateOfferCartItemQuantity({ cartItemId, quantity })
+    setCart(await getCart())
+    void revalidateCartCount()
+  }
+
+  const removeOffer = async (cartItemId: string) => {
+    await removeOfferCartItem({ cartItemId })
+    setCart(await getCart())
+    void revalidateCartCount()
+  }
 
   const updateQuantity = async (productId: string, quantity: number) => {
     await updateCartItemQuantity({ productId, quantity })
@@ -192,7 +204,54 @@ export default function CustomerCartPage() {
                 </Card>
               ) : (
                 cart.map((item) =>
-                  item.kind === "product" ? (
+                  item.kind === "offer" ? (
+                    // A BUY offer is a provider's own product: same quantity
+                    // stepper as a shop product, but it carries a provider
+                    // rather than a shop, and no delivery fee of its own.
+                    <Card key={item.cartItemId} className="overflow-hidden p-0">
+                      <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
+                        <div className="relative flex h-24 w-full items-center justify-center overflow-hidden rounded-lg bg-amber-500/10 sm:h-24 sm:w-24">
+                          {item.image ? <Image src={item.image} alt={item.name} fill className="object-cover" /> : <Crown className="h-8 w-8 text-amber-500" />}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-600 dark:text-amber-400">
+                                <Crown className="h-3 w-3" /> {t("customer.cart.proOfferBadge")}
+                              </span>
+                              <h3 className="mt-1 font-semibold text-foreground">{item.name}</h3>
+                              <p className="text-xs text-muted-foreground">{item.providerName}</p>
+                            </div>
+                            <Button variant="ghost" size="icon" onClick={() => removeOffer(item.cartItemId)} aria-label={t("common.removeItem")}>
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </div>
+                          <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                            <div className="inline-flex items-center rounded-full border border-border bg-muted/60 p-1">
+                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => updateOfferQuantity(item.cartItemId, item.quantity - 1)} aria-label={t("common.decreaseQuantity")}>
+                                <Minus className="h-4 w-4" />
+                              </Button>
+                              <span className="min-w-10 text-center text-xs font-medium">{item.quantity}</span>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => updateOfferQuantity(item.cartItemId, item.quantity + 1)}
+                                disabled={item.stock != null && item.quantity >= item.stock}
+                                aria-label={t("common.increaseQuantity")}
+                              >
+                                <Plus className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-xs text-muted-foreground">{formatMoney(item.price * item.quantity)}</p>
+                              <p className="text-[11px] text-muted-foreground">{t("customer.cart.priceEach", { amount: formatMoney(item.price) })}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  ) : item.kind === "product" ? (
                     <Card key={item.productId} className="overflow-hidden p-0">
                       <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
                         <div className="relative h-24 w-full overflow-hidden rounded-lg bg-muted sm:h-24 sm:w-24">

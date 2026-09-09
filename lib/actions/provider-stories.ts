@@ -58,11 +58,11 @@ export type StoryFeedGroup = {
   stories: StoryFeedItem[]
 }
 
-/** Real-time-ish 12h expiry, enforced here at read time rather than via a
- * fine-grained cron (this project's cron infra is once-daily at finest —
- * see `app/api/cron/expire-provider-stories/route.ts` for the daily
- * hard-delete cleanup, which exists for storage hygiene, not to enforce
- * the actual expiry window customers see). */
+/** Real-time-ish 24h expiry (STORY_LIFETIME_MS), enforced here at read time
+ * rather than via a fine-grained cron (this project's cron infra is
+ * once-daily at finest — see `app/api/cron/expire-provider-stories/route.ts`
+ * for the daily hard-delete cleanup, which exists for storage hygiene, not to
+ * enforce the actual expiry window customers see). */
 export async function getActiveProviderStories(): Promise<StoryFeedGroup[]> {
   const session = await auth()
   const myId = session?.user?.id ?? "__none__"

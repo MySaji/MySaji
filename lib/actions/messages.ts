@@ -80,6 +80,15 @@ export async function getUnreadMessageCount(): Promise<number> {
   })
 }
 
+/** The message a reply is quoting, flattened to what the bubble renders.
+ *  Null once the quoted message has been deleted — the reply survives it. */
+export type QuotedMessage = {
+  id: string
+  type: string
+  content: string | null
+  isMine: boolean
+}
+
 export type ChatMessage = {
   id: string
   senderId: string
@@ -89,6 +98,7 @@ export type ChatMessage = {
   attachmentUrl: string | null
   isRead: boolean
   createdAt: string
+  replyTo: QuotedMessage | null
 }
 
 export async function getMessages(conversationId: string): Promise<ChatMessage[]> {
@@ -103,7 +113,13 @@ export async function getMessages(conversationId: string): Promise<ChatMessage[]
     data: { isRead: true, readAt: new Date() },
   })
 
-  const messages = await db.message.findMany({ where: { conversationId }, orderBy: { createdAt: "asc" } })
+  const messages = await db.message.findMany({
+    where: { conversationId },
+    orderBy: { createdAt: "asc" },
+    // Only the quoted message's own fields — deliberately not its own
+    // replyTo, so a long reply chain doesn't fan out into nested loads.
+    include: { replyTo: { select: { id: true, type: true, content: true, senderId: true } } },
+  })
   return messages.map((m) => ({
     id: m.id,
     senderId: m.senderId,
@@ -113,6 +129,9 @@ export async function getMessages(conversationId: string): Promise<ChatMessage[]
     attachmentUrl: m.attachmentUrl,
     isRead: m.isRead,
     createdAt: m.createdAt.toISOString(),
+    replyTo: m.replyTo
+      ? { id: m.replyTo.id, type: m.replyTo.type, content: m.replyTo.content, isMine: m.replyTo.senderId === session.user!.id }
+      : null,
   }))
 }
 
@@ -121,6 +140,7 @@ const sendSchema = z.object({
   type: z.enum(["TEXT", "IMAGE", "FILE", "VOICE", "LOCATION"]),
   content: z.string().trim().optional(),
   attachmentUrl: z.string().optional(),
+  replyToId: z.string().trim().min(1).optional(),
 })
 
 export type SendMessageResult = { success: true; message: ChatMessage; wasMasked: boolean } | { success: false; error: string }
@@ -144,8 +164,21 @@ export async function sendMessage(input: unknown): Promise<SendMessageResult> {
     ? maskContactInfo(parsed.data.content)
     : { masked: parsed.data.content, wasMasked: false }
 
+  // A reply may only quote a message from this same conversation — without
+  // this check the id is caller-supplied and could pull a quote out of a
+  // conversation the sender has no access to.
+  let replyToId: string | null = null
+  if (parsed.data.replyToId) {
+    const quoted = await db.message.findUnique({
+      where: { id: parsed.data.replyToId },
+      select: { id: true, conversationId: true },
+    })
+    if (quoted?.conversationId === conversationId) replyToId = quoted.id
+  }
+
   const message = await db.message.create({
-    data: { conversationId, senderId: session.user.id, type, content, attachmentUrl },
+    data: { conversationId, senderId: session.user.id, type, content, attachmentUrl, replyToId },
+    include: { replyTo: { select: { id: true, type: true, content: true, senderId: true } } },
   })
   await db.conversation.update({ where: { id: conversationId }, data: { lastMessageAt: new Date() } })
 
@@ -181,6 +214,9 @@ export async function sendMessage(input: unknown): Promise<SendMessageResult> {
       attachmentUrl: message.attachmentUrl,
       isRead: message.isRead,
       createdAt: message.createdAt.toISOString(),
+      replyTo: message.replyTo
+        ? { id: message.replyTo.id, type: message.replyTo.type, content: message.replyTo.content, isMine: message.replyTo.senderId === session.user!.id }
+        : null,
     },
     wasMasked,
   }
@@ -316,4 +352,52 @@ export async function clearConversation(input: unknown): Promise<{ success: bool
 
   await db.message.deleteMany({ where: { conversationId: parsed.data.conversationId } })
   return { success: true }
+}
+
+/**
+ * Removes the whole conversation, not just its messages — what a long-press
+ * on someone's name in the inbox does.
+ *
+ * This is a real delete for both people, because Conversation has no
+ * per-participant "hidden" flag to hide it for one side only; adding one
+ * would mean a column, a filter on every read, and an "unhide when they
+ * write again" rule. The confirm dialog in the UI says as much rather than
+ * implying it only disappears for you.
+ */
+export async function deleteConversation(input: unknown): Promise<{ success: boolean }> {
+  const session = await auth()
+  if (!session?.user?.id) return { success: false }
+  const parsed = deleteConvoSchema.safeParse(input)
+  if (!parsed.success) return { success: false }
+
+  const conversation = await db.conversation.findUnique({ where: { id: parsed.data.conversationId } })
+  if (!conversation || (conversation.participantAId !== session.user.id && conversation.participantBId !== session.user.id)) {
+    return { success: false }
+  }
+
+  // Messages first: Message.replyToId is SetNull, and the rows are removed by
+  // the conversation's own cascade anyway — doing it explicitly keeps the
+  // order predictable rather than relying on constraint ordering.
+  await db.message.deleteMany({ where: { conversationId: parsed.data.conversationId } })
+  await db.conversation.delete({ where: { id: parsed.data.conversationId } })
+  return { success: true }
+}
+
+const deleteMessageSchema = z.object({ messageId: z.string().trim().min(1) })
+
+/**
+ * Deletes one message. Only the sender's own, which is why this checks
+ * senderId rather than conversation membership: being in a conversation must
+ * not let someone erase what the other person said.
+ */
+export async function deleteMessage(input: unknown): Promise<{ success: boolean }> {
+  const session = await auth()
+  if (!session?.user?.id) return { success: false }
+  const parsed = deleteMessageSchema.safeParse(input)
+  if (!parsed.success) return { success: false }
+
+  const result = await db.message.deleteMany({
+    where: { id: parsed.data.messageId, senderId: session.user.id },
+  })
+  return { success: result.count > 0 }
 }
