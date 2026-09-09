@@ -338,6 +338,29 @@
   }
 }
 
+/* Tap feedback for controls that aren't the shared <Button> — the quick
+   action tiles, offer cards, category chips and icon buttons are plain
+   <button>/<a> elements, and on a touch screen (no :hover) they gave no
+   response at all when pressed. Deliberately subtle: a brief dim, no
+   movement, so it reads as feedback rather than animation. Anything that
+   should not react can opt out with data-no-press. */
+@media (hover: none) {
+  button:not(:disabled):not([data-no-press]):active,
+  a:not([data-no-press]):active,
+  [role="button"]:not([data-no-press]):active {
+    opacity: 0.7;
+  }
+}
+
+/* On a mouse, the pressed state is a quick, explicit confirmation of the
+   click rather than a substitute for hover. */
+@media (hover: hover) {
+  button:not(:disabled):not([data-no-press]):active,
+  [role="button"]:not([data-no-press]):active {
+    opacity: 0.85;
+  }
+}
+
 /* Hide scrollbar for horizontal scrolls */
 .scrollbar-hide::-webkit-scrollbar {
   display: none;

@@ -35,6 +35,75 @@ export type SpecialistCard = {
   badges: string[]
 }
 
+export type OnlineProviderCard = {
+  providerId: string
+  userId: string
+  name: string
+  avatar: string | null
+  verified: boolean
+  rating: number
+  reviewCount: number
+  completedJobs: number
+  categoryName: string | null
+  location: string | null
+  hourlyRate: number | null
+  slug: string | null
+}
+
+/**
+ * Providers who have actively flipped themselves on with the "Go Online"
+ * toggle on their work page — the customer dashboard's "available right now"
+ * suggestions.
+ *
+ * Deliberately NOT ProviderAvailabilityStatus (lib/actions/provider-status.ts).
+ * That one is inferred from job rows and says "nothing is booked against
+ * them", which is true of every provider who has never worked. This is the
+ * provider's own statement that they are working now, which is what makes it
+ * worth putting in front of a customer.
+ *
+ * Providers already on a job are dropped: they are online, but suggesting
+ * someone mid-job as available wastes the customer's time. Blocked-out days
+ * count the same way, which is what getProviderAvailabilityStatuses already
+ * computes, so that logic is not duplicated here.
+ */
+export async function getOnlineProviders(limit = 8): Promise<OnlineProviderCard[]> {
+  const providers = await db.providerProfile.findMany({
+    where: {
+      availability: { isOnline: true },
+      user: { isActive: true },
+      // Staff of a business are dispatched by their employer rather than
+      // booked directly, so they do not belong in a customer's suggestions.
+      parentBusinessId: null,
+    },
+    include: { user: { select: { id: true, name: true, image: true } }, category: { select: { name: true } } },
+    orderBy: [{ rating: "desc" }, { completedJobs: "desc" }],
+    // Over-fetch a little so dropping the busy ones below still leaves a
+    // full row rather than a short one.
+    take: limit * 3,
+  })
+  if (providers.length === 0) return []
+
+  const statuses = await getProviderAvailabilityStatuses(providers.map((p) => p.id))
+
+  return providers
+    .filter((p) => statuses.get(p.id) !== "busy")
+    .slice(0, limit)
+    .map((p) => ({
+      providerId: p.id,
+      userId: p.userId,
+      name: p.businessName || p.user.name,
+      avatar: p.user.image,
+      verified: p.verified,
+      rating: Number(p.rating),
+      reviewCount: p.reviewCount,
+      completedJobs: p.completedJobs,
+      categoryName: p.category?.name ?? null,
+      location: p.location,
+      hourlyRate: p.hourlyRate != null ? Number(p.hourlyRate) : null,
+      slug: p.slug,
+    }))
+}
+
 export async function getSpecialists(): Promise<SpecialistCard[]> {
   const providers = await db.providerProfile.findMany({
     include: { user: true, category: true },

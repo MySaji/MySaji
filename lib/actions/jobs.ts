@@ -162,7 +162,12 @@ export async function createBooking(input: unknown): Promise<CreateBookingResult
 }
 
 const emergencyBookingSchema = z.object({
-  categoryId: z.string().trim().min(1),
+  // Optional, because a real emergency does not always fall into one of the
+  // listed categories. When it doesn't, the customer names it themselves in
+  // customType and the job is created unassigned — the same path an
+  // uncategorised emergency already took when no provider matched.
+  categoryId: z.string().trim().min(1).optional(),
+  customType: z.string().trim().min(2).max(80).optional(),
   price: z.number().positive(),
   description: z.string().trim().min(1, "Please describe the emergency"),
   location: z.string().trim().min(1, "Location is required"),
@@ -199,12 +204,20 @@ export async function createEmergencyBooking(input: unknown): Promise<CreateEmer
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
   }
-  const { categoryId, price, description, location, latitude, longitude } = parsed.data
+  const { categoryId, customType, price, description, location, latitude, longitude } = parsed.data
+  if (!categoryId && !customType) {
+    return { success: false, error: "Choose an emergency type or describe your own." }
+  }
 
-  const category = await db.category.findUnique({ where: { id: categoryId } })
-  if (!category) return { success: false, error: "Invalid service category." }
+  const category = categoryId ? await db.category.findUnique({ where: { id: categoryId } }) : null
+  if (categoryId && !category) return { success: false, error: "Invalid service category." }
 
-  const matchedProvider = await db.providerProfile.findFirst({
+  // Named by the customer rather than chosen from the list — there is no
+  // category to match a provider on, so the job is dispatched by an admin or
+  // picked up from the open board instead of being auto-assigned.
+  const emergencyLabel = category?.name ?? customType!
+
+  const matchedProvider = category ? await db.providerProfile.findFirst({
     where: {
       categoryId: category.id,
       verified: true,
@@ -213,13 +226,13 @@ export async function createEmergencyBooking(input: unknown): Promise<CreateEmer
       OR: [{ availability: null }, { availability: { isOnVacation: false } }],
     },
     orderBy: [{ rating: "desc" }, { completedJobs: "desc" }],
-  })
+  }) : null
 
   const job = await db.job.create({
     data: {
       customerId: session.user.id,
       providerId: matchedProvider?.id,
-      title: `Emergency: ${category.name}`,
+      title: `Emergency: ${emergencyLabel}`,
       description,
       price,
       location,
@@ -233,7 +246,7 @@ export async function createEmergencyBooking(input: unknown): Promise<CreateEmer
 
   await logJobEvent({
     jobId: job.id, type: "JOB_CREATED", actor: "CUSTOMER", actorUserId: session.user.id,
-    description: `Customer requested emergency service: ${category.name}`,
+    description: `Customer requested emergency service: ${emergencyLabel}`,
   })
 
   return { success: true, jobId: job.id, amount: price, assigned: !!matchedProvider }

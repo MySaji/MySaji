@@ -1,8 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Search, Loader2, MessageCircle } from "lucide-react"
+import { Search, Loader2, MessageCircle, ArrowLeft, UserPlus } from "lucide-react"
 import { searchMessageableUsers, getOrCreateConversation, type MessageableUser } from "@/lib/actions/messages"
 import { useLocalization } from "@/lib/hooks/useLocalization"
 import type { UserRole } from "@/lib/types"
@@ -18,6 +17,16 @@ const ROLE_FILTER_OPTIONS: { value: UserRole | "all"; label: string }[] = [
   { value: "secretary", label: "Secretaries" },
 ]
 
+/**
+ * Starting a new chat, as a screen rather than a dialog.
+ *
+ * It was a centred popup, which is the wrong shape for this: on a phone a
+ * modal over a chat leaves the list showing through around a cramped box, and
+ * the results — a scrolling list of people, the main thing here — got a
+ * ~320px window inside it. As a panel it uses the whole chat area on both
+ * sizes, so the same component reads as a proper "New chat" screen on mobile
+ * and fills the empty thread pane on desktop.
+ */
 export function NewConversationModal({
   open,
   onClose,
@@ -75,13 +84,24 @@ export function NewConversationModal({
     }
   }
 
-  return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{t("chat.newMessageTitle")}</DialogTitle>
-        </DialogHeader>
+  if (!open) return null
 
+  return (
+    <div className="flex min-h-0 flex-1 flex-col bg-background">
+      <div className="flex flex-shrink-0 items-center gap-3 border-b border-border/60 bg-card px-3 py-3 sm:px-4">
+        <button onClick={onClose} aria-label={t("common.back")} className="rounded-lg p-1.5 hover:bg-muted">
+          <ArrowLeft className="h-5 w-5" />
+        </button>
+        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 text-white">
+          <UserPlus className="h-4 w-4" />
+        </div>
+        <div className="min-w-0">
+          <h2 className="truncate text-sm font-semibold text-foreground">{t("chat.newMessageTitle")}</h2>
+          <p className="truncate text-[11px] text-muted-foreground">{t("chat.newMessageSubtitle")}</p>
+        </div>
+      </div>
+
+      <div className="mx-auto w-full max-w-2xl flex-1 overflow-y-auto p-3 sm:p-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
@@ -94,7 +114,7 @@ export function NewConversationModal({
         </div>
 
         {showRoleFilter && (
-          <div className="flex gap-1.5 flex-wrap">
+          <div className="mt-3 flex flex-wrap gap-1.5">
             {ROLE_FILTER_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
@@ -111,11 +131,9 @@ export function NewConversationModal({
           </div>
         )}
 
-        {error && (
-          <p className="text-sm text-destructive">{error}</p>
-        )}
+        {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
 
-        <div className="max-h-80 overflow-y-auto -mx-1">
+        <div className="mt-3">
           {isLoading ? (
             <div className="flex items-center justify-center py-10">
               <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
@@ -128,13 +146,13 @@ export function NewConversationModal({
               </p>
             </div>
           ) : (
-            <div className="space-y-0.5">
+            <div className="space-y-1.5">
               {results.map((user) => (
                 <button
                   key={user.id}
                   onClick={() => handlePick(user)}
                   disabled={startingId !== null}
-                  className="w-full flex items-center gap-3 px-2 py-2 rounded-lg text-left hover:bg-muted transition-colors disabled:opacity-60"
+                  className="flex w-full items-center gap-3 rounded-xl border border-border/60 px-3 py-2.5 text-left transition-colors hover:bg-muted disabled:opacity-60"
                 >
                   <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-primary-foreground text-sm font-semibold flex-shrink-0">
                     {user.avatar ? (
@@ -154,7 +172,7 @@ export function NewConversationModal({
             </div>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   )
 }

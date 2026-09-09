@@ -42,7 +42,7 @@ function buildPageWindow(current: number, totalPages: number): (number | "ellips
   return result
 }
 
-export function ProductMarketplace() {
+export function ProductMarketplace({ categorySlug }: { categorySlug?: string } = {}) {
   const { t, tn, formatMoney } = useLocalization()
   const searchParams = useSearchParams()
 
@@ -54,7 +54,24 @@ export function ProductMarketplace() {
   // Seeds the category filter from ?category=<slug> (e.g. a home-page
   // category tile) — only read once on mount, not kept in sync afterward,
   // same one-way-seed convention the services browse page's ?category= uses.
-  const [selectedCategory, setSelectedCategory] = useState(() => searchParams.get("category") || "all")
+  const [selectedCategory, setSelectedCategory] = useState(() => categorySlug ?? searchParams.get("category") ?? "all")
+
+  // When this block is embedded in a page that has its own category browser
+  // (the marketplace), that browser is the source of truth and this one
+  // follows it — otherwise picking a category up there left the full product
+  // catalogue down here unfiltered.
+  //
+  // Only when the slug actually exists as a PRODUCT category, though. The
+  // marketplace's browser lists SERVICE categories (getServiceCategories),
+  // and those slugs match nothing here — applying one blindly emptied the
+  // whole catalogue, which reads as "no products" rather than "that filter
+  // doesn't apply to products".
+  useEffect(() => {
+    if (categorySlug === undefined) return
+    if (categorySlug === "all") { setSelectedCategory("all"); return }
+    if (categories.length === 0) return
+    setSelectedCategory(categories.some((c) => c.slug === categorySlug) ? categorySlug : "all")
+  }, [categorySlug, categories])
   const [selectedShopIds, setSelectedShopIds] = useState<string[]>([])
   const [priceRange, setPriceRange] = useState<[number, number] | null>(null)
   const [minRating, setMinRating] = useState(0)

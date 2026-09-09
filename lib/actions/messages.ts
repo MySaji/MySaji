@@ -1,6 +1,7 @@
 "use server"
 
 import { z } from "zod"
+import { isBlockedFrom, recordViolations, reportUser } from "@/lib/moderation-core"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
 import { ROLE_DB_TO_APP, ROLE_APP_TO_DB } from "@/lib/role-map"
@@ -158,6 +159,16 @@ export async function sendMessage(input: unknown): Promise<SendMessageResult> {
     return { success: false, error: "Conversation not found." }
   }
 
+  // A block has to be enforced here, not just hidden in the UI — the send
+  // action is a public endpoint, so a blocked sender who kept the page open
+  // could otherwise keep writing.
+  const recipientId = conversation.participantAId === session.user.id
+    ? conversation.participantBId
+    : conversation.participantAId
+  if (await isBlockedFrom(session.user.id, recipientId)) {
+    return { success: false, error: "You can't send messages to this person." }
+  }
+
   // Gap 3 — see lib/contact-info-filter.ts. Only TEXT messages carry
   // free-form content; IMAGE/FILE/VOICE/LOCATION content is always null.
   const { masked: content, wasMasked } = type === "TEXT" && parsed.data.content
@@ -181,6 +192,13 @@ export async function sendMessage(input: unknown): Promise<SendMessageResult> {
     include: { replyTo: { select: { id: true, type: true, content: true, senderId: true } } },
   })
   await db.conversation.update({ where: { id: conversationId }, data: { lastMessageAt: new Date() } })
+
+  // Detection runs on what was actually typed, not the masked copy — once a
+  // number has been replaced with bullets there is nothing left to detect.
+  // Fire-and-forget: a moderation flag must never delay or fail a message.
+  if (type === "TEXT" && parsed.data.content) {
+    void recordViolations(session.user.id, message.id, parsed.data.content)
+  }
 
   const otherUserId = conversation.participantAId === session.user.id ? conversation.participantBId : conversation.participantAId
   const recipient = await db.user.findUnique({ where: { id: otherUserId }, select: { role: true, name: true } })
@@ -381,6 +399,104 @@ export async function deleteConversation(input: unknown): Promise<{ success: boo
   await db.message.deleteMany({ where: { conversationId: parsed.data.conversationId } })
   await db.conversation.delete({ where: { id: parsed.data.conversationId } })
   return { success: true }
+}
+
+// ============================= BLOCK / REPORT =============================
+
+const conversationTargetSchema = z.object({ conversationId: z.string().trim().min(1) })
+
+/** The other participant, or null when the caller isn't in this
+ *  conversation. Every action below is scoped through this. */
+async function otherParticipantId(conversationId: string, meId: string): Promise<string | null> {
+  const conversation = await db.conversation.findUnique({ where: { id: conversationId } })
+  if (!conversation) return null
+  if (conversation.participantAId === meId) return conversation.participantBId
+  if (conversation.participantBId === meId) return conversation.participantAId
+  return null
+}
+
+export type BlockStateResult = { blocked: boolean }
+
+/** Whether the caller has blocked the other person in this conversation. */
+export async function getBlockState(conversationId: string): Promise<BlockStateResult> {
+  const session = await auth()
+  if (!session?.user?.id) return { blocked: false }
+  const otherId = await otherParticipantId(conversationId, session.user.id)
+  if (!otherId) return { blocked: false }
+
+  const block = await db.chatBlock.findUnique({
+    where: { blockerId_blockedId: { blockerId: session.user.id, blockedId: otherId } },
+  })
+  return { blocked: block !== null }
+}
+
+export type ModerationActionResult = { success: true; blocked?: boolean; underReview?: boolean } | { success: false; error: string }
+
+export async function blockChatUser(input: unknown): Promise<ModerationActionResult> {
+  const session = await auth()
+  if (!session?.user?.id) return { success: false, error: "You must be signed in." }
+  const parsed = conversationTargetSchema.safeParse(input)
+  if (!parsed.success) return { success: false, error: "Invalid input" }
+
+  const otherId = await otherParticipantId(parsed.data.conversationId, session.user.id)
+  if (!otherId) return { success: false, error: "Conversation not found." }
+
+  // Idempotent: pressing block twice is not an error to show someone.
+  await db.chatBlock.upsert({
+    where: { blockerId_blockedId: { blockerId: session.user.id, blockedId: otherId } },
+    update: {},
+    create: { blockerId: session.user.id, blockedId: otherId },
+  })
+  return { success: true, blocked: true }
+}
+
+export async function unblockChatUser(input: unknown): Promise<ModerationActionResult> {
+  const session = await auth()
+  if (!session?.user?.id) return { success: false, error: "You must be signed in." }
+  const parsed = conversationTargetSchema.safeParse(input)
+  if (!parsed.success) return { success: false, error: "Invalid input" }
+
+  const otherId = await otherParticipantId(parsed.data.conversationId, session.user.id)
+  if (!otherId) return { success: false, error: "Conversation not found." }
+
+  await db.chatBlock.deleteMany({ where: { blockerId: session.user.id, blockedId: otherId } })
+  return { success: true, blocked: false }
+}
+
+const reportSchema = z.object({
+  conversationId: z.string().trim().min(1),
+  reason: z.string().trim().min(1).max(200),
+})
+
+/**
+ * Reports the other person in a conversation. The snapshot is their most
+ * recent message, so an admin has the thing being complained about rather
+ * than a bare accusation.
+ */
+export async function reportChatUser(input: unknown): Promise<ModerationActionResult> {
+  const session = await auth()
+  if (!session?.user?.id) return { success: false, error: "You must be signed in." }
+  const parsed = reportSchema.safeParse(input)
+  if (!parsed.success) return { success: false, error: "Invalid input" }
+
+  const otherId = await otherParticipantId(parsed.data.conversationId, session.user.id)
+  if (!otherId) return { success: false, error: "Conversation not found." }
+
+  const lastFromThem = await db.message.findFirst({
+    where: { conversationId: parsed.data.conversationId, senderId: otherId },
+    orderBy: { createdAt: "desc" },
+    select: { content: true, type: true },
+  })
+  const snapshot = lastFromThem?.content ?? `(${lastFromThem?.type ?? "no"} message)`
+
+  const outcome = await reportUser({
+    reporterId: session.user.id,
+    reportedUserId: otherId,
+    reason: parsed.data.reason,
+    contentSnapshot: snapshot,
+  })
+  if (!outcome.recorded) return { success: false, error: outcome.reason }
+  return { success: true, underReview: outcome.underReview }
 }
 
 const deleteMessageSchema = z.object({ messageId: z.string().trim().min(1) })

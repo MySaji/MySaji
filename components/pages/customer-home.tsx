@@ -9,7 +9,7 @@ import { useAuthContext } from "@/lib/auth-context"
 import {
   Search, Mic, MicOff, ChevronRight, Heart, Star, Wrench, ShoppingCart,
   House, Car, GraduationCap, MapPin, SquarePen, Flame, Package, Clock,
-  CheckCircle2, AlertCircle, Calendar,
+  CheckCircle2, AlertCircle, Calendar, ShieldCheck,
 } from "lucide-react"
 import { getRecommendedShops, type HomeFeaturedShop } from "@/lib/actions/home"
 import { getCustomerJobs, type CustomerJob } from "@/lib/actions/jobs"
@@ -20,6 +20,7 @@ import { getWishlistIds, getWishlistedProviders, toggleWishlist, type Wishlisted
 import { useLocalization } from "@/lib/hooks/useLocalization"
 import { RequestPhotoButton } from "@/components/customer/request-photo-button"
 import { ProviderStoryRing } from "@/components/provider-story-ring"
+import { getOnlineProviders, type OnlineProviderCard } from "@/lib/actions/specialists"
 import { getActiveProviderStories } from "@/lib/actions/provider-stories"
 import { withTimeout, DASHBOARD_FETCH_TIMEOUT_MS } from "@/lib/swr-utils"
 import type { TranslationKey } from "@/lib/i18n"
@@ -581,6 +582,86 @@ function SavedForLaterSection({ providers }: { providers: WishlistedProvider[] }
   )
 }
 
+/**
+ * Providers who have switched themselves on right now.
+ *
+ * Sits at the very bottom of the dashboard on purpose: it is the most
+ * time-sensitive strip on the page but also the emptiest — most of the day
+ * nobody is online, and an empty band high up would push everything the
+ * customer actually came for below the fold. Renders nothing at all when the
+ * list is empty rather than an empty-state placeholder.
+ */
+function AvailableNowSection({ providers }: { providers: OnlineProviderCard[] }) {
+  const { t, formatMoney } = useLocalization()
+  if (providers.length === 0) return null
+
+  return (
+    <section>
+      <div className="mb-3 flex items-center gap-2">
+        <span className="relative flex h-2 w-2">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+        </span>
+        <h2 className="text-base font-bold text-foreground">{t("customer.home.availableNowTitle")}</h2>
+        <span className="text-xs text-muted-foreground">{t("customer.home.availableNowCount", { count: providers.length })}</span>
+      </div>
+
+      {/* Two per row on the smallest phone, widening with the screen — these
+          are people, so each card needs room for a face, a name and a trade
+          rather than being squeezed into the narrow scrolling rail the
+          product strips above use. */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        {providers.map((p) => (
+          <Link
+            key={p.providerId}
+            href={p.slug ? `/p/${p.slug}` : `/customer/find-specialists?provider=${p.providerId}`}
+            className="group flex flex-col rounded-xl border border-border bg-card p-3 transition-shadow hover:shadow-md"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="relative h-11 w-11 flex-shrink-0 overflow-hidden rounded-full bg-muted">
+                <Image src={p.avatar || "/placeholder.svg"} alt={p.name} fill sizes="44px" className="object-cover" />
+                <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-card bg-emerald-500" />
+              </div>
+              <div className="min-w-0 flex-1">
+                {/* Wraps to two lines rather than truncating: at two cards
+                    per phone screen a name has ~85px beside the avatar, which
+                    cut most real business names to a few letters. The badge is
+                    inline so it follows the last word instead of being pinned
+                    away from the name it belongs to. */}
+                <p className="line-clamp-2 text-xs font-bold leading-tight text-foreground">
+                  {p.name}
+                  {p.verified && <ShieldCheck className="ml-1 inline h-3 w-3 align-[-1px] text-emerald-600" />}
+                </p>
+                {p.categoryName && <p className="mt-0.5 truncate text-[10px] text-muted-foreground">{p.categoryName}</p>}
+              </div>
+            </div>
+
+            <div className="mt-2.5 flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
+              {/* A rating of 0 from no reviews reads as a bad rating, so a new
+                  provider shows their job count instead. */}
+              {p.reviewCount > 0 ? (
+                <span className="flex items-center gap-0.5">
+                  <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                  <span className="font-semibold text-foreground">{p.rating.toFixed(1)}</span> ({p.reviewCount})
+                </span>
+              ) : (
+                <span>{t("customer.home.availableNowJobs", { count: p.completedJobs })}</span>
+              )}
+              {p.hourlyRate != null && p.hourlyRate > 0 && (
+                <span className="truncate font-semibold text-foreground">{formatMoney(p.hourlyRate)}</span>
+              )}
+            </div>
+
+            <span className="mt-2.5 rounded-lg bg-primary py-1.5 text-center text-[11px] font-semibold text-primary-foreground transition-opacity group-hover:opacity-90">
+              {t("customer.home.availableNowCta")}
+            </span>
+          </Link>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 // --- Page ----------------------------------------------------------------
 
 export function CustomerHome() {
@@ -628,6 +709,14 @@ export function CustomerHome() {
   // dedupe into one request.
   const { data: storyGroups } = useSWR(
     "provider-stories", getActiveProviderStories, { refreshInterval: 60_000 },
+  )
+  // Who is online changes minute to minute, so this refreshes on its own
+  // rather than showing whoever happened to be on when the page loaded.
+  // Not wrapped in withTimeout for the same reason the stories aren't: this
+  // page fires several actions at once and a deadline only turns a slow
+  // section into a permanently missing one.
+  const { data: onlineProviders } = useSWR(
+    "online-providers", () => getOnlineProviders(8), { refreshInterval: 60_000 },
   )
 
   // Providers and shops are separate wishlist target kinds, so they need
@@ -692,6 +781,8 @@ export function CustomerHome() {
         />
 
         <SavedForLaterSection providers={savedProviders ?? []} />
+
+        <AvailableNowSection providers={onlineProviders ?? []} />
       </div>
     </div>
   )

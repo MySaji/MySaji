@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Image from "next/image"
 import { Card } from "@/components/ui/card"
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Plus, Loader2, MapPin, Clock, MessageSquare, CheckCircle2, X } from "lucide-react"
+import { Plus, Loader2, MapPin, Clock, MessageSquare, CheckCircle2, X, Search, Check } from "lucide-react"
 import {
   getMyCustomerRequests, createCustomerRequest, getCustomerRequestById, cancelCustomerRequest, acceptRequestResponse,
   type MyRequestItem, type CustomerRequestDetail,
@@ -46,6 +46,11 @@ export function CustomerRequestsPage() {
   const [budgetMax, setBudgetMax] = useState("")
   const [location, setLocation] = useState("")
   const [photos, setPhotos] = useState<string[]>([])
+  const [categoryQuery, setCategoryQuery] = useState("")
+  // The form is part of the page now, so opening it has to bring itself into
+  // view — otherwise tapping "Post a Request" appears to do nothing when the
+  // list above is long enough to push the form below the fold.
+  const postFormRef = useRef<HTMLDivElement>(null)
   const [postError, setPostError] = useState("")
   const [isPosting, setIsPosting] = useState(false)
 
@@ -112,8 +117,22 @@ export function CustomerRequestsPage() {
     setBudgetMax("")
     setLocation("")
     setPhotos([])
+    setCategoryQuery("")
     setPostError("")
   }
+
+  const visibleCategories = categoryQuery.trim()
+    ? categories.filter((c) => c.name.toLowerCase().includes(categoryQuery.trim().toLowerCase()))
+    : categories
+
+  useEffect(() => {
+    if (!showPostModal) return
+    // Next frame, so the card has actually been laid out before scrolling.
+    const id = requestAnimationFrame(() => {
+      postFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+    })
+    return () => cancelAnimationFrame(id)
+  }, [showPostModal])
 
   const handlePost = async () => {
     if (!categoryId) { setPostError(t("customer.requests.chooseCategoryError")); return }
@@ -239,11 +258,26 @@ export function CustomerRequestsPage() {
         )}
       </div>
 
-      {/* Post Request Modal */}
-      <Dialog open={showPostModal} onOpenChange={setShowPostModal}>
-        <DialogContent className="max-w-lg rounded-2xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{t("customer.requests.postModalTitle")}</DialogTitle></DialogHeader>
-          <div className="space-y-4 py-2">
+      {/* Post a request — part of the page, not a modal. Filling this in
+          means choosing a category from a long list, adding photos and
+          writing a description; a dialog on a phone gave all of that a
+          cramped scrolling box floating over the list behind it. */}
+      {showPostModal && (
+        <Card ref={postFormRef} className="mt-4 border-0 p-4 shadow-sm sm:p-5">
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-base font-bold text-foreground">{t("customer.requests.postModalTitle")}</h2>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">{t("customer.requests.postFormHint")}</p>
+            </div>
+            <button
+              onClick={() => setShowPostModal(false)}
+              aria-label={t("common.cancel")}
+              className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="space-y-4">
             <div>
               <label className="text-xs font-medium mb-1.5 block">{t("customer.requests.titleLabel")}</label>
               <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("customer.requests.titlePlaceholder")} />
@@ -254,19 +288,42 @@ export function CustomerRequestsPage() {
             </div>
             <RequestPhotoPicker photos={photos} onChange={setPhotos} max={MAX_PHOTOS} />
             <div>
-              <label className="text-xs font-medium mb-2 block">{t("customer.requests.categoryLabel")}</label>
-              <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
-                {categories.map((cat) => (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    onClick={() => setCategoryId(cat.id)}
-                    className={`p-2.5 rounded-xl border-2 text-left transition-all ${categoryId === cat.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}
-                  >
-                    <p className="text-[11px] font-semibold text-foreground truncate">{cat.name}</p>
-                    <p className="text-[10px] text-muted-foreground">{cat.type === "SERVICE" ? t("customer.requests.typeService") : t("customer.requests.typeProduct")}</p>
-                  </button>
-                ))}
+              <label className="text-xs font-medium mb-1.5 block">{t("customer.requests.categoryLabel")}</label>
+              {/* Searchable, because this list runs to dozens of categories —
+                  scrolling a two-column grid to find "Air Conditioning" was
+                  the slowest part of posting a request. */}
+              <div className="relative mb-2">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={categoryQuery}
+                  onChange={(e) => setCategoryQuery(e.target.value)}
+                  placeholder={t("customer.requests.categorySearchPlaceholder")}
+                  className="h-9 pl-9 text-xs"
+                />
+              </div>
+              <div className="max-h-56 space-y-1 overflow-y-auto rounded-xl border border-border p-1">
+                {visibleCategories.length === 0 ? (
+                  <p className="px-3 py-6 text-center text-[11px] text-muted-foreground">{t("customer.requests.categoryNoMatch")}</p>
+                ) : (
+                  visibleCategories.map((cat) => (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setCategoryId(cat.id)}
+                      className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left transition-colors ${
+                        categoryId === cat.id ? "bg-primary/10 font-semibold text-foreground" : "hover:bg-muted"
+                      }`}
+                    >
+                      <span className="truncate text-xs text-foreground">{cat.name}</span>
+                      <span className="flex flex-shrink-0 items-center gap-1.5">
+                        <span className="text-[10px] text-muted-foreground">
+                          {cat.type === "SERVICE" ? t("customer.requests.typeService") : t("customer.requests.typeProduct")}
+                        </span>
+                        {categoryId === cat.id && <Check className="h-3.5 w-3.5 text-primary" />}
+                      </span>
+                    </button>
+                  ))
+                )}
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -292,8 +349,8 @@ export function CustomerRequestsPage() {
               {isPosting ? <Loader2 className="w-4 h-4 animate-spin" /> : t("customer.requests.postSubmit")}
             </Button>
           </div>
-        </DialogContent>
-      </Dialog>
+        </Card>
+      )}
 
       {/* Detail / Responses Modal */}
       <Dialog open={selectedRequestId !== null} onOpenChange={(open) => !open && closeDetail()}>

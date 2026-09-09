@@ -282,6 +282,10 @@ enum ReportTargetType {
   POST_COMMENT
   REVIEW
   MESSAGE
+  /// A report about a person rather than one piece of content — what the
+  /// "Report" action in a chat creates. Counting these per reported user is
+  /// what trips the review threshold in lib/actions/moderation-core.ts.
+  USER
 }
 
 enum ReportSeverity {
@@ -294,6 +298,23 @@ enum ReportStatus {
   PENDING
   APPROVED
   REMOVED
+}
+
+/// Where an account stands with moderation. Only RESTRICTED changes what the
+/// account can do; UNDER_REVIEW is a flag for admins, deliberately not a
+/// punishment, so an account is never silently disabled by reports alone.
+enum ModerationStatus {
+  CLEAR
+  UNDER_REVIEW
+  RESTRICTED
+}
+
+/// What a message tripped. Kept as an enum rather than free text so the admin
+/// queue can be filtered and counted by kind.
+enum ViolationKind {
+  CONTACT_DETAILS
+  OFF_PLATFORM_PAYMENT
+  PRICE_MANIPULATION
 }
 
 enum ReconciliationStatus {
@@ -418,6 +439,11 @@ model User {
   // Existing accounts are backfilled by
   // scripts/backfill-verification-status.js.
   verificationStatus VerificationStatus @default(BASIC)
+  /// Set to UNDER_REVIEW automatically once enough distinct people report
+  /// this account (see REPORTS_BEFORE_REVIEW). Deliberately separate from
+  /// isActive: a pile of reports raises a flag for an admin, it does not
+  /// disable the account on its own — that stays a human decision.
+  moderationStatus ModerationStatus @default(CLEAR)
   isActive      Boolean   @default(true)
   chatTheme     ChatTheme @default(CLASSIC)
   language      String    @default("en")
@@ -494,6 +520,9 @@ model User {
   contentReportsFiled     ContentReport[]   @relation("ContentReportReporter")
   contentReportsAgainst   ContentReport[]   @relation("ContentReportSubject")
   contentReportsResolved  ContentReport[]   @relation("ContentReportResolver")
+  chatBlocksMade          ChatBlock[]       @relation("ChatBlockBlocker")
+  chatBlocksReceived      ChatBlock[]       @relation("ChatBlockBlocked")
+  policyViolations        PolicyViolation[] @relation("PolicyViolationUser")
 
   referralsGiven Referral[] @relation("Referrer")
   referredByCode Referral?  @relation("ReferredUser")
@@ -536,6 +565,7 @@ model User {
   @@index([role])
   @@index([kycStatus])
   @@index([verificationStatus])
+  @@index([moderationStatus])
   @@map("users")
 }
 
@@ -3200,6 +3230,51 @@ model Banner {
 
   @@index([placement, isActive])
   @@map("banners")
+}
+
+/// One person blocking another in chat. Directional on purpose: blocking
+/// stops them writing to you, it does not stop you writing to them, and it
+/// says nothing about what the other person can see elsewhere in the app.
+/// Distinct from BlockedClient, which is a provider refusing a customer's
+/// bookings — a commercial decision, not a messaging one.
+model ChatBlock {
+  id        String   @id @default(cuid())
+  blockerId String
+  blockedId String
+  createdAt DateTime @default(now())
+
+  blocker User @relation("ChatBlockBlocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("ChatBlockBlocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+  @@index([blockedId])
+  @@map("chat_blocks")
+}
+
+/// A message the platform's own rules flagged when it was sent — asking for a
+/// phone number, steering payment off Saji, and so on.
+///
+/// Recorded rather than blocked: the patterns are heuristics (see
+/// lib/policy-violations.ts) and refusing to deliver a message on a guess
+/// would break real conversations. The message goes through; the flag gives
+/// admins something to act on, and repeat offenders surface by count.
+model PolicyViolation {
+  id         String        @id @default(cuid())
+  userId     String
+  messageId  String?
+  kind       ViolationKind
+  severity   ReportSeverity @default(MEDIUM)
+  /// The matched fragment, not the whole message — enough for an admin to
+  /// judge it without copying private conversation wholesale.
+  excerpt    String
+  reviewed   Boolean       @default(false)
+  createdAt  DateTime      @default(now())
+
+  user User @relation("PolicyViolationUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([reviewed])
+  @@map("policy_violations")
 }
 
 model ContentReport {

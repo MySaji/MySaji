@@ -17,7 +17,7 @@ import { VoiceMessagePlayer } from "@/components/messages/voice-message-player"
 import { StaticLocationMap } from "@/components/maps/static-location-map"
 import {
   getConversations, sendMessage, getOrCreateConversation, clearConversation,
-  deleteConversation, deleteMessage,
+  deleteConversation, deleteMessage, blockChatUser, unblockChatUser, reportChatUser, getBlockState,
   type ConversationSummary,
 } from "@/lib/actions/messages"
 import { useLongPress, useSwipeToReply } from "@/lib/hooks/useMessageGestures"
@@ -77,6 +77,12 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null)
   const [selectedMessage, setSelectedMessage] = useState<ChatMessage | null>(null)
   const [pendingDelete, setPendingDelete] = useState<ConversationSummary | null>(null)
+  const [isBlocked, setIsBlocked] = useState(false)
+  const [showReport, setShowReport] = useState(false)
+  const [reportReason, setReportReason] = useState("")
+  const [reportNotice, setReportNotice] = useState("")
+  // The media a bubble opens full-screen — a photo or a map, WhatsApp-style.
+  const [openMedia, setOpenMedia] = useState<ChatMessage | null>(null)
 
   /**
    * Both overlays below are opened by a press-and-hold, and lifting the finger
@@ -185,6 +191,15 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
   }, [searchParams])
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }) }, [messages])
+
+  // Whether this person is blocked is per-conversation, so it is re-read
+  // whenever the open chat changes rather than being assumed from the last.
+  useEffect(() => {
+    if (!activeChat) { setIsBlocked(false); return }
+    let cancelled = false
+    getBlockState(activeChat).then((state) => { if (!cancelled) setIsBlocked(state.blocked) }).catch(() => {})
+    return () => { cancelled = true }
+  }, [activeChat])
 
   const selectedChat = conversations.find((c) => c.id === activeChat)
 
@@ -310,12 +325,37 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
   const handleStopRecording = () => { mediaRecorderRef.current?.stop(); setIsRecording(false) }
 
   const handleMenuAction = async (action: "mute" | "block" | "report" | "clear") => {
+    if (!activeChat) return
     if (action === "clear") {
-      if (activeChat) { await clearConversation({ conversationId: activeChat }); mutateMessages([], { revalidate: false }) }
+      await clearConversation({ conversationId: activeChat })
+      mutateMessages([], { revalidate: false })
       return
     }
-    const labelKey = action === "mute" ? "chat.notificationsMuted" : action === "block" ? "chat.userBlocked" : "chat.reportSubmitted"
-    alert(t(labelKey))
+    if (action === "report") { setReportReason(""); setShowReport(true); return }
+    if (action === "block") {
+      // Optimistic, because the composer swaps for the blocked notice on the
+      // strength of this flag and a several-second wait reads as a dead tap.
+      const next = !isBlocked
+      setIsBlocked(next)
+      const result = next
+        ? await blockChatUser({ conversationId: activeChat })
+        : await unblockChatUser({ conversationId: activeChat })
+      if (!result.success) setIsBlocked(!next)
+      return
+    }
+    alert(t("chat.notificationsMuted"))
+  }
+
+  const handleSubmitReport = async () => {
+    if (!activeChat || !reportReason.trim()) return
+    setShowReport(false)
+    const result = await reportChatUser({ conversationId: activeChat, reason: reportReason.trim() })
+    setReportReason("")
+    setReportNotice(
+      result.success
+        ? (result.underReview ? t("chat.reportEscalated") : t("chat.reportSubmitted"))
+        : t("chat.reportFailed"),
+    )
   }
 
   if (isLoading) {
@@ -350,6 +390,19 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
       </div>
 
       <div className="flex min-h-0 flex-1">
+        {showNewChat ? (
+          <NewConversationModal
+            open
+            onClose={() => setShowNewChat(false)}
+            showRoleFilter={showRoleFilter}
+            onConversationCreated={async (conversationId) => {
+              setShowNewChat(false)
+              await refreshConversations()
+              setActiveChat(conversationId)
+            }}
+          />
+        ) : (
+        <>
         {/* Conversation list */}
         <div className={`flex w-full flex-col border-r border-border/60 bg-card lg:w-[360px] ${activeChat ? "hidden lg:flex" : "flex"}`}>
           <div className="flex-shrink-0 space-y-3 border-b border-border/60 p-3">
@@ -424,7 +477,7 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
                     <DropdownMenuTrigger asChild><button aria-label={t("common.moreOptions")} className="rounded-lg p-2 hover:bg-muted"><MoreVertical className="h-4 w-4 text-muted-foreground" /></button></DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => handleMenuAction("mute")}>{t("chat.mute")}</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleMenuAction("block")}>{t("chat.block")}</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleMenuAction("block")}>{isBlocked ? t("chat.unblock") : t("chat.block")}</DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleMenuAction("clear")}>{t("chat.clearChat")}</DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleMenuAction("report")} className="text-red-600 dark:text-red-400">{t("chat.report")}</DropdownMenuItem>
                     </DropdownMenuContent>
@@ -446,11 +499,21 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
                     t={t}
                     onReply={(m) => setReplyTo(m)}
                     onHold={(m) => openOverlay(setSelectedMessage, m)}
+                    onOpenMedia={(m) => setOpenMedia(m)}
                   />
                 )}
                 <div ref={messagesEndRef} />
               </div>
 
+              {isBlocked ? (
+                <div className="flex-shrink-0 border-t border-border/60 bg-card p-4 text-center">
+                  <p className="text-xs font-semibold text-foreground">{t("chat.blockedTitle", { name: selectedChat.name })}</p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">{t("chat.blockedBody")}</p>
+                  <Button variant="outline" size="sm" className="mt-3 rounded-xl bg-transparent" onClick={() => handleMenuAction("block")}>
+                    {t("chat.unblock")}
+                  </Button>
+                </div>
+              ) : (
               <div className="flex-shrink-0 border-t border-border/60 bg-card p-3">
                 {showEmojiPicker && (
                   <div className="mb-2.5 rounded-2xl border border-border/70 bg-muted/70 p-2.5 shadow-sm">
@@ -503,6 +566,15 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
                   </div>
                 )}
 
+                {reportNotice && (
+                  <div className="mb-2 flex items-center justify-between gap-2 rounded-xl bg-muted/70 px-3 py-2">
+                    <p className="text-[11px] text-muted-foreground">{reportNotice}</p>
+                    <button onClick={() => setReportNotice("")} aria-label={t("common.cancel")} className="rounded-full p-1 hover:bg-background">
+                      <X className="h-3.5 w-3.5 text-muted-foreground" />
+                    </button>
+                  </div>
+                )}
+
                 {isRecording ? (
                   <div className="flex items-center gap-3 rounded-full bg-red-50 px-4 py-2.5 dark:bg-red-900/20">
                     <div className="h-2.5 w-2.5 animate-pulse rounded-full bg-red-500" />
@@ -534,8 +606,8 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
                     )}
                   </div>
                 )}
-
               </div>
+              )}
             </>
           ) : (
             <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center">
@@ -544,6 +616,8 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
             </div>
           )}
         </div>
+        </>
+        )}
       </div>
 
       {/* Held-message actions. A sheet on the bottom edge rather than a menu
@@ -594,15 +668,82 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
         </div>
       )}
 
-      <NewConversationModal
-        open={showNewChat}
-        onClose={() => setShowNewChat(false)}
-        showRoleFilter={showRoleFilter}
-        onConversationCreated={async (conversationId) => {
-          await refreshConversations()
-          setActiveChat(conversationId)
-        }}
-      />
+      {/* Full-screen photo / map, WhatsApp-style. Plain fixed overlay rather
+          than a dialog so the media sits on black with nothing around it. */}
+      {openMedia && (
+        <div className="fixed inset-0 z-[60] flex flex-col bg-black" onClick={() => setOpenMedia(null)}>
+          <div className="flex flex-shrink-0 justify-end p-4">
+            <button
+              onClick={() => setOpenMedia(null)}
+              aria-label={t("common.close")}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          <div className="flex min-h-0 flex-1 items-center justify-center px-3 pb-6" onClick={(e) => e.stopPropagation()}>
+            {openMedia.type === "IMAGE" ? (
+              /* eslint-disable-next-line @next/next/no-img-element -- data: URLs aren't supported by next/image */
+              <img src={openMedia.attachmentUrl ?? undefined} alt={openMedia.content ?? ""} className="max-h-full max-w-full object-contain" />
+            ) : (() => {
+              const coords = parseLatLng(openMedia.content)
+              if (!coords) return null
+              return (
+                <div className="flex w-full max-w-2xl flex-col gap-3">
+                  <StaticLocationMap latitude={coords.lat} longitude={coords.lng} label={t("chat.locationShared")} className="h-[60vh] w-full rounded-2xl" />
+                  {/* Universal maps URL — hands off to the device's own maps
+                      app on mobile, google.com/maps on desktop, so directions
+                      work without this app shipping a routing UI. */}
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${coords.lat},${coords.lng}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-xl bg-white/10 py-2.5 text-center text-sm font-semibold text-white hover:bg-white/20"
+                  >
+                    {t("chat.openInMaps")}
+                  </a>
+                </div>
+              )
+            })()}
+          </div>
+        </div>
+      )}
+
+      {/* Why they're reporting. An admin queue full of bare accusations is
+          not actionable, so a reason is required before this sends. */}
+      {showReport && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-6" onPointerDown={() => setShowReport(false)}>
+          <div className="w-full max-w-sm rounded-2xl bg-card p-5 shadow-xl" onPointerDown={(e) => e.stopPropagation()}>
+            <p className="text-sm font-semibold text-foreground">{t("chat.reportTitle", { name: selectedChat?.name ?? "" })}</p>
+            <p className="mt-1 text-[11px] text-muted-foreground">{t("chat.reportBody")}</p>
+            <div className="mt-3 space-y-1.5">
+              {([
+                t("chat.reportReasonContact"),
+                t("chat.reportReasonPayment"),
+                t("chat.reportReasonAbuse"),
+                t("chat.reportReasonOther"),
+              ]).map((reason) => (
+                <button
+                  key={reason}
+                  onClick={() => setReportReason(reason)}
+                  className={`w-full rounded-xl border px-3 py-2 text-left text-xs transition-colors ${
+                    reportReason === reason ? "border-primary bg-primary/5 font-semibold text-foreground" : "border-border text-muted-foreground hover:bg-muted"
+                  }`}
+                >
+                  {reason}
+                </button>
+              ))}
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowReport(false)} className="rounded-xl bg-transparent">{t("common.cancel")}</Button>
+              <Button onClick={handleSubmitReport} disabled={!reportReason} className="rounded-xl bg-red-600 text-white hover:bg-red-700">
+                {t("chat.report")}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }
@@ -673,12 +814,13 @@ function parseLatLng(content: string | null): { lat: number; lng: number } | nul
 }
 
 function MessageList({
-  messages, t, onReply, onHold,
+  messages, t, onReply, onHold, onOpenMedia,
 }: {
   messages: ChatMessage[]
   t: (key: any, params?: Record<string, string | number>) => string
   onReply: (m: ChatMessage) => void
   onHold: (m: ChatMessage) => void
+  onOpenMedia: (m: ChatMessage) => void
 }) {
   if (messages.length === 0) return null
   let lastDay = ""
@@ -695,7 +837,7 @@ function MessageList({
                 <span className="rounded-full bg-muted px-3 py-1 text-[11px] font-medium text-muted-foreground">{dayLabel(message.createdAt, t)}</span>
               </div>
             )}
-            <MessageRow message={message} t={t} onReply={() => onReply(message)} onHold={() => onHold(message)} />
+            <MessageRow message={message} t={t} onReply={() => onReply(message)} onHold={() => onHold(message)} onOpenMedia={() => onOpenMedia(message)} />
           </div>
         )
       })}
@@ -714,15 +856,22 @@ function quotePreview(m: { type: string; content: string | null }, t: (key: any)
 }
 
 function MessageRow({
-  message, t, onReply, onHold,
+  message, t, onReply, onHold, onOpenMedia,
 }: {
   message: ChatMessage
   t: (key: any, params?: Record<string, string | number>) => string
   onReply: () => void
   onHold: () => void
+  onOpenMedia: () => void
 }) {
   const swipe = useSwipeToReply(onReply, { mine: message.isMine })
   const press = useLongPress(onHold)
+
+  // A photo or a map is the message. Wrapping it in a coloured bubble with
+  // padding made it look like an attachment stuck to a note; every other chat
+  // app shows the media itself, so the bubble chrome is dropped for these two
+  // and the timestamp is laid over the corner instead.
+  const isBareMedia = message.type === "IMAGE" || (message.type === "LOCATION" && parseLatLng(message.content) !== null)
 
   return (
     <div className={`relative flex ${message.isMine ? "justify-end" : "justify-start"} mb-1.5`}>
@@ -746,7 +895,11 @@ function MessageRow({
           // Animate back on release, but follow the finger 1:1 while dragging.
           transition: swipe.offset ? "none" : "transform 160ms ease-out",
         }}
-        className={`max-w-[78%] select-none rounded-2xl px-3.5 py-2.5 ${message.isMine ? "rounded-br-md bg-blue-100 text-slate-900 dark:bg-blue-500/20 dark:text-blue-50" : "rounded-bl-md bg-muted text-foreground"}`}
+        className={`max-w-[78%] select-none ${
+          isBareMedia
+            ? "overflow-hidden rounded-2xl"
+            : `rounded-2xl px-3.5 py-2.5 ${message.isMine ? "rounded-br-md bg-blue-100 text-slate-900 dark:bg-blue-500/20 dark:text-blue-50" : "rounded-bl-md bg-muted text-foreground"}`
+        }`}
       >
         {message.replyTo && (
           <div className={`mb-1.5 rounded-lg border-l-2 px-2 py-1 text-[11px] ${message.isMine ? "border-blue-500/70 bg-black/5 dark:bg-white/10" : "border-muted-foreground/40 bg-black/5 dark:bg-white/10"}`}>
@@ -757,10 +910,22 @@ function MessageRow({
 
         {message.type === "TEXT" && <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{message.content}</p>}
         {message.type === "IMAGE" && (
-          <div className="space-y-1">
+          <button type="button" onClick={onOpenMedia} className="relative block" aria-label={message.content || t("chat.sharedAttachmentAlt")}>
             {/* eslint-disable-next-line @next/next/no-img-element -- data: URLs aren't supported by next/image */}
-            <img src={message.attachmentUrl ?? undefined} alt={message.content || t("chat.sharedAttachmentAlt")} className="max-h-60 rounded-xl object-cover" />
-          </div>
+            {/* Sized by the image, not by the bubble. With the bubble's own
+                padding and background removed there is nothing left to give
+                `w-full` a width to resolve against, so the photo collapsed to
+                the width of its timestamp badge. */}
+            <img
+              src={message.attachmentUrl ?? undefined}
+              alt={message.content || t("chat.sharedAttachmentAlt")}
+              className="h-auto max-h-72 w-auto min-w-[8rem] max-w-[65vw] rounded-2xl object-cover sm:max-w-[18rem]"
+            />
+            <span className="absolute bottom-1.5 right-2 flex items-center gap-1 rounded-full bg-black/45 px-1.5 py-0.5 text-[10px] text-white">
+              {new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              {message.isMine && (message.isRead ? <CheckCheck className="h-3 w-3" /> : <Check className="h-3 w-3 opacity-70" />)}
+            </span>
+          </button>
         )}
         {message.type === "FILE" && (
           <div className="flex items-center gap-2 rounded-lg bg-black/5 px-2.5 py-2 dark:bg-white/10">
@@ -793,31 +958,24 @@ function MessageRow({
             )
           }
           return (
-            <div className="space-y-1.5">
-              <div className="overflow-hidden rounded-xl">
-                <StaticLocationMap latitude={coords.lat} longitude={coords.lng} label={t("chat.locationShared")} className="h-28 w-48" />
-              </div>
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-[10px] opacity-70">{message.content}</p>
-                {/* Universal maps URL — hands off to the device's own maps app
-                    on mobile, google.com/maps on desktop, so directions work
-                    without this app shipping a routing UI. */}
-                <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${coords.lat},${coords.lng}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-shrink-0 text-[10px] font-semibold underline underline-offset-2 opacity-80 hover:opacity-100"
-                >
-                  {t("chat.openInMaps")}
-                </a>
-              </div>
-            </div>
+            <button type="button" onClick={onOpenMedia} className="relative block" aria-label={t("chat.locationShared")}>
+              <StaticLocationMap latitude={coords.lat} longitude={coords.lng} label={t("chat.locationShared")} className="h-44 w-56 rounded-2xl" />
+              <span className="absolute bottom-1.5 left-2 flex items-center gap-1 rounded-full bg-black/45 px-1.5 py-0.5 text-[10px] text-white">
+                <MapPin className="h-3 w-3" /> {t("chat.locationShared")}
+              </span>
+              <span className="absolute bottom-1.5 right-2 flex items-center gap-1 rounded-full bg-black/45 px-1.5 py-0.5 text-[10px] text-white">
+                {new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                {message.isMine && (message.isRead ? <CheckCheck className="h-3 w-3" /> : <Check className="h-3 w-3 opacity-70" />)}
+              </span>
+            </button>
           )
         })()}
-        <div className={`mt-1 flex items-center gap-1 ${message.isMine ? "justify-end" : "justify-start"}`}>
-          <span className="text-[10px] opacity-60">{new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
-          {message.isMine && (message.isRead ? <CheckCheck className="h-3.5 w-3.5 text-blue-600 dark:text-blue-300" /> : <Check className="h-3.5 w-3.5 opacity-50" />)}
-        </div>
+        {!isBareMedia && (
+          <div className={`mt-1 flex items-center gap-1 ${message.isMine ? "justify-end" : "justify-start"}`}>
+            <span className="text-[10px] opacity-60">{new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+            {message.isMine && (message.isRead ? <CheckCheck className="h-3.5 w-3.5 text-blue-600 dark:text-blue-300" /> : <Check className="h-3.5 w-3.5 opacity-50" />)}
+          </div>
+        )}
       </div>
     </div>
   )

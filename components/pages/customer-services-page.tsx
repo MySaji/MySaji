@@ -19,6 +19,7 @@ import {
   MessageCircle, Loader2, SlidersHorizontal, ChevronRight, Eye,
   AlertTriangle, Wallet, ShieldCheck, ArrowRight, Check, Info,
   Flame, Plus, Minus, ArrowUpDown, Package, ChevronDown, ChevronUp, Briefcase,
+  SquarePen,
 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
@@ -114,6 +115,10 @@ export function CustomerServicesPage() {
   const [showEmergencyWizard, setShowEmergencyWizard] = useState(false)
   const [emergencyStep, setEmergencyStep] = useState(1)
   const [emergencyCategory, setEmergencyCategory] = useState("")
+  // Set when the customer names their own emergency instead of picking one
+  // of the listed types. Mutually exclusive with emergencyCategory.
+  const [emergencyCustomType, setEmergencyCustomType] = useState("")
+  const [useCustomEmergency, setUseCustomEmergency] = useState(false)
   const [emergencyDescription, setEmergencyDescription] = useState("")
   const [emergencyLocation, setEmergencyLocation] = useState("")
   const [emergencyBooked, setEmergencyBooked] = useState(false)
@@ -266,7 +271,15 @@ export function CustomerServicesPage() {
   // Curated top-rated preview — independent of the customer's active
   // search/filter state below, same "small curated row above the full
   // searchable catalog" pattern as the Trending Products row.
-  const popularServices = [...services].sort((a, b) => b.rating - a.rating).slice(0, 6)
+  // Shared by every row below, so "Browse by category" means the same thing
+  // everywhere on the page.
+  const matchesSelectedCategory = (slug: string | null | undefined) =>
+    selectedCategory === "all" || slug === selectedCategory
+
+  const popularServices = [...services]
+    .filter((s) => matchesSelectedCategory(s.categorySlug))
+    .sort((a, b) => b.rating - a.rating)
+    .slice(0, 6)
 
   // Provider-created Offers, sorted into the same three buckets as the rest
   // of this page — BUY reads as a product, RENT as equipment for hire, and
@@ -276,11 +289,18 @@ export function CustomerServicesPage() {
   const offerServices: PublicOfferListItem[] = []
   const offerRentals: PublicOfferListItem[] = []
   for (const offer of liveOffers) {
+    // Picking a category used to narrow the services list alone, leaving
+    // Trending Products, the Saji Pro rows and Rentals showing everything —
+    // so the page looked like the filter had been ignored. One predicate now
+    // gates every row on this page.
+    if (!matchesSelectedCategory(offer.categorySlug)) continue
     const bucket = OFFER_KIND[offer.actionType]
     if (bucket === "product") offerProducts.push(offer)
     else if (bucket === "rental") offerRentals.push(offer)
     else offerServices.push(offer)
   }
+
+  const visibleTrendingProducts = trendingProducts.filter((p) => matchesSelectedCategory(p.categorySlug))
 
   const filteredServices = services.filter((service) => {
     const matchesSearch = service.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -394,7 +414,9 @@ export function CustomerServicesPage() {
   }
 
   const getSelectedEmergency = () => emergencyCategories.find(c => c.id === emergencyCategory)
-  const getEmergencyTotal = () => (getSelectedEmergency()?.avgPrice || 0) + EMERGENCY_FEE
+  // A customer-named emergency has no category average to quote from, so the
+  // call-out fee is all that can honestly be shown until a provider quotes.
+  const getEmergencyTotal = () => (useCustomEmergency ? 0 : getSelectedEmergency()?.avgPrice || 0) + EMERGENCY_FEE
 
   const handleEmergencyContinue = async () => {
     if (emergencyStep < 2) {
@@ -402,12 +424,14 @@ export function CustomerServicesPage() {
       return
     }
     const selected = getSelectedEmergency()
-    if (!selected) return
+    if (!useCustomEmergency && !selected) return
+    if (useCustomEmergency && emergencyCustomType.trim().length < 2) return
 
     setIsEmergencySubmitting(true)
     setEmergencyError("")
     const bookingResult = await createEmergencyBooking({
-      categoryId: selected.id,
+      categoryId: useCustomEmergency ? undefined : selected!.id,
+      customType: useCustomEmergency ? emergencyCustomType.trim() : undefined,
       price: getEmergencyTotal(),
       description: emergencyDescription,
       location: emergencyLocation || currentLocation || "Nairobi",
@@ -668,7 +692,7 @@ export function CustomerServicesPage() {
               {t("customer.services.viewAll")} <ChevronRight className="w-4 h-4" />
             </Link>
           </div>
-          {trendingProducts.length === 0 ? (
+          {visibleTrendingProducts.length === 0 ? (
             <EmptyOrErrorState
               failed={productsLoadFailed}
               emptyMessage={t("customer.services.noProductsYet")}
@@ -676,7 +700,7 @@ export function CustomerServicesPage() {
             />
           ) : (
             <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide sm:mx-0 sm:px-0 sm:grid sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 sm:gap-4">
-              {trendingProducts.map((product) => (
+              {visibleTrendingProducts.map((product) => (
                 <Card
                   key={product.id}
                   className="w-40 sm:w-auto flex-shrink-0 overflow-hidden border-0 shadow-sm transition-all hover:shadow-lg cursor-pointer group"
@@ -830,7 +854,7 @@ export function CustomerServicesPage() {
             </div>
             <h2 className="text-base font-semibold text-foreground">{t("customer.services.allProducts")}</h2>
           </div>
-          <ProductMarketplace />
+          <ProductMarketplace categorySlug={selectedCategory} />
         </div>
 
         {/* All Services — the full, searchable/filterable/sortable catalog. */}
@@ -1204,7 +1228,7 @@ export function CustomerServicesPage() {
                     {emergencyCategories.map((cat) => {
                       const Icon = CATEGORY_ICONS[cat.slug] ?? Grid3X3
                       return (
-                        <button key={cat.id} onClick={() => setEmergencyCategory(cat.id)}
+                        <button key={cat.id} onClick={() => { setEmergencyCategory(cat.id); setUseCustomEmergency(false) }}
                           className={`p-4 rounded-xl border-2 text-left transition-all ${emergencyCategory === cat.id ? "border-red-500 bg-red-50 dark:bg-red-950/20 shadow-sm" : "border-border hover:border-red-300 dark:hover:border-red-700"}`}
                         >
                           <Icon className={`w-5 h-5 mb-2 ${emergencyCategory === cat.id ? "text-red-600" : "text-muted-foreground"}`} />
@@ -1213,8 +1237,39 @@ export function CustomerServicesPage() {
                         </button>
                       )
                     })}
+
+                    {/* Emergencies do not always fit a list. Naming your own
+                        keeps the booking moving instead of forcing the closest
+                        wrong category — it is dispatched by an admin rather
+                        than auto-matched, since there is no category to match
+                        a provider on. */}
+                    <button
+                      onClick={() => { setUseCustomEmergency(true); setEmergencyCategory("") }}
+                      className={`rounded-xl border-2 border-dashed p-4 text-left transition-all ${
+                        useCustomEmergency ? "border-red-500 bg-red-50 shadow-sm dark:bg-red-950/20" : "border-border hover:border-red-300 dark:hover:border-red-700"
+                      }`}
+                    >
+                      <SquarePen className={`mb-2 h-5 w-5 ${useCustomEmergency ? "text-red-600" : "text-muted-foreground"}`} />
+                      <p className="text-xs font-semibold text-foreground">{t("customer.services.emergencyOther")}</p>
+                      <p className="mt-1 text-[11px] text-muted-foreground">{t("customer.services.emergencyOtherHint")}</p>
+                    </button>
                   </div>
                 )
+              )}
+
+              {emergencyStep === 1 && useCustomEmergency && (
+                <div className="mt-3">
+                  <label className="mb-1.5 block text-xs font-medium text-foreground">{t("customer.services.emergencyTypeLabel")}</label>
+                  <Input
+                    autoFocus
+                    value={emergencyCustomType}
+                    onChange={(e) => setEmergencyCustomType(e.target.value)}
+                    placeholder={t("customer.services.emergencyTypePlaceholder")}
+                    maxLength={80}
+                    className="rounded-xl"
+                  />
+                  <p className="mt-1.5 text-[11px] text-muted-foreground">{t("customer.services.emergencyCustomNotice")}</p>
+                </div>
               )}
 
               {emergencyStep === 2 && (
@@ -1268,7 +1323,7 @@ export function CustomerServicesPage() {
                   {emergencyStep > 1 && <Button variant="outline" onClick={() => setEmergencyStep(emergencyStep - 1)} className="flex-1 rounded-xl bg-transparent" disabled={isEmergencySubmitting}>{t("customer.jobs.backButton")}</Button>}
                   <Button
                     onClick={handleEmergencyContinue}
-                    disabled={(emergencyStep === 1 && !emergencyCategory) || (emergencyStep === 2 && (!emergencyDescription || !emergencyLocation)) || isEmergencySubmitting}
+                    disabled={(emergencyStep === 1 && (useCustomEmergency ? emergencyCustomType.trim().length < 2 : !emergencyCategory)) || (emergencyStep === 2 && (!emergencyDescription || !emergencyLocation)) || isEmergencySubmitting}
                     className="flex-1 rounded-xl"
                   >
                     {isEmergencySubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : t("customer.wallet.continue")}
