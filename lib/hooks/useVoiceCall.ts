@@ -58,6 +58,14 @@ export function useVoiceCall(conversationId: string | null) {
   const durationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const conversationIdRef = useRef<string | null>(null)
   const prevCallStateRef = useRef<CallState>("idle")
+  /** Set while THIS user is the one who dialled — only the caller writes the
+   *  history row, so a call is not listed twice (see logCall). */
+  const isCallerRef = useRef(false)
+  /** Whether the call was ever actually answered, which is what separates a
+   *  completed call from a missed one. */
+  const wasConnectedRef = useRef(false)
+  const wasDeclinedRef = useRef(false)
+  const durationRef = useRef(0)
 
   const teardown = useCallback(() => {
     pcRef.current?.close()
@@ -105,6 +113,7 @@ export function useVoiceCall(conversationId: string | null) {
     }
     pc.onconnectionstatechange = () => {
       if (pc.connectionState === "connected") {
+        wasConnectedRef.current = true
         setCallState("connected")
       } else if (pc.connectionState === "failed") {
         setError("Call connection failed. Check your network and try again.")
@@ -119,6 +128,10 @@ export function useVoiceCall(conversationId: string | null) {
 
   const startCall = useCallback(async () => {
     if (!conversationId) return
+    isCallerRef.current = true
+    wasConnectedRef.current = false
+    wasDeclinedRef.current = false
+    durationRef.current = 0
     setError("")
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
@@ -136,6 +149,7 @@ export function useVoiceCall(conversationId: string | null) {
 
   const acceptCall = useCallback(async () => {
     if (!conversationId || !pendingOfferRef.current) return
+    isCallerRef.current = false
     setError("")
     const offer = pendingOfferRef.current
     try {
@@ -156,13 +170,26 @@ export function useVoiceCall(conversationId: string | null) {
   }, [conversationId, createPeerConnection])
 
   const declineCall = useCallback(() => {
+    // The server writes the history row from this signal — see sendCallSignal.
     if (conversationId) void sendCallSignal({ conversationId, type: "reject", payload: {} })
     teardown()
     setCallState("idle")
   }, [conversationId, teardown])
 
   const endCall = useCallback(() => {
-    if (conversationId) void sendCallSignal({ conversationId, type: "hangup", payload: {} })
+    if (conversationId) {
+      // Carries what only this client knows — who dialled, whether it was
+      // ever answered, and for how long — so the server can record the call.
+      void sendCallSignal({
+        conversationId,
+        type: "hangup",
+        payload: {
+          isCaller: isCallerRef.current,
+          wasConnected: wasConnectedRef.current,
+          durationSeconds: durationRef.current,
+        },
+      })
+    }
     finishCall("ended")
   }, [conversationId, finishCall])
 
@@ -202,8 +229,11 @@ export function useVoiceCall(conversationId: string | null) {
           pendingCandidatesRef.current.push(signal.payload as RTCIceCandidateInit)
         }
         break
-      case "hangup":
       case "reject":
+        wasDeclinedRef.current = true
+        finishCall("idle")
+        break
+      case "hangup":
         finishCall("idle")
         break
     }
@@ -254,7 +284,10 @@ export function useVoiceCall(conversationId: string | null) {
   // Call duration ticker.
   useEffect(() => {
     if (callState !== "connected") return
-    durationTimerRef.current = setInterval(() => setCallDuration((d) => d + 1), 1000)
+    durationTimerRef.current = setInterval(() => setCallDuration((d) => {
+      durationRef.current = d + 1
+      return d + 1
+    }), 1000)
     return () => {
       if (durationTimerRef.current) clearInterval(durationTimerRef.current)
     }
@@ -268,8 +301,11 @@ export function useVoiceCall(conversationId: string | null) {
   // silently deleting a brand-new signal moments after it was created and
   // making a freshly-dialed call never ring on the other end.
   useEffect(() => {
-    if (callState === "idle" && prevCallStateRef.current !== "idle" && conversationIdRef.current) {
+    const leftACall = prevCallStateRef.current !== "idle" && prevCallStateRef.current !== "ended"
+    if ((callState === "idle" || callState === "ended") && leftACall && conversationIdRef.current) {
       void clearCallSignals(conversationIdRef.current)
+
+      isCallerRef.current = false
     }
     prevCallStateRef.current = callState
   }, [callState])

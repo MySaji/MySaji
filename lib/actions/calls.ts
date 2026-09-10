@@ -24,7 +24,7 @@ const signalTypeSchema = z.enum(["offer", "answer", "ice-candidate", "hangup", "
 const sendSignalSchema = z.object({
   conversationId: z.string().trim().min(1),
   type: signalTypeSchema,
-  payload: z.unknown(),
+  payload: z.any(),
 })
 
 export type CallActionResult = { success: true } | { success: false; error: string }
@@ -56,6 +56,64 @@ export async function sendCallSignal(input: unknown): Promise<CallActionResult> 
       payload: (payload ?? {}) as Prisma.InputJsonValue,
     },
   })
+
+  // Call history is built from the signals themselves, because they are the
+  // only messages guaranteed to be sent — a call cannot happen without them.
+  //
+  // The row is created on the OFFER, not at the end. Ending a call fires a
+  // hangup at the same moment the page tears its polling down, and that
+  // request is routinely cancelled; logging only at the end lost calls
+  // entirely. Created up front, a call always appears in history, and the
+  // later signals only refine it.
+  if (type === "offer") {
+    const recent = await db.callLog.findFirst({
+      where: { conversationId, callerId: session.user.id, createdAt: { gt: new Date(Date.now() - SIGNAL_WINDOW_MS) } },
+      orderBy: { createdAt: "desc" },
+      select: { id: true },
+    })
+    // Re-offers during setup are the same call, not a second one.
+    if (!recent) {
+      await db.callLog.create({
+        data: { conversationId, callerId: session.user.id, calleeId: toUserId, outcome: "MISSED", durationSeconds: 0 },
+      }).catch(() => {})
+    }
+  }
+
+  if (type === "answer" || type === "hangup" || type === "reject") {
+    const info = (payload ?? {}) as { durationSeconds?: number; wasConnected?: boolean }
+    const open = await db.callLog.findFirst({
+      where: { conversationId, createdAt: { gt: new Date(Date.now() - 60 * 60 * 1000) } },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, outcome: true, answeredAt: true },
+    })
+    if (open) {
+      // An answer proves it connected; a hangup carries the duration; a
+      // reject means the callee turned it down. A hangup after an answer
+      // must not downgrade COMPLETED back to MISSED.
+      const outcome =
+        type === "answer" ? "COMPLETED"
+        : type === "reject" ? (open.outcome === "COMPLETED" ? "COMPLETED" : "DECLINED")
+        : info.wasConnected || open.outcome === "COMPLETED" ? "COMPLETED"
+        : open.outcome
+      // Duration is measured from the answer, server-side. The client's own
+      // counter travels on the hangup, which is the least reliable signal of
+      // the three — timing it here means a call still shows its real length
+      // even when that message is lost.
+      const elapsed = open.answeredAt ? Math.floor((Date.now() - open.answeredAt.getTime()) / 1000) : 0
+      const duration = type === "hangup"
+        ? Math.max(elapsed, Math.floor(info.durationSeconds ?? 0))
+        : undefined
+
+      await db.callLog.update({
+        where: { id: open.id },
+        data: {
+          outcome,
+          ...(type === "answer" && !open.answeredAt ? { answeredAt: new Date() } : {}),
+          ...(duration != null && duration > 0 ? { durationSeconds: duration } : {}),
+        },
+      }).catch(() => {})
+    }
+  }
 
   return { success: true }
 }
@@ -93,6 +151,91 @@ export async function getCallSignals(conversationId: string): Promise<CallSignal
     payload: s.payload,
     createdAt: s.createdAt.toISOString(),
   }))
+}
+
+const logCallSchema = z.object({
+  conversationId: z.string().trim().min(1),
+  outcome: z.enum(["COMPLETED", "MISSED", "DECLINED"]),
+  durationSeconds: z.number().int().min(0).max(60 * 60 * 12),
+})
+
+/**
+ * Records a finished call for the Calls tab.
+ *
+ * Written by the caller only — they are the side that knows when it started
+ * and how it ended, and logging from both would put every call in the list
+ * twice. The row is per-conversation, so both people see it either way.
+ */
+export async function logCall(input: unknown): Promise<CallActionResult> {
+  const session = await auth()
+  if (!session?.user?.id) return { success: false, error: "You must be signed in." }
+
+  const parsed = logCallSchema.safeParse(input)
+  if (!parsed.success) return { success: false, error: "Invalid input" }
+
+  const conversation = await requireParticipant(parsed.data.conversationId, session.user.id)
+  if (!conversation) return { success: false, error: "Conversation not found." }
+
+  const calleeId = conversation.participantAId === session.user.id
+    ? conversation.participantBId
+    : conversation.participantAId
+
+  await db.callLog.create({
+    data: {
+      conversationId: parsed.data.conversationId,
+      callerId: session.user.id,
+      calleeId,
+      outcome: parsed.data.outcome,
+      durationSeconds: parsed.data.durationSeconds,
+    },
+  })
+  return { success: true }
+}
+
+export type CallHistoryItem = {
+  id: string
+  conversationId: string
+  otherUserId: string
+  otherUserName: string
+  otherUserAvatar: string | null
+  /** From the viewer's point of view, not the record's. */
+  direction: "outgoing" | "incoming"
+  outcome: "COMPLETED" | "MISSED" | "DECLINED"
+  durationSeconds: number
+  createdAt: string
+}
+
+/** Every call this user made or received, newest first. */
+export async function getCallHistory(limit = 50): Promise<CallHistoryItem[]> {
+  const session = await auth()
+  if (!session?.user?.id) return []
+  const myId = session.user.id
+
+  const logs = await db.callLog.findMany({
+    where: { OR: [{ callerId: myId }, { calleeId: myId }] },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    include: {
+      caller: { select: { id: true, name: true, image: true } },
+      callee: { select: { id: true, name: true, image: true } },
+    },
+  })
+
+  return logs.map((log) => {
+    const outgoing = log.callerId === myId
+    const other = outgoing ? log.callee : log.caller
+    return {
+      id: log.id,
+      conversationId: log.conversationId,
+      otherUserId: other.id,
+      otherUserName: other.name,
+      otherUserAvatar: other.image,
+      direction: outgoing ? ("outgoing" as const) : ("incoming" as const),
+      outcome: log.outcome as CallHistoryItem["outcome"],
+      durationSeconds: log.durationSeconds,
+      createdAt: log.createdAt.toISOString(),
+    }
+  })
 }
 
 /** Cleans up leftover signaling rows once a call ends — they're already

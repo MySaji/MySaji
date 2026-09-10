@@ -210,15 +210,15 @@ export async function sendMessage(input: unknown): Promise<SendMessageResult> {
   // lands on the bare inbox with nothing selected, which reads exactly like
   // "the message isn't there" even though it's sitting in the DB fine.
   const messagesUrl = `/${ROLE_DB_TO_APP[recipient?.role ?? "CUSTOMER"]}/messages?conversation=${conversationId}`
-  await db.notification.create({
-    data: {
-      userId: otherUserId,
-      title: "New message",
-      message: messagePreview,
-      type: "MESSAGE",
-      actionUrl: messagesUrl,
-    },
-  })
+
+  // Deliberately no Notification row for a chat message. Chat has its own
+  // surface — the inbox, badged with the real unread-message count — and
+  // mirroring every message into the bell meant one message showed up twice,
+  // with the bell's copy going stale the moment the conversation was read
+  // (marking messages read never touched the notification).
+  //
+  // The push still fires: that is the OS-level alert for when the app is
+  // closed, which the in-app inbox badge cannot replace.
   await pushToUser(otherUserId, { title: "New message", body: messagePreview, url: messagesUrl }, "message")
 
   return {

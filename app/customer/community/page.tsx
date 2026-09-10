@@ -385,7 +385,10 @@ export default function CommunityPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto px-4 py-6">
+      {/* 6xl rather than 7xl, and the feed is centred within the space the
+          sidebar does not use — at 7xl the 2xl feed sat hard against the left
+          edge with a wide empty gap beside it on a desktop. */}
+      <div className="mx-auto max-w-6xl px-4 py-6">
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-xl lg:text-2xl font-bold text-foreground mb-2">{t("customer.layout.navCommunity")}</h1>
@@ -418,9 +421,9 @@ export default function CommunityPage() {
           })}
         </div>
 
-        <div className="flex gap-6">
+        <div className="flex justify-center gap-6 lg:justify-start">
           {/* Main Content */}
-          <div className="flex-1 max-w-2xl">
+          <div className="w-full min-w-0 max-w-2xl flex-1">
             {/* Create Post Card */}
             <Card className="p-4 mb-6">
               <div className="flex items-center gap-3">

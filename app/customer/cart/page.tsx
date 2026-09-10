@@ -146,7 +146,10 @@ export default function CustomerCartPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-7xl px-4 py-6 lg:px-6">
+      {/* 5xl, not 7xl: a two-column cart stretched across 1280px left the
+          item rows enormous and the eye travelling a long way between a
+          product and its price. */}
+      <div className="mx-auto max-w-5xl px-4 py-6 lg:px-6">
         <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className="text-xl font-bold text-foreground">{t("customer.cart.title")}</h1>
@@ -167,7 +170,7 @@ export default function CustomerCartPage() {
             </Link>
           </Card>
         ) : (
-          <div className="grid gap-6 lg:grid-cols-[1.4fr_0.8fr]">
+          <div className="grid items-start gap-6 lg:grid-cols-[1.5fr_1fr]">
             <div className="space-y-4">
               {vacationingShops.length > 0 && (
                 <div className="space-y-2">
@@ -322,7 +325,9 @@ export default function CustomerCartPage() {
               )}
             </div>
 
-            <div className="space-y-4">
+            {/* Sticky on desktop so the total and the pay button stay reachable
+                while a long cart scrolls — the standard checkout pattern. */}
+            <div className="space-y-4 lg:sticky lg:top-6 lg:self-start">
               <Card className="p-5">
                 <h2 className="text-base font-semibold">{t("customer.cart.shippingDetails")}</h2>
                 <div className="mt-4 space-y-3">

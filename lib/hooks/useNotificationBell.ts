@@ -29,7 +29,9 @@ export function useNotificationBell(limit: number = 10, enabled: boolean = true)
   )
 
   const notifications = notificationsData ?? []
-  const unreadCount = unreadCountData ?? 0
+  const unreadCount = unreadCountData?.notifications ?? 0
+  // Chat's own badge, carried on the same call — see UnreadCounts.
+  const unreadMessages = unreadCountData?.messages ?? 0
 
   // Foreground sound cue — real OS push notifications already carry the
   // device's own system sound (see public/sw.js), but only fire while the
@@ -40,10 +42,10 @@ export function useNotificationBell(limit: number = 10, enabled: boolean = true)
   const previousUnreadRef = useRef<number | null>(null)
   useEffect(() => {
     if (unreadCountData === undefined) return
-    if (previousUnreadRef.current !== null && unreadCountData > previousUnreadRef.current) {
+    if (previousUnreadRef.current !== null && unreadCount > previousUnreadRef.current) {
       playNotificationSound()
     }
-    previousUnreadRef.current = unreadCountData
+    previousUnreadRef.current = unreadCount
   }, [unreadCountData])
 
   const refreshNotifications = () => {
@@ -54,14 +56,18 @@ export function useNotificationBell(limit: number = 10, enabled: boolean = true)
   const markRead = async (notification: NotificationItem) => {
     if (notification.isRead) return
     mutateNotifications((current) => current?.map((n) => (n.id === notification.id ? { ...n, isRead: true } : n)), { revalidate: false })
-    mutateUnreadCount((current) => Math.max(0, (current ?? 1) - 1), { revalidate: false })
+    mutateUnreadCount(
+      (current) => ({ notifications: Math.max(0, (current?.notifications ?? 1) - 1), messages: current?.messages ?? 0 }),
+      { revalidate: false },
+    )
     const result = await markNotificationRead({ id: notification.id })
     if (!result.success) refreshNotifications()
   }
 
   const markAllRead = async () => {
     mutateNotifications((current) => current?.map((n) => ({ ...n, isRead: true })), { revalidate: false })
-    mutateUnreadCount(0, { revalidate: false })
+    // Marking notifications read must not clear the chat badge with them.
+    mutateUnreadCount((current) => ({ notifications: 0, messages: current?.messages ?? 0 }), { revalidate: false })
     const result = await markAllNotificationsRead()
     if (!result.success) refreshNotifications()
   }
@@ -72,5 +78,6 @@ export function useNotificationBell(limit: number = 10, enabled: boolean = true)
     if (!result.success) refreshNotifications()
   }
 
-  return { notifications, unreadCount, refreshNotifications, markRead, markAllRead, remove }
+  return {
+    unreadMessages, notifications, unreadCount, refreshNotifications, markRead, markAllRead, remove }
 }

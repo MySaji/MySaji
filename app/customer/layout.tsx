@@ -8,6 +8,7 @@ import { usePathname, useRouter } from "next/navigation"
 import { useAuthContext } from "@/lib/auth-context"
 import { useCartCount } from "@/lib/hooks/useCartCount"
 import { LocationSelector } from "@/components/location-selector"
+import { BrandLogo } from "@/components/brand-logo"
 import { useNotificationBell } from "@/lib/hooks/useNotificationBell"
 import { useSidebarCollapsed } from "@/lib/hooks/useSidebarCollapsed"
 import { formatRelativeTime } from "@/lib/format"
@@ -53,12 +54,16 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
   // No "More" tab: the five slots are the design, and everything else stays
   // one tap away through the header's menu button, which opens the same
   // navigation as a drawer.
+
+
+  const { notifications, unreadCount, unreadMessages, markRead, markAllRead } = useNotificationBell(4)
+
   const mobileBar = [
     { icon: Home, label: t("nav.home"), href: "/customer/home" },
     { icon: Search, label: t("customer.layout.navExplore"), href: "/customer/services" },
     { icon: Plus, label: t("customer.layout.navRequest"), href: "/customer/requests", raised: true },
     { icon: Activity, label: t("customer.layout.navActivity"), href: "/customer/jobs" },
-    { icon: MessageCircle, label: t("customer.layout.navInbox"), href: "/customer/messages" },
+    { icon: MessageCircle, label: t("customer.layout.navInbox"), href: "/customer/messages", badge: unreadMessages },
   ]
 
   // Everything the five designed slots cannot reach — orders, favourites,
@@ -93,7 +98,6 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
   // (already grouped for the hamburger drawer above) are reachable from
   // here too instead of only via the drawer.
 
-  const { notifications, unreadCount, markRead, markAllRead } = useNotificationBell(4)
 
   useEffect(() => {
     if (!user) return
@@ -146,9 +150,7 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
         {/* Logo */}
         <div className={`flex items-center h-16 border-b border-border ${isCollapsed ? "justify-center px-2" : "px-6"}`}>
           <Link href="/customer/home" className="flex items-center gap-2 min-w-0">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
-              <span className="text-primary-foreground font-bold text-base">S</span>
-            </div>
+            <BrandLogo size="small" />
             {!isCollapsed && <span className="font-bold text-lg text-foreground truncate">SAJI</span>}
           </Link>
         </div>
@@ -239,9 +241,7 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
                 <SheetTitle className="sr-only">{t("customer.layout.openMenu")}</SheetTitle>
                 <div className="flex items-center h-16 px-6 border-b border-border">
                   <Link href="/customer/home" className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                      <span className="text-primary-foreground font-bold text-base">S</span>
-                    </div>
+                    <BrandLogo size="small" />
                     <span className="font-bold text-lg text-foreground">SAJI</span>
                   </Link>
                 </div>
@@ -311,9 +311,7 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
 
             {/* Mobile Logo */}
             <Link href="/customer/home" className="lg:hidden flex flex-shrink-0 items-center gap-2">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-base">S</span>
-              </div>
+              <BrandLogo size="small" />
               {/* The wordmark steps aside below 640px so the location control
                   has room; the mark still carries the brand. See the matching
                   note in components/saji-pro-badge.tsx. */}
@@ -460,7 +458,17 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
                     isActive ? "text-primary" : "text-muted-foreground"
                   }`}
                 >
-                  <item.icon className="h-5 w-5" />
+                  <span className="relative">
+                    <item.icon className="h-5 w-5" />
+                    {/* Chat's unread count lives here rather than on the bell —
+                        it is the real number of unread messages, and it clears
+                        when the conversation is actually read. */}
+                    {"badge" in item && (item.badge ?? 0) > 0 && (
+                      <span className="absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
+                        {(item.badge ?? 0) > 9 ? "9+" : item.badge}
+                      </span>
+                    )}
+                  </span>
                   <span className="mt-1 text-[10px] font-medium">{item.label}</span>
                 </Link>
               )

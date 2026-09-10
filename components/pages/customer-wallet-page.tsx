@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import {
   Plus, Eye, EyeOff, CreditCard, TrendingUp, Minus, Download, ArrowUpRight, ArrowDownLeft, Wallet, Receipt, Loader2,
   ShieldCheck, AlertCircle, Clock,
+  ArrowLeft,
 } from "lucide-react"
 
 export function CustomerWalletPage() {
@@ -142,6 +143,110 @@ export function CustomerWalletPage() {
   const balance = summary.balance
   const transactions = summary.transactions
   const paymentMethods = summary.paymentMethods
+
+  // Adding or withdrawing money is a task in its own right — an amount, a
+  // method, sometimes a confirmation step. Both were max-w-sm modals floating
+  // over the wallet, which on a phone left the method list scrolling inside a
+  // small box. They take over the page instead, with a back arrow, and the
+  // wallet is still there underneath when the task is done or abandoned.
+  if (showAddMoney) {
+    return (
+      <WalletTaskPanel title={t("customer.wallet.addMoney")} onBack={closeAddMoney}>
+        {confirmedAddAmount == null ? (
+          <div className="space-y-5">
+            <div>
+              <label className="mb-2 block text-xs font-medium">{t("customer.wallet.amount")}</label>
+              <div className="flex gap-2">
+                <span className="flex items-center rounded-xl bg-muted px-3 text-xs text-muted-foreground">{currency}</span>
+                <Input type="number" placeholder="0" value={addMoneyAmount} onChange={(e) => setAddMoneyAmount(e.target.value)} className="h-12 rounded-xl text-lg" />
+              </div>
+            </div>
+            <div className="grid grid-cols-4 gap-2">
+              {[500, 1000, 2000, 5000].map((amt) => (
+                <button
+                  key={amt}
+                  onClick={() => setAddMoneyAmount(amt.toString())}
+                  className={`rounded-xl border py-2.5 text-xs font-semibold transition-colors ${
+                    addMoneyAmount === amt.toString() ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground hover:bg-muted"
+                  }`}
+                >
+                  {formatMoney(amt)}
+                </button>
+              ))}
+            </div>
+            <Button
+              className="h-12 w-full rounded-xl"
+              onClick={() => { const amt = Number.parseFloat(addMoneyAmount); if (amt > 0) setConfirmedAddAmount(amt) }}
+              disabled={!(Number.parseFloat(addMoneyAmount) > 0)}
+            >
+              {t("customer.wallet.continue")}
+            </Button>
+          </div>
+        ) : (
+          <WalletTopupMethods
+            amount={confirmedAddAmount}
+            onSuccess={() => { handleTopupSuccess(); setTimeout(closeAddMoney, 1500) }}
+          />
+        )}
+      </WalletTaskPanel>
+    )
+  }
+
+  if (showWithdraw) {
+    return (
+      <WalletTaskPanel
+        title={t("customer.wallet.withdrawMoney")}
+        onBack={() => { setShowWithdraw(false); setWithdrawAmount(""); setFormError(""); setWithdrawMethodId(null) }}
+      >
+        <div className="space-y-5">
+          <div>
+            <label className="mb-2 block text-xs font-medium">{t("customer.wallet.amount")}</label>
+            <div className="flex gap-2">
+              <span className="flex items-center rounded-xl bg-muted px-3 text-xs text-muted-foreground">{currency}</span>
+              <Input type="number" placeholder="0" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} className="h-12 rounded-xl text-lg" />
+            </div>
+            <p className="mt-2 text-[11px] text-muted-foreground">{t("customer.wallet.available", { amount: formatMoney(balance) })}</p>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-xs font-medium">{t("customer.wallet.withdrawTo")}</label>
+            {paymentMethods.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-border p-6 text-center">
+                <p className="mb-3 text-[11px] text-muted-foreground">{t("customer.wallet.noMethodSaved")}</p>
+                <Button size="sm" variant="outline" className="rounded-lg bg-transparent" onClick={() => { setShowWithdraw(false); setActiveTab("methods"); setShowAddMethod(true) }}>
+                  {t("customer.wallet.addPaymentMethod")}
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {paymentMethods.map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => setWithdrawMethodId(m.id)}
+                    className={`flex w-full items-center gap-3 rounded-xl border-2 p-3 text-left transition-all ${withdrawMethodId === m.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}
+                  >
+                    <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg ${m.type === "mpesa" ? "bg-emerald-100 dark:bg-emerald-900/20" : "bg-blue-100 dark:bg-blue-900/20"}`}>
+                      <CreditCard className={`h-4 w-4 ${m.type === "mpesa" ? "text-emerald-600" : "text-blue-600"}`} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-medium text-foreground">{m.name}</p>
+                      <p className="text-[11px] text-muted-foreground">{m.number}</p>
+                    </div>
+                    {m.isDefault && <span className="flex-shrink-0 rounded-lg bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">{t("customer.wallet.primary")}</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {formError && <p className="text-[11px] text-red-600">{formError}</p>}
+          <Button className="h-12 w-full rounded-xl" onClick={handleWithdraw} disabled={isSubmitting || !withdrawMethodId}>
+            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : t("customer.wallet.withdraw")}
+          </Button>
+        </div>
+      </WalletTaskPanel>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -331,95 +436,6 @@ export function CustomerWalletPage() {
       </div>
 
       {/* Add Money Modal */}
-      <Dialog open={showAddMoney} onOpenChange={(open) => { if (!open) closeAddMoney(); else setShowAddMoney(true) }}>
-        <DialogContent className="max-w-sm rounded-2xl">
-          <DialogHeader><DialogTitle>{t("customer.wallet.addMoney")}</DialogTitle></DialogHeader>
-          {confirmedAddAmount == null ? (
-            <div className="space-y-4 py-2">
-              <div>
-                <label className="text-xs font-medium mb-2 block">{t("customer.wallet.amount")}</label>
-                <div className="flex gap-2"><span className="flex items-center px-3 bg-muted rounded-xl text-xs text-muted-foreground">{currency}</span><Input type="number" placeholder="0" value={addMoneyAmount} onChange={(e) => setAddMoneyAmount(e.target.value)} className="rounded-xl" /></div>
-              </div>
-              <div className="flex gap-2 flex-wrap">
-                {[500, 1000, 2000, 5000].map((amt) => (
-                  <button key={amt} onClick={() => setAddMoneyAmount(amt.toString())} className="px-3 py-1.5 bg-muted rounded-lg text-xs font-medium hover:bg-muted/80 transition-colors">{formatMoney(amt)}</button>
-                ))}
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  className="flex-1 rounded-xl"
-                  onClick={() => { const amt = Number.parseFloat(addMoneyAmount); if (amt > 0) setConfirmedAddAmount(amt) }}
-                  disabled={!(Number.parseFloat(addMoneyAmount) > 0)}
-                >
-                  {t("customer.wallet.continue")}
-                </Button>
-                <Button variant="outline" className="flex-1 rounded-xl bg-transparent" onClick={closeAddMoney}>{t("common.cancel")}</Button>
-              </div>
-            </div>
-          ) : (
-            <WalletTopupMethods
-              amount={confirmedAddAmount}
-              onSuccess={() => { handleTopupSuccess(); setTimeout(closeAddMoney, 1500) }}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Withdraw Modal */}
-      <Dialog open={showWithdraw} onOpenChange={(open) => { setShowWithdraw(open); if (!open) { setFormError(""); setWithdrawMethodId(null) } }}>
-        <DialogContent className="max-w-sm rounded-2xl">
-          <DialogHeader><DialogTitle>{t("customer.wallet.withdrawMoney")}</DialogTitle></DialogHeader>
-          <div className="space-y-4 py-2">
-            <div>
-              <label className="text-xs font-medium mb-2 block">{t("customer.wallet.amount")}</label>
-              <div className="flex gap-2"><span className="flex items-center px-3 bg-muted rounded-xl text-xs text-muted-foreground">{currency}</span><Input type="number" placeholder="0" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} className="rounded-xl" /></div>
-            </div>
-            <p className="text-[11px] text-muted-foreground">{t("customer.wallet.available", { amount: formatMoney(balance) })}</p>
-
-            <div>
-              <label className="text-xs font-medium mb-2 block">{t("customer.wallet.withdrawTo")}</label>
-              {paymentMethods.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-border p-4 text-center">
-                  <p className="text-[11px] text-muted-foreground mb-2">{t("customer.wallet.noMethodSaved")}</p>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="rounded-lg bg-transparent"
-                    onClick={() => { setShowWithdraw(false); setActiveTab("methods"); setShowAddMethod(true) }}
-                  >
-                    {t("customer.wallet.addPaymentMethod")}
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {paymentMethods.map((m) => (
-                    <button
-                      key={m.id}
-                      onClick={() => setWithdrawMethodId(m.id)}
-                      className={`w-full flex items-center gap-3 rounded-xl border-2 p-3 text-left transition-all ${withdrawMethodId === m.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}
-                    >
-                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${m.type === "mpesa" ? "bg-emerald-100 dark:bg-emerald-900/20" : "bg-blue-100 dark:bg-blue-900/20"}`}>
-                        <CreditCard className={`w-4 h-4 ${m.type === "mpesa" ? "text-emerald-600" : "text-blue-600"}`} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-foreground">{m.name}</p>
-                        <p className="text-[11px] text-muted-foreground">{m.number}</p>
-                      </div>
-                      {m.isDefault && <span className="px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-semibold rounded-lg flex-shrink-0">{t("customer.wallet.primary")}</span>}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {formError && <p className="text-[11px] text-red-600">{formError}</p>}
-            <div className="flex gap-2">
-              <Button className="flex-1 rounded-xl" onClick={handleWithdraw} disabled={isSubmitting || !withdrawMethodId}>{isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : t("customer.wallet.withdraw")}</Button>
-              <Button variant="outline" className="flex-1 rounded-xl bg-transparent" onClick={() => { setShowWithdraw(false); setWithdrawAmount(""); setFormError(""); setWithdrawMethodId(null) }}>{t("common.cancel")}</Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Add Payment Method Modal */}
       <Dialog open={showAddMethod} onOpenChange={(open) => { setShowAddMethod(open); if (!open) setFormError("") }}>
@@ -455,6 +471,30 @@ export function CustomerWalletPage() {
           </div>
         </DialogContent>
       </Dialog>
+    </div>
+  )
+}
+
+/** A wallet task rendered as its own screen: a back arrow, a title, and the
+ *  form beneath. Shared by Add money and Withdraw so both read the same. */
+function WalletTaskPanel({
+  title, onBack, children,
+}: {
+  title: string
+  onBack: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="mx-auto max-w-lg px-4 py-6 lg:py-8">
+        <div className="mb-6 flex items-center gap-3">
+          <button onClick={onBack} aria-label="Back" className="rounded-lg p-2 hover:bg-muted">
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <h1 className="text-xl font-bold tracking-tight text-foreground">{title}</h1>
+        </div>
+        <Card className="border-0 p-5 shadow-sm">{children}</Card>
+      </div>
     </div>
   )
 }

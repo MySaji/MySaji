@@ -6,7 +6,7 @@ import Image from "next/image"
 import {
   Search, SlidersHorizontal, Plus, ArrowLeft, MoreVertical, Send, Paperclip, Smile, Mic,
   Check, CheckCheck, Loader2, MapPin, ImageIcon, File as FileIcon, Lock, ShieldCheck,
-  Trash2, Reply, Copy, X,
+  Trash2, Reply, Copy, X, Phone, PhoneIncoming, PhoneOutgoing, PhoneMissed,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -21,11 +21,12 @@ import {
   type ConversationSummary,
 } from "@/lib/actions/messages"
 import { useLongPress, useSwipeToReply } from "@/lib/hooks/useMessageGestures"
+import { getCallHistory, type CallHistoryItem } from "@/lib/actions/calls"
 import { useConversationMessages, type ChatMessage } from "@/lib/hooks/useConversationMessages"
 import { formatRelativeTime } from "@/lib/format"
 import { useLocalization } from "@/lib/hooks/useLocalization"
 
-type Filter = "all" | "unread" | "jobs"
+type Filter = "all" | "unread" | "jobs" | "calls"
 
 /** The one "classic" two-panel chat shell every portal's messages page
  * renders (see each portal's app/<portal>/messages/page.tsx — now a thin
@@ -78,6 +79,7 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
   const [selectedMessage, setSelectedMessage] = useState<ChatMessage | null>(null)
   const [pendingDelete, setPendingDelete] = useState<ConversationSummary | null>(null)
   const [isBlocked, setIsBlocked] = useState(false)
+  const [calls, setCalls] = useState<CallHistoryItem[]>([])
   const [showReport, setShowReport] = useState(false)
   const [reportReason, setReportReason] = useState("")
   const [reportNotice, setReportNotice] = useState("")
@@ -168,6 +170,13 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
   useEffect(() => {
     refreshConversations().finally(() => setIsLoading(false))
   }, [refreshConversations])
+
+  // Only fetched when the tab is actually opened — most sessions never look
+  // at call history, and this page already makes several calls on load.
+  useEffect(() => {
+    if (filter !== "calls") return
+    getCallHistory().then(setCalls).catch(() => {})
+  }, [filter])
 
   useEffect(() => {
     const conversationParam = searchParams.get("conversation")
@@ -416,7 +425,7 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
               </button>
             </div>
             <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-              {([["all", t("chat.filterAll")], ["unread", t("chat.filterUnread")], ["jobs", t("chat.filterJobs")]] as const).map(([id, label]) => (
+              {([["all", t("chat.filterAll")], ["unread", t("chat.filterUnread")], ["jobs", t("chat.filterJobs")], ["calls", t("chat.filterCalls")]] as const).map(([id, label]) => (
                 <button
                   key={id}
                   onClick={() => setFilter(id)}
@@ -431,7 +440,23 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
           </div>
 
           <div className="flex-1 overflow-y-auto">
-            {filteredConversations.length === 0 ? (
+            {filter === "calls" ? (
+              calls.length === 0 ? (
+                <div className="p-8 text-center text-sm text-muted-foreground">{t("chat.noCalls")}</div>
+              ) : (
+                calls.map((call) => (
+                  <CallHistoryRow
+                    key={call.id}
+                    call={call}
+                    t={t}
+                    // Opening the conversation is what makes calling back
+                    // possible: the dialler lives in its header, and a call
+                    // can only ring while its conversation is the open one.
+                    onCallBack={() => { setActiveChat(call.conversationId); setFilter("all") }}
+                  />
+                ))
+              )
+            ) : filteredConversations.length === 0 ? (
               <div className="p-8 text-center text-sm text-muted-foreground">
                 {conversations.length === 0 ? (
                   <>
@@ -786,6 +811,52 @@ function ConversationRow({
         </div>
       </div>
     </button>
+  )
+}
+
+/** One row of call history: who, which way it went, when, and how long. */
+function CallHistoryRow({
+  call, t, onCallBack,
+}: {
+  call: CallHistoryItem
+  t: (key: any, params?: Record<string, string | number>) => string
+  onCallBack: () => void
+}) {
+  const missed = call.outcome !== "COMPLETED"
+  const Icon = missed ? PhoneMissed : call.direction === "outgoing" ? PhoneOutgoing : PhoneIncoming
+
+  const duration = (() => {
+    if (call.outcome === "DECLINED") return t("chat.callDeclined")
+    if (call.outcome === "MISSED") return t("chat.callMissed")
+    const m = Math.floor(call.durationSeconds / 60)
+    const sec = call.durationSeconds % 60
+    return `${m}:${String(sec).padStart(2, "0")}`
+  })()
+
+  return (
+    <div className="flex w-full items-center gap-3 border-b border-border/40 px-4 py-3">
+      <div className="relative flex-shrink-0">
+        <Image src={call.otherUserAvatar || "/placeholder.svg"} alt={call.otherUserName} width={44} height={44} className="h-11 w-11 rounded-full object-cover" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <h3 className={`truncate text-sm font-semibold ${missed ? "text-red-600 dark:text-red-400" : "text-foreground"}`}>
+          {call.otherUserName}
+        </h3>
+        <p className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <Icon className={`h-3 w-3 flex-shrink-0 ${missed ? "text-red-500" : "text-emerald-600"}`} />
+          <span>{duration}</span>
+          <span aria-hidden="true">·</span>
+          <span>{formatRelativeTime(call.createdAt)}</span>
+        </p>
+      </div>
+      <button
+        onClick={onCallBack}
+        aria-label={t("chat.callBack", { name: call.otherUserName })}
+        className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white transition-colors hover:bg-emerald-600"
+      >
+        <Phone className="h-4 w-4" />
+      </button>
+    </div>
   )
 }
 

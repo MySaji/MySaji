@@ -43,7 +43,10 @@ export async function getNotifications(limit?: number): Promise<NotificationItem
 
   const enabledTypes = await enabledNotificationTypes()
   const notifications = await db.notification.findMany({
-    where: { userId: session.user.id, type: { in: enabledTypes } },
+    // MESSAGE is excluded everywhere the bell reads: chat lives in the inbox,
+    // which carries its own unread badge. This also hides rows written before
+    // that split, so an old backlog does not keep the bell lit.
+    where: { userId: session.user.id, type: { in: enabledTypes, not: "MESSAGE" } },
     orderBy: { createdAt: "desc" },
     take: limit,
   })
@@ -83,11 +86,40 @@ export async function getNotificationById(id: string): Promise<NotificationItem 
   }
 }
 
-export async function getUnreadNotificationCount(): Promise<number> {
+export type UnreadCounts = {
+  /** What the bell shows — chat is excluded, see getNotifications. */
+  notifications: number
+  /** What the inbox icon shows: real unread messages, not notification rows,
+   *  so it clears when a conversation is actually read. */
+  messages: number
+}
+
+/**
+ * Both unread counts in one call.
+ *
+ * Deliberately one action rather than two: the two badges are read together
+ * by every layout that shows them, and a second client-invoked action for a
+ * single number is a second round trip against a database in another region.
+ */
+export async function getUnreadNotificationCount(): Promise<UnreadCounts> {
   const session = await auth()
-  if (!session?.user?.id) return 0
+  if (!session?.user?.id) return { notifications: 0, messages: 0 }
+  const myId = session.user.id
   const enabledTypes = await enabledNotificationTypes()
-  return db.notification.count({ where: { userId: session.user.id, isRead: false, type: { in: enabledTypes } } })
+
+  const [notifications, conversations] = await Promise.all([
+    db.notification.count({ where: { userId: myId, isRead: false, type: { in: enabledTypes, not: "MESSAGE" } } }),
+    db.conversation.findMany({
+      where: { OR: [{ participantAId: myId }, { participantBId: myId }] },
+      select: { id: true },
+    }),
+  ])
+
+  const messages = conversations.length === 0 ? 0 : await db.message.count({
+    where: { conversationId: { in: conversations.map((c) => c.id) }, senderId: { not: myId }, isRead: false },
+  })
+
+  return { notifications, messages }
 }
 
 export type NotificationActionResult = { success: true } | { success: false; error: string }
