@@ -470,6 +470,12 @@ model User {
   // real, optional capability any existing account can add, same
   // multi-profile-per-User pattern as the profiles above.
   driverProfile      DriverProfile?
+  /// Saji Pro business types this account offers, plus any still waiting on
+  /// staff approval. Same optional-capability pattern as driverProfile above:
+  /// `role` is untouched, these only describe what the account does.
+  proCapabilities        ProCapability[]    @relation("ProCapabilityOwner")
+  proCapabilitiesReviewed ProCapability[]   @relation("ProCapabilityReviewer")
+  proModuleSettings      ProModuleSetting[] @relation("ProModuleSettingEditor")
 
   kycDocuments   KycDocument[]   @relation("KycOwner")
   kycReviewed    KycDocument[]   @relation("KycReviewer")
@@ -3959,4 +3965,78 @@ enum CoinTransactionType {
 enum LiveSessionStatus {
   LIVE
   ENDED
+}
+
+// ---------------------------------------------------------------------------
+// Saji Pro business types
+//
+// One Saji Pro account can legitimately do several things at once — fix taps,
+// sell the parts, rent out the tools, and teach an evening class. `User.role`
+// is a single scalar baked into the session JWT and read by every route guard,
+// so it stays exactly as it is (PROVIDER for a Saji Pro account). What that
+// account actually *does* is described here instead, as a set of rows, the
+// same optional-capability pattern DriverProfile already uses.
+//
+// Nothing reads these to decide access — verification and role guards are
+// untouched. They decide which modules the portal *shows*, which is a
+// presentation concern, resolved against the admin-controlled matrix below.
+// ---------------------------------------------------------------------------
+
+enum ProBusinessType {
+  SERVICES   // Offer services — the classic provider
+  PRODUCTS   // Sell products — the merchant half, backed by ShopkeeperProfile
+  RENTALS    // Rent out items
+  FREELANCE  // Freelance online
+  TUTORING   // Teach & tutor
+  CONSULTING // Consulting
+}
+
+enum ProCapabilityStatus {
+  /// Chosen at signup, or approved by staff afterwards. The module is live.
+  ACTIVE
+  /// Requested from inside the portal, waiting on admin/sub-admin/agent.
+  PENDING
+  REJECTED
+}
+
+model ProCapability {
+  id           String              @id @default(cuid())
+  userId       String
+  type         ProBusinessType
+  status       ProCapabilityStatus @default(ACTIVE)
+  /// What the account said when asking for this to be added.
+  note         String?
+  /// Why staff approved or turned it down.
+  reviewNote   String?
+  requestedAt  DateTime            @default(now())
+  reviewedAt   DateTime?
+  reviewedById String?
+
+  user       User  @relation("ProCapabilityOwner", fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy User? @relation("ProCapabilityReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@unique([userId, type])
+  @@index([status])
+  @@index([userId])
+  @@map("pro_capabilities")
+}
+
+/// Admin's override of lib/pro-modules.ts's defaults: which portal pages a
+/// given business type unlocks. A row only ever exists for a deliberate admin
+/// decision — absent means "use the default in code", so the matrix starts
+/// empty and the portal behaves exactly as the code says until someone
+/// changes something.
+model ProModuleSetting {
+  id           String          @id @default(cuid())
+  businessType ProBusinessType
+  moduleKey    String
+  enabled      Boolean         @default(true)
+  updatedAt    DateTime        @updatedAt
+  updatedById  String?
+
+  updatedBy User? @relation("ProModuleSettingEditor", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@unique([businessType, moduleKey])
+  @@index([businessType])
+  @@map("pro_module_settings")
 }

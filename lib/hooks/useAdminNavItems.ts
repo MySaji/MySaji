@@ -6,10 +6,11 @@ import {
   LayoutDashboard, Users, Briefcase, AlertTriangle, CreditCard, CheckCircle,
   DollarSign, SettingsIcon, ScrollText, Shield, Megaphone, Percent, BarChart3,
   Mail, Store, Bot, Tag, MapPin, Image as ImageIcon, MessageCircle, Gift,
-  MessageSquare, Award, Siren,
+  MessageSquare, Award, Siren, Layers,
 } from "lucide-react"
 import { getAdminNavBadges, type AdminNavBadges } from "@/lib/actions/admin-dashboard"
 import { getShopUpgradeRequests } from "@/lib/actions/shop-upgrade-requests"
+import { getProCapabilityRequests } from "@/lib/actions/pro-capabilities"
 import { getPendingChatbotEscalationCount } from "@/lib/actions/chatbot-admin"
 import { getPendingCertificationCount } from "@/lib/actions/admin-certifications"
 import { getActiveSafetyIncidentsForAdmin } from "@/lib/actions/safety"
@@ -46,11 +47,13 @@ export function useAdminNavItems(): AdminNavItem[] {
   // cache every page load would fire these 3 badge queries twice.
   const { data: badges } = useSWR("admin-nav-badges", getAdminNavBadges)
   const { data: shopUpgradeRequests } = useSWR("admin-nav-shop-upgrades", getShopUpgradeRequests)
+  const { data: proCapabilityRequests } = useSWR("admin-nav-pro-business", getProCapabilityRequests)
   const { data: pendingChatbotEscalations } = useSWR("admin-nav-chatbot-escalations", getPendingChatbotEscalationCount)
   const { data: pendingCertifications } = useSWR("admin-nav-certifications", getPendingCertificationCount)
   const { data: safetyIncidents } = useSWR("admin-nav-safety-incidents", getActiveSafetyIncidentsForAdmin, { refreshInterval: 30_000 })
 
   const pendingShopUpgrades = shopUpgradeRequests?.filter((r) => r.status === "OPEN" || r.status === "IN_PROGRESS").length ?? 0
+  const pendingProBusiness = proCapabilityRequests?.filter((r) => r.status === "PENDING").length ?? 0
   const b = badges ?? EMPTY_BADGES
   const chatbotCount = pendingChatbotEscalations ?? 0
   const certificationCount = pendingCertifications ?? 0
@@ -76,6 +79,9 @@ export function useAdminNavItems(): AdminNavItem[] {
     { icon: Megaphone, label: "Announcements", href: "/admin/announcements", badge: null, group: "growth" },
     { icon: Mail, label: "Subscribers", href: "/admin/subscribers", badge: null, group: "growth" },
     { icon: Store, label: "Shop Upgrades", href: "/admin/shop-upgrades", badge: pendingShopUpgrades > 0 ? pendingShopUpgrades.toLocaleString() : null, group: "growth" },
+    // Approve what a Saji Pro may offer, and control which pages each kind of
+    // offer opens up. See components/pro-business/pro-business-control.tsx.
+    { icon: Layers, label: "Saji Pro Business", href: "/admin/pro-business", badge: pendingProBusiness > 0 ? pendingProBusiness.toLocaleString() : null, group: "growth" },
     { icon: Users, label: "Team", href: "/admin/team", badge: null, group: "organization" },
     { icon: Tag, label: "Categories", href: "/admin/categories", badge: null, group: "organization" },
     { icon: MapPin, label: "Counties", href: "/admin/counties", badge: null, group: "organization" },

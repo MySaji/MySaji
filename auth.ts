@@ -37,6 +37,28 @@ function readSelfSignupRole(value: string | undefined): SelfSignupRole {
     : "customer"
 }
 
+// Which Saji Pro business types were ticked before the redirect to Google —
+// the OAuth equivalent of registerUser()'s `businessTypes`. Same trust model
+// as OAUTH_ROLE_COOKIE: client-set and not httpOnly, so the allowlist below
+// is the security boundary. Nothing here grants access; the worst a
+// hand-edited cookie achieves is showing its own account some extra pages.
+const OAUTH_PRO_TYPES_COOKIE = "oauth_pro_types"
+
+const PRO_BUSINESS_TYPE_VALUES = ["SERVICES", "PRODUCTS", "RENTALS", "FREELANCE", "TUTORING", "CONSULTING"] as const
+type ProBusinessTypeValue = (typeof PRO_BUSINESS_TYPE_VALUES)[number]
+
+function readProBusinessTypes(value: string | undefined): ProBusinessTypeValue[] {
+  if (!value) return []
+  const seen = new Set<ProBusinessTypeValue>()
+  for (const part of value.split(",")) {
+    const trimmed = part.trim().toUpperCase()
+    if ((PRO_BUSINESS_TYPE_VALUES as readonly string[]).includes(trimmed)) {
+      seen.add(trimmed as ProBusinessTypeValue)
+    }
+  }
+  return Array.from(seen)
+}
+
 class RateLimitedSignInError extends CredentialsSignin {
   code = "rate-limited"
 }
@@ -295,8 +317,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // picked — so choosing "Service Provider" and continuing with Google
       // produced a customer account with no ProviderProfile at all.
       let appRole: SelfSignupRole = "customer"
+      let proTypes: ProBusinessTypeValue[] = []
       try {
-        appRole = readSelfSignupRole((await cookies()).get(OAUTH_ROLE_COOKIE)?.value)
+        const jar = await cookies()
+        appRole = readSelfSignupRole(jar.get(OAUTH_ROLE_COOKIE)?.value)
+        proTypes = readProBusinessTypes(jar.get(OAUTH_PRO_TYPES_COOKIE)?.value)
       } catch {
         // No cookie means the intent is unknowable; customer is the safe
         // default because it is the least privileged of the four.
@@ -327,6 +352,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             where: { id: profile.id },
             data: { slug: buildProviderSlug(user.name, user.email, profile.id) },
           })
+          // Same provisioning registerUser() does for a credentials signup:
+          // record what this Saji Pro does, and give it the ShopkeeperProfile
+          // the merchant pages read from if it sells products.
+          const chosen: ProBusinessTypeValue[] = proTypes.length > 0 ? proTypes : ["SERVICES"]
+          await db.proCapability.createMany({
+            data: chosen.map((type) => ({ userId: user.id!, type, status: "ACTIVE" as const })),
+            skipDuplicates: true,
+          })
+          if (chosen.includes("PRODUCTS")) {
+            await db.shopkeeperProfile.create({ data: { userId: user.id, shopName: displayName + "'s Shop" } })
+          }
         } else if (appRole === "shopkeeper") {
           await db.shopkeeperProfile.create({ data: { userId: user.id, shopName: displayName + "'s Shop" } })
         } else if (appRole === "distributor") {

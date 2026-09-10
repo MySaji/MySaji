@@ -7,10 +7,11 @@ import Link from "next/link"
 import NextImage from "next/image"
 import {
   Plus, Store, Clock, Users, ChevronRight, MapPin, Loader2, Star, BadgeCheck,
-  Wallet, Eye, MessageSquare, CheckCircle2, TrendingUp, Package,
+  Wallet, Eye, MessageSquare, CheckCircle2, TrendingUp, Package, ClipboardList,
 } from "lucide-react"
 import { useLocalization } from "@/lib/hooks/useLocalization"
 import { useProviderWorkspace } from "@/lib/hooks/useProviderWorkspace"
+import { useProCapabilities } from "@/lib/hooks/useProCapabilities"
 import { getProDashboardOverview } from "@/lib/actions/provider-pro-dashboard"
 import { resolveShopHoursForToday, shopHoursRows, isShopCurrentlyOpen } from "@/lib/format"
 import { getProviderDashboardData } from "@/lib/actions/provider-dashboard"
@@ -150,6 +151,7 @@ export default function ProviderHomePage() {
   const { t, formatMoney } = useLocalization()
   const router = useRouter()
   const { type: workspaceType, isLoading: isWorkspaceLoading } = useProviderWorkspace()
+  const { moduleKeys, isLoading: isModulesLoading } = useProCapabilities()
 
   // Adaptive UI Workspaces: /provider is the shared login landing route for
   // every provider account type (ROLE_HOME_PATH has no DB context to pick a
@@ -249,12 +251,26 @@ export default function ProviderHomePage() {
   const shopVerified = shop ? shop.isVerified : Boolean(pro?.isVerified)
   const shopCategory = shop ? shop.categoryName : pro?.categoryName ?? null
 
-  const quickActions: { key: string; icon: ComponentType<{ className?: string }>; title: string; sub: string; href: string }[] = [
-    { key: "offer", icon: Plus, title: t("provider.home.createOffer"), sub: t("provider.home.createOfferSub"), href: "/provider/offers/new" },
-    { key: "shop", icon: Store, title: t("provider.home.manageShop"), sub: t("provider.home.manageShopSub"), href: "/provider/shop" },
-    { key: "availability", icon: Clock, title: t("provider.home.availabilityTitle"), sub: t("provider.home.availabilitySub"), href: "/provider/availability" },
-    { key: "team", icon: Users, title: t("provider.home.manageTeam"), sub: t("provider.home.manageTeamSub"), href: "/provider/team" },
+  // Quick actions follow what this account actually does. Creating an offer is
+  // universal and always leads; the rest are drawn from the account's own
+  // modules in preference order and trimmed to four, so a tutor is offered
+  // Sessions and Availability rather than "Manage Shop" — a page that would
+  // have nothing behind it. An account whose modules haven't loaded yet keeps
+  // the previous four, so this never flashes a shorter row on a cold start.
+  const candidateActions: { key: string; module: string | null; icon: ComponentType<{ className?: string }>; title: string; sub: string; href: string }[] = [
+    { key: "offer", module: null, icon: Plus, title: t("provider.home.createOffer"), sub: t("provider.home.createOfferSub"), href: "/provider/offers/new" },
+    { key: "shop", module: "shop", icon: Store, title: t("provider.home.manageShop"), sub: t("provider.home.manageShopSub"), href: "/provider/shop" },
+    { key: "rentals", module: "rentals", icon: Package, title: t("provider.home.manageRentals"), sub: t("provider.home.manageRentalsSub"), href: "/provider/rentals" },
+    { key: "availability", module: "availability", icon: Clock, title: t("provider.home.availabilityTitle"), sub: t("provider.home.availabilitySub"), href: "/provider/availability" },
+    { key: "quotes", module: "quotes", icon: ClipboardList, title: t("provider.home.manageQuotes"), sub: t("provider.home.manageQuotesSub"), href: "/provider/quotes" },
+    { key: "team", module: null, icon: Users, title: t("provider.home.manageTeam"), sub: t("provider.home.manageTeamSub"), href: "/provider/team" },
   ]
+
+  const quickActions = (
+    isModulesLoading
+      ? candidateActions.filter((a) => ["offer", "shop", "availability", "team"].includes(a.key))
+      : candidateActions.filter((a) => a.module === null || moduleKeys.has(a.module))
+  ).slice(0, 4)
 
   return (
     <div className="min-h-screen bg-background">

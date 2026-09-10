@@ -20,12 +20,56 @@ async function requireProvider(): Promise<{ userId: string; providerId: string; 
   return { userId: session.user.id, providerId: profile.id, categoryId: profile.categoryId }
 }
 
-async function requireShopkeeper(): Promise<{ userId: string; shopkeeperId: string } | null> {
+/**
+ * What this account can answer an open request as.
+ *
+ * Derived from the profiles it actually owns rather than from `role`, which
+ * can only ever name one of them. A Saji Pro is a single account that may
+ * both offer services and sell products, and before this it was forked on
+ * role alone — so a Pro who ticked "Sell Products" (role PROVIDER) could
+ * never see a PRODUCT request, let alone bid on one. A plain shopkeeper
+ * account and a plain service provider both keep exactly what they had.
+ */
+async function getResponderProfiles(): Promise<{
+  userId: string
+  provider: { providerId: string; categoryId: string | null } | null
+  shop: { shopkeeperId: string } | null
+} | null> {
   const session = await auth()
-  if (!session?.user?.id || session.user.role !== "shopkeeper") return null
-  const profile = await db.shopkeeperProfile.findUnique({ where: { userId: session.user.id } })
-  if (!profile) return null
-  return { userId: session.user.id, shopkeeperId: profile.id }
+  if (!session?.user?.id) return null
+  if (session.user.role !== "provider" && session.user.role !== "shopkeeper") return null
+  const user = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: {
+      providerProfile: { select: { id: true, categoryId: true } },
+      shopkeeperProfile: { select: { id: true } },
+      proCapabilities: { where: { status: "ACTIVE" }, select: { type: true } },
+    },
+  })
+  if (!user) return null
+
+  // Owning a profile is not the same as doing the work. Every Saji Pro has a
+  // ProviderProfile — including one that only sells products — so the halves
+  // are decided by the account's business types, not by which rows exist.
+  // "Sell Products" answers the product board; every other business type
+  // answers the service board (a rental or a lesson is requested under a
+  // SERVICE category, there is no third board). An account with no business
+  // types on record predates the feature and keeps what it had: both halves,
+  // subject to the profiles it owns.
+  const types = user.proCapabilities.map((c) => c.type as string)
+  const legacy = types.length === 0
+  const offersServices = legacy || types.some((t) => t !== "PRODUCTS")
+  const sellsProducts = legacy || types.includes("PRODUCTS")
+
+  return {
+    userId: session.user.id,
+    provider: user.providerProfile && offersServices
+      ? { providerId: user.providerProfile.id, categoryId: user.providerProfile.categoryId }
+      : null,
+    shop: user.shopkeeperProfile && sellsProducts
+      ? { shopkeeperId: user.shopkeeperProfile.id }
+      : null,
+  }
 }
 
 // ============================= CREATE / LIST (customer) =============================
@@ -279,17 +323,24 @@ export async function getOpenRequestsBoard(): Promise<BoardRequestItem[]> {
   const session = await auth()
   if (!session?.user?.id) return []
 
-  const provider = session.user.role === "provider" ? await requireProvider() : null
-  const shopkeeper = session.user.role === "shopkeeper" ? await requireShopkeeper() : null
-  if (!provider && !shopkeeper) return []
+  const me = await getResponderProfiles()
+  if (!me || (!me.provider && !me.shop)) return []
+
+  // An account that does both gets both halves of the board in one list,
+  // rather than whichever half its `role` happens to name.
+  const categoryClauses: { category: { type: "SERVICE" | "PRODUCT"; id?: string } }[] = []
+  if (me.provider) {
+    categoryClauses.push({
+      category: { type: "SERVICE", ...(me.provider.categoryId ? { id: me.provider.categoryId } : {}) },
+    })
+  }
+  if (me.shop) categoryClauses.push({ category: { type: "PRODUCT" } })
 
   const requests = await db.customerRequest.findMany({
     where: {
       status: "OPEN",
       expiresAt: { gt: new Date() },
-      category: provider
-        ? { type: "SERVICE", id: provider.categoryId ?? undefined }
-        : { type: "PRODUCT" },
+      OR: categoryClauses,
     },
     orderBy: { createdAt: "desc" },
     include: {
@@ -348,15 +399,15 @@ export async function getRequestPhotos(requestId: string): Promise<string[]> {
     // Anyone else must be a provider or shopkeeper looking at a request that
     // is still open to them, matching getOpenRequestsBoard's filter.
     if (request.status !== "OPEN" || request.expiresAt <= new Date()) return []
-    const provider = session.user.role === "provider" ? await requireProvider() : null
-    const shopkeeper = session.user.role === "shopkeeper" ? await requireShopkeeper() : null
-    if (provider) {
-      // Providers are category-scoped on the board, so they are here too.
-      if (request.category.type !== "SERVICE") return []
-      if (provider.categoryId && request.categoryId !== provider.categoryId) return []
-    } else if (shopkeeper) {
-      if (request.category.type !== "PRODUCT") return []
-    } else {
+    const me = await getResponderProfiles()
+    // Mirrors the board exactly: whichever half of the account the request
+    // belongs to is the half that has to allow it.
+    const asProvider =
+      !!me?.provider &&
+      request.category.type === "SERVICE" &&
+      (!me.provider.categoryId || request.categoryId === me.provider.categoryId)
+    const asShop = !!me?.shop && request.category.type === "PRODUCT"
+    if (!asProvider && !asShop) {
       return []
     }
   }
@@ -437,17 +488,22 @@ export async function respondToRequest(input: unknown): Promise<RequestActionRes
   if (request.status !== "OPEN" || request.expiresAt < new Date()) {
     return { success: false, error: "This request is no longer open." }
   }
-  if (session.user.role === "provider" && request.category.type !== "SERVICE") {
-    return { success: false, error: "This request isn't open to providers." }
+  // Which half of the account is answering is decided by the request, not by
+  // `role` — a Saji Pro that both works and sells answers a SERVICE request
+  // as a provider and a PRODUCT request as a shop, from the one account.
+  const me = await getResponderProfiles()
+  const respondingAsShop = request.category.type === "PRODUCT"
+  if (respondingAsShop && !me?.shop) {
+    return { success: false, error: "This request is for a product. Add \"Sell Products\" to your account to answer it." }
   }
-  if (session.user.role === "shopkeeper" && request.category.type !== "PRODUCT") {
-    return { success: false, error: "This request isn't open to shopkeepers." }
+  if (!respondingAsShop && !me?.provider) {
+    return { success: false, error: "This request isn't open to your account." }
   }
 
   // Business staff can only bid on open requests under their own account if
   // their business has opted in — see ProviderProfile.allowStaffRequestResponses.
   // A solo pro or a business owner responding for themselves is unaffected.
-  if (session.user.role === "provider") {
+  if (!respondingAsShop) {
     const responderProfile = await db.providerProfile.findUnique({ where: { userId: session.user.id }, select: { parentBusinessId: true } })
     if (responderProfile?.parentBusinessId) {
       const parentBusiness = await db.providerProfile.findUnique({ where: { id: responderProfile.parentBusinessId }, select: { allowStaffRequestResponses: true } })
@@ -464,14 +520,14 @@ export async function respondToRequest(input: unknown): Promise<RequestActionRes
   // rather than at acceptance: the customer should never accept an offer that
   // then cannot become an order.
   let productId: string | undefined
-  if (session.user.role === "shopkeeper") {
+  if (respondingAsShop) {
     if (!parsed.data.productId) {
       return { success: false, error: "Choose which product you're offering." }
     }
-    const shop = await db.shopkeeperProfile.findUnique({ where: { userId: session.user.id }, select: { id: true } })
-    const product = shop
-      ? await db.product.findFirst({ where: { id: parsed.data.productId, shopkeeperId: shop.id, isActive: true }, select: { id: true } })
-      : null
+    const product = await db.product.findFirst({
+      where: { id: parsed.data.productId, shopkeeperId: me!.shop!.shopkeeperId, isActive: true },
+      select: { id: true },
+    })
     if (!product) return { success: false, error: "That product isn't available in your shop." }
     productId = product.id
   }

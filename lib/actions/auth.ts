@@ -23,6 +23,16 @@ const registerSchema = z.object({
   // account creation can't be reached by skipping the OTP screen client-side.
   verificationProof: z.string().trim().min(1, "Please verify your phone or email first"),
   role: z.enum(["customer", "provider", "shopkeeper", "distributor"]),
+  // Saji Pro only. What this account actually does, chosen on the signup
+  // step that replaced the old Professional/Merchant split. Recorded as
+  // ProCapability rows (ACTIVE — they picked these themselves, there is
+  // nothing for staff to approve at signup) and read by the portal to decide
+  // which pages to show. Absent/empty is valid and means the same thing it
+  // meant before this field existed: a plain service provider.
+  businessTypes: z
+    .array(z.enum(["SERVICES", "PRODUCTS", "RENTALS", "FREELANCE", "TUTORING", "CONSULTING"]))
+    .max(6)
+    .optional(),
   kyc: z
     .object({
       documentType: z.enum(["National ID", "Driver's License", "Passport"]),
@@ -50,7 +60,7 @@ export async function registerUser(input: unknown): Promise<RegisterResult> {
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
   }
-  const { name, email, phone, password, role, kyc, referralCode, verificationProof } = parsed.data
+  const { name, email, phone, password, role, kyc, referralCode, verificationProof, businessTypes } = parsed.data
 
   // Everything below touches the DB (rate-limit check, dup lookup, the
   // transaction itself) — wrapped as one block so a transient connection
@@ -131,6 +141,25 @@ export async function registerUser(input: unknown): Promise<RegisterResult> {
           where: { id: providerProfile.id },
           data: { slug: buildProviderSlug(created.name, created.email, providerProfile.id) },
         })
+        // What this Saji Pro does. ACTIVE straight away: these were chosen by
+        // the person signing up, so there is no request for staff to review —
+        // approval only applies to types added later, from inside the portal.
+        const chosenTypes = businessTypes && businessTypes.length > 0 ? businessTypes : ["SERVICES" as const]
+        await tx.proCapability.createMany({
+          data: chosenTypes.map((type) => ({ userId: created.id, type, status: "ACTIVE" as const })),
+          skipDuplicates: true,
+        })
+
+        // "Sell Products" is backed by a real ShopkeeperProfile — the merchant
+        // pages inside Saji Pro read from it, and without one they would have
+        // nothing to render. `role` stays PROVIDER; this is a second profile
+        // on the same account, exactly as switchActiveRole already creates.
+        if (chosenTypes.includes("PRODUCTS")) {
+          await tx.shopkeeperProfile.create({
+            data: { userId: created.id, shopName: `${name}'s Shop` },
+          })
+        }
+
         if (kyc) {
           await tx.kycDocument.create({
             data: {

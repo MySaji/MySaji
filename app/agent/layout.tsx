@@ -30,6 +30,7 @@ import {
   ShieldCheck,
   Store,
   Bot,
+  Layers,
 } from "lucide-react"
 import { useNotificationBell } from "@/lib/hooks/useNotificationBell"
 import { formatRelativeTime } from "@/lib/format"
@@ -96,6 +97,7 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
     { icon: AlertTriangle, label: t("agent.nav.disputes"), href: "/agent/disputes", group: "operations" },
     { icon: ShieldCheck, label: t("agent.nav.shopVerifications"), href: "/agent/shop-verifications", group: "operations" },
     { icon: Store, label: t("agent.nav.shopUpgrades"), href: "/agent/shop-upgrades", group: "operations" },
+    { icon: Layers, label: t("agent.nav.proBusiness"), href: "/agent/pro-business", group: "operations" },
     { icon: Bot, label: t("agent.nav.chatbot"), href: "/agent/chatbot", group: "operations" },
     { icon: MessageCircle, label: t("nav.messages"), href: "/agent/messages", group: "operations" },
     { icon: DollarSign, label: t("agent.nav.commissions"), href: "/agent/commissions", group: "earnings" },

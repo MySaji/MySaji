@@ -91,6 +91,70 @@ export type MyProductOrderItem = {
   createdAt: string
 }
 
+export type MyOfferSale = MyProductOrderItem & {
+  /** Whether this sale is still waiting for the seller to accept it. */
+  needsAction: boolean
+}
+
+export type MyOfferSales = {
+  sales: MyOfferSale[]
+  pendingCount: number
+  /** Money from sales that actually completed, in the account's currency. */
+  earned: number
+  currency: string
+}
+
+/**
+ * Every sale of this account's BUY offers, ungated.
+ *
+ * getMyProductOrders above is the Saji Pro convenience layer and stays
+ * subscription-gated. This one is not, deliberately: "Sell Products" is a
+ * business type anyone can choose at signup, and an account that has already
+ * been paid for something must be able to see that it was paid, subscription
+ * or no subscription. It reads the same Job rows /provider/jobs shows and adds
+ * no fulfilment pipeline of its own — accepting and completing a sale still
+ * go through acceptJob/completeJob in lib/actions/provider-jobs.ts.
+ */
+export async function getMyOfferSales(): Promise<MyOfferSales> {
+  const provider = await requireProvider()
+  if (!provider) return { sales: [], pendingCount: 0, earned: 0, currency: "KES" }
+
+  const jobs = await db.job.findMany({
+    where: {
+      providerId: provider.providerId,
+      // Not a real sale until the customer's payment has cleared — the same
+      // rule getProviderJobs applies.
+      status: { not: "PENDING_PAYMENT" },
+      offer: { actionType: "BUY" },
+    },
+    include: { customer: true, offer: { select: { title: true } } },
+    orderBy: { createdAt: "desc" },
+  })
+
+  const sales: MyOfferSale[] = jobs.map((j) => ({
+    jobId: j.id,
+    offerId: j.offerId ?? "",
+    productTitle: j.offer?.title ?? j.title,
+    buyerId: j.customerId,
+    buyerName: j.customer.name,
+    buyerAvatar: j.customer.image,
+    quantity: j.quantity,
+    price: Number(j.price),
+    currency: j.currency,
+    status: j.status,
+    location: j.location,
+    createdAt: j.createdAt.toISOString(),
+    needsAction: j.status === "PENDING",
+  }))
+
+  return {
+    sales,
+    pendingCount: sales.filter((s) => s.needsAction).length,
+    earned: sales.filter((s) => s.status === "COMPLETED").reduce((a, s) => a + s.price, 0),
+    currency: sales[0]?.currency ?? "KES",
+  }
+}
+
 /** A provider's Jobs that came from a BUY offer — the same Job rows
  * /provider/jobs already manages (identical statuses, identical
  * accept/start/complete actions from lib/actions/provider-jobs.ts — no new

@@ -32,6 +32,8 @@ import {
 } from "@/lib/offer-constants"
 import type { OfferAttributeFieldDef } from "@/lib/offer-attribute-schema"
 import { useLocalization } from "@/lib/hooks/useLocalization"
+import { useProCapabilities } from "@/lib/hooks/useProCapabilities"
+import { suggestedOfferActionTypes } from "@/lib/pro-modules"
 import { useGatedAction } from "@/lib/hooks/useGatedAction"
 
 const TOTAL_STEPS = 10
@@ -241,6 +243,15 @@ function CreateOfferWizard() {
   // Step 7 — only applied to a brand-new draft, never overrides a resumed
   // one's real saved actionType.
   const seedActionType = searchParams.get("actionType")
+
+  // What this Saji Pro does, used only to order and label Step 7's action
+  // types. Nothing here restricts the choice.
+  const { data: capabilities } = useProCapabilities()
+  const suggestedActions = suggestedOfferActionTypes(capabilities?.active ?? []) as OfferActionType[]
+  const orderedActionTypes: OfferActionType[] = [
+    ...ACTION_TYPES.filter((a) => suggestedActions.includes(a)),
+    ...ACTION_TYPES.filter((a) => !suggestedActions.includes(a)),
+  ]
 
   const [step, setStep] = useState(1)
   const [data, setData] = useState<WizardData>(EMPTY_DATA)
@@ -884,11 +895,20 @@ function CreateOfferWizard() {
             <h2 className="text-base font-bold text-foreground">Customer Actions</h2>
             <p className="mt-0.5 text-xs text-muted-foreground">Choose how customers can engage with you.</p>
           </div>
+          {/* Every action type stays selectable — a Pro is free to run a
+              one-off that has nothing to do with their usual work. The ones
+              that match this account's Saji Pro business types are simply
+              sorted first and marked, so the common choice is the top one. */}
           <div className="space-y-2">
-            {ACTION_TYPES.map((a) => (
-              <label key={a} className="flex items-center gap-3 rounded-xl border border-border p-3 cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+            {orderedActionTypes.map((a) => (
+              <label key={a} className="flex items-center gap-3 rounded-xl border border-border p-3 cursor-pointer transition-colors active:scale-[0.99] has-[:checked]:border-primary has-[:checked]:bg-primary/5">
                 <input type="radio" name="actionType" checked={data.actionType === a} onChange={() => setData((p) => ({ ...p, actionType: a }))} className="h-4 w-4 accent-primary" />
-                <span className="text-xs text-foreground">{OFFER_ACTION_LABEL[a]}</span>
+                <span className="flex-1 text-xs text-foreground">{OFFER_ACTION_LABEL[a]}</span>
+                {suggestedActions.includes(a) && (
+                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                    For you
+                  </span>
+                )}
               </label>
             ))}
           </div>

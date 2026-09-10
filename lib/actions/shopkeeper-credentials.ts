@@ -4,9 +4,14 @@ import { z } from "zod"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
 
+/** Owning a ShopkeeperProfile is what makes an account a shop, not `role` —
+ *  a Saji Pro that sells products is role PROVIDER and owns one too. Same
+ *  rule as the shared guard in shopkeeper-dashboard.ts; without it this
+ *  page's data came back empty for every Saji Pro. */
 async function requireShopkeeper(): Promise<{ userId: string; shopkeeperId: string } | null> {
   const session = await auth()
-  if (!session?.user?.id || session.user.role !== "shopkeeper") return null
+  if (!session?.user?.id) return null
+  if (session.user.role !== "shopkeeper" && session.user.role !== "provider") return null
   const profile = await db.shopkeeperProfile.findUnique({ where: { userId: session.user.id } })
   if (!profile) return null
   return { userId: session.user.id, shopkeeperId: profile.id }

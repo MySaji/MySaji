@@ -109,7 +109,10 @@ export async function getDistributorProductsForBuyer(distributorId: string): Pro
 
 export async function isCurrentUserVerifiedShopkeeper(): Promise<boolean> {
   const session = await auth()
-  if (!session?.user?.id || session.user.role !== "shopkeeper") return false
+  if (!session?.user?.id) return false
+  // Keyed on the shop profile below, not on `role`: a Saji Pro that sells
+  // products is role PROVIDER and can still be a verified shop buying stock.
+  if (session.user.role !== "shopkeeper" && session.user.role !== "provider") return false
   const profile = await db.shopkeeperProfile.findUnique({ where: { userId: session.user.id } })
   return profile?.isVerified ?? false
 }

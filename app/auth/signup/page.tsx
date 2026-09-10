@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input"
 import { useAuthContext } from "@/lib/auth-context"
 import {
   Mail, Lock, User, ArrowRight, Eye, EyeOff, Apple, ArrowLeft, Sparkles, Shield, Clock, Phone,
-  HardHat, Store, Building2, Loader2, ShieldCheck, CheckCircle2, Circle,
+  HardHat, Store, Building2, Loader2, ShieldCheck, CheckCircle2, Circle, Check,
+  Wrench, Package, Laptop, GraduationCap, Briefcase, Users, Crown,
 } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import type { UserRole } from "@/lib/types"
@@ -22,19 +23,45 @@ import { useLocalization } from "@/lib/hooks/useLocalization"
 import type { TranslationKey } from "@/lib/i18n"
 import { AuthMobileHeader } from "@/components/auth/auth-mobile-header"
 import { AuthHeroIllustration } from "@/components/auth/auth-hero-illustration"
+import { PRO_BUSINESS_TYPES, PRO_BUSINESS_TYPE_META, type ProBusinessType } from "@/lib/pro-modules"
 
 const OTP_LENGTH = 6
 const RESEND_COOLDOWN_SECONDS = 25
 
-type SignupStep = "role" | "professionalType" | "details" | "otp" | "password" | "success"
+type SignupStep = "role" | "proSetup" | "details" | "otp" | "password" | "success"
 type ProviderType = "solo" | "business"
 
+/**
+ * Three ways in, not four.
+ *
+ * "Professional" and "Merchant" used to be separate cards leading to separate
+ * portals, which forced anyone who both worked and sold to keep two accounts.
+ * They are now one card — Saji Pro — and what the account actually does is
+ * answered on the next step as a multi-select. The underlying `role` stays
+ * `provider`, so every route guard, session claim and redirect behaves exactly
+ * as before; a Saji Pro who ticks "Sell Products" gets a ShopkeeperProfile
+ * created alongside, which is what lights up the merchant pages in the one
+ * shared portal.
+ */
 const ROLE_CARDS: { role: UserRole; icon: typeof User; iconBg: string; iconColor: string; titleKey: TranslationKey; descKey: TranslationKey }[] = [
   { role: "customer", icon: User, iconBg: "bg-emerald-100 dark:bg-emerald-900/30", iconColor: "text-emerald-600 dark:text-emerald-400", titleKey: "authPage.signup.roleCardCustomerTitle", descKey: "authPage.signup.roleCardCustomerDesc" },
-  { role: "provider", icon: HardHat, iconBg: "bg-blue-100 dark:bg-blue-900/30", iconColor: "text-blue-600 dark:text-blue-400", titleKey: "authPage.signup.roleCardProviderTitle", descKey: "authPage.signup.roleCardProviderDesc" },
-  { role: "shopkeeper", icon: Store, iconBg: "bg-amber-100 dark:bg-amber-900/30", iconColor: "text-amber-600 dark:text-amber-400", titleKey: "authPage.signup.roleCardShopkeeperTitle", descKey: "authPage.signup.roleCardShopkeeperDesc" },
+  { role: "provider", icon: Crown, iconBg: "bg-blue-100 dark:bg-blue-900/30", iconColor: "text-blue-600 dark:text-blue-400", titleKey: "authPage.signup.roleCardProviderTitle", descKey: "authPage.signup.roleCardProviderDesc" },
   { role: "distributor", icon: Building2, iconBg: "bg-purple-100 dark:bg-purple-900/30", iconColor: "text-purple-600 dark:text-purple-400", titleKey: "authPage.signup.roleCardDistributorTitle", descKey: "authPage.signup.roleCardDistributorDesc" },
 ]
+
+/** Icon per business type, resolved from the registry's icon name. */
+const BUSINESS_TYPE_ICON: Record<string, typeof User> = {
+  Wrench, Store, Package, Laptop, GraduationCap, Briefcase,
+}
+
+const BUSINESS_TYPE_ACCENT: Record<string, string> = {
+  blue: "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400",
+  amber: "bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400",
+  purple: "bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400",
+  emerald: "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400",
+  rose: "bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400",
+  sky: "bg-sky-100 text-sky-600 dark:bg-sky-900/30 dark:text-sky-400",
+}
 
 const ROLE_NEXT_PATH: Record<UserRole, string> = {
   ...ROLE_HOME_PATH,
@@ -53,6 +80,7 @@ export default function SignupPage() {
   const [formData, setFormData] = useState({
     role: "customer" as UserRole,
     providerType: null as ProviderType | null,
+    businessTypes: [] as ProBusinessType[],
     name: "", email: "", phone: "", password: "", confirmPassword: "",
     agreeTerms: false,
   })
@@ -78,14 +106,35 @@ export default function SignupPage() {
 
   const handleSelectRole = (role: UserRole) => {
     handleChange("role", role)
-    // A provider needs to say up front whether they're a Solo Pro or a
-    // Business before the rest of the form even makes sense to fill in —
-    // everyone else goes straight to details as before.
-    setStep(role === "provider" ? "professionalType" : "details")
+    // Saji Pro says up front what it does and whether it's one person or a
+    // team, both on one screen — everyone else goes straight to details as
+    // before.
+    setStep(role === "provider" ? "proSetup" : "details")
+  }
+
+  const toggleBusinessType = (type: ProBusinessType) => {
+    setError("")
+    setFormData((prev) => ({
+      ...prev,
+      businessTypes: prev.businessTypes.includes(type)
+        ? prev.businessTypes.filter((t) => t !== type)
+        : [...prev.businessTypes, type],
+    }))
   }
 
   const handleSelectProviderType = (type: ProviderType) => {
     setFormData((prev) => ({ ...prev, providerType: type }))
+  }
+
+  const handleProSetupContinue = () => {
+    if (formData.businessTypes.length === 0) {
+      setError(t("authPage.signup.proSetupSelectOne"))
+      return
+    }
+    setError("")
+    // Solo is the overwhelmingly common case, so it is the default rather
+    // than a required extra tap.
+    setFormData((prev) => ({ ...prev, providerType: prev.providerType ?? "solo" }))
     setStep("details")
   }
 
@@ -203,6 +252,7 @@ export default function SignupPage() {
         phone: formData.phone,
         password: formData.password,
         role: formData.role,
+        businessTypes: formData.role === "provider" ? formData.businessTypes : undefined,
         verificationProof,
         referralCode: searchParams.get("ref") || undefined,
       })
@@ -240,6 +290,10 @@ export default function SignupPage() {
     // Which role card they picked. auth.ts validates this against a fixed
     // allowlist before using it, so a hand-edited cookie cannot grant a role.
     document.cookie = `oauth_role=${formData.role}; path=/; max-age=300; samesite=lax`
+    // The Saji Pro business types ticked on the proSetup step, so a Google
+    // signup provisions the same ProCapability rows a credentials signup
+    // does. auth.ts filters this against a fixed allowlist before using it.
+    document.cookie = `oauth_pro_types=${formData.businessTypes.join(",")}; path=/; max-age=300; samesite=lax`
     // resolveNextPath, not ROLE_HOME_PATH: a provider must reach
     // /provider/onboarding (carrying the Solo/Business choice already made
     // above), a shopkeeper /shopkeeper/register, and so on. Sending them to
@@ -257,7 +311,7 @@ export default function SignupPage() {
     setError(t("authPage.signup.appleNotSetup"))
   }
 
-  const STEP_ORDER: SignupStep[] = ["role", "professionalType", "details", "otp", "password"]
+  const STEP_ORDER: SignupStep[] = ["role", "proSetup", "details", "otp", "password"]
   const stepIndex = STEP_ORDER.indexOf(step)
 
   return (
@@ -324,7 +378,7 @@ export default function SignupPage() {
           {step !== "success" && step !== "role" && (
             <div className="flex gap-2 mb-5">
               {STEP_ORDER.slice(1)
-                .filter((s) => s !== "professionalType" || formData.role === "provider")
+                .filter((s) => s !== "proSetup" || formData.role === "provider")
                 .map((s) => (
                   <div key={s} className={`flex-1 h-1.5 rounded-full transition-colors ${STEP_ORDER.indexOf(step) >= STEP_ORDER.indexOf(s) ? "bg-primary" : "bg-muted"}`} />
                 ))}
@@ -364,42 +418,94 @@ export default function SignupPage() {
             </>
           )}
 
-          {/* Step: professionalType (Solo Pro vs Business, provider role only) */}
-          {step === "professionalType" && (
+          {/* Step: proSetup — what this Saji Pro does, and whether it's a
+              team. Both questions on one screen: they are short, related,
+              and an extra step here is an extra chance to drop out. */}
+          {step === "proSetup" && (
             <>
-              <button onClick={() => setStep("role")} className="text-sm text-muted-foreground hover:text-foreground mb-4 flex items-center gap-1">
+              <button onClick={() => setStep("role")} className="text-sm text-muted-foreground hover:text-foreground mb-4 flex items-center gap-1 active:scale-95 transition-transform">
                 &larr; {t("authPage.back")}
               </button>
-              <h2 className="text-2xl font-bold text-foreground mb-1">{t("provider.onboarding.title")}</h2>
-              <p className="text-sm text-muted-foreground mb-6">{t("provider.onboarding.subtitle")}</p>
-              <div className="space-y-3">
-                <button
-                  onClick={() => handleSelectProviderType("solo")}
-                  className="w-full flex items-center gap-4 p-4 rounded-2xl border border-border bg-card hover:border-primary hover:shadow-sm transition-all text-left"
-                >
-                  <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 bg-blue-100 dark:bg-blue-900/30">
-                    <HardHat className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-semibold text-foreground text-sm">{t("provider.onboarding.soloTitle")}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{t("provider.onboarding.soloDesc")}</p>
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                </button>
-                <button
-                  onClick={() => handleSelectProviderType("business")}
-                  className="w-full flex items-center gap-4 p-4 rounded-2xl border border-border bg-card hover:border-primary hover:shadow-sm transition-all text-left"
-                >
-                  <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 bg-purple-100 dark:bg-purple-900/30">
-                    <Building2 className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-semibold text-foreground text-sm">{t("provider.onboarding.businessTitle")}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{t("provider.onboarding.businessDesc")}</p>
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                </button>
+              <h2 className="text-2xl font-bold text-foreground mb-1">{t("authPage.signup.proSetupTitle")}</h2>
+              <p className="text-sm text-muted-foreground mb-5">{t("authPage.signup.proSetupSubtitle")}</p>
+
+              {/* Two columns from 380px up so all six fit without a long
+                  scroll on a phone; one column below that so the labels
+                  never wrap mid-word on the narrowest devices. */}
+              <div className="grid grid-cols-1 min-[380px]:grid-cols-2 gap-2.5">
+                {PRO_BUSINESS_TYPES.map((type) => {
+                  const meta = PRO_BUSINESS_TYPE_META[type]
+                  const Icon = BUSINESS_TYPE_ICON[meta.icon] ?? Wrench
+                  const selected = formData.businessTypes.includes(type)
+                  return (
+                    <button
+                      key={type}
+                      type="button"
+                      aria-pressed={selected}
+                      onClick={() => toggleBusinessType(type)}
+                      className={`relative flex flex-col items-start gap-2 p-3.5 rounded-2xl border text-left transition-all active:scale-[0.98] ${
+                        selected
+                          ? "border-primary bg-primary/5 shadow-sm"
+                          : "border-border bg-card hover:border-primary/50"
+                      }`}
+                    >
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${BUSINESS_TYPE_ACCENT[meta.accent]}`}>
+                        <Icon className="w-4.5 h-4.5" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-foreground text-sm leading-tight">{meta.label}</p>
+                        <p className="text-[11px] text-muted-foreground mt-1 leading-snug">{meta.description}</p>
+                      </div>
+                      <span
+                        className={`absolute top-3 right-3 w-5 h-5 rounded-full flex items-center justify-center transition-colors ${
+                          selected ? "bg-primary text-primary-foreground" : "border border-border bg-background"
+                        }`}
+                      >
+                        {selected && <Check className="w-3 h-3" strokeWidth={3} />}
+                      </span>
+                    </button>
+                  )
+                })}
               </div>
+
+              <div className="mt-6">
+                <p className="text-sm font-medium text-foreground mb-2.5">{t("authPage.signup.proSetupTeamHeading")}</p>
+                <div className="grid grid-cols-2 gap-2.5">
+                  {([
+                    { value: "solo" as ProviderType, icon: HardHat, label: t("authPage.signup.proSetupSoloLabel"), desc: t("authPage.signup.proSetupSoloDesc") },
+                    { value: "business" as ProviderType, icon: Users, label: t("authPage.signup.proSetupBusinessLabel"), desc: t("authPage.signup.proSetupBusinessDesc") },
+                  ]).map((opt) => {
+                    // Solo reads as chosen before anyone taps, because it is
+                    // what Continue will use if they never do.
+                    const selected = (formData.providerType ?? "solo") === opt.value
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        aria-pressed={selected}
+                        onClick={() => handleSelectProviderType(opt.value)}
+                        className={`flex flex-col items-start gap-1.5 p-3.5 rounded-2xl border text-left transition-all active:scale-[0.98] ${
+                          selected ? "border-primary bg-primary/5 shadow-sm" : "border-border bg-card hover:border-primary/50"
+                        }`}
+                      >
+                        <opt.icon className={`w-4.5 h-4.5 ${selected ? "text-primary" : "text-muted-foreground"}`} />
+                        <span className="font-semibold text-foreground text-sm leading-tight">{opt.label}</span>
+                        <span className="text-[11px] text-muted-foreground leading-snug">{opt.desc}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <Button onClick={handleProSetupContinue} className="w-full h-12 mt-6 rounded-xl font-semibold">
+                {t("authPage.signup.proSetupContinue")}
+                {formData.businessTypes.length > 0 && (
+                  <span className="ml-1.5 opacity-80">
+                    &middot; {t("authPage.signup.proSetupSelectedCount", { count: formData.businessTypes.length })}
+                  </span>
+                )}
+                <ArrowRight className="w-4 h-4 ml-1" />
+              </Button>
             </>
           )}
 
@@ -451,7 +557,7 @@ export default function SignupPage() {
                   {signupMethod === "phone" ? t("authPage.signup.otpWillGoToPhone") : t("authPage.signup.otpWillGoToEmail")}
                 </p>
                 <div className="flex gap-3">
-                  <Button type="button" onClick={() => setStep(formData.role === "provider" ? "professionalType" : "role")} disabled={isLoading} variant="outline" className="h-10 rounded-xl bg-transparent gap-1 px-4">
+                  <Button type="button" onClick={() => setStep(formData.role === "provider" ? "proSetup" : "role")} disabled={isLoading} variant="outline" className="h-10 rounded-xl bg-transparent gap-1 px-4">
                     <ArrowLeft className="w-4 h-4" />
                   </Button>
                   <Button type="submit" disabled={isLoading} className="flex-1 h-10 rounded-xl font-semibold gap-2">
