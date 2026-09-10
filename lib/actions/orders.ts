@@ -18,6 +18,10 @@ export type CustomerOrder = {
   itemSummary: string
   itemCount: number
   createdAt: string
+  /// Where this row's detail lives. Shop orders have an order page; a
+  /// provider's product settles as a Job, so those point at the job dialog
+  /// instead of an /orders/<id> route that would not resolve.
+  detailHref: string
 }
 
 function toCustomerOrder(order: {
@@ -46,34 +50,90 @@ function toCustomerOrder(order: {
     itemSummary,
     itemCount,
     createdAt: order.createdAt.toISOString(),
+    detailHref: `/customer/orders/${order.id}`,
   }
+}
+
+/** A Job status expressed in the order vocabulary the purchases list uses,
+ *  so a bought product does not read as a booked appointment. */
+const PURCHASE_STATUS_FROM_JOB: Record<string, string> = {
+  PENDING_PAYMENT: "PENDING",
+  PENDING: "PROCESSING",
+  ACCEPTED: "PROCESSING",
+  IN_PROGRESS: "PROCESSING",
+  COMPLETED: "DELIVERED",
+  CANCELLED: "CANCELLED",
+  DISPUTED: "DISPUTED",
+}
+
+/**
+ * Products bought from a provider's BUY offer.
+ *
+ * These are Job rows — that is the pipeline that carries their payment,
+ * dispute and completion — but a customer bought a thing, so they belong
+ * with their orders rather than in "My Jobs". Mapped into the same shape as
+ * a shop order so both can share one list.
+ */
+async function getOfferPurchases(customerId: string, limit?: number): Promise<CustomerOrder[]> {
+  const jobs = await db.job.findMany({
+    where: { customerId, offer: { actionType: "BUY" } },
+    orderBy: { createdAt: "desc" },
+    ...(limit ? { take: limit } : {}),
+    include: { provider: { include: { user: { select: { name: true } } } } },
+  })
+
+  return jobs.map((job) => ({
+    id: job.id,
+    // Job has no orderNumber; a stable, readable stand-in derived from its
+    // own id keeps the row identifiable without inventing a second sequence.
+    orderNumber: `PRO-${job.id.slice(-6).toUpperCase()}`,
+    status: PURCHASE_STATUS_FROM_JOB[job.status] ?? job.status,
+    total: Number(job.price),
+    shopName: job.provider?.businessName || job.provider?.user.name || "Saji Pro",
+    shopId: job.providerId ?? "",
+    itemSummary: job.title,
+    itemCount: job.quantity,
+    createdAt: job.createdAt.toISOString(),
+    detailHref: `/customer/jobs?job=${job.id}`,
+  }))
 }
 
 export async function getRecentOrders(limit = 3): Promise<CustomerOrder[]> {
   const session = await auth()
   if (!session?.user?.id) return []
 
-  const orders = await db.order.findMany({
-    where: { customerId: session.user.id },
-    orderBy: { createdAt: "desc" },
-    take: limit,
-    include: { shopkeeper: { select: { id: true, shopName: true } }, items: { include: { product: { select: { name: true } } } } },
-  })
+  const [orders, purchases] = await Promise.all([
+    db.order.findMany({
+      where: { customerId: session.user.id },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+      include: { shopkeeper: { select: { id: true, shopName: true } }, items: { include: { product: { select: { name: true } } } } },
+    }),
+    getOfferPurchases(session.user.id, limit),
+  ])
 
-  return orders.map(toCustomerOrder)
+  // Both lists are already newest-first; merged and re-cut so the limit
+  // applies across the two rather than returning `limit` of each.
+  return [...orders.map(toCustomerOrder), ...purchases]
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .slice(0, limit)
 }
 
 export async function getCustomerOrders(): Promise<CustomerOrder[]> {
   const session = await auth()
   if (!session?.user?.id) return []
 
-  const orders = await db.order.findMany({
-    where: { customerId: session.user.id },
-    orderBy: { createdAt: "desc" },
-    include: { shopkeeper: { select: { id: true, shopName: true } }, items: { include: { product: { select: { name: true } } } } },
-  })
+  const [orders, purchases] = await Promise.all([
+    db.order.findMany({
+      where: { customerId: session.user.id },
+      orderBy: { createdAt: "desc" },
+      include: { shopkeeper: { select: { id: true, shopName: true } }, items: { include: { product: { select: { name: true } } } } },
+    }),
+    getOfferPurchases(session.user.id),
+  ])
 
-  return orders.map(toCustomerOrder)
+  return [...orders.map(toCustomerOrder), ...purchases]
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
 }
 
 export type CustomerOrderDetailItem = {

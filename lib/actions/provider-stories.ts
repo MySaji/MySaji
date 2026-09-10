@@ -47,6 +47,7 @@ export type StoryFeedItem = {
   caption: string | null
   likeCount: number
   likedByMe: boolean
+  viewedByMe: boolean
   createdAt: string
   expiresAt: string
 }
@@ -55,6 +56,9 @@ export type StoryFeedGroup = {
   providerId: string
   providerName: string
   providerAvatar: string | null
+  /// True while any story in this group is still unwatched — what colours the
+  /// ring, and what sorts this group ahead of the ones already seen.
+  hasUnviewed: boolean
   stories: StoryFeedItem[]
 }
 
@@ -74,6 +78,7 @@ export async function getActiveProviderStories(): Promise<StoryFeedGroup[]> {
     include: {
       provider: { select: { id: true, name: true, image: true } },
       likes: { where: { userId: myId }, select: { id: true } },
+      views: { where: { userId: myId }, select: { id: true } },
     },
   })
 
@@ -81,7 +86,7 @@ export async function getActiveProviderStories(): Promise<StoryFeedGroup[]> {
   for (const s of stories) {
     let group = groups.get(s.providerId)
     if (!group) {
-      group = { providerId: s.providerId, providerName: s.provider.name, providerAvatar: s.provider.image, stories: [] }
+      group = { providerId: s.providerId, providerName: s.provider.name, providerAvatar: s.provider.image, hasUnviewed: false, stories: [] }
       groups.set(s.providerId, group)
     }
     group.stories.push({
@@ -91,11 +96,47 @@ export async function getActiveProviderStories(): Promise<StoryFeedGroup[]> {
       caption: s.caption,
       likeCount: s.likeCount,
       likedByMe: s.likes.length > 0,
+      viewedByMe: s.views.length > 0,
       createdAt: s.createdAt.toISOString(),
       expiresAt: new Date(s.createdAt.getTime() + STORY_LIFETIME_MS).toISOString(),
     })
+    if (s.views.length === 0) group.hasUnviewed = true
   }
-  return Array.from(groups.values())
+
+  // Unwatched first, newest first within each half — the same ordering every
+  // status feed uses, so a customer opening the app sees what is new to them
+  // rather than scrolling past rings they already cleared. A provider's own
+  // stories are never marked viewed for them, so their group simply sorts by
+  // recency like anyone else's.
+  return Array.from(groups.values()).sort((a, b) => {
+    if (a.hasUnviewed !== b.hasUnviewed) return a.hasUnviewed ? -1 : 1
+    return (b.stories[0]?.createdAt ?? "").localeCompare(a.stories[0]?.createdAt ?? "")
+  })
+}
+
+const markViewedSchema = z.object({ storyId: z.string().trim().min(1) })
+
+/**
+ * Records that the signed-in user has now watched this status.
+ *
+ * Idempotent and deliberately quiet: re-watching is not an error, and a
+ * failure here must not interrupt the viewer. Guests are ignored rather than
+ * refused — there is nobody to record a view against, and the ring they see
+ * is simply always green.
+ */
+export async function markStoryViewed(input: unknown): Promise<{ success: boolean }> {
+  const session = await auth()
+  if (!session?.user?.id) return { success: false }
+
+  const parsed = markViewedSchema.safeParse(input)
+  if (!parsed.success) return { success: false }
+
+  await db.providerStatusView.upsert({
+    where: { statusId_userId: { statusId: parsed.data.storyId, userId: session.user.id } },
+    update: {},
+    create: { statusId: parsed.data.storyId, userId: session.user.id },
+  }).catch(() => {})
+  return { success: true }
 }
 
 export type ToggleStoryLikeResult = { success: true; likedByMe: boolean; likeCount: number } | { success: false; error: string }

@@ -28,7 +28,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { format } from "date-fns"
 import { useLocalization } from "@/lib/hooks/useLocalization"
 import type { TranslationKey } from "@/lib/i18n"
@@ -105,6 +105,7 @@ function mapJob(job: CustomerJob, t: Translate): Job {
 export function CustomerJobsPage() {
   const { t, formatMoney } = useLocalization()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [jobs, setJobs] = useState<Job[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<"active" | "scheduled" | "completed" | "cancelled">("active")
@@ -135,12 +136,20 @@ export function CustomerJobsPage() {
   const [respondingExpenseId, setRespondingExpenseId] = useState<string | null>(null)
   const [expenseResponseError, setExpenseResponseError] = useState("")
 
+  // ?job=<id> opens one job's detail directly, and is passed to the query so
+  // a product purchase — which this list otherwise hides, since it belongs
+  // with the customer's orders — is still fetched when linked to from there.
+  const deepLinkJobId = searchParams.get("job")
+
   useEffect(() => {
-    getCustomerJobs()
-      .then((data) => setJobs(data.map((job) => mapJob(job, t))))
+    getCustomerJobs(deepLinkJobId ?? undefined)
+      .then((data) => {
+        setJobs(data.map((job) => mapJob(job, t)))
+        if (deepLinkJobId && data.some((j) => j.id === deepLinkJobId)) setSelectedJobId(deepLinkJobId)
+      })
       .finally(() => setIsLoading(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [deepLinkJobId])
 
   // Real polling for the provider's live position while a job is selected —
   // replaces the old fake setInterval countdown. Runs regardless of whether

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { X, Heart, Send, ChevronLeft, ChevronRight, Loader2 } from "lucide-react"
 import {
-  toggleStoryLike, replyToStory, type StoryFeedGroup, type StoryFeedItem,
+  toggleStoryLike, replyToStory, markStoryViewed, type StoryFeedGroup, type StoryFeedItem,
 } from "@/lib/actions/provider-stories"
 
 export function ProviderStoryRing({ groups }: { groups: StoryFeedGroup[] }) {
@@ -29,7 +29,10 @@ export function ProviderStoryRing({ groups }: { groups: StoryFeedGroup[] }) {
             onClick={() => setOpenGroupIndex(i)}
             className="flex flex-col items-center gap-1.5 flex-shrink-0 w-16"
           >
-            <div className="w-16 h-16 rounded-full p-[2.5px] bg-gradient-to-tr from-primary via-accent to-accent-warm">
+            {/* Green while anything here is unwatched, grey once it has all
+                been seen — the standard status-ring signal, so a customer can
+                tell at a glance which rings are worth opening. */}
+            <div className={`h-16 w-16 rounded-full p-[2.5px] ${group.hasUnviewed ? "bg-emerald-500" : "bg-muted-foreground/30"}`}>
               <div className="w-full h-full rounded-full p-[2px] bg-background">
                 <img
                   src={group.providerAvatar || "/placeholder.svg"}
@@ -38,7 +41,9 @@ export function ProviderStoryRing({ groups }: { groups: StoryFeedGroup[] }) {
                 />
               </div>
             </div>
-            <span className="text-[10px] text-foreground truncate w-full text-center">{group.providerName.split(" ")[0]}</span>
+            <span className={`w-full truncate text-center text-[10px] ${group.hasUnviewed ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
+              {group.providerName.split(" ")[0]}
+            </span>
           </button>
         ))}
       </div>
@@ -47,12 +52,22 @@ export function ProviderStoryRing({ groups }: { groups: StoryFeedGroup[] }) {
         <StoryViewer
           groups={localGroups}
           groupIndex={openGroupIndex}
-          onClose={() => setOpenGroupIndex(null)}
+          // Re-sorted on close rather than mid-watch: moving a ring while the
+          // viewer sits on top of it would shuffle the row underneath and
+          // change which group "next" leads to. Watched groups drop to the
+          // end here, and the server applies the same order on the next fetch.
+          onClose={() => {
+            setOpenGroupIndex(null)
+            setLocalGroups((prev) => [...prev].sort((a, b) => (a.hasUnviewed === b.hasUnviewed ? 0 : a.hasUnviewed ? -1 : 1)))
+          }}
           onGroupIndexChange={setOpenGroupIndex}
           onStoryUpdate={(providerId, storyId, patch) => {
-            setLocalGroups((prev) => prev.map((g) => g.providerId !== providerId ? g : {
-              ...g,
-              stories: g.stories.map((s) => s.id === storyId ? { ...s, ...patch } : s),
+            setLocalGroups((prev) => prev.map((g) => {
+              if (g.providerId !== providerId) return g
+              const stories = g.stories.map((s) => (s.id === storyId ? { ...s, ...patch } : s))
+              // Derived, never patched directly: the ring greys out exactly
+              // when the last unwatched story in the group is seen.
+              return { ...g, stories, hasUnviewed: stories.some((s) => !s.viewedByMe) }
             }))
           }}
         />
@@ -79,6 +94,16 @@ function StoryViewer({
 
   const group = groups[groupIndex]
   const story = group?.stories[storyIndex]
+
+  // Marked as each story is actually put on screen, not when the group is
+  // opened — paging away after the first of three should leave the other two
+  // unwatched, and the ring green.
+  useEffect(() => {
+    if (!group || !story || story.viewedByMe) return
+    onStoryUpdate(group.providerId, story.id, { viewedByMe: true })
+    void markStoryViewed({ storyId: story.id })
+  }, [group, story, onStoryUpdate])
+
   if (!group || !story) return null
 
   const goToStory = (nextGroupIndex: number, nextStoryIndex: number) => {

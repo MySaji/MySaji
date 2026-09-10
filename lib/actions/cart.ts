@@ -884,6 +884,16 @@ export async function checkout(input: unknown): Promise<CheckoutResult> {
       quantity: item.quantity,
       amount: Number(item.servicePackage?.price ?? item.service!.basePrice) * item.quantity,
     })),
+    // Offer lines were missing here, so buying a provider's product produced
+    // a receipt with no line items and a subtotal of zero against a non-zero
+    // total — the customer was charged correctly and then emailed a receipt
+    // that did not mention what they had bought.
+    ...offerItems.map((item) => ({
+      label: item.offer!.title,
+      description: `Provider: ${item.offer!.provider.businessName || item.offer!.provider.user.name}`,
+      quantity: item.quantity,
+      amount: Number(item.offer!.price) * item.quantity,
+    })),
   ]
   const receiptAdjustments: ReceiptAdjustment[] = []
   if (shippingTotal > 0) receiptAdjustments.push({ label: "Shipping", amount: shippingTotal })
@@ -893,7 +903,7 @@ export async function checkout(input: unknown): Promise<CheckoutResult> {
     type: "PAYMENT",
     paymentMethod: "Wallet",
     lineItems: receiptLineItems,
-    subtotal: productsSubtotal + servicesSubtotal,
+    subtotal: productsSubtotal + servicesSubtotal + offersSubtotal,
     adjustments: receiptAdjustments,
     totalAmount: grandTotal,
   })

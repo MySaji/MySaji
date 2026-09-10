@@ -59,7 +59,7 @@ export function CustomerOrdersPage() {
               const status = ORDER_STATUS_STYLE[order.status] ?? ORDER_STATUS_STYLE.PENDING
               const StatusIcon = status.icon
               return (
-                <Link key={order.id} href={`/customer/orders/${order.id}`}>
+                <Link key={order.id} href={order.detailHref}>
                   <Card className="p-4 border border-border rounded-2xl hover:shadow-md transition-shadow">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3 min-w-0">

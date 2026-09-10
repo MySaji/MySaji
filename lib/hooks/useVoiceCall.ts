@@ -2,8 +2,21 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { sendCallSignal, getCallSignals, clearCallSignals, type CallSignalItem } from "@/lib/actions/calls"
+import { startRinging, stopRinging } from "@/lib/ringtone"
 
-const POLL_MS = 1500
+/**
+ * Gap between one poll finishing and the next starting — not a fixed
+ * interval.
+ *
+ * On a fixed 1.5s setInterval the polls overlapped: a single getCallSignals
+ * round trip costs seconds against a database in another region, so a new
+ * request went out while two were still in flight. They ended up cancelled
+ * (net::ERR_ABORTED), and sendCallSignal calls made from the same page were
+ * cancelled with them — which is why a callee's answer and ICE candidates
+ * never reached the caller and every call stalled on "Calling…". Waiting for
+ * each poll to finish keeps at most one request outstanding.
+ */
+const POLL_GAP_MS = 900
 // Public, free STUN servers — enough to discover a usable candidate for
 // most home/office NATs. No TURN server is configured, so a call between
 // two networks that both need relaying (e.g. two symmetric NATs) can fail
@@ -26,6 +39,21 @@ export function useVoiceCall(conversationId: string | null) {
   const pcRef = useRef<RTCPeerConnection | null>(null)
   const localStreamRef = useRef<MediaStream | null>(null)
   const pendingOfferRef = useRef<RTCSessionDescriptionInit | null>(null)
+  /**
+   * ICE candidates that arrived before we could use them.
+   *
+   * The caller starts gathering and sending candidates the moment it creates
+   * its offer, but the callee has no peer connection at all until they press
+   * Accept — so every one of the caller's candidates lands while there is
+   * nowhere to put it. They used to be thrown away, which left the caller
+   * with no route to the callee: its ICE sat on "checking" forever and no
+   * audio ever flowed, even though both sides showed a live call.
+   *
+   * Buffering them and flushing once the remote description exists is the
+   * standard fix, and matters more here than in a socket-based app: a
+   * ringing phone can sit unanswered for many seconds.
+   */
+  const pendingCandidatesRef = useRef<RTCIceCandidateInit[]>([])
   const seenSignalIds = useRef<Set<string>>(new Set())
   const durationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const conversationIdRef = useRef<string | null>(null)
@@ -37,6 +65,7 @@ export function useVoiceCall(conversationId: string | null) {
     localStreamRef.current?.getTracks().forEach((t) => t.stop())
     localStreamRef.current = null
     pendingOfferRef.current = null
+    pendingCandidatesRef.current = []
     if (durationTimerRef.current) clearInterval(durationTimerRef.current)
     durationTimerRef.current = null
     setCallDuration(0)
@@ -50,6 +79,19 @@ export function useVoiceCall(conversationId: string | null) {
       setTimeout(() => setCallState("idle"), 1200)
     }
   }, [teardown])
+
+  /** Adds everything that arrived early. Called immediately after each
+   *  setRemoteDescription, which is the moment they become usable. */
+  const flushPendingCandidates = useCallback(async () => {
+    const pc = pcRef.current
+    if (!pc || !pc.remoteDescription) return
+    const queued = pendingCandidatesRef.current
+    pendingCandidatesRef.current = []
+    for (const candidate of queued) {
+      // One malformed candidate must not discard the rest of the queue.
+      await pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(() => {})
+    }
+  }, [])
 
   const createPeerConnection = useCallback((convId: string) => {
     const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS })
@@ -102,6 +144,7 @@ export function useVoiceCall(conversationId: string | null) {
       const pc = createPeerConnection(conversationId)
       stream.getTracks().forEach((track) => pc.addTrack(track, stream))
       await pc.setRemoteDescription(new RTCSessionDescription(offer))
+      await flushPendingCandidates()
       const answer = await pc.createAnswer()
       await pc.setLocalDescription(answer)
       await sendCallSignal({ conversationId, type: "answer", payload: { sdp: answer.sdp, type: answer.type } })
@@ -146,16 +189,17 @@ export function useVoiceCall(conversationId: string | null) {
       case "answer":
         if (pcRef.current && pcRef.current.signalingState === "have-local-offer") {
           await pcRef.current.setRemoteDescription(new RTCSessionDescription(signal.payload as RTCSessionDescriptionInit))
+          await flushPendingCandidates()
         }
         break
       case "ice-candidate":
-        if (pcRef.current && pcRef.current.remoteDescription) {
-          try {
-            await pcRef.current.addIceCandidate(new RTCIceCandidate(signal.payload as RTCIceCandidateInit))
-          } catch {
-            // A candidate arriving before the remote description is set is
-            // expected sometimes with pure polling (no queuing) — safe to drop.
-          }
+        // Queued whenever it cannot be applied yet — there is no peer
+        // connection (the callee has not accepted) or no remote description
+        // (the answer has not arrived). See pendingCandidatesRef.
+        if (pcRef.current?.remoteDescription) {
+          await pcRef.current.addIceCandidate(new RTCIceCandidate(signal.payload as RTCIceCandidateInit)).catch(() => {})
+        } else {
+          pendingCandidatesRef.current.push(signal.payload as RTCIceCandidateInit)
         }
         break
       case "hangup":
@@ -163,7 +207,7 @@ export function useVoiceCall(conversationId: string | null) {
         finishCall("idle")
         break
     }
-  }, [finishCall])
+  }, [finishCall, flushPendingCandidates])
 
   // Poll for signals addressed to me while this conversation is open —
   // this is what lets an incoming call actually "ring" without the callee
@@ -174,6 +218,8 @@ export function useVoiceCall(conversationId: string | null) {
     if (!conversationId) return
 
     let cancelled = false
+    let timer: ReturnType<typeof setTimeout> | null = null
+
     const poll = async () => {
       const signals = await getCallSignals(conversationId).catch(() => [])
       if (cancelled) return
@@ -182,14 +228,28 @@ export function useVoiceCall(conversationId: string | null) {
         seenSignalIds.current.add(signal.id)
         await handleSignal(signal)
       }
+      // Scheduled only once this round trip is done, so polls can never
+      // stack up and cancel each other (see POLL_GAP_MS).
+      if (!cancelled) timer = setTimeout(poll, POLL_GAP_MS)
     }
-    const interval = setInterval(poll, POLL_MS)
     void poll()
+
     return () => {
       cancelled = true
-      clearInterval(interval)
+      if (timer) clearTimeout(timer)
     }
   }, [conversationId, handleSignal])
+
+  // Ring while a call is being offered, and stop the moment it is answered,
+  // declined or withdrawn. Tied to callState rather than to the accept and
+  // decline handlers so a call the other side cancels stops ringing too.
+  useEffect(() => {
+    if (callState === "incoming") {
+      startRinging()
+      return () => stopRinging()
+    }
+    stopRinging()
+  }, [callState])
 
   // Call duration ticker.
   useEffect(() => {

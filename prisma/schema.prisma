@@ -543,6 +543,7 @@ model User {
   postComments     PostComment[]
   providerStatuses     ProviderStatus[]
   providerStatusLikes  ProviderStatusLike[]
+  providerStatusViews  ProviderStatusView[]
   following        Follow[]          @relation("FollowFollower")
   followedBy       Follow[]          @relation("FollowFollowing")
   blockedByProviders BlockedClient[]
@@ -3501,11 +3502,33 @@ model ProviderStatus {
 
   provider User                 @relation(fields: [providerId], references: [id], onDelete: Cascade)
   likes    ProviderStatusLike[]
+  views    ProviderStatusView[]
   replies  Message[]            @relation("MessageRelatedStatus")
 
   @@index([providerId])
   @@index([createdAt])
   @@map("provider_statuses")
+}
+
+/// Who has already watched a before/after status.
+///
+/// Stored rather than kept in the browser so the ring reads the same on a
+/// customer's phone and laptop — a story they watched at lunch should not
+/// come back green in the evening on another device. Rows disappear with the
+/// status itself when it expires, so this table stays as short-lived as the
+/// 24h stories it tracks.
+model ProviderStatusView {
+  id        String   @id @default(cuid())
+  statusId  String
+  userId    String
+  createdAt DateTime @default(now())
+
+  status ProviderStatus @relation(fields: [statusId], references: [id], onDelete: Cascade)
+  user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([statusId, userId])
+  @@index([statusId])
+  @@map("provider_status_views")
 }
 
 model ProviderStatusLike {

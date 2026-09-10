@@ -335,12 +335,28 @@ export type CustomerJob = {
   distanceKm: number | null
 }
 
-export async function getCustomerJobs(): Promise<CustomerJob[]> {
+/**
+ * @param includeJobId a purchase this page would normally hide, pulled in
+ *   because the customer followed a link straight to it from their orders.
+ *   Still scoped to their own jobs by the customerId filter.
+ */
+export async function getCustomerJobs(includeJobId?: string): Promise<CustomerJob[]> {
   const session = await auth()
   if (!session?.user?.id) return []
 
   const jobs = await db.job.findMany({
-    where: { customerId: session.user.id },
+    where: {
+      customerId: session.user.id,
+      // Buying a provider's product settles into a Job because that is the
+      // pipeline carrying payment, disputes and completion — but to the
+      // customer it is a purchase, not work booked. It was showing up here
+      // as a job (and counting towards "completed jobs"), so it is listed
+      // with their orders instead. See getCustomerOrders.
+      OR: [
+        { NOT: { offer: { actionType: "BUY" } } },
+        ...(includeJobId ? [{ id: includeJobId }] : []),
+      ],
+    },
     orderBy: { scheduledDate: "desc" },
     include: {
       provider: { include: { user: true } },
