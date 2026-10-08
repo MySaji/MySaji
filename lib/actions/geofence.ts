@@ -10,10 +10,13 @@ import {
   distanceKmSql, withinRadiusSql, geoOrigin,
   PROVIDER_GEO_POINT, PROVIDER_HAS_POSITION,
   PROVIDER_LATITUDE, PROVIDER_LONGITUDE, PROVIDER_POSITION_IS_FRESH,
+  providerIsLiveOnline,
   noteSpatialFailure, noteSpatialSuccess, postgisUnavailable,
 } from "@/lib/geo-sql"
 import { auth } from "@/auth"
 import { resolveLocationOrigin, type OriginSource } from "@/lib/actions/geo"
+import { isLiveOnline, onlineSince } from "@/lib/provider-presence"
+import { isShopCurrentlyOpen, resolveShopHoursForToday } from "@/lib/format"
 
 /**
  * A circular fence to query inside — a centre and a radius.
@@ -41,6 +44,9 @@ export type FencedShop = {
   rating: number
   reviewCount: number
   isVerified: boolean
+  /** Trading right now, by the shop's own configured hours — never by
+   *  whether the shopkeeper happens to be logged in. */
+  isOpen: boolean
   distanceKm: number | null
 }
 
@@ -126,6 +132,30 @@ const COARSE_DP = 2
 function coarsen(value: number): number {
   const factor = 10 ** COARSE_DP
   return Math.round(value * factor) / factor
+}
+
+/** Trading-hours columns the open/closed helper needs. Carried through the
+ *  raw query and stripped before the payload leaves. */
+type ShopHoursRow = {
+  openingTime: string | null
+  closingTime: string | null
+  sundayOpeningTime: string | null
+  sundayClosingTime: string | null
+  holidayOpeningTime: string | null
+  holidayClosingTime: string | null
+}
+
+type FencedShopRow = Omit<FencedShop, "isOpen"> & ShopHoursRow
+
+/** Reuses the trading-hours logic the shop pages already use rather than
+ *  reimplementing "is it open" and letting the two drift. */
+function withOpenState(row: FencedShopRow): FencedShop {
+  const hours = resolveShopHoursForToday(row)
+  const {
+    openingTime: _o, closingTime: _c, sundayOpeningTime: _so, sundayClosingTime: _sc,
+    holidayOpeningTime: _ho, holidayClosingTime: _hc, ...rest
+  } = row
+  return { ...rest, isOpen: isShopCurrentlyOpen(hours.openingTime, hours.closingTime) }
 }
 
 const DEFAULT_LIMIT = 12
@@ -234,7 +264,7 @@ export async function queryGeofence(input: GeofenceQuery = {}): Promise<Geofence
   try {
   const [shops, providers, requests] = await Promise.all([
     wantShops
-      ? db.$queryRaw<FencedShop[]>`
+      ? db.$queryRaw<FencedShopRow[]>`
           SELECT
             s."id",
             s."latitude"::float8  AS "latitude",
@@ -245,13 +275,16 @@ export async function queryGeofence(input: GeofenceQuery = {}): Promise<Geofence
             s."rating"::float8      AS "rating",
             s."reviewCount"         AS "reviewCount",
             s."isVerified"          AS "isVerified",
+            s."openingTime", s."closingTime",
+            s."sundayOpeningTime", s."sundayClosingTime",
+            s."holidayOpeningTime", s."holidayClosingTime",
             ${distance}             AS "distanceKm"
           FROM "shopkeeper_profiles" s
           WHERE ${within}
           ORDER BY ${distance} ASC
           LIMIT ${limit}
         `
-      : Promise.resolve([] as FencedShop[]),
+      : Promise.resolve([] as FencedShopRow[]),
     wantProviders
       ? db.$queryRaw<FencedProvider[]>`
           SELECT
@@ -270,7 +303,7 @@ export async function queryGeofence(input: GeofenceQuery = {}): Promise<Geofence
             p."reviewCount"           AS "reviewCount",
             p."hourlyRate"::float8    AS "hourlyRate",
             p."slug"                  AS "slug",
-            COALESCE(a."isOnline", false) AS "isOnline",
+            ${providerIsLiveOnline(onlineSince())} AS "isOnline",
             (extensions.ST_Distance(${PROVIDER_GEO_POINT}, ${geoOrigin(latitude, longitude)}) / 1000.0) AS "distanceKm"
           FROM "provider_profiles" p
           JOIN "users" u ON u."id" = p."userId"
@@ -317,7 +350,7 @@ export async function queryGeofence(input: GeofenceQuery = {}): Promise<Geofence
     centreFrom,
     // Rounded here rather than in SQL so the rounding rule lives in one
     // place alongside distanceFrom's.
-    shops: shops.map(roundDistance),
+    shops: shops.map((row) => withOpenState(roundDistance(row))),
     // Coarsened here, at the boundary, so no caller can forget to do it.
     providers: providers.map((p) => ({ ...roundDistance(p), ...coarsePosition(p) })),
     requests: requests.map((r) => ({
@@ -365,6 +398,8 @@ async function fallbackGeofence(args: {
           select: {
             id: true, shopName: true, shopLogoUrl: true, shopCategory: true,
             rating: true, reviewCount: true, isVerified: true, latitude: true, longitude: true,
+            openingTime: true, closingTime: true, sundayOpeningTime: true, sundayClosingTime: true,
+            holidayOpeningTime: true, holidayClosingTime: true,
           },
         })
       : Promise.resolve([]),
@@ -378,7 +413,7 @@ async function fallbackGeofence(args: {
             hourlyRate: true, slug: true, latitude: true, longitude: true,
             user: { select: { name: true, image: true } },
             category: { select: { name: true } },
-            availability: { select: { isOnline: true, lastKnownLatitude: true, lastKnownLongitude: true, lastLocationUpdatedAt: true } },
+            availability: { select: { isOnline: true, lastSeenAt: true, lastKnownLatitude: true, lastKnownLongitude: true, lastLocationUpdatedAt: true } },
           },
         })
       : Promise.resolve([]),
@@ -414,6 +449,9 @@ async function fallbackGeofence(args: {
       rating: Number(s.rating),
       reviewCount: s.reviewCount,
       isVerified: s.isVerified,
+      isOpen: isShopCurrentlyOpen(
+        resolveShopHoursForToday(s).openingTime, resolveShopHoursForToday(s).closingTime,
+      ),
       distanceKm: distanceFrom(centre, toCoordinates(s.latitude, s.longitude)),
     }))),
     providers: inFence(providerRows.map((p) => ({
@@ -433,7 +471,7 @@ async function fallbackGeofence(args: {
       reviewCount: p.reviewCount,
       hourlyRate: p.hourlyRate != null ? Number(p.hourlyRate) : null,
       slug: p.slug,
-      isOnline: p.availability?.isOnline ?? false,
+      isOnline: isLiveOnline(p.availability?.isOnline, p.availability?.lastSeenAt),
       positionIsLive: isPositionFresh(p.availability),
       distanceKm: distanceFrom(
         centre,

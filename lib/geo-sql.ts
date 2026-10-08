@@ -180,3 +180,19 @@ export function noteSpatialFailure(error: unknown): boolean {
 export function noteSpatialSuccess(): void {
   postgisAvailable = true
 }
+
+/**
+ * A provider counts as online only while their device is still checking
+ * in. The flag alone goes stale: someone who closed the tab, lost signal
+ * or logged out would otherwise stay green forever, and a green dot that
+ * can be wrong stops carrying information. Mirrors isLiveOnline() in
+ * lib/provider-presence.ts — the cutoff is passed in so the window is
+ * defined in exactly one place.
+ */
+export function providerIsLiveOnline(staleCutoff: Date) {
+  return Prisma.sql`
+    (COALESCE(a."isOnline", false) = true
+     AND a."lastSeenAt" IS NOT NULL
+     AND a."lastSeenAt" > ${staleCutoff})
+  `
+}

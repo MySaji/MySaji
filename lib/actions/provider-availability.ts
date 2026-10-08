@@ -1,6 +1,7 @@
 "use server"
 
 import { z } from "zod"
+import { isLiveOnline } from "@/lib/provider-presence"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
 
@@ -135,13 +136,20 @@ export async function getMyOnlineStatus(): Promise<ProviderOnlineStatus | null> 
   if (!provider) return null
 
   const availability = await db.providerAvailability.findUnique({ where: { providerId: provider.providerId } })
+  // A provider whose session went quiet is not online even to themselves,
+  // or the toggle would read green on a page that stopped checking in.
   return {
-    isOnline: availability?.isOnline ?? false,
+    isOnline: isLiveOnline(availability?.isOnline, availability?.lastSeenAt),
     lastKnownLatitude: availability?.lastKnownLatitude != null ? Number(availability.lastKnownLatitude) : null,
     lastKnownLongitude: availability?.lastKnownLongitude != null ? Number(availability.lastKnownLongitude) : null,
     lastLocationUpdatedAt: availability?.lastLocationUpdatedAt?.toISOString() ?? null,
   }
 }
+
+const heartbeatSchema = z.object({
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
+})
 
 const setOnlineStatusSchema = z.object({
   isOnline: z.boolean(),
@@ -168,14 +176,49 @@ export async function setOnlineStatus(input: unknown): Promise<ProviderAvailabil
   const locationData = latitude != null && longitude != null
     ? { lastKnownLatitude: latitude, lastKnownLongitude: longitude, lastLocationUpdatedAt: new Date() }
     : {}
+  // Going online starts the clock; going offline clears it, so a stale
+  // timestamp can never make an offline provider look briefly online.
+  const seen = isOnline ? { lastSeenAt: new Date() } : { lastSeenAt: null }
 
   await db.providerAvailability.upsert({
     where: { providerId: provider.providerId },
-    create: { providerId: provider.providerId, weeklySchedule: DEFAULT_SCHEDULE, isOnline, ...locationData },
-    update: { isOnline, ...locationData },
+    create: { providerId: provider.providerId, weeklySchedule: DEFAULT_SCHEDULE, isOnline, ...locationData, ...seen },
+    update: { isOnline, ...locationData, ...seen },
   })
 
   return { success: true }
+}
+
+/**
+ * "I am still here." Called on an interval by the Go Online control while
+ * the provider has the app open, and the reason the green dot on the
+ * customer home page means something: a provider who closed the tab, lost
+ * signal or logged out stops checking in and drops out of discovery.
+ *
+ * Deliberately cannot turn anyone online — it only refreshes the clock for
+ * someone who already is. A client able to assert its own online state
+ * would defeat the mechanism, since what this guards against is precisely
+ * a client that has stopped talking.
+ *
+ * Carries an optional fresh position, so a provider who moves while online
+ * is discoverable where they actually are rather than where they switched
+ * on. Only ever while online, so an offline provider is never located.
+ */
+export async function heartbeat(input: unknown): Promise<{ online: boolean }> {
+  const provider = await requireProvider()
+  if (!provider) return { online: false }
+
+  const parsed = heartbeatSchema.safeParse(input)
+  const coords = parsed.success && parsed.data.latitude != null && parsed.data.longitude != null
+    ? { lastKnownLatitude: parsed.data.latitude, lastKnownLongitude: parsed.data.longitude, lastLocationUpdatedAt: new Date() }
+    : {}
+
+  const result = await db.providerAvailability.updateMany({
+    where: { providerId: provider.providerId, isOnline: true },
+    data: { lastSeenAt: new Date(), ...coords },
+  })
+
+  return { online: result.count > 0 }
 }
 
 const addBlockedDateSchema = z.object({

@@ -1693,6 +1693,14 @@ model ProviderAvailability {
   lastKnownLatitude     Decimal?  @db.Decimal(9, 6)
   lastKnownLongitude    Decimal?  @db.Decimal(9, 6)
   lastLocationUpdatedAt DateTime?
+  /// Last time this provider's own device told us it was still there.
+  /// Refreshed by a heartbeat while Go Online is on, so "online" means a
+  /// live session rather than a flag somebody set in August. Without it
+  /// the green dot on the customer home page would pulse for providers
+  /// who have not opened the app in months. Read as stale -> offline
+  /// rather than swept by a cron, matching the lazy-reconciliation
+  /// convention already used for StaffInvite expiry.
+  lastSeenAt            DateTime?
   updatedAt      DateTime @updatedAt
 
   provider ProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)
