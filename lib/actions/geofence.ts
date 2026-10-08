@@ -7,7 +7,9 @@ import {
   sortByDistance, toCoordinates, type Coordinates,
 } from "@/lib/geo"
 import {
-  distanceKmSql, withinRadiusSql,
+  distanceKmSql, withinRadiusSql, geoOrigin,
+  PROVIDER_GEO_POINT, PROVIDER_HAS_POSITION,
+  PROVIDER_LATITUDE, PROVIDER_LONGITUDE, PROVIDER_POSITION_IS_FRESH,
   noteSpatialFailure, noteSpatialSuccess, postgisUnavailable,
 } from "@/lib/geo-sql"
 import { auth } from "@/auth"
@@ -56,6 +58,9 @@ export type FencedProvider = {
   hourlyRate: number | null
   slug: string | null
   isOnline: boolean
+  /** True when the distance was measured from the position captured when
+   *  this provider last went online, rather than their declared base. */
+  positionIsLive: boolean
   distanceKm: number | null
 }
 
@@ -106,6 +111,22 @@ const MAX_RADIUS_KM = 1000
 const ALL_KINDS: GeofenceKind[] = ["shops", "providers", "requests"]
 
 const EMPTY: GeofenceResult = { fence: null, centreFrom: null, shops: [], providers: [], requests: [] }
+
+/** Mirrors PROVIDER_POSITION_IS_FRESH in lib/geo-sql.ts — the fallback path
+ *  must agree with the SQL path about which positions are believable. */
+const POSITION_FRESH_MS = 12 * 60 * 60 * 1000
+
+function isPositionFresh(availability: {
+  lastKnownLatitude?: unknown
+  lastKnownLongitude?: unknown
+  lastLocationUpdatedAt?: Date | null
+} | null | undefined): boolean {
+  if (!availability?.lastKnownLatitude || !availability?.lastKnownLongitude) return false
+  const at = availability.lastLocationUpdatedAt
+  // No timestamp means we cannot date it, which is stale, not fresh.
+  if (!at) return false
+  return Date.now() - at.getTime() < POSITION_FRESH_MS
+}
 
 function isFiniteCoord(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value)
@@ -209,8 +230,11 @@ export async function queryGeofence(input: GeofenceQuery = {}): Promise<Geofence
       ? db.$queryRaw<FencedProvider[]>`
           SELECT
             p."id"            AS "providerId",
-            p."latitude"::float8  AS "latitude",
-            p."longitude"::float8 AS "longitude",
+            ${PROVIDER_LATITUDE}::float8   AS "latitude",
+            ${PROVIDER_LONGITUDE}::float8  AS "longitude",
+            -- Lets the UI say whether this is where they are working from
+            -- today or just the base on their profile.
+            ${PROVIDER_POSITION_IS_FRESH}  AS "positionIsLive",
             p."userId"        AS "userId",
             u."name"          AS "name",
             u."image"         AS "avatar",
@@ -221,17 +245,18 @@ export async function queryGeofence(input: GeofenceQuery = {}): Promise<Geofence
             p."hourlyRate"::float8    AS "hourlyRate",
             p."slug"                  AS "slug",
             COALESCE(a."isOnline", false) AS "isOnline",
-            ${distance}               AS "distanceKm"
+            (extensions.ST_Distance(${PROVIDER_GEO_POINT}, ${geoOrigin(latitude, longitude)}) / 1000.0) AS "distanceKm"
           FROM "provider_profiles" p
           JOIN "users" u ON u."id" = p."userId"
           LEFT JOIN "categories" c ON c."id" = p."categoryId"
           LEFT JOIN "provider_availability" a ON a."providerId" = p."id"
-          WHERE ${within}
+          WHERE ${PROVIDER_HAS_POSITION}
+            AND extensions.ST_DWithin(${PROVIDER_GEO_POINT}, ${geoOrigin(latitude, longitude)}, ${radiusKm * 1000}::double precision)
             -- Staff are dispatched by their employer rather than booked
             -- directly, so they do not belong in a customer's results.
             AND p."parentBusinessId" IS NULL
             AND u."isActive" = true
-          ORDER BY ${distance} ASC
+          ORDER BY extensions.ST_Distance(${PROVIDER_GEO_POINT}, ${geoOrigin(latitude, longitude)}) ASC
           LIMIT ${limit}
         `
       : Promise.resolve([] as FencedProvider[]),
@@ -325,7 +350,7 @@ async function fallbackGeofence(args: {
             hourlyRate: true, slug: true, latitude: true, longitude: true,
             user: { select: { name: true, image: true } },
             category: { select: { name: true } },
-            availability: { select: { isOnline: true } },
+            availability: { select: { isOnline: true, lastKnownLatitude: true, lastKnownLongitude: true, lastLocationUpdatedAt: true } },
           },
         })
       : Promise.resolve([]),
@@ -377,7 +402,15 @@ async function fallbackGeofence(args: {
       hourlyRate: p.hourlyRate != null ? Number(p.hourlyRate) : null,
       slug: p.slug,
       isOnline: p.availability?.isOnline ?? false,
-      distanceKm: distanceFrom(centre, toCoordinates(p.latitude, p.longitude)),
+      positionIsLive: isPositionFresh(p.availability),
+      distanceKm: distanceFrom(
+        centre,
+        // Same freshness rule as the SQL path, or the two would disagree
+        // about where a provider is depending on whether PostGIS is on.
+        (isPositionFresh(p.availability)
+          ? toCoordinates(p.availability?.lastKnownLatitude, p.availability?.lastKnownLongitude)
+          : null) ?? toCoordinates(p.latitude, p.longitude),
+      ),
     }))),
     requests: inFence(requestRows.map((r) => ({
       id: r.id,

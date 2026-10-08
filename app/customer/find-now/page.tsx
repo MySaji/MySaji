@@ -27,7 +27,7 @@ const BROADCAST_RADIUS_KM = 5
  *  coming online appears while the customer is still reading the screen,
  *  slow enough not to hammer the database from an idle tab (SWR pauses
  *  polling when the tab is hidden). */
-const LOOP_INTERVAL_MS = 15_000
+const LOOP_INTERVAL_MS = 10_000
 
 export default function FindNowPage() {
   return (
@@ -54,6 +54,11 @@ function FindNowContent() {
     // limit before the description is ever considered.
     limit: 50,
     refreshIntervalMs: LOOP_INTERVAL_MS,
+    // Follow the customer. This is the one screen where they are plausibly
+    // walking or driving toward help, and a 5 km circle anchored to where
+    // they opened the page goes stale fastest here. The hook only
+    // re-centres after 500 m of real movement, so this does not thrash.
+    follow: true,
   })
 
   const terms = useMemo(() => describeTerms(query), [query])
@@ -73,6 +78,7 @@ function FindNowContent() {
       verified: p.verified,
       isOnline: p.isOnline,
       distanceKm: p.distanceKm,
+      positionIsLive: p.positionIsLive,
       score: matchScore(terms, [p.name, p.categoryName]),
     }))
     const shops = (data?.shops ?? []).map((s) => ({
@@ -88,6 +94,7 @@ function FindNowContent() {
       verified: s.isVerified,
       isOnline: false,
       distanceKm: s.distanceKm,
+      positionIsLive: false,
       score: matchScore(terms, [s.name, s.category]),
     }))
 
@@ -238,6 +245,9 @@ type Row = {
   verified: boolean
   isOnline: boolean
   distanceKm: number | null
+  /** Distance came from where they started work today, not a profile
+   *  address. Worth distinguishing: one is current, the other may be old. */
+  positionIsLive: boolean
   score: number
 }
 
@@ -286,6 +296,9 @@ function Section({
                   </span>
                 )}
                 {r.isOnline && <span className="font-medium text-emerald-600">{t("nearby.online" as never)}</span>}
+                {r.positionIsLive && (
+                  <span className="text-muted-foreground">{t("findNow.fromCurrentArea" as never)}</span>
+                )}
               </p>
             </div>
           </Link>

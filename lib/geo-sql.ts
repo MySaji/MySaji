@@ -21,6 +21,63 @@ import { Prisma } from "@prisma/client"
  * spells the expression the same way.
  */
 
+/**
+ * How long a go-online position stays trustworthy. Past this the provider
+ * has almost certainly moved and their declared base is the better guess.
+ *
+ * This bound is the whole feature. Without it a one-shot fix from two
+ * months ago silently outranks a current profile address — measured on
+ * real rows here, that pushed providers whose base is 3.4 km away out to
+ * 10.6 km and dropped them from a 5 km search entirely. A stale snapshot
+ * is worse than no snapshot, because it looks authoritative.
+ */
+const POSITION_FRESH_HOURS = 12
+
+/**
+ * A provider's best-known position: where they were when they last went
+ * online *recently*, falling back to the base they declared in settings.
+ *
+ * The snapshot is a one-shot fix taken at "Go Online" (not continuous
+ * tracking — that exists only for an active job), so within its freshness
+ * window it answers "where did this person start work today" rather than
+ * "where are they right now". Outside that window it answers nothing
+ * useful and is ignored.
+ *
+ * Caveat worth knowing before this scales: because the COALESCE spans two
+ * tables, no single-table expression index covers it, so a fence using this
+ * scans providers rather than using the GiST index. That is the right trade
+ * at this size and the wrong one at tens of thousands of providers — at
+ * which point the snapshot wants denormalising onto provider_profiles so
+ * the existing index applies again.
+ */
+/** True only while the go-online snapshot is recent enough to believe. A
+ *  snapshot with no timestamp is treated as stale, not as fresh. */
+export const PROVIDER_POSITION_IS_FRESH = Prisma.sql`
+  (a."lastKnownLatitude" IS NOT NULL
+   AND a."lastKnownLongitude" IS NOT NULL
+   AND a."lastLocationUpdatedAt" IS NOT NULL
+   AND a."lastLocationUpdatedAt" > NOW() - INTERVAL '${Prisma.raw(String(POSITION_FRESH_HOURS))} hours')
+`
+
+export const PROVIDER_LATITUDE = Prisma.sql`
+  (CASE WHEN ${PROVIDER_POSITION_IS_FRESH} THEN a."lastKnownLatitude" ELSE p."latitude" END)
+`
+export const PROVIDER_LONGITUDE = Prisma.sql`
+  (CASE WHEN ${PROVIDER_POSITION_IS_FRESH} THEN a."lastKnownLongitude" ELSE p."longitude" END)
+`
+
+export const PROVIDER_GEO_POINT = Prisma.sql`
+  (extensions.ST_SetSRID(extensions.ST_MakePoint(
+     ${PROVIDER_LONGITUDE}::double precision,
+     ${PROVIDER_LATITUDE}::double precision
+   ), 4326)::extensions.geography)
+`
+
+/** True when a provider has any usable position at all. */
+export const PROVIDER_HAS_POSITION = Prisma.sql`
+  ${PROVIDER_LATITUDE} IS NOT NULL AND ${PROVIDER_LONGITUDE} IS NOT NULL
+`
+
 /** A row's position, built from its own latitude/longitude columns. */
 export const GEO_POINT = Prisma.sql`
   (extensions.ST_SetSRID(extensions.ST_MakePoint("longitude"::double precision, "latitude"::double precision), 4326)::extensions.geography)

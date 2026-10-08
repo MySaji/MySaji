@@ -247,6 +247,7 @@ const en = {
   "findNow.emptyBody": "Shops and pros only appear here once they have set their location.",
   "findNow.noLocation": "We could not work out where you are",
   "findNow.postInstead": "Post your request instead",
+  "findNow.fromCurrentArea": "from where they are working",
 } as const
 
 const sw: Record<keyof typeof en, string> = {
@@ -489,6 +490,7 @@ const sw: Record<keyof typeof en, string> = {
   "findNow.emptyBody": "Maduka na wataalamu huonekana hapa baada ya kuweka eneo lao.",
   "findNow.noLocation": "Hatukuweza kubaini ulipo",
   "findNow.postInstead": "Tuma ombi lako badala yake",
+  "findNow.fromCurrentArea": "kutoka anapofanyia kazi",
 }
 
 const fr: Record<keyof typeof en, string> = {
@@ -731,6 +733,7 @@ const fr: Record<keyof typeof en, string> = {
   "findNow.emptyBody": "Les boutiques et pros apparaissent ici une fois leur lieu defini.",
   "findNow.noLocation": "Nous n'avons pas pu determiner votre position",
   "findNow.postInstead": "Publier votre demande",
+  "findNow.fromCurrentArea": "depuis leur lieu de travail",
 }
 
 export const commonDictionary = { en, sw, fr }
