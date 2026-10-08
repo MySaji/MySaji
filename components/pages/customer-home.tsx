@@ -18,6 +18,7 @@ import { getPopularOpenRequests, type PopularRequestItem } from "@/lib/actions/r
 import { getLiveOffers, type PublicOfferListItem } from "@/lib/actions/offers"
 import { getWishlistIds, getWishlistedProviders, toggleWishlist, type WishlistedProvider, type WishlistTargetKind } from "@/lib/actions/wishlist"
 import { useLocalization } from "@/lib/hooks/useLocalization"
+import { NearYouSection } from "@/components/geo/near-you-section"
 import { RequestPhotoButton } from "@/components/customer/request-photo-button"
 import { ProviderStoryRing } from "@/components/provider-story-ring"
 import { getOnlineProviders, type OnlineProviderCard } from "@/lib/actions/specialists"
@@ -633,6 +634,14 @@ function AvailableNowSection({ providers }: { providers: OnlineProviderCard[] })
                   {p.verified && <ShieldCheck className="ml-1 inline h-3 w-3 align-[-1px] text-emerald-600" />}
                 </p>
                 {p.categoryName && <p className="mt-0.5 truncate text-[10px] text-muted-foreground">{p.categoryName}</p>}
+                {/* The row is ordered by this, so showing it is what makes
+                    the ordering legible rather than arbitrary. */}
+                {p.distanceKm != null && (
+                  <p className="mt-0.5 flex items-center gap-0.5 truncate text-[10px] font-medium text-primary">
+                    <MapPin className="h-2.5 w-2.5 flex-shrink-0" />
+                    {t("nearby.distanceAway", { km: p.distanceKm })}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -763,6 +772,11 @@ export function CustomerHome() {
         <YourActivitySection jobs={recentJobs ?? []} orders={recentOrders ?? []} />
 
         <QuickActionsSection />
+
+        {/* Placed high: this is the row that answers "who is near me", and
+            it is backed by a single geofence pull rather than a query per
+            lane. It renders itself away when no location can be resolved. */}
+        <NearYouSection />
 
         <SolveAProblemSection />
 

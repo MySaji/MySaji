@@ -16,6 +16,7 @@ import { useLocalization } from "@/lib/hooks/useLocalization"
 import { useSidebarCollapsed } from "@/lib/hooks/useSidebarCollapsed"
 import { LoadingScreen } from "@/components/loading-screen"
 import FloatingChatButton from "@/components/floating-chat-button"
+import { LocationBootstrap } from "@/components/geo/location-bootstrap"
 import { useNotificationBell } from "@/lib/hooks/useNotificationBell"
 import { getUnreadMessageCount } from "@/lib/actions/messages"
 import { getMyDistributorAccount } from "@/lib/actions/distributor-account"
@@ -202,6 +203,11 @@ export default function DistributorLayout({ children }: { children: React.ReactN
 
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Upgrades this session's city-level IP position to a real GPS fix in
+          the background. Renders nothing and blocks nothing — the feed has
+          already been served from the IP origin by the time it runs. */}
+      <LocationBootstrap />
+
       <FloatingChatButton />
       <button
         onClick={() => setSidebarOpen(!sidebarOpen)}

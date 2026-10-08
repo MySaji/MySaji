@@ -3,11 +3,13 @@
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { Store, Search, Loader2, Star } from "lucide-react"
+import { Store, Search, Loader2, Star, MapPin } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { getAllShops, type HomeFeaturedShop } from "@/lib/actions/home"
+import { getMyLocationOrigin } from "@/lib/actions/geo"
+import { RadiusFilter, type RadiusSelection } from "@/components/geo/radius-filter"
 import { useLocalization } from "@/lib/hooks/useLocalization"
 
 export default function CustomerShopsPage() {
@@ -15,10 +17,27 @@ export default function CustomerShopsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [shops, setShops] = useState<HomeFeaturedShop[]>([])
   const [search, setSearch] = useState("")
+  const [radius, setRadius] = useState<RadiusSelection>({ radiusKm: null, origin: null })
+  // Whether the server has an address to measure from if the customer never
+  // grants the GPS prompt — decides if the radius chips are usable at all.
+  const [hasSavedOrigin, setHasSavedOrigin] = useState(false)
 
   useEffect(() => {
-    getAllShops().then(setShops).finally(() => setIsLoading(false))
+    getMyLocationOrigin().then((origin) => setHasSavedOrigin(origin != null))
   }, [])
+
+  // Refetches whenever the radius or origin changes, because the distance
+  // filter runs in SQL rather than over an already-fetched list — the whole
+  // point of the bounding-box prefilter is that unmatched shops never cross
+  // the wire. Name search stays client-side, as it was.
+  useEffect(() => {
+    setIsLoading(true)
+    let cancelled = false
+    getAllShops({ radiusKm: radius.radiusKm, origin: radius.origin })
+      .then((rows) => { if (!cancelled) setShops(rows) })
+      .finally(() => { if (!cancelled) setIsLoading(false) })
+    return () => { cancelled = true }
+  }, [radius.radiusKm, radius.origin])
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -46,6 +65,13 @@ export default function CustomerShopsPage() {
         />
       </div>
 
+      <RadiusFilter
+        value={radius}
+        onChange={setRadius}
+        hasSavedOrigin={hasSavedOrigin}
+        className="mb-6"
+      />
+
       {isLoading ? (
         <div className="flex min-h-[40vh] items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -53,8 +79,20 @@ export default function CustomerShopsPage() {
       ) : filtered.length === 0 ? (
         <Card className="p-10 text-center">
           <Store className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-          <p className="text-foreground font-medium">{search ? t("customer.shops.noMatch") : t("customer.shops.noShops")}</p>
-          {!search && <p className="text-xs text-muted-foreground mt-1">{t("customer.shops.checkBackSoon")}</p>}
+          <p className="text-foreground font-medium">
+            {search
+              ? t("customer.shops.noMatch")
+              : radius.radiusKm != null
+                ? t("nearby.emptyRadius", { km: radius.radiusKm })
+                : t("customer.shops.noShops")}
+          </p>
+          {!search && (
+            <p className="text-xs text-muted-foreground mt-1">
+              {/* A radius miss is usually unset shop locations, not an empty
+                  marketplace, so say which it is rather than "check back". */}
+              {radius.radiusKm != null ? t("nearby.emptyRadiusHint") : t("customer.shops.checkBackSoon")}
+            </p>
+          )}
         </Card>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -89,7 +127,14 @@ export default function CustomerShopsPage() {
                     </div>
                     <span className="text-[11px] text-muted-foreground">{shop.reviews}</span>
                   </div>
-                  {shop.hoursLabel && <p className="text-[10px] text-muted-foreground mt-1 truncate">{shop.hoursLabel}</p>}
+                  {shop.distanceKm != null ? (
+                    <p className="text-[10px] text-primary font-medium mt-1 flex items-center gap-1">
+                      <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
+                      {t("nearby.distanceAway", { km: shop.distanceKm })}
+                    </p>
+                  ) : shop.hoursLabel ? (
+                    <p className="text-[10px] text-muted-foreground mt-1 truncate">{shop.hoursLabel}</p>
+                  ) : null}
                 </div>
               </Card>
             </Link>

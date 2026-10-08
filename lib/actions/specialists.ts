@@ -3,6 +3,11 @@
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
 import { getProviderAvailabilityStatuses, getProviderAvailabilityStatus, type ProviderAvailabilityStatus } from "@/lib/actions/provider-status"
+import {
+  distanceFrom, sortByDistance, toCoordinates, type Coordinates,
+} from "@/lib/geo"
+import { distanceKmSql, withinRadiusSql } from "@/lib/geo-sql"
+import { getMyLocationOrigin } from "@/lib/actions/geo"
 
 function computeBadges(verified: boolean, rating: number, responseTimeMinutes: number | null): string[] {
   const badges: string[] = []
@@ -33,6 +38,10 @@ export type SpecialistCard = {
   /** Public storefront address, when the provider has one. */
   slug: string | null
   badges: string[]
+  /** Straight-line km from the customer to this provider. Null whenever
+   *  either side is unlocated, or the provider works REMOTE and so has no
+   *  meaningful distance — the UI omits the line rather than showing 0 km. */
+  distanceKm: number | null
 }
 
 export type OnlineProviderCard = {
@@ -48,6 +57,8 @@ export type OnlineProviderCard = {
   location: string | null
   hourlyRate: number | null
   slug: string | null
+  /** Straight-line km from the viewer. Null when either side is unlocated. */
+  distanceKm: number | null
 }
 
 /**
@@ -67,6 +78,10 @@ export type OnlineProviderCard = {
  * computes, so that logic is not duplicated here.
  */
 export async function getOnlineProviders(limit = 8): Promise<OnlineProviderCard[]> {
+  // "Available right now" is the row where distance matters most — someone
+  // online but 400 km away is not actually available to this customer.
+  const origin = await getMyLocationOrigin()
+
   const providers = await db.providerProfile.findMany({
     where: {
       availability: { isOnline: true },
@@ -78,16 +93,18 @@ export async function getOnlineProviders(limit = 8): Promise<OnlineProviderCard[
     include: { user: { select: { id: true, name: true, image: true } }, category: { select: { name: true } } },
     orderBy: [{ rating: "desc" }, { completedJobs: "desc" }],
     // Over-fetch a little so dropping the busy ones below still leaves a
-    // full row rather than a short one.
+    // full row rather than a short one. Deliberately NOT restricted to the
+    // proximity window: online providers are scarce, and an empty
+    // "available now" row is worse than a distant one, so this sorts by
+    // distance rather than filtering by it.
     take: limit * 3,
   })
   if (providers.length === 0) return []
 
   const statuses = await getProviderAvailabilityStatuses(providers.map((p) => p.id))
 
-  return providers
+  const available = providers
     .filter((p) => statuses.get(p.id) !== "busy")
-    .slice(0, limit)
     .map((p) => ({
       providerId: p.id,
       userId: p.userId,
@@ -101,22 +118,111 @@ export async function getOnlineProviders(limit = 8): Promise<OnlineProviderCard[
       location: p.location,
       hourlyRate: p.hourlyRate != null ? Number(p.hourlyRate) : null,
       slug: p.slug,
+      distanceKm: p.workPreference === "REMOTE"
+        ? null
+        : distanceFrom(origin, toCoordinates(p.latitude, p.longitude)),
     }))
+
+  // Sort before trimming, so the nearest online providers survive the cut
+  // rather than whoever happened to rank highest by rating.
+  return (origin ? sortByDistance(available) : available).slice(0, limit)
 }
 
-export async function getSpecialists(): Promise<SpecialistCard[]> {
-  const providers = await db.providerProfile.findMany({
-    include: { user: true, category: true },
-    orderBy: { rating: "desc" },
-  })
+/** The flat row both branches of getSpecialists produce — the spatial SQL
+ *  query and the unfiltered Prisma read are normalised to this so the card
+ *  mapping below has exactly one shape to handle. */
+type SpecialistRow = {
+  id: string
+  userId: string
+  verified: boolean
+  rating: number
+  reviewCount: number
+  completedJobs: number
+  yearsExperience: number
+  hourlyRate: number | null
+  skills: string[]
+  workAreas: string[]
+  location: string | null
+  workPreference: "REMOTE" | "ONSITE" | "HYBRID"
+  slug: string | null
+  responseTimeMinutes: number | null
+  userName: string
+  userImage: string | null
+  categoryName: string | null
+  distanceKm: number | null
+}
+
+/** Options for the find-specialists "near me" filter — same shape and same
+ *  fallback rules as ShopBrowseOptions in lib/actions/home.ts. */
+export type SpecialistBrowseOptions = {
+  radiusKm?: number | null
+  origin?: Coordinates | null
+}
+
+export async function getSpecialists(options: SpecialistBrowseOptions = {}): Promise<SpecialistCard[]> {
+  const radiusKm = options.radiusKm ?? null
+  // Resolved even when no radius was requested, so an unfiltered listing
+  // still labels each card with how far away the provider is — same
+  // behaviour as getAllShops. One indexed lookup by userId.
+  const origin = options.origin ?? (await getMyLocationOrigin())
+  const filterByRadius = origin != null && radiusKm != null
+
+  // The radius case runs entirely in Postgres — ST_DWithin against the GiST
+  // index filters, ST_Distance measures, ORDER BY sorts — so only providers
+  // genuinely inside the circle cross the wire. A REMOTE provider has no
+  // coordinates, so they fall out of a radius search by construction rather
+  // than needing a special case. Raw SQL because no ORM query language here
+  // can express a spatial predicate; see lib/geo-sql.ts.
+  const providers: SpecialistRow[] = filterByRadius
+    ? await db.$queryRaw<SpecialistRow[]>`
+        SELECT
+          p."id", p."userId", p."verified",
+          p."rating"::float8 AS "rating",
+          p."reviewCount", p."completedJobs", p."yearsExperience",
+          p."hourlyRate"::float8 AS "hourlyRate",
+          -- Prisma's client turns a NULL text[] into [], raw SQL does not,
+          -- and a provider with null arrays would crash the mapping below.
+          COALESCE(p."skills", '{}')    AS "skills",
+          COALESCE(p."workAreas", '{}') AS "workAreas",
+          p."location", p."workPreference",
+          p."slug", p."responseTimeMinutes",
+          u."name" AS "userName", u."image" AS "userImage",
+          c."name" AS "categoryName",
+          ${distanceKmSql(origin.latitude, origin.longitude)} AS "distanceKm"
+        FROM "provider_profiles" p
+        JOIN "users" u ON u."id" = p."userId"
+        LEFT JOIN "categories" c ON c."id" = p."categoryId"
+        WHERE ${withinRadiusSql(origin.latitude, origin.longitude, radiusKm)}
+        ORDER BY ${distanceKmSql(origin.latitude, origin.longitude)} ASC
+      `
+    : (await db.providerProfile.findMany({
+        include: { user: true, category: true },
+        orderBy: { rating: "desc" },
+      })).map((p) => ({
+        id: p.id, userId: p.userId, verified: p.verified,
+        rating: Number(p.rating), reviewCount: p.reviewCount,
+        completedJobs: p.completedJobs, yearsExperience: p.yearsExperience,
+        hourlyRate: p.hourlyRate != null ? Number(p.hourlyRate) : null,
+        skills: p.skills, workAreas: p.workAreas, location: p.location,
+        workPreference: p.workPreference, slug: p.slug,
+        responseTimeMinutes: p.responseTimeMinutes,
+        userName: p.user.name, userImage: p.user.image,
+        categoryName: p.category?.name ?? null,
+        // Measured here rather than in SQL: without a radius there is no
+        // spatial predicate to hang the query on, and the unfiltered list
+        // is a whole-table read either way.
+        distanceKm: p.workPreference === "REMOTE"
+          ? null
+          : distanceFrom(origin, toCoordinates(p.latitude, p.longitude)),
+      }))
 
   const statuses = await getProviderAvailabilityStatuses(providers.map((p) => p.id))
 
-  return providers.map((p) => ({
+  const cards = providers.map((p) => ({
     providerId: p.id,
     userId: p.userId,
-    name: p.user.name,
-    avatar: p.user.image,
+    name: p.userName,
+    avatar: p.userImage,
     verified: p.verified,
     status: statuses.get(p.id) ?? "available",
     rating: Number(p.rating),
@@ -128,7 +234,7 @@ export async function getSpecialists(): Promise<SpecialistCard[]> {
     // a guess, and should be deleted once declared experience is widespread.
     yearsExperience: p.yearsExperience > 0 ? p.yearsExperience : null,
     hourlyRate: p.hourlyRate != null ? Number(p.hourlyRate) : 0,
-    skills: p.skills.length > 0 ? p.skills : p.category ? [p.category.name] : [],
+    skills: p.skills.length > 0 ? p.skills : p.categoryName ? [p.categoryName] : [],
     // A remote provider has no meaningful travel area, and showing them under
     // a town (or the old hardcoded "Nairobi") is what made every provider look
     // like they drive to you.
@@ -136,7 +242,18 @@ export async function getSpecialists(): Promise<SpecialistCard[]> {
     workPreference: p.workPreference,
     slug: p.slug,
     badges: computeBadges(p.verified, Number(p.rating), p.responseTimeMinutes),
+    distanceKm: p.distanceKm == null ? null : Math.round(p.distanceKm * 10) / 10,
   }))
+
+  // Proximity is the default ordering even when no radius was chosen: the
+  // list stays complete (so it can never come back empty) but the closest
+  // providers lead. REMOTE providers carry no distance and sort last, which
+  // is right — they are the ones for whom distance genuinely doesn't matter.
+  if (!filterByRadius) return origin ? sortByDistance(cards) : cards
+
+  return sortByDistance(
+    cards.filter((c) => c.distanceKm != null && c.distanceKm <= radiusKm),
+  )
 }
 
 export type SpecialistDetail = SpecialistCard & {
@@ -200,6 +317,10 @@ export async function getSpecialistDetail(providerId: string): Promise<Specialis
     workPreference: provider.workPreference,
     slug: provider.slug,
     badges: computeBadges(provider.verified, Number(provider.rating), provider.responseTimeMinutes),
+    // The detail view is opened from a card that already showed the
+    // distance; recomputing it here would mean another origin lookup for a
+    // number the caller is holding.
+    distanceKm: null,
     bio: provider.bio,
     // Real phone numbers never leave the server to another user — Call and
     // Message both go through the in-app conversation/voice-call system

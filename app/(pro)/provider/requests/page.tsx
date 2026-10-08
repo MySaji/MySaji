@@ -98,6 +98,11 @@ export default function ProviderRequestsPage() {
                     <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{req.description}</p>
                     <div className="flex items-center gap-4 mt-3 text-[11px] text-muted-foreground">
                       <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{req.location}</span>
+                      {/* The board is ordered by this, so showing it is what
+                          makes the ordering legible rather than arbitrary. */}
+                      {req.distanceKm != null && (
+                        <span className="font-medium text-primary whitespace-nowrap">{t("nearby.distanceAway", { km: req.distanceKm })}</span>
+                      )}
                       <span className="flex items-center gap-1"><MessageSquare className="w-3 h-3" />{t("provider.requests.responseCount", { count: req.responseCount })}</span>
                       {req.photoCount > 0 && (
                         <span className="flex items-center gap-1"><ImageIcon className="w-3 h-3" />{t("provider.requests.photoCount", { count: req.photoCount })}</span>

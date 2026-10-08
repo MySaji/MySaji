@@ -2,6 +2,7 @@
 
 import { db } from "@/lib/db"
 import { isShopCurrentlyOpen, formatShopHours, getNextOpeningLabel, resolveShopHoursForToday } from "@/lib/format"
+import { firstCoordinate } from "@/lib/geo"
 
 
 /** Today's applicable pair as a tuple, so the three call sites below read the
@@ -38,9 +39,10 @@ export async function getShopById(id: string): Promise<ShopDetail> {
   })
   if (!shop) return null
 
-  // Shop location reuses the owner's real Address row (type OFFICE, written
-  // at onboarding) — this was previously captured and then never read back
-  // anywhere customer-facing.
+  // The street text still comes from the owner's Address row (type OFFICE,
+  // written at onboarding) — ShopkeeperProfile carries coordinates but no
+  // address string. The coordinates below prefer the profile's own columns
+  // and fall back to this row only for shops that predate them.
   const shopAddress = await db.address.findFirst({
     where: { userId: shop.userId, type: "OFFICE" },
     orderBy: { isDefault: "desc" },
@@ -60,8 +62,8 @@ export async function getShopById(id: string): Promise<ShopDetail> {
     nextOpeningLabel: getNextOpeningLabel(shop),
     hasSale: shop.promotions.length > 0,
     location: shopAddress ? [shopAddress.address, shopAddress.city].filter(Boolean).join(", ") : null,
-    latitude: shopAddress?.latitude != null ? Number(shopAddress.latitude) : null,
-    longitude: shopAddress?.longitude != null ? Number(shopAddress.longitude) : null,
+    latitude: firstCoordinate(shop.latitude, shopAddress?.latitude),
+    longitude: firstCoordinate(shop.longitude, shopAddress?.longitude),
     isOnVacation: shop.isOnVacation,
     vacationNote: shop.vacationNote,
   }

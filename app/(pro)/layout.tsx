@@ -7,6 +7,7 @@ import { useAuthContext } from "@/lib/auth-context"
 import ProviderSidebar from "@/components/provider-sidebar"
 import ProviderTopbar from "@/components/provider-topbar"
 import FloatingChatButton from "@/components/floating-chat-button"
+import { LocationBootstrap } from "@/components/geo/location-bootstrap"
 import { AccountSuspendedScreen } from "@/components/account-status/account-suspended-screen"
 import { DisputeBanner } from "@/components/account-status/dispute-banner"
 import { ShopRegistrationBanner } from "@/components/account-status/shop-registration-banner"
@@ -87,6 +88,11 @@ export default function SajiProLayout({ children }: { children: React.ReactNode 
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Upgrades this session's city-level IP position to a real GPS fix in
+          the background. Renders nothing and blocks nothing — the feed has
+          already been served from the IP origin by the time it runs. */}
+      <LocationBootstrap />
+
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-lg focus:bg-blue-600 focus:px-4 focus:py-2 focus:text-xs focus:font-medium focus:text-white"

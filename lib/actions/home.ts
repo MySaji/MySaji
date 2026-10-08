@@ -4,6 +4,12 @@ import type { Prisma } from "@prisma/client"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
 import { isShopCurrentlyOpen, formatShopHours, resolveShopHoursForToday } from "@/lib/format"
+import {
+  boundingBox, boundingBoxWhere, distanceFrom, proximityWhere, sortByDistance,
+  toCoordinates, type Coordinates,
+} from "@/lib/geo"
+import { distanceKmSql, withinRadiusSql } from "@/lib/geo-sql"
+import { getMyLocationOrigin, resolveLocationOrigin } from "@/lib/actions/geo"
 
 export type HomeServiceCategory = {
   id: string
@@ -58,7 +64,7 @@ export type HomeFeaturedShop = {
 
 type ShopWithPromotions = Prisma.ShopkeeperProfileGetPayload<{ include: { promotions: true } }>
 
-function mapShop(s: ShopWithPromotions): HomeFeaturedShop {
+function mapShop(s: ShopWithPromotions, origin: Coordinates | null = null): HomeFeaturedShop {
   return {
     id: s.id,
     name: s.shopName,
@@ -69,76 +75,50 @@ function mapShop(s: ShopWithPromotions): HomeFeaturedShop {
     isOpen: isShopCurrentlyOpen(resolveShopHoursForToday(s).openingTime, resolveShopHoursForToday(s).closingTime),
     hoursLabel: formatShopHours(resolveShopHoursForToday(s).openingTime, resolveShopHoursForToday(s).closingTime),
     hasSale: s.promotions.length > 0,
-    distanceKm: null,
+    distanceKm: distanceFrom(origin, toCoordinates(s.latitude, s.longitude)),
   }
-}
-
-const EARTH_RADIUS_KM = 6371
-
-function haversineKm(aLat: number, aLng: number, bLat: number, bLng: number): number {
-  const toRad = (deg: number) => (deg * Math.PI) / 180
-  const dLat = toRad(bLat - aLat)
-  const dLng = toRad(bLng - aLng)
-  const h =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(aLat)) * Math.cos(toRad(bLat)) * Math.sin(dLng / 2) ** 2
-  return 2 * EARTH_RADIUS_KM * Math.asin(Math.sqrt(h))
-}
-
-/** Fills in distanceKm for whichever shops have coordinates, measured from
- * the customer's default saved address. Straight-line, not travel distance
- * — there's no routing service wired up, and this is only ever used to
- * order/label "near me", never to quote a delivery. Returns the list
- * untouched when the customer has no coordinates saved. */
-async function withShopDistances(shops: HomeFeaturedShop[], customerId: string): Promise<HomeFeaturedShop[]> {
-  if (shops.length === 0) return shops
-
-  const home = await db.address.findFirst({
-    where: { userId: customerId, latitude: { not: null }, longitude: { not: null } },
-    orderBy: { isDefault: "desc" },
-  })
-  if (!home?.latitude || !home?.longitude) return shops
-
-  const owners = await db.shopkeeperProfile.findMany({
-    where: { id: { in: shops.map((s) => s.id) } },
-    select: { id: true, userId: true },
-  })
-  const userIdByShop = new Map(owners.map((o) => [o.id, o.userId]))
-
-  const shopAddresses = await db.address.findMany({
-    where: {
-      userId: { in: owners.map((o) => o.userId) },
-      type: "OFFICE",
-      latitude: { not: null },
-      longitude: { not: null },
-    },
-  })
-  const coordsByUser = new Map(shopAddresses.map((a) => [a.userId, a]))
-
-  const originLat = Number(home.latitude)
-  const originLng = Number(home.longitude)
-
-  return shops.map((shop) => {
-    const userId = userIdByShop.get(shop.id)
-    const addr = userId ? coordsByUser.get(userId) : undefined
-    if (!addr?.latitude || !addr?.longitude) return shop
-    const km = haversineKm(originLat, originLng, Number(addr.latitude), Number(addr.longitude))
-    return { ...shop, distanceKm: Math.round(km * 10) / 10 }
-  })
 }
 
 const SHOP_INCLUDE = { promotions: { where: { status: "ACTIVE" as const }, take: 1 } }
 const RECOMMENDED_SHOP_COUNT = 6
 
-async function topRatedShops(excludeIds: string[], take: number): Promise<HomeFeaturedShop[]> {
+/** Fills the Recommended Shops row, nearest-first when we know where the
+ *  viewer is. Falls back to a nationwide top-up when the proximity window
+ *  can't fill the row, so the section is never short — the same
+ *  near-then-widen shape as getNearbyProviders. */
+async function topRatedShops(
+  excludeIds: string[],
+  take: number,
+  origin: Coordinates | null = null,
+): Promise<HomeFeaturedShop[]> {
   if (take <= 0) return []
-  const shops = await db.shopkeeperProfile.findMany({
-    where: excludeIds.length > 0 ? { id: { notIn: excludeIds } } : undefined,
-    orderBy: [{ isFeatured: "desc" }, { rating: "desc" }],
-    take,
-    include: SHOP_INCLUDE,
-  })
-  return shops.map(mapShop)
+  const exclude = [...excludeIds]
+  const order = [{ isFeatured: "desc" as const }, { rating: "desc" as const }]
+
+  let shops: HomeFeaturedShop[] = []
+
+  if (origin) {
+    const near = await db.shopkeeperProfile.findMany({
+      where: { ...(exclude.length > 0 ? { id: { notIn: exclude } } : {}), ...proximityWhere(origin) },
+      orderBy: order,
+      take: take * 4,
+      include: SHOP_INCLUDE,
+    })
+    shops = sortByDistance(near.map((shop) => mapShop(shop, origin))).slice(0, take)
+    exclude.push(...shops.map((s) => s.id))
+  }
+
+  if (shops.length < take) {
+    const fill = await db.shopkeeperProfile.findMany({
+      where: exclude.length > 0 ? { id: { notIn: exclude } } : undefined,
+      orderBy: order,
+      take: take - shops.length,
+      include: SHOP_INCLUDE,
+    })
+    shops = [...shops, ...fill.map((shop) => mapShop(shop, origin))]
+  }
+
+  return shops
 }
 
 /** Real, activity-based shop recommendations: ranks shops by the customer's
@@ -149,8 +129,11 @@ async function topRatedShops(excludeIds: string[], take: number): Promise<HomeFe
  * so the section always shows at least RECOMMENDED_SHOP_COUNT shops. */
 export async function getRecommendedShops(): Promise<HomeFeaturedShop[]> {
   const session = await auth()
+  const origin = await getMyLocationOrigin()
   if (!session?.user?.id || session.user.role !== "customer") {
-    return topRatedShops([], RECOMMENDED_SHOP_COUNT)
+    // Signed-out and non-customer viewers still get proximity: the origin
+    // above falls back to this request's IP geolocation.
+    return topRatedShops([], RECOMMENDED_SHOP_COUNT, origin)
   }
 
   const customerId = session.user.id
@@ -184,138 +167,117 @@ export async function getRecommendedShops(): Promise<HomeFeaturedShop[]> {
   if (rankedIds.length > 0) {
     const rows = await db.shopkeeperProfile.findMany({ where: { id: { in: rankedIds } }, include: SHOP_INCLUDE })
     const byId = new Map(rows.map((r) => [r.id, r]))
-    shops = rankedIds.map((id) => byId.get(id)).filter((r): r is ShopWithPromotions => Boolean(r)).map(mapShop)
+    shops = rankedIds.map((id) => byId.get(id)).filter((r): r is ShopWithPromotions => Boolean(r)).map((shop) => mapShop(shop, origin))
   }
 
   if (shops.length < RECOMMENDED_SHOP_COUNT) {
-    shops = [...shops, ...(await topRatedShops(shops.map((s) => s.id), RECOMMENDED_SHOP_COUNT - shops.length))]
+    shops = [...shops, ...(await topRatedShops(shops.map((s) => s.id), RECOMMENDED_SHOP_COUNT - shops.length, origin))]
   }
 
-  return withShopDistances(shops, customerId)
+  // Every path above already measured its own distance while mapping, so the
+  // separate backfill query this used to end with is gone — it was a whole
+  // extra sequential round trip for numbers we were holding anyway.
+  return shops
 }
 
-export type MixedFeedShop = {
-  kind: "shop"
+/** Options for the shops browse page's "near me" filter.
+ *  `radiusKm` null means no distance filter — the full list, in the
+ *  featured/rating order it has always used. `origin` lets the page pass
+ *  the browser's own navigator.geolocation position, which is more accurate
+ *  than the saved address and is the only origin available to a signed-out
+ *  visitor; omitting it falls back to the saved default address. */
+export type ShopBrowseOptions = {
+  radiusKm?: number | null
+  origin?: Coordinates | null
+}
+
+export async function getAllShops(options: ShopBrowseOptions = {}): Promise<HomeFeaturedShop[]> {
+  const origin = options.origin ?? (await getMyLocationOrigin())
+  const radiusKm = options.radiusKm ?? null
+
+  // No usable origin means no distance to filter or sort on, so this stays
+  // exactly the query it was before the radius filter existed rather than
+  // silently returning nothing.
+  if (!origin || radiusKm == null) {
+    const shops = await db.shopkeeperProfile.findMany({
+      orderBy: [{ isFeatured: "desc" }, { rating: "desc" }],
+      include: SHOP_INCLUDE,
+    })
+    const mapped = shops.map((shop) => mapShop(shop, origin))
+    // Proximity is the default *ordering* even with no radius chosen: the
+    // list stays complete (nobody is filtered out, so it can never come back
+    // empty) but the shops the customer can actually walk to come first.
+    // Unlocated shops sort last rather than being hidden.
+    return origin ? sortByDistance(mapped) : mapped
+  }
+
+  // Radius search runs entirely in Postgres: ST_DWithin filters against the
+  // GiST index, ST_Distance measures, and ORDER BY sorts, so only the shops
+  // actually inside the circle cross the wire — already in order. Raw rather
+  // than Prisma because no ORM query language here can express a spatial
+  // predicate. See lib/geo-sql.ts.
+  const within = withinRadiusSql(origin.latitude, origin.longitude, radiusKm)
+  const distance = distanceKmSql(origin.latitude, origin.longitude)
+
+  const rows = await db.$queryRaw<NearbyShopRow[]>`
+    SELECT
+      s."id",
+      s."shopName",
+      s."shopLogoUrl",
+      s."shopCategory",
+      s."rating"::float8 AS "rating",
+      s."reviewCount",
+      s."openingTime", s."closingTime",
+      s."sundayOpeningTime", s."sundayClosingTime",
+      s."holidayOpeningTime", s."holidayClosingTime",
+      EXISTS (
+        SELECT 1 FROM "promotions" pr
+        WHERE pr."shopkeeperId" = s."id" AND pr."status" = 'ACTIVE'
+      ) AS "hasSale",
+      ${distance} AS "distanceKm"
+    FROM "shopkeeper_profiles" s
+    WHERE ${within}
+    ORDER BY ${distance} ASC
+  `
+
+  return rows.map(mapNearbyShopRow)
+}
+
+/** The shape the radius query above selects. Hand-written because a raw
+ *  query has no generated Prisma type to lean on. */
+type NearbyShopRow = {
   id: string
-  name: string
-  image: string | null
+  shopName: string
+  shopLogoUrl: string | null
+  shopCategory: string | null
   rating: number
-  reviews: number
-  isOpen: boolean
-  hoursLabel: string | null
+  reviewCount: number
+  openingTime: string | null
+  closingTime: string | null
+  sundayOpeningTime: string | null
+  sundayClosingTime: string | null
+  holidayOpeningTime: string | null
+  holidayClosingTime: string | null
   hasSale: boolean
+  distanceKm: number
 }
 
-export type MixedFeedProvider = {
-  kind: "provider"
-  providerId: string
-  name: string
-  avatar: string | null
-  verified: boolean
-  categoryName: string | null
-  rating: number
-  reviewCount: number
-  hourlyRate: number
-  location: string
-  specialties: string[]
-}
-
-export type MixedFeedBusiness = {
-  kind: "business"
-  providerId: string
-  name: string
-  avatar: string | null
-  verified: boolean
-  categoryName: string | null
-  rating: number
-  reviewCount: number
-  location: string
-  specialties: string[]
-  branchCount: number
-  staffCount: number
-  completedJobs: number
-}
-
-export type MixedFeedItem = MixedFeedShop | MixedFeedProvider | MixedFeedBusiness
-
-/** Interleaves the three real entity types the home page's "nearby"/
- * "recommended" rows show — shops, solo providers, and business-owner
- * providers — into one feed. There's no real geolocation on any of these
- * models, so (like getNearbyProviders) this is a top-rated preview, not an
- * actual distance sort. Business cards show real stats (branches, staff,
- * completed jobs) rather than the "Projects" concept, since Business-account
- * Projects has no real backing feature yet. */
-export async function getNearbyMixedFeed(take = 9, skip = 0): Promise<MixedFeedItem[]> {
-  const perKind = Math.max(2, Math.ceil(take / 3))
-  const perKindSkip = Math.floor(skip / 3)
-
-  const [shops, providers, businesses] = await Promise.all([
-    db.shopkeeperProfile.findMany({ orderBy: [{ isFeatured: "desc" }, { rating: "desc" }], take: perKind, skip: perKindSkip, include: SHOP_INCLUDE }),
-    db.providerProfile.findMany({
-      where: { verified: true, isBusinessOwner: false },
-      include: { user: true, category: true },
-      orderBy: { rating: "desc" },
-      take: perKind,
-      skip: perKindSkip,
-    }),
-    db.providerProfile.findMany({
-      where: { isBusinessOwner: true },
-      include: { user: true, category: true, _count: { select: { staff: true, branches: true } } },
-      orderBy: { rating: "desc" },
-      take: perKind,
-      skip: perKindSkip,
-    }),
-  ])
-
-  const shopItems: MixedFeedItem[] = shops.map((s) => ({ kind: "shop", ...mapShop(s) }))
-  const providerItems: MixedFeedItem[] = providers.map((p) => ({
-    kind: "provider",
-    providerId: p.id,
-    name: p.user.name,
-    avatar: p.user.image,
-    verified: p.verified,
-    categoryName: p.category?.name ?? null,
-    rating: Number(p.rating),
-    reviewCount: p.reviewCount,
-    hourlyRate: p.hourlyRate != null ? Number(p.hourlyRate) : 0,
-    location: p.workAreas[0] ?? p.location ?? "Nairobi",
-    specialties: p.skills.slice(0, 3),
-  }))
-  const businessItems: MixedFeedItem[] = businesses.map((b) => ({
-    kind: "business",
-    providerId: b.id,
-    name: b.businessName ?? b.user.name,
-    avatar: b.user.image,
-    verified: b.verified,
-    categoryName: b.category?.name ?? null,
-    rating: Number(b.rating),
-    reviewCount: b.reviewCount,
-    location: b.workAreas[0] ?? b.location ?? "Nairobi",
-    specialties: b.skills.slice(0, 3),
-    branchCount: b._count.branches,
-    staffCount: b._count.staff,
-    completedJobs: b.completedJobs,
-  }))
-
-  // Round-robin interleave (shop, provider, business, shop, ...) so the row
-  // reads as genuinely mixed rather than three blocks stitched together.
-  const merged: MixedFeedItem[] = []
-  const lanes = [shopItems, providerItems, businessItems]
-  for (let i = 0; merged.length < take && lanes.some((l) => l.length > i); i++) {
-    for (const lane of lanes) {
-      if (lane[i]) merged.push(lane[i])
-      if (merged.length >= take) break
-    }
+/** Same output shape as mapShop, but fed by the raw spatial query — the
+ *  trading-hours logic is shared so both paths describe a shop identically. */
+function mapNearbyShopRow(row: NearbyShopRow): HomeFeaturedShop {
+  const hours = resolveShopHoursForToday(row)
+  return {
+    id: row.id,
+    name: row.shopName,
+    image: row.shopLogoUrl,
+    category: row.shopCategory,
+    rating: Number(row.rating),
+    reviews: row.reviewCount,
+    isOpen: isShopCurrentlyOpen(hours.openingTime, hours.closingTime),
+    hoursLabel: formatShopHours(hours.openingTime, hours.closingTime),
+    hasSale: row.hasSale,
+    distanceKm: Math.round(row.distanceKm * 10) / 10,
   }
-  return merged
-}
-
-export async function getAllShops(): Promise<HomeFeaturedShop[]> {
-  const shops = await db.shopkeeperProfile.findMany({
-    orderBy: [{ isFeatured: "desc" }, { rating: "desc" }],
-    include: SHOP_INCLUDE,
-  })
-  return shops.map(mapShop)
 }
 
 export type RecommendedService = {
@@ -372,44 +334,4 @@ export async function getRecommendedServices(): Promise<RecommendedServices> {
       categoryName: category.name,
     })),
   }
-}
-
-export type NearbyProvider = {
-  providerId: string
-  name: string
-  avatar: string | null
-  verified: boolean
-  categoryName: string | null
-  rating: number
-  reviewCount: number
-  hourlyRate: number
-  location: string
-}
-
-/** Named for what customers actually browse for ("Nearby Providers" reads
- * naturally in the UI), but this is really a top-rated preview —
- * ProviderProfile has no latitude/longitude (only free-text
- * location/workAreas), so there is no real distance to sort or display by.
- * Shows the provider's real work-area text instead of a fabricated "X km
- * away". Mirrors lib/actions/specialists.ts's getSpecialists() query shape,
- * trimmed to what a homepage preview row needs. */
-export async function getNearbyProviders(take = 5): Promise<NearbyProvider[]> {
-  const providers = await db.providerProfile.findMany({
-    where: { verified: true },
-    include: { user: true, category: true },
-    orderBy: { rating: "desc" },
-    take,
-  })
-
-  return providers.map((p) => ({
-    providerId: p.id,
-    name: p.user.name,
-    avatar: p.user.image,
-    verified: p.verified,
-    categoryName: p.category?.name ?? null,
-    rating: Number(p.rating),
-    reviewCount: p.reviewCount,
-    hourlyRate: p.hourlyRate != null ? Number(p.hourlyRate) : 0,
-    location: p.workAreas[0] ?? p.location ?? "Nairobi",
-  }))
 }

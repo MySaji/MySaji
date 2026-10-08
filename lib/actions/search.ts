@@ -2,6 +2,8 @@
 
 import { db } from "@/lib/db"
 import { OFFER_ACTION_LABEL } from "@/lib/offer-constants"
+import { distanceFrom, sortByDistance, toCoordinates } from "@/lib/geo"
+import { getMyLocationOrigin } from "@/lib/actions/geo"
 
 export type SearchProductResult = {
   id: string
@@ -26,6 +28,9 @@ export type SearchShopResult = {
   name: string
   image: string | null
   rating: number
+  /** Straight-line km from the searcher, so matches they can actually reach
+   *  come first. Null when either side is unlocated. */
+  distanceKm: number | null
 }
 
 export type SearchOfferResult = {
@@ -66,7 +71,11 @@ export async function unifiedSearch(query: string): Promise<UnifiedSearchResult>
   const q = query.trim()
   if (!q) return { products: [], services: [], shops: [], offers: [], rentals: [] }
 
-  const [products, services, shops, offerRows] = await Promise.all([
+  // Resolved alongside the queries rather than before them — it is one
+  // indexed lookup and must not add a serial round trip to a search.
+  const [origin, [products, services, shops, offerRows]] = await Promise.all([
+    getMyLocationOrigin(),
+    Promise.all([
     db.product.findMany({
       where: {
         isActive: true,
@@ -105,7 +114,7 @@ export async function unifiedSearch(query: string): Promise<UnifiedSearchResult>
       include: { provider: { include: { user: { select: { name: true } } } } },
       take: RESULTS_PER_ENTITY * 2,
     }),
-  ])
+  ])])
 
   const offers = offerRows.filter((o) => o.actionType !== "RENT").slice(0, RESULTS_PER_ENTITY)
   const rentals = offerRows.filter((o) => o.actionType === "RENT").slice(0, RESULTS_PER_ENTITY)
@@ -127,12 +136,16 @@ export async function unifiedSearch(query: string): Promise<UnifiedSearchResult>
       rating: Number(s.rating),
       price: Number(s.basePrice),
     })),
-    shops: shops.map((s) => ({
+    // Nearest matching shop first — a name match 400 km away is almost never
+    // the one the searcher meant. Unlocated shops keep their relevance order
+    // at the end rather than being dropped.
+    shops: sortByDistance(shops.map((s) => ({
       id: s.id,
       name: s.shopName,
       image: s.shopLogoUrl,
       rating: Number(s.rating),
-    })),
+      distanceKm: distanceFrom(origin, toCoordinates(s.latitude, s.longitude)),
+    }))),
     offers: offers.map((o) => ({
       offerId: o.id,
       title: o.title,

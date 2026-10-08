@@ -424,6 +424,18 @@ model RateLimitAttempt {
 // the fully-fake login flow, and the mismatched saji_user/saji-user keys.
 // =========================================================================
 
+/// How a user's last known position was obtained, in descending order of
+/// accuracy. GPS is a browser fix (metres); ADDRESS is a place the user
+/// themselves picked from autocomplete (tens of metres); IP is Vercel's
+/// edge geolocation (city level, 5-50 km, and wrong behind a VPN or some
+/// mobile carriers). Stored so the UI can say "approximate" honestly and so
+/// a coarse IP guess never overwrites a precise fix.
+enum LocationSource {
+  GPS
+  ADDRESS
+  IP
+}
+
 model User {
   id            String    @id @default(cuid())
   name          String
@@ -451,6 +463,18 @@ model User {
   notificationPreferences Json?
   lastDigestSentAt DateTime?
   coinBalance   Int       @default(0)
+
+  /// Where this account was last known to be, so "people near me" works on
+  /// the very first page after login instead of after a permission prompt.
+  /// Written by updateMyLocation (precise, browser GPS) and opportunistically
+  /// by the IP fallback in lib/actions/geo.ts. `locationSource` records which
+  /// of those it came from, because they differ by three orders of magnitude
+  /// in accuracy and the UI must not present a city-level guess as a precise
+  /// fix. Null for an account that has never resolved a location at all.
+  lastKnownLatitude     Decimal?        @db.Decimal(9, 6)
+  lastKnownLongitude    Decimal?        @db.Decimal(9, 6)
+  locationSource        LocationSource?
+  lastLocationUpdatedAt DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   deletedAt     DateTime?
@@ -619,6 +643,16 @@ model ProviderProfile {
   verified            Boolean    @default(false)
   skills              String[]
   workAreas           String[]
+  /// Where the provider is based, as coordinates. `location`/`workAreas`
+  /// above are free text a human typed and cannot be measured against
+  /// anything; these are what "providers near me" actually sorts and
+  /// filters on. Set alongside `location` by updateMyAccount in
+  /// lib/actions/provider-account.ts. Null for any provider who has not
+  /// picked a place from the address autocomplete, and meaningless for a
+  /// REMOTE provider, so both cases are excluded from radius results
+  /// rather than defaulted to a city centre.
+  latitude            Decimal?   @db.Decimal(9, 6)
+  longitude           Decimal?   @db.Decimal(9, 6)
   affiliatedShopId    String?
   // Business-onboarding branch (see StaffInvite below): a provider who
   // chose "Business" instead of "Solo Pro" at onboarding sets these and
@@ -699,6 +733,8 @@ model ProviderProfile {
   @@index([categoryId])
   @@index([affiliatedShopId])
   @@index([parentBusinessId])
+  // Same bounding-box prefilter as shopkeeper_profiles above.
+  @@index([latitude, longitude])
   @@map("provider_profiles")
 }
 
@@ -1005,6 +1041,15 @@ model ShopkeeperProfile {
   shopLogoUrl     String?
   businessLicense String?
   kraPin          String?
+  /// Where the shop physically is. Previously these lived only on an
+  /// Address row with type "OFFICE" owned by the shopkeeper's User, which
+  /// meant "shops near me" could not be expressed as a query on this table
+  /// at all — every shop had to be fetched and joined in JS first. Kept in
+  /// sync with that Address row by updateMyShopAccount so nothing that
+  /// still reads the address breaks. Null until the shopkeeper sets a
+  /// location, so every consumer must handle a shop with no coordinates.
+  latitude        Decimal? @db.Decimal(9, 6)
+  longitude       Decimal? @db.Decimal(9, 6)
   rating          Decimal  @default(0) @db.Decimal(3, 2)
   reviewCount     Int      @default(0)
   totalSales      Decimal  @default(0) @db.Decimal(14, 2)
@@ -1048,6 +1093,11 @@ model ShopkeeperProfile {
   blockedCustomers           BlockedShopCustomer[]
   wishlistedBy               WishlistItem[]      @relation("WishlistedShop")
 
+  // Supports the bounding-box prefilter in lib/geo.ts: a radius search
+  // narrows on these two columns in SQL before any exact haversine runs in
+  // JS, so "shops within 5 km" never fetches the whole table. Plain B-tree,
+  // not a spatial index — PostGIS is not enabled on this database.
+  @@index([latitude, longitude])
   @@map("shopkeeper_profiles")
 }
 
@@ -2362,6 +2412,15 @@ model CustomerRequest {
   budgetMin   Decimal?              @db.Decimal(12, 2)
   budgetMax   Decimal?              @db.Decimal(12, 2)
   location    String
+  /// Coordinate snapshot of `location`, taken when the request was posted,
+  /// so the provider-facing board can order by "work near me" — the same
+  /// shape Job already uses. Snapshotted rather than read off the customer
+  /// live, because a request is for a place and the customer may since have
+  /// moved. Null for requests posted before this existed and for anyone
+  /// whose location could not be resolved; the board falls back to the
+  /// customer's own last known position for those.
+  latitude    Decimal?              @db.Decimal(9, 6)
+  longitude   Decimal?              @db.Decimal(9, 6)
   status      CustomerRequestStatus @default(OPEN)
   createdAt   DateTime              @default(now())
   expiresAt   DateTime
@@ -2377,6 +2436,7 @@ model CustomerRequest {
   @@index([customerId])
   @@index([categoryId])
   @@index([status])
+  @@index([latitude, longitude])
   @@map("customer_requests")
 }
 

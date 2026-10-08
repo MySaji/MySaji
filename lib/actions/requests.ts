@@ -8,6 +8,8 @@ import { requireVerified } from "@/lib/verification-gate"
 import { getOrCreateConversation } from "@/lib/actions/messages"
 import { pushToUser } from "@/lib/actions/push"
 import { logJobEvent } from "@/lib/actions/job-events"
+import { distanceFrom, sortByDistance, toCoordinates } from "@/lib/geo"
+import { resolveLocationOrigin, getMyLocationOrigin } from "@/lib/actions/geo"
 
 const REQUEST_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000
 const MAX_NOTIFIED_PROVIDERS = 15
@@ -122,6 +124,11 @@ export async function createCustomerRequest(input: unknown): Promise<CreateReque
   const category = await db.category.findUnique({ where: { id: categoryId } })
   if (!category) return { success: false, error: "Invalid category." }
 
+  // Snapshot where this request is, so the provider board can order by
+  // "work near me". Best effort: a request whose location can't be resolved
+  // is still posted, it just sorts after the located ones.
+  const origin = await resolveLocationOrigin()
+
   const request = await db.customerRequest.create({
     data: {
       customerId: session.user.id,
@@ -131,6 +138,8 @@ export async function createCustomerRequest(input: unknown): Promise<CreateReque
       budgetMin,
       budgetMax,
       location,
+      latitude: origin?.latitude,
+      longitude: origin?.longitude,
       photos: photos?.length ? { create: photos.map((dataUrl) => ({ dataUrl })) } : undefined,
       expiresAt: new Date(Date.now() + REQUEST_LIFETIME_MS),
     },
@@ -307,6 +316,9 @@ export type BoardRequestItem = {
   budgetMax: number | null
   location: string
   responseCount: number
+  /// Straight-line km from the responder to the work. Null when either side
+  /// is unlocated — the card omits the line rather than claiming 0 km.
+  distanceKm: number | null
   /// Count only — the photos themselves are fetched when a provider opens the
   /// request, so a board of ten requests is not tens of megabytes of base64.
   photoCount: number
@@ -347,10 +359,18 @@ export async function getOpenRequestsBoard(): Promise<BoardRequestItem[]> {
       category: { select: { name: true } },
       _count: { select: { responses: true, photos: true } },
       responses: { where: { responderId: session.user.id }, select: { price: true, status: true } },
+      // Falls back to where the customer is for requests posted before
+      // requests carried their own coordinates.
+      customer: { select: { lastKnownLatitude: true, lastKnownLongitude: true } },
     },
   })
 
-  return requests.map((r) => ({
+  // Where this provider or shopkeeper is, so the board leads with work they
+  // can actually get to. Requests with no resolvable location keep their
+  // recency order at the end rather than being hidden.
+  const origin = await getMyLocationOrigin()
+
+  const items = requests.map((r) => ({
     id: r.id,
     title: r.title,
     description: r.description,
@@ -359,11 +379,18 @@ export async function getOpenRequestsBoard(): Promise<BoardRequestItem[]> {
     budgetMax: r.budgetMax != null ? Number(r.budgetMax) : null,
     location: r.location,
     responseCount: r._count.responses,
+    distanceKm: distanceFrom(
+      origin,
+      toCoordinates(r.latitude, r.longitude)
+        ?? toCoordinates(r.customer.lastKnownLatitude, r.customer.lastKnownLongitude),
+    ),
     photoCount: r._count.photos,
     myResponse: r.responses[0] ? { price: Number(r.responses[0].price), status: r.responses[0].status } : null,
     createdAt: r.createdAt.toISOString(),
     expiresAt: r.expiresAt.toISOString(),
   }))
+
+  return origin ? sortByDistance(items) : items
 }
 
 /**

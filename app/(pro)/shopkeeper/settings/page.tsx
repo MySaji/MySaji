@@ -20,6 +20,7 @@ import { useLocalization } from "@/lib/hooks/useLocalization"
 import type { Language } from "@/lib/i18n"
 import type { CurrencyCode } from "@/lib/currency"
 import { NotificationPreferencesCard } from "@/components/settings/notification-preferences-card"
+import { AddressAutocompleteInput, type PlaceResult } from "@/components/maps/address-autocomplete-input"
 
 export default function ShopkeeperSettingsPage() {
   const { t, language, setLanguage, currency, setCurrency } = useLocalization()
@@ -34,9 +35,11 @@ export default function ShopkeeperSettingsPage() {
     sundayOpeningTime: "", sundayClosingTime: "", holidayOpeningTime: "", holidayClosingTime: "" })
   const [isSavingAccount, setIsSavingAccount] = useState(false)
   const [accountError, setAccountError] = useState("")
-  // Shop coordinates are captured from the device rather than geocoded from
-  // the address text — there's no geocoding service configured — and they're
-  // what lets customers see a real distance to this shop.
+  // Shop coordinates come from one of two places: the shopkeeper picking
+  // their shop out of Google Places autocomplete, or tapping "use my current
+  // location" while standing in it. They're what lets customers see a real
+  // distance to this shop and find it by radius — a shop without them is
+  // absent from every "near me" result, which is what pinMissing warns about.
   const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null)
   const [isLocating, setIsLocating] = useState(false)
 
@@ -92,6 +95,14 @@ export default function ShopkeeperSettingsPage() {
     setIsSavingAccount(false)
     if (!result.success) { setAccountError(result.error); return }
     flashSuccess()
+  }
+
+  // Picking a place fills the address text and the pin in one action, so a
+  // shopkeeper no longer has to be physically in the shop to be findable.
+  const handlePlaceSelected = (place: PlaceResult) => {
+    setAccountForm((prev) => ({ ...prev, location: place.address }))
+    setCoords({ latitude: place.latitude, longitude: place.longitude })
+    setAccountError("")
   }
 
   const handleUseCurrentLocation = () => {
@@ -344,9 +355,11 @@ export default function ShopkeeperSettingsPage() {
                       <MapPin className="w-5 h-5 text-amber-600 flex-shrink-0 mt-1" />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs text-muted-foreground">{t("shopkeeper.settings.shopLocationLabel")}</p>
-                        <Input
+                        <AddressAutocompleteInput
                           value={accountForm.location}
-                          onChange={(e) => setAccountForm({ ...accountForm, location: e.target.value })}
+                          onChange={(value) => setAccountForm({ ...accountForm, location: value })}
+                          onPlaceSelected={handlePlaceSelected}
+                          placeholder={t("shopkeeper.settings.shopLocationPlaceholder")}
                           className="mt-1 bg-white dark:bg-gray-700"
                         />
                         <div className="mt-2 flex flex-wrap items-center gap-2">

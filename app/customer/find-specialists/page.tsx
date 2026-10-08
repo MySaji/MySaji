@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -16,6 +16,8 @@ import {
 import NextImage from "next/image"
 import Link from "next/link"
 import { getSpecialists, getSpecialistDetail, type SpecialistCard, type SpecialistDetail } from "@/lib/actions/specialists"
+import { getMyLocationOrigin } from "@/lib/actions/geo"
+import { RadiusFilter, type RadiusSelection } from "@/components/geo/radius-filter"
 import { getServiceCategories, type HomeServiceCategory } from "@/lib/actions/home"
 import { toggleWishlist } from "@/lib/actions/wishlist"
 import { useLocalization } from "@/lib/hooks/useLocalization"
@@ -42,7 +44,8 @@ export default function FindSpecialistsPage() {
   const searchParams = useSearchParams()
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedSkill, setSelectedSkill] = useState("All")
-  const [selectedLocation, setSelectedLocation] = useState("")
+  const [radius, setRadius] = useState<RadiusSelection>({ radiusKm: null, origin: null })
+  const [hasSavedOrigin, setHasSavedOrigin] = useState(false)
   const [availableOnly, setAvailableOnly] = useState(false)
   const [vettedOnly, setVettedOnly] = useState(false)
   const [selectedSpecialist, setSelectedSpecialist] = useState<SpecialistDetail>(null)
@@ -58,25 +61,21 @@ export default function FindSpecialistsPage() {
   const [categories, setCategories] = useState<HomeServiceCategory[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
-  const detectLocation = useCallback(() => {
-    if (!navigator.geolocation) { setSelectedLocation(t("customer.findSpecialists.anywhere")); return }
-    navigator.geolocation.getCurrentPosition(
-      () => setSelectedLocation(t("customer.findSpecialists.nearYou")),
-      () => setSelectedLocation(t("customer.findSpecialists.anywhere")),
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
-    )
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Categories are fetched once; specialists refetch whenever the radius or
+  // origin changes, since the distance filter runs in SQL (see getSpecialists).
+  useEffect(() => {
+    getServiceCategories().then(setCategories)
+    getMyLocationOrigin().then((origin) => setHasSavedOrigin(origin != null))
   }, [])
 
   useEffect(() => {
-    detectLocation()
-    Promise.all([getSpecialists(), getServiceCategories()])
-      .then(([specialistList, categoryList]) => {
-        setSpecialists(specialistList)
-        setCategories(categoryList)
-      })
-      .finally(() => setIsLoading(false))
-  }, [detectLocation])
+    setIsLoading(true)
+    let cancelled = false
+    getSpecialists({ radiusKm: radius.radiusKm, origin: radius.origin })
+      .then((rows) => { if (!cancelled) setSpecialists(rows) })
+      .finally(() => { if (!cancelled) setIsLoading(false) })
+    return () => { cancelled = true }
+  }, [radius.radiusKm, radius.origin])
 
   const skills = ["All", ...categories.map((c) => c.name)]
 
@@ -157,12 +156,12 @@ export default function FindSpecialistsPage() {
             <div className="flex-1 min-w-0">
               <h1 className="text-base font-bold text-foreground">{t("customer.layout.navFindSpecialists")}</h1>
               <p className="text-[11px] text-muted-foreground flex items-center gap-1 truncate">
-                <LocateFixed className="w-3 h-3 flex-shrink-0" /> <span className="truncate">{selectedLocation || t("customer.findSpecialists.detecting")} -- {tn("customer.findSpecialists.specialistsFound", filtered.length)}</span>
+                <LocateFixed className="w-3 h-3 flex-shrink-0" /> <span className="truncate">{radius.radiusKm != null ? t("nearby.within", { km: radius.radiusKm }) : t("nearby.off")} -- {tn("customer.findSpecialists.specialistsFound", filtered.length)}</span>
               </p>
             </div>
             <button onClick={() => setShowFilters(!showFilters)} className="p-2.5 bg-muted rounded-xl hover:bg-muted/80 transition-colors relative">
               <Filter className="w-4 h-4 text-foreground" />
-              {(vettedOnly || availableOnly) && <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-primary rounded-full" />}
+              {(vettedOnly || availableOnly || radius.radiusKm != null) && <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-primary rounded-full" />}
             </button>
           </div>
 
@@ -220,6 +219,12 @@ export default function FindSpecialistsPage() {
                 <Shield className="w-3 h-3" />
                 {t("customer.findSpecialists.verifiedOnly")}
               </button>
+              <RadiusFilter
+                value={radius}
+                onChange={setRadius}
+                hasSavedOrigin={hasSavedOrigin}
+                className="w-full"
+              />
             </div>
           )}
         </div>
@@ -230,8 +235,12 @@ export default function FindSpecialistsPage() {
         {filtered.length === 0 ? (
           <Card className="p-10 text-center border-0 shadow-sm">
             <Search className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-            <p className="font-semibold text-foreground mb-1">{t("customer.findSpecialists.noneFound")}</p>
-            <p className="text-xs text-muted-foreground">{t("customer.findSpecialists.adjustFilters")}</p>
+            <p className="font-semibold text-foreground mb-1">
+              {radius.radiusKm != null ? t("nearby.emptyRadius", { km: radius.radiusKm }) : t("customer.findSpecialists.noneFound")}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {radius.radiusKm != null ? t("nearby.emptyRadiusHint") : t("customer.findSpecialists.adjustFilters")}
+            </p>
           </Card>
         ) : (
           <div className="grid gap-3 lg:grid-cols-2">
@@ -269,6 +278,9 @@ export default function FindSpecialistsPage() {
                         <span>({s.reviewCount})</span>
                       </span>
                       <span className="flex items-center gap-0.5 min-w-0"><MapPin className="w-3 h-3 flex-shrink-0" /><span className="truncate">{s.location}</span></span>
+                      {s.distanceKm != null && (
+                        <span className="text-primary font-medium whitespace-nowrap">{t("nearby.distanceAway", { km: s.distanceKm })}</span>
+                      )}
                       <span className="flex items-center gap-0.5 flex-shrink-0"><Briefcase className="w-3 h-3" />{s.completedJobs}</span>
                     </div>
 

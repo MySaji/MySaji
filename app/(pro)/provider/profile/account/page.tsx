@@ -10,6 +10,7 @@ import {
 } from "@/lib/actions/provider-account"
 import { getMyProviderBusinessInfo, completeBusinessOnboarding, type ProviderBusinessInfo } from "@/lib/actions/provider-business"
 import { useLocalization } from "@/lib/hooks/useLocalization"
+import { AddressAutocompleteInput, type PlaceResult } from "@/components/maps/address-autocomplete-input"
 
 export default function MyAccountPage() {
   const { t } = useLocalization()
@@ -18,6 +19,12 @@ export default function MyAccountPage() {
   const [formData, setFormData] = useState({ firstName: "", lastName: "", email: "", phone: "", location: "" })
   const [isSaving, setIsSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  // Coordinates for the location text above. Only set by picking a place out
+  // of the autocomplete — free-typed text clears them (see handleLocationText)
+  // rather than leaving the provider pinned somewhere they no longer claim.
+  // A provider without coordinates simply doesn't appear in customers'
+  // radius searches; they are never defaulted to a city centre.
+  const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null)
 
   const [linkedShop, setLinkedShop] = useState<LinkedShop>(null)
   const [shopQuery, setShopQuery] = useState("")
@@ -35,7 +42,11 @@ export default function MyAccountPage() {
 
   useEffect(() => {
     getMyAccount().then((data) => {
-      if (data) setFormData({ firstName: data.firstName, lastName: data.lastName, email: data.email, phone: data.phone ?? "", location: data.location })
+      if (!data) return
+      setFormData({ firstName: data.firstName, lastName: data.lastName, email: data.email, phone: data.phone ?? "", location: data.location })
+      if (data.latitude != null && data.longitude != null) {
+        setCoords({ latitude: data.latitude, longitude: data.longitude })
+      }
     }).finally(() => setIsLoading(false))
     getMyLinkedShop().then(setLinkedShop)
     getMyProviderBusinessInfo().then(setBusinessInfo)
@@ -84,9 +95,21 @@ export default function MyAccountPage() {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
+  const handlePlaceSelected = (place: PlaceResult) => {
+    setFormData((prev) => ({ ...prev, location: place.address }))
+    setCoords({ latitude: place.latitude, longitude: place.longitude })
+  }
+
+  /** Editing the text by hand invalidates the pin — the two must describe the
+   *  same place, and there's no geocoder here to re-derive one from text. */
+  const handleLocationText = (value: string) => {
+    setFormData((prev) => ({ ...prev, location: value }))
+    setCoords(null)
+  }
+
   const handleSave = async () => {
     setIsSaving(true)
-    const result = await updateMyAccount({ firstName: formData.firstName, lastName: formData.lastName, phone: formData.phone, location: formData.location })
+    const result = await updateMyAccount({ firstName: formData.firstName, lastName: formData.lastName, phone: formData.phone, location: formData.location, ...(coords ?? {}) })
     setIsSaving(false)
     if (result.success) {
       setSaved(true)
@@ -160,7 +183,18 @@ export default function MyAccountPage() {
               <MapPin className="w-5 h-5" />
               {t("provider.account.locationTitle")}
             </h2>
-            <input type="text" name="location" value={formData.location} onChange={handleChange} placeholder={t("provider.account.locationPlaceholder")} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
+            <AddressAutocompleteInput
+              value={formData.location}
+              onChange={handleLocationText}
+              onPlaceSelected={handlePlaceSelected}
+              placeholder={t("provider.account.locationPlaceholder")}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            />
+            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5">
+              {coords
+                ? t("provider.account.locationPinned", { lat: coords.latitude.toFixed(5), lng: coords.longitude.toFixed(5) })
+                : t("provider.account.locationPinMissing")}
+            </p>
           </div>
 
           {/* Linked Shop */}

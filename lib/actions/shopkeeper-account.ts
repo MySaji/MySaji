@@ -4,6 +4,7 @@ import { z } from "zod"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
 import { verifyPassword, hashPassword } from "@/lib/password"
+import { firstCoordinate } from "@/lib/geo"
 
 export type ShopkeeperAccountData = {
   shopName: string
@@ -11,8 +12,9 @@ export type ShopkeeperAccountData = {
   email: string
   phone: string | null
   location: string
-  // Null until the shopkeeper taps "use my current location" — customers
-  // only see a distance to shops that have these.
+  // Null until the shopkeeper either picks their shop from the address
+  // autocomplete or taps "use my current location" — customers only see a
+  // distance to, and can only find by radius, shops that have these.
   latitude: number | null
   longitude: number | null
   shopDescription: string
@@ -57,8 +59,11 @@ export async function getMyShopAccount(): Promise<ShopkeeperAccountData> {
     email: user.email,
     phone: user.phone,
     location: address ? [address.address, address.city].filter(Boolean).join(", ") : "",
-    latitude: address?.latitude != null ? Number(address.latitude) : null,
-    longitude: address?.longitude != null ? Number(address.longitude) : null,
+    // The profile columns are the source of truth; the OFFICE address is
+    // only still consulted for shops saved before those columns existed and
+    // not yet covered by scripts/backfill-profile-coordinates.js.
+    latitude: firstCoordinate(profile.latitude, address?.latitude),
+    longitude: firstCoordinate(profile.longitude, address?.longitude),
     shopDescription: profile.shopDescription ?? "",
     shopCategory: profile.shopCategory ?? "",
     businessLicense: profile.businessLicense ?? "",
@@ -94,9 +99,9 @@ const updateAccountSchema = z.object({
   businessLicense: z.string().trim().optional(),
   phone: z.string().trim().optional(),
   location: z.string().trim().optional(),
-  // Captured from the shopkeeper's device (they're standing in the shop),
-  // not geocoded from the text above — there's no geocoding service wired
-  // up here. Both must arrive together to be stored.
+  // Either picked from Google Places autocomplete alongside the text above,
+  // or captured from the shopkeeper's device while they stand in the shop.
+  // Both halves must arrive together to be stored.
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
   openingTime: timeSchema,
@@ -136,6 +141,10 @@ export async function updateMyShopAccount(input: unknown): Promise<ShopkeeperAcc
         holidayClosingTime: holidayClosingTime !== undefined ? (holidayClosingTime || null) : undefined,
         closingTime: closingTime !== undefined ? (closingTime || null) : undefined,
         deliveryFee: deliveryFee ?? undefined,
+        // Mirrored onto the OFFICE Address row below. These columns are what
+        // customer-facing radius search actually queries (see getAllShops),
+        // because a filter cannot reach through a join to another table.
+        ...coords,
       },
     })
 

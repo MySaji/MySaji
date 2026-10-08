@@ -11,6 +11,12 @@ export type ProviderAccountData = {
   email: string
   phone: string | null
   location: string
+  // Coordinates for the `location` text above. Null for every provider who
+  // typed a place name rather than picking one from the autocomplete — a
+  // provider without these is simply absent from radius results, never
+  // defaulted to a city centre.
+  latitude: number | null
+  longitude: number | null
 } | null
 
 export async function getMyAccount(): Promise<ProviderAccountData> {
@@ -27,6 +33,8 @@ export async function getMyAccount(): Promise<ProviderAccountData> {
     email: user.email,
     phone: user.phone,
     location: user.providerProfile?.location ?? "",
+    latitude: user.providerProfile?.latitude != null ? Number(user.providerProfile.latitude) : null,
+    longitude: user.providerProfile?.longitude != null ? Number(user.providerProfile.longitude) : null,
   }
 }
 
@@ -37,6 +45,10 @@ const updateAccountSchema = z.object({
   lastName: z.string().trim().optional(),
   phone: z.string().trim().optional(),
   location: z.string().trim().max(200).optional(),
+  // Set together by the address autocomplete on the account page. Both
+  // halves must arrive for either to be stored.
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
 })
 
 export async function updateMyAccount(input: unknown): Promise<ProviderAccountActionResult> {
@@ -45,12 +57,21 @@ export async function updateMyAccount(input: unknown): Promise<ProviderAccountAc
 
   const parsed = updateAccountSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
-  const { firstName, lastName, phone, location } = parsed.data
+  const { firstName, lastName, phone, location, latitude, longitude } = parsed.data
   const name = [firstName, lastName].filter(Boolean).join(" ")
+  const coords = latitude != null && longitude != null ? { latitude, longitude } : {}
+  // Clearing the location text clears the coordinates with it, rather than
+  // leaving the provider pinned to a place they no longer claim to work in.
+  const clearedCoords = location !== undefined && location.trim().length === 0
+    ? { latitude: null, longitude: null }
+    : {}
 
   await db.$transaction([
     db.user.update({ where: { id: session.user.id }, data: { name, phone: phone || undefined } }),
-    db.providerProfile.updateMany({ where: { userId: session.user.id }, data: { location: location || null } }),
+    db.providerProfile.updateMany({
+      where: { userId: session.user.id },
+      data: { location: location || null, ...clearedCoords, ...coords },
+    }),
   ])
 
   return { success: true }

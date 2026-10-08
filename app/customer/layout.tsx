@@ -19,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
 import FloatingChatButton from "@/components/floating-chat-button"
+import { LocationBootstrap } from "@/components/geo/location-bootstrap"
 import { AccountMenu } from "@/components/account-menu"
 import { AccountSuspendedScreen } from "@/components/account-status/account-suspended-screen"
 import { DisputeBanner } from "@/components/account-status/dispute-banner"
@@ -126,6 +127,11 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Upgrades this session's city-level IP position to a real GPS fix in
+          the background. Renders nothing and blocks nothing — the feed has
+          already been served from the IP origin by the time it runs. */}
+      <LocationBootstrap />
+
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-xs focus:font-medium focus:text-primary-foreground"
