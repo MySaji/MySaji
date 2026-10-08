@@ -30,6 +30,14 @@ export type UseGeofenceOptions = {
   follow?: boolean
   /** Skip the pull entirely (a section that is collapsed, say). */
   enabled?: boolean
+  /**
+   * Re-pull on this interval, in milliseconds. Off by default: most
+   * sections are a snapshot and polling them would be pure cost. Set it
+   * where the answer genuinely changes underneath the viewer — someone
+   * waiting on "who can help me right now" needs a provider who just came
+   * online to appear without a manual refresh.
+   */
+  refreshIntervalMs?: number
 }
 
 export type UseGeofenceReturn = {
@@ -42,6 +50,9 @@ export type UseGeofenceReturn = {
   hasPreciseCentre: boolean
   /** Re-pull immediately, keeping the current centre. */
   refresh: () => void
+  /** When the current data arrived, so a live view can say how fresh it is
+   *  rather than implying everything is instantaneous. */
+  updatedAt: Date | null
 }
 
 /**
@@ -68,6 +79,7 @@ export function useGeofence(options: UseGeofenceOptions = {}): UseGeofenceReturn
     limit,
     follow = false,
     enabled = true,
+    refreshIntervalMs = 0,
   } = options
 
   // null until the browser gives us something; the server fills the gap.
@@ -119,7 +131,7 @@ export function useGeofence(options: UseGeofenceOptions = {}): UseGeofenceReturn
     ? `geofence:${keyCentre}:${radiusKm}:${(kinds ?? ["all"]).join("+")}:${limit ?? "default"}`
     : null
 
-  const { data, isLoading, mutate } = useSWR(
+  const { data, isLoading, mutate, isValidating } = useSWR(
     key,
     () => queryGeofence({
       fence: centreRef.current ? { ...centreRef.current, radiusKm } : { radiusKm },
@@ -130,14 +142,30 @@ export function useGeofence(options: UseGeofenceOptions = {}): UseGeofenceReturn
       // Nearby results do not change second to second, and this is the
       // request the whole page waits on.
       revalidateOnFocus: false,
-      dedupingInterval: 60_000,
+      // A poll must not be swallowed by deduping, so the dedupe window
+      // tracks the interval when one is set.
+      dedupingInterval: refreshIntervalMs > 0 ? Math.min(refreshIntervalMs, 10_000) : 60_000,
+      refreshInterval: refreshIntervalMs,
+      // SWR pauses polling on a hidden tab by default, which is what we
+      // want: nobody needs their phone querying the database in a pocket.
       keepPreviousData: true,
     },
   )
 
+  // Stamped every time a fetch settles with data, which is what "last
+  // updated" means to a viewer. Done in an effect rather than during render
+  // so polling actually advances it, and so render stays free of side
+  // effects.
+  const [updatedAt, setUpdatedAt] = useState<Date | null>(null)
+  useEffect(() => {
+    if (data === undefined || isValidating) return
+    setUpdatedAt(new Date())
+  }, [data, isValidating])
+
   return {
     data,
     isLoading,
+    updatedAt,
     fence: data?.fence ?? null,
     hasPreciseCentre: data?.centreFrom === "CLIENT" || data?.centreFrom === "GPS",
     refresh: () => { void mutate() },

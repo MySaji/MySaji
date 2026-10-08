@@ -9,8 +9,9 @@ import { useAuthContext } from "@/lib/auth-context"
 import {
   Search, Mic, MicOff, ChevronRight, Heart, Star, Wrench, ShoppingCart,
   House, Car, GraduationCap, MapPin, SquarePen, Flame, Package, Clock,
-  CheckCircle2, AlertCircle, Calendar, ShieldCheck,
+  CheckCircle2, AlertCircle, Calendar, ShieldCheck, Radio,
 } from "lucide-react"
+import { Input } from "@/components/ui/input"
 import { getRecommendedShops, type HomeFeaturedShop } from "@/lib/actions/home"
 import { getCustomerJobs, type CustomerJob } from "@/lib/actions/jobs"
 import { getRecentOrders, type CustomerOrder } from "@/lib/actions/orders"
@@ -347,23 +348,50 @@ function QuickActionsSection() {
 function SolveAProblemSection() {
   const { t } = useLocalization()
   const router = useRouter()
+  const [described, setDescribed] = useState("")
 
-  // Speaking the problem lands in the Post Board composer with the
-  // transcript already in the description field, so the voice path ends
-  // somewhere real rather than just filling a box on this page.
-  const voice = useVoiceInput((transcript) => {
-    router.push(`/customer/requests?describe=${encodeURIComponent(transcript)}`)
-  })
+  /** Straight to the live 5 km view, skipping the browse-and-compose path.
+   *  The request board is still one tap away from there, for the case the
+   *  radius cannot answer: nobody online nearby who does this work. */
+  const findNow = (text: string) => {
+    const q = text.trim()
+    router.push(`/customer/find-now${q ? `?q=${encodeURIComponent(q)}` : ""}`)
+  }
+
+  // Speaking the problem now goes the same way as typing it, rather than
+  // landing in the composer — the spoken case is the one most likely to be
+  // urgent, so it should reach people fastest.
+  const voice = useVoiceInput((transcript) => findNow(transcript))
 
   return (
     <section className="flex items-center gap-4 rounded-xl border border-border bg-muted/50 p-4 dark:bg-muted/20">
       <div className="min-w-0 flex-1">
         <h3 className="text-[15px] font-bold text-foreground">{t("customer.home.solveAProblem")}</h3>
         <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{t("customer.home.solveProblemDesc")}</p>
-        <Link
-          href="/customer/requests"
-          className="mt-3 inline-flex rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+
+        <form
+          onSubmit={(e) => { e.preventDefault(); findNow(described) }}
+          className="mt-3 flex flex-col gap-2 sm:flex-row"
         >
+          <Input
+            value={described}
+            onChange={(e) => setDescribed(e.target.value)}
+            placeholder={t("findNow.placeholder")}
+            className="h-9 flex-1 rounded-lg bg-card text-xs"
+          />
+          <button
+            type="submit"
+            className="inline-flex h-9 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-primary px-4 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+          >
+            <Radio className="h-3.5 w-3.5" />
+            {t("findNow.cta")}
+          </button>
+        </form>
+
+        {/* The old path, kept as the secondary option rather than removed:
+            posting reaches people who are not online right now, which the
+            live radius cannot. */}
+        <Link href="/customer/requests" className="mt-2 inline-block text-[11px] font-medium text-muted-foreground hover:text-foreground hover:underline">
           {t("customer.home.describeNow")}
         </Link>
       </div>
