@@ -56,3 +56,70 @@ export function distanceKmSql(latitude: number, longitude: number) {
     (extensions.ST_Distance(${GEO_POINT}, ${geoOrigin(latitude, longitude)}) / 1000.0)
   `
 }
+
+
+// ---------------------------------------------------------------------------
+// Capability detection
+//
+// PostGIS is database state, not code: it ships with this repo only as
+// scripts/enable-postgis.js, so a deploy can reach an instance where the
+// extension was never enabled. Rather than let every radius search 500 there,
+// each spatial query is attempted optimistically and falls back to the
+// bounding-box-plus-haversine path on the one error that means "PostGIS is
+// not here". Same convention as the rest of this codebase's optional
+// integrations: fully live when configured, honestly degraded when not.
+// ---------------------------------------------------------------------------
+
+/** Null until something has actually tried a spatial query. Cached per
+ *  process, so the fallback costs one failed query per cold start at most,
+ *  and nothing at all once PostGIS is present.
+ *
+ *  Deliberately never re-probed: a process that decided PostGIS is missing
+ *  stays on the fallback for its whole life. On serverless that self-heals
+ *  within minutes as instances recycle, and the alternative — a TTL and a
+ *  periodic retry — is machinery for a condition that is fixed once, by
+ *  hand, and then never recurs. A long-running server picks the fast path
+ *  back up on restart. */
+let postgisAvailable: boolean | null = null
+
+/** True once a spatial query has failed in the specific way that means the
+ *  extension is missing. Callers skip straight to the fallback. */
+export function postgisUnavailable(): boolean {
+  return postgisAvailable === false
+}
+
+/**
+ * Postgres reports a missing function as SQLSTATE 42883 and a missing schema
+ * as 3F000; Prisma surfaces both as P2010 with the driver message attached.
+ * Matching the text as well keeps this working if the wrapping changes —
+ * and anything that is not one of these is a real failure that must not be
+ * silently swallowed behind a fallback.
+ */
+export function isMissingPostgisError(error: unknown): boolean {
+  const message = (error instanceof Error ? error.message : String(error)).toLowerCase()
+  const looksLikeMissing =
+    message.includes("42883") ||
+    message.includes("3f000") ||
+    message.includes("does not exist") ||
+    message.includes("schema \"extensions\"")
+  return looksLikeMissing && (message.includes("st_") || message.includes("extensions"))
+}
+
+/** Records that PostGIS is missing, if that is what the error says. Returns
+ *  whether the caller should fall back (true) or rethrow (false). */
+export function noteSpatialFailure(error: unknown): boolean {
+  if (!isMissingPostgisError(error)) return false
+  if (postgisAvailable !== false) {
+    console.warn(
+      "[geo] PostGIS is not enabled on this database - falling back to " +
+        "bounding-box distance filtering. Run: node scripts/enable-postgis.js",
+    )
+  }
+  postgisAvailable = false
+  return true
+}
+
+/** Records a successful spatial query. */
+export function noteSpatialSuccess(): void {
+  postgisAvailable = true
+}

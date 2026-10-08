@@ -2,8 +2,14 @@
 
 import { Prisma } from "@prisma/client"
 import { db } from "@/lib/db"
-import { DEFAULT_RADIUS_KM, type Coordinates } from "@/lib/geo"
-import { distanceKmSql, withinRadiusSql } from "@/lib/geo-sql"
+import {
+  DEFAULT_RADIUS_KM, boundingBox, boundingBoxWhere, distanceFrom,
+  sortByDistance, toCoordinates, type Coordinates,
+} from "@/lib/geo"
+import {
+  distanceKmSql, withinRadiusSql,
+  noteSpatialFailure, noteSpatialSuccess, postgisUnavailable,
+} from "@/lib/geo-sql"
 import { auth } from "@/auth"
 import { resolveLocationOrigin, type OriginSource } from "@/lib/actions/geo"
 
@@ -162,6 +168,15 @@ export async function queryGeofence(input: GeofenceQuery = {}): Promise<Geofence
   const session = wantRequests ? await auth() : null
   const maySeeRequests = Boolean(session?.user?.id)
 
+  // PostGIS is database state this repo cannot guarantee is present — it is
+  // enabled by scripts/enable-postgis.js, not by a migration — so an
+  // instance without it degrades to the Prisma bounding-box path below
+  // instead of failing every pull. Cached after the first failure.
+  if (postgisUnavailable()) {
+    return fallbackGeofence({ centre, radiusKm, fence, centreFrom, limit, wantShops, wantProviders, wantRequests: wantRequests && maySeeRequests })
+  }
+
+  try {
   const [shops, providers, requests] = await Promise.all([
     wantShops
       ? db.$queryRaw<FencedShop[]>`
@@ -231,6 +246,7 @@ export async function queryGeofence(input: GeofenceQuery = {}): Promise<Geofence
       : Promise.resolve([] as FencedRequest[]),
   ])
 
+  noteSpatialSuccess()
   return {
     fence,
     centreFrom,
@@ -244,6 +260,118 @@ export async function queryGeofence(input: GeofenceQuery = {}): Promise<Geofence
       // is an ISO string.
       createdAt: new Date(r.createdAt).toISOString(),
     })),
+  }
+  } catch (error) {
+    if (!noteSpatialFailure(error)) throw error
+    return fallbackGeofence({ centre, radiusKm, fence, centreFrom, limit, wantShops, wantProviders, wantRequests: wantRequests && maySeeRequests })
+  }
+}
+
+/**
+ * The same pull, expressed in Prisma, for a database without PostGIS.
+ *
+ * Narrows on the plain latitude/longitude B-tree index and refines in JS,
+ * which means the bounding box's corners come over the wire before being
+ * discarded. Identical results, just less efficient — which is the right
+ * trade for a fallback nobody should be hitting.
+ */
+async function fallbackGeofence(args: {
+  centre: Coordinates
+  radiusKm: number
+  fence: Geofence
+  centreFrom: GeofenceResult["centreFrom"]
+  limit: number
+  wantShops: boolean
+  wantProviders: boolean
+  wantRequests: boolean
+}): Promise<GeofenceResult> {
+  const { centre, radiusKm, fence, centreFrom, limit } = args
+  const within = boundingBoxWhere(boundingBox(centre.latitude, centre.longitude, radiusKm))
+  const take = limit * 3
+
+  const [shopRows, providerRows, requestRows] = await Promise.all([
+    args.wantShops
+      ? db.shopkeeperProfile.findMany({
+          where: within,
+          orderBy: [{ isFeatured: "desc" }, { rating: "desc" }],
+          take,
+          select: {
+            id: true, shopName: true, shopLogoUrl: true, shopCategory: true,
+            rating: true, reviewCount: true, isVerified: true, latitude: true, longitude: true,
+          },
+        })
+      : Promise.resolve([]),
+    args.wantProviders
+      ? db.providerProfile.findMany({
+          where: { ...within, parentBusinessId: null, user: { isActive: true } },
+          orderBy: [{ rating: "desc" }, { completedJobs: "desc" }],
+          take,
+          select: {
+            id: true, userId: true, rating: true, reviewCount: true, verified: true,
+            hourlyRate: true, slug: true, latitude: true, longitude: true,
+            user: { select: { name: true, image: true } },
+            category: { select: { name: true } },
+            availability: { select: { isOnline: true } },
+          },
+        })
+      : Promise.resolve([]),
+    args.wantRequests
+      ? db.customerRequest.findMany({
+          where: { status: "OPEN", expiresAt: { gt: new Date() }, ...within },
+          orderBy: { createdAt: "desc" },
+          take,
+          select: {
+            id: true, title: true, location: true, budgetMin: true, budgetMax: true,
+            createdAt: true, latitude: true, longitude: true,
+            category: { select: { name: true } },
+            _count: { select: { responses: true } },
+          },
+        })
+      : Promise.resolve([]),
+  ])
+
+  /** Drops the bounding box's corners and orders what is genuinely inside. */
+  const inFence = <T extends { distanceKm: number | null }>(rows: T[]): T[] =>
+    sortByDistance(rows.filter((r) => r.distanceKm != null && r.distanceKm <= radiusKm)).slice(0, limit)
+
+  return {
+    fence,
+    centreFrom,
+    shops: inFence(shopRows.map((s) => ({
+      id: s.id,
+      name: s.shopName,
+      image: s.shopLogoUrl,
+      category: s.shopCategory,
+      rating: Number(s.rating),
+      reviewCount: s.reviewCount,
+      isVerified: s.isVerified,
+      distanceKm: distanceFrom(centre, toCoordinates(s.latitude, s.longitude)),
+    }))),
+    providers: inFence(providerRows.map((p) => ({
+      providerId: p.id,
+      userId: p.userId,
+      name: p.user.name,
+      avatar: p.user.image,
+      verified: p.verified,
+      categoryName: p.category?.name ?? null,
+      rating: Number(p.rating),
+      reviewCount: p.reviewCount,
+      hourlyRate: p.hourlyRate != null ? Number(p.hourlyRate) : null,
+      slug: p.slug,
+      isOnline: p.availability?.isOnline ?? false,
+      distanceKm: distanceFrom(centre, toCoordinates(p.latitude, p.longitude)),
+    }))),
+    requests: inFence(requestRows.map((r) => ({
+      id: r.id,
+      title: r.title,
+      categoryName: r.category.name,
+      location: r.location,
+      budgetMin: r.budgetMin != null ? Number(r.budgetMin) : null,
+      budgetMax: r.budgetMax != null ? Number(r.budgetMax) : null,
+      responseCount: r._count.responses,
+      createdAt: r.createdAt.toISOString(),
+      distanceKm: distanceFrom(centre, toCoordinates(r.latitude, r.longitude)),
+    }))),
   }
 }
 

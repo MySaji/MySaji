@@ -1,12 +1,17 @@
 "use server"
 
+import type { Prisma } from "@prisma/client"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
 import { getProviderAvailabilityStatuses, getProviderAvailabilityStatus, type ProviderAvailabilityStatus } from "@/lib/actions/provider-status"
 import {
-  distanceFrom, sortByDistance, toCoordinates, type Coordinates,
+  boundingBox, boundingBoxWhere, distanceFrom, sortByDistance, toCoordinates,
+  type Coordinates,
 } from "@/lib/geo"
-import { distanceKmSql, withinRadiusSql } from "@/lib/geo-sql"
+import {
+  distanceKmSql, withinRadiusSql,
+  noteSpatialFailure, noteSpatialSuccess, postgisUnavailable,
+} from "@/lib/geo-sql"
 import { getMyLocationOrigin } from "@/lib/actions/geo"
 
 function computeBadges(verified: boolean, rating: number, responseTimeMinutes: number | null): string[] {
@@ -159,29 +164,54 @@ export type SpecialistBrowseOptions = {
   origin?: Coordinates | null
 }
 
-export async function getSpecialists(options: SpecialistBrowseOptions = {}): Promise<SpecialistCard[]> {
-  const radiusKm = options.radiusKm ?? null
-  // Resolved even when no radius was requested, so an unfiltered listing
-  // still labels each card with how far away the provider is — same
-  // behaviour as getAllShops. One indexed lookup by userId.
-  const origin = options.origin ?? (await getMyLocationOrigin())
-  const filterByRadius = origin != null && radiusKm != null
+/** Normalises a Prisma provider row into the flat shape the cards expect,
+ *  so the spatial and non-spatial branches below converge on one type. */
+function toRow(
+  p: Prisma.ProviderProfileGetPayload<{ include: { user: true; category: true } }>,
+  origin: Coordinates | null,
+): SpecialistRow {
+  return {
+    id: p.id, userId: p.userId, verified: p.verified,
+    rating: Number(p.rating), reviewCount: p.reviewCount,
+    completedJobs: p.completedJobs, yearsExperience: p.yearsExperience,
+    hourlyRate: p.hourlyRate != null ? Number(p.hourlyRate) : null,
+    skills: p.skills, workAreas: p.workAreas, location: p.location,
+    workPreference: p.workPreference, slug: p.slug,
+    responseTimeMinutes: p.responseTimeMinutes,
+    userName: p.user.name, userImage: p.user.image,
+    categoryName: p.category?.name ?? null,
+    distanceKm: p.workPreference === "REMOTE"
+      ? null
+      : distanceFrom(origin, toCoordinates(p.latitude, p.longitude)),
+  }
+}
 
-  // The radius case runs entirely in Postgres — ST_DWithin against the GiST
-  // index filters, ST_Distance measures, ORDER BY sorts — so only providers
-  // genuinely inside the circle cross the wire. A REMOTE provider has no
-  // coordinates, so they fall out of a radius search by construction rather
-  // than needing a special case. Raw SQL because no ORM query language here
-  // can express a spatial predicate; see lib/geo-sql.ts.
-  const providers: SpecialistRow[] = filterByRadius
-    ? await db.$queryRaw<SpecialistRow[]>`
+/**
+ * Providers within `radiusKm`, measured and ordered by the database.
+ *
+ * ST_DWithin against the GiST index filters, ST_Distance measures and
+ * ORDER BY sorts, so only providers genuinely inside the circle cross the
+ * wire. A REMOTE provider has no coordinates and so falls out of a radius
+ * search by construction rather than needing a special case.
+ *
+ * PostGIS is database state this repo cannot guarantee — it is enabled by
+ * scripts/enable-postgis.js, not by a migration — so a deploy against an
+ * instance without it degrades to a bounding-box prefilter plus an exact
+ * refine in JS rather than failing outright. Same results, more rows over
+ * the wire. The capability is cached after the first failure, so this costs
+ * at most one failed query per cold start.
+ */
+async function nearbyProviderRows(origin: Coordinates, radiusKm: number): Promise<SpecialistRow[]> {
+  if (!postgisUnavailable()) {
+    try {
+      const rows = await db.$queryRaw<SpecialistRow[]>`
         SELECT
           p."id", p."userId", p."verified",
           p."rating"::float8 AS "rating",
           p."reviewCount", p."completedJobs", p."yearsExperience",
           p."hourlyRate"::float8 AS "hourlyRate",
           -- Prisma's client turns a NULL text[] into [], raw SQL does not,
-          -- and a provider with null arrays would crash the mapping below.
+          -- and a provider with null arrays would crash the mapping above.
           COALESCE(p."skills", '{}')    AS "skills",
           COALESCE(p."workAreas", '{}') AS "workAreas",
           p."location", p."workPreference",
@@ -195,26 +225,41 @@ export async function getSpecialists(options: SpecialistBrowseOptions = {}): Pro
         WHERE ${withinRadiusSql(origin.latitude, origin.longitude, radiusKm)}
         ORDER BY ${distanceKmSql(origin.latitude, origin.longitude)} ASC
       `
+      noteSpatialSuccess()
+      return rows
+    } catch (error) {
+      if (!noteSpatialFailure(error)) throw error
+    }
+  }
+
+  const rows = await db.providerProfile.findMany({
+    where: boundingBoxWhere(boundingBox(origin.latitude, origin.longitude, radiusKm)),
+    include: { user: true, category: true },
+    orderBy: { rating: "desc" },
+  })
+  return sortByDistance(
+    rows.map((p) => toRow(p, origin)).filter((r) => r.distanceKm != null && r.distanceKm <= radiusKm),
+  )
+}
+
+export async function getSpecialists(options: SpecialistBrowseOptions = {}): Promise<SpecialistCard[]> {
+  const radiusKm = options.radiusKm ?? null
+  // Resolved even when no radius was requested, so an unfiltered listing
+  // still labels each card with how far away the provider is — same
+  // behaviour as getAllShops. One indexed lookup by userId.
+  const origin = options.origin ?? (await getMyLocationOrigin())
+  const filterByRadius = origin != null && radiusKm != null
+
+  // Radius searches run in Postgres (see nearbyProviderRows); the
+  // unfiltered listing is a whole-table read with distances measured here,
+  // because without a radius there is no spatial predicate to hang a query
+  // on. Both branches produce the same flat SpecialistRow shape.
+  const providers: SpecialistRow[] = filterByRadius
+    ? await nearbyProviderRows(origin, radiusKm)
     : (await db.providerProfile.findMany({
         include: { user: true, category: true },
         orderBy: { rating: "desc" },
-      })).map((p) => ({
-        id: p.id, userId: p.userId, verified: p.verified,
-        rating: Number(p.rating), reviewCount: p.reviewCount,
-        completedJobs: p.completedJobs, yearsExperience: p.yearsExperience,
-        hourlyRate: p.hourlyRate != null ? Number(p.hourlyRate) : null,
-        skills: p.skills, workAreas: p.workAreas, location: p.location,
-        workPreference: p.workPreference, slug: p.slug,
-        responseTimeMinutes: p.responseTimeMinutes,
-        userName: p.user.name, userImage: p.user.image,
-        categoryName: p.category?.name ?? null,
-        // Measured here rather than in SQL: without a radius there is no
-        // spatial predicate to hang the query on, and the unfiltered list
-        // is a whole-table read either way.
-        distanceKm: p.workPreference === "REMOTE"
-          ? null
-          : distanceFrom(origin, toCoordinates(p.latitude, p.longitude)),
-      }))
+      })).map((p) => toRow(p, origin))
 
   const statuses = await getProviderAvailabilityStatuses(providers.map((p) => p.id))
 

@@ -8,7 +8,7 @@ import {
   boundingBox, boundingBoxWhere, distanceFrom, proximityWhere, sortByDistance,
   toCoordinates, type Coordinates,
 } from "@/lib/geo"
-import { distanceKmSql, withinRadiusSql } from "@/lib/geo-sql"
+import { distanceKmSql, withinRadiusSql, noteSpatialFailure, noteSpatialSuccess, postgisUnavailable } from "@/lib/geo-sql"
 import { getMyLocationOrigin, resolveLocationOrigin } from "@/lib/actions/geo"
 
 export type HomeServiceCategory = {
@@ -216,31 +216,54 @@ export async function getAllShops(options: ShopBrowseOptions = {}): Promise<Home
   // actually inside the circle cross the wire — already in order. Raw rather
   // than Prisma because no ORM query language here can express a spatial
   // predicate. See lib/geo-sql.ts.
-  const within = withinRadiusSql(origin.latitude, origin.longitude, radiusKm)
-  const distance = distanceKmSql(origin.latitude, origin.longitude)
+  //
+  // PostGIS is database state this repo cannot guarantee is present (it is
+  // enabled by scripts/enable-postgis.js), so a deploy against an instance
+  // without it degrades to the bounding-box path below instead of failing.
+  if (!postgisUnavailable()) {
+    const within = withinRadiusSql(origin.latitude, origin.longitude, radiusKm)
+    const distance = distanceKmSql(origin.latitude, origin.longitude)
+    try {
+      const rows = await db.$queryRaw<NearbyShopRow[]>`
+        SELECT
+          s."id",
+          s."shopName",
+          s."shopLogoUrl",
+          s."shopCategory",
+          s."rating"::float8 AS "rating",
+          s."reviewCount",
+          s."openingTime", s."closingTime",
+          s."sundayOpeningTime", s."sundayClosingTime",
+          s."holidayOpeningTime", s."holidayClosingTime",
+          EXISTS (
+            SELECT 1 FROM "promotions" pr
+            WHERE pr."shopkeeperId" = s."id" AND pr."status" = 'ACTIVE'
+          ) AS "hasSale",
+          ${distance} AS "distanceKm"
+        FROM "shopkeeper_profiles" s
+        WHERE ${within}
+        ORDER BY ${distance} ASC
+      `
+      noteSpatialSuccess()
+      return rows.map(mapNearbyShopRow)
+    } catch (error) {
+      if (!noteSpatialFailure(error)) throw error
+    }
+  }
 
-  const rows = await db.$queryRaw<NearbyShopRow[]>`
-    SELECT
-      s."id",
-      s."shopName",
-      s."shopLogoUrl",
-      s."shopCategory",
-      s."rating"::float8 AS "rating",
-      s."reviewCount",
-      s."openingTime", s."closingTime",
-      s."sundayOpeningTime", s."sundayClosingTime",
-      s."holidayOpeningTime", s."holidayClosingTime",
-      EXISTS (
-        SELECT 1 FROM "promotions" pr
-        WHERE pr."shopkeeperId" = s."id" AND pr."status" = 'ACTIVE'
-      ) AS "hasSale",
-      ${distance} AS "distanceKm"
-    FROM "shopkeeper_profiles" s
-    WHERE ${within}
-    ORDER BY ${distance} ASC
-  `
-
-  return rows.map(mapNearbyShopRow)
+  // Fallback: narrow on the plain latitude/longitude B-tree index, then
+  // discard the bounding box's corners with an exact measurement in JS.
+  // Same results as the query above, just more rows over the wire.
+  const shops = await db.shopkeeperProfile.findMany({
+    where: boundingBoxWhere(boundingBox(origin.latitude, origin.longitude, radiusKm)),
+    orderBy: [{ isFeatured: "desc" }, { rating: "desc" }],
+    include: SHOP_INCLUDE,
+  })
+  return sortByDistance(
+    shops
+      .map((shop) => mapShop(shop, origin))
+      .filter((shop) => shop.distanceKm != null && shop.distanceKm <= radiusKm),
+  )
 }
 
 /** The shape the radius query above selects. Hand-written because a raw
