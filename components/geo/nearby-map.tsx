@@ -7,7 +7,6 @@ import { MapPin, Star, ShieldCheck } from "lucide-react"
 import { GOOGLE_MAPS_LIBRARIES, GOOGLE_MAPS_LOADER_ID, isGoogleMapsConfigured } from "@/lib/google-maps"
 import type { FencedProvider, FencedShop, Geofence } from "@/lib/actions/geofence"
 import { useLocalization } from "@/lib/hooks/useLocalization"
-import { formatDistance } from "@/lib/geo"
 
 /** Flattened pin, so the map does not care which collection a thing came
  *  from beyond how to colour it and where it links. */
@@ -18,8 +17,6 @@ type Pin = {
   latitude: number
   longitude: number
   distanceKm: number | null
-  /** Pin is a coarsened neighbourhood position rather than a real address. */
-  approximate: boolean
   href: string
   rating: number
   reviewCount: number
@@ -68,7 +65,6 @@ export function NearbyMap({
       // an address. The distance on the card is the exact figure.
       latitude: p.approxLatitude,
       longitude: p.approxLongitude,
-      approximate: true,
       distanceKm: p.distanceKm,
       href: p.slug ? `/p/${p.slug}` : `/customer/find-specialists?provider=${p.providerId}`,
       rating: p.rating,
@@ -82,7 +78,6 @@ export function NearbyMap({
       name: s.name,
       latitude: s.latitude,
       longitude: s.longitude,
-      approximate: false,
       distanceKm: s.distanceKm,
       href: `/customer/shops/${s.id}`,
       rating: s.rating,
@@ -199,7 +194,7 @@ export function NearbyMap({
                 </span>
               )}
               {open.distanceKm != null && (
-                <span className="font-medium text-blue-700">{t("nearby.distanceAway", { km: formatDistance(open.distanceKm) ?? "" })}</span>
+                <span className="font-medium text-blue-700">{t("nearby.distanceAway", { km: open.distanceKm })}</span>
               )}
             </p>
           </div>

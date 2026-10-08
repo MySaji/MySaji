@@ -13,7 +13,6 @@ import { getMyProducts, type ShopkeeperProduct } from "@/lib/actions/shopkeeper-
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useLocalization } from "@/lib/hooks/useLocalization"
 import { useGatedAction } from "@/lib/hooks/useGatedAction"
-import { formatDistance } from "@/lib/geo"
 
 export default function ShopkeeperRequestsPage() {
   const { handleGateFailure } = useGatedAction()
@@ -121,7 +120,7 @@ export default function ShopkeeperRequestsPage() {
                       {/* The board is ordered by this, so showing it is what
                           makes the ordering legible rather than arbitrary. */}
                       {req.distanceKm != null && (
-                        <span className="font-medium text-primary whitespace-nowrap">{t("nearby.distanceAway", { km: formatDistance(req.distanceKm) ?? "" })}</span>
+                        <span className="font-medium text-primary whitespace-nowrap">{t("nearby.distanceAway", { km: req.distanceKm })}</span>
                       )}
                       <span className="flex items-center gap-1"><MessageSquare className="w-3 h-3" />{t("shopkeeper.requests.responseCount", { count: req.responseCount })}</span>
                       {req.photoCount > 0 && (

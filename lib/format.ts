@@ -70,48 +70,13 @@ export function shopHoursRows(
   return rows
 }
 
-/**
- * Local time where the shop is, in minutes past midnight.
- *
- * Trading hours are stored as wall-clock strings ("07:00") with no zone,
- * so they have to be compared against the clock *at the shop*. Using the
- * server's clock gets this wrong by the whole UTC offset in production,
- * where functions run in UTC: a shop open 07:00-21:00 in Nairobi read as
- * open from 10:00 to midnight local.
- *
- * The offset comes from the shopkeeper's own browser, captured when they
- * save their settings — the one party guaranteed to be in the shop's
- * timezone. Deriving it from longitude was tried and rejected: 36.8E
- * rounds to UTC+2 while Kenya is UTC+3, so it reported a shop open at
- * 22:00, and being confidently an hour wrong is worse than being
- * explicitly unset.
- *
- * Null means we have not been told yet, and the server clock is used —
- * the previous behaviour, no worse than before.
- */
-function shopLocalMinutes(offsetMinutes: number | null | undefined): number {
-  const now = new Date()
-  if (offsetMinutes == null || !Number.isFinite(offsetMinutes)) {
-    return now.getHours() * 60 + now.getMinutes()
-  }
-  const utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes()
-  // Wrap into a single day so an offset either side of midnight lands in
-  // 0..1439 rather than going negative or past 24h.
-  return ((utcMinutes + offsetMinutes) % 1440 + 1440) % 1440
-}
-
-export function isShopCurrentlyOpen(
-  openingTime: string | null,
-  closingTime: string | null,
-  /** Minutes to add to UTC to get the shop's wall clock, e.g. 180 for
-   *  UTC+3. Null/omitted falls back to the server clock. */
-  timeZoneOffsetMinutes?: number | null,
-): boolean {
+export function isShopCurrentlyOpen(openingTime: string | null, closingTime: string | null): boolean {
   if (!openingTime || !closingTime) return false
   const [openH, openM] = openingTime.split(":").map(Number)
   const [closeH, closeM] = closingTime.split(":").map(Number)
   if ([openH, openM, closeH, closeM].some(Number.isNaN)) return false
-  const nowMinutes = shopLocalMinutes(timeZoneOffsetMinutes)
+  const now = new Date()
+  const nowMinutes = now.getHours() * 60 + now.getMinutes()
   const openMinutes = openH * 60 + openM
   const closeMinutes = closeH * 60 + closeM
   // Overnight hours (e.g. 20:00-02:00) wrap past midnight.

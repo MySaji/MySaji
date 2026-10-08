@@ -11,7 +11,6 @@ import { MapPin, MessageSquare, Loader2, CheckCircle2, ClipboardList, ImageIcon 
 import { getOpenRequestsBoard, respondToRequest, getRequestPhotos, type BoardRequestItem } from "@/lib/actions/requests"
 import { useLocalization } from "@/lib/hooks/useLocalization"
 import { useGatedAction } from "@/lib/hooks/useGatedAction"
-import { formatDistance } from "@/lib/geo"
 
 export default function ProviderRequestsPage() {
   const { handleGateFailure } = useGatedAction()
@@ -102,7 +101,7 @@ export default function ProviderRequestsPage() {
                       {/* The board is ordered by this, so showing it is what
                           makes the ordering legible rather than arbitrary. */}
                       {req.distanceKm != null && (
-                        <span className="font-medium text-primary whitespace-nowrap">{t("nearby.distanceAway", { km: formatDistance(req.distanceKm) ?? "" })}</span>
+                        <span className="font-medium text-primary whitespace-nowrap">{t("nearby.distanceAway", { km: req.distanceKm })}</span>
                       )}
                       <span className="flex items-center gap-1"><MessageSquare className="w-3 h-3" />{t("provider.requests.responseCount", { count: req.responseCount })}</span>
                       {req.photoCount > 0 && (

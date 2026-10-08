@@ -57,7 +57,7 @@ export async function getShopById(id: string): Promise<ShopDetail> {
     rating: Number(shop.rating),
     reviewCount: shop.reviewCount,
     isVerified: shop.isVerified,
-    isOpen: isShopCurrentlyOpen(...todayPair(shop), shop.timeZoneOffsetMinutes),
+    isOpen: isShopCurrentlyOpen(...todayPair(shop)),
     hoursLabel: formatShopHours(...todayPair(shop)),
     nextOpeningLabel: getNextOpeningLabel(shop),
     hasSale: shop.promotions.length > 0,

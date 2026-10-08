@@ -19,11 +19,8 @@ import { useLocalization } from "@/lib/hooks/useLocalization"
  * client callers in this environment, so reusing actions that already work is
  * the difference between this rendering and it sitting empty forever.
  *
- * Choosing an address here IS the manual alternative to granting browser
- * location: resolveLocationOrigin (lib/actions/geo.ts) reads the default
- * saved address, so nearby discovery, search ranking and delivery all
- * follow the choice made here for anyone who declines the permission
- * prompt or has no GPS. A precise device fix, when granted, outranks it.
+ * It does not yet scope search or listings to the chosen location — that is a
+ * larger change across discovery, and this control does not pretend to it.
  */
 export function LocationSelector({ manageHref }: { manageHref: string }) {
   const { t } = useLocalization()

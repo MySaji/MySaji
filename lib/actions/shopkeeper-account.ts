@@ -120,12 +120,6 @@ const updateAccountSchema = z.object({
   // radius and goes back to delivering everywhere.
   deliveryRadiusKm: z.number().positive("Delivery radius must be greater than zero").max(2000, "That delivery radius looks too large").nullable().optional(),
   deliveryFeePerKm: z.number().min(0, "Per-km fee can't be negative").max(5000, "That per-km fee looks too high").optional(),
-  // Sent by the shopkeeper's own browser, which is the one party reliably
-  // in the shop's timezone. Trading hours are zone-less strings, so
-  // without this the open/closed check runs on the server clock (UTC in
-  // production) and is wrong by the whole offset. Bounded to real-world
-  // offsets rather than trusted blindly.
-  timeZoneOffsetMinutes: z.number().int().min(-840).max(840).optional(),
 })
 
 export async function updateMyShopAccount(input: unknown): Promise<ShopkeeperAccountActionResult> {
@@ -135,7 +129,7 @@ export async function updateMyShopAccount(input: unknown): Promise<ShopkeeperAcc
   const parsed = updateAccountSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
   const { shopName, shopDescription, shopCategory, businessLicense, phone, location, latitude, longitude, openingTime, closingTime, deliveryFee,
-    deliveryRadiusKm, deliveryFeePerKm, timeZoneOffsetMinutes,
+    deliveryRadiusKm, deliveryFeePerKm,
     sundayOpeningTime, sundayClosingTime, holidayOpeningTime, holidayClosingTime } = parsed.data
   const coords = latitude != null && longitude != null ? { latitude, longitude } : {}
 
@@ -160,7 +154,6 @@ export async function updateMyShopAccount(input: unknown): Promise<ShopkeeperAcc
         // `undefined` leaves it alone, `null` clears it back to "no limit".
         deliveryRadiusKm: deliveryRadiusKm === undefined ? undefined : deliveryRadiusKm,
         deliveryFeePerKm: deliveryFeePerKm ?? undefined,
-        timeZoneOffsetMinutes: timeZoneOffsetMinutes ?? undefined,
         // Mirrored onto the OFFICE Address row below. These columns are what
         // customer-facing radius search actually queries (see getAllShops),
         // because a filter cannot reach through a join to another table.
