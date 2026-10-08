@@ -109,7 +109,13 @@ export default function ShopkeeperSettingsPage() {
       return
     }
     const result = await updateMyShopAccount({
-      ...accountForm, deliveryFee, deliveryRadiusKm, deliveryFeePerKm, ...(coords ?? {}),
+      ...accountForm, deliveryFee, deliveryRadiusKm, deliveryFeePerKm,
+      // The shopkeeper's browser is in the shop's timezone; getTimezoneOffset
+      // returns minutes to SUBTRACT from local to get UTC, so it is negated
+      // to become "minutes to add to UTC". Sent on every save so a shop that
+      // moves or switches to daylight saving corrects itself.
+      timeZoneOffsetMinutes: -new Date().getTimezoneOffset(),
+      ...(coords ?? {}),
     })
     setIsSavingAccount(false)
     if (!result.success) { setAccountError(result.error); return }

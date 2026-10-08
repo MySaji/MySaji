@@ -140,6 +140,7 @@ function coarsen(value: number): number {
 /** The trading-hours columns the open/closed helper needs, carried through
  *  the raw query and stripped before the payload leaves. */
 type ShopHoursRow = {
+  timeZoneOffsetMinutes: number | null
   openingTime: string | null
   closingTime: string | null
   sundayOpeningTime: string | null
@@ -159,11 +160,11 @@ function withOpenState(row: FencedShopRow): FencedShop {
   const hours = resolveShopHoursForToday(row)
   const {
     openingTime: _o, closingTime: _c, sundayOpeningTime: _so, sundayClosingTime: _sc,
-    holidayOpeningTime: _ho, holidayClosingTime: _hc, ...rest
+    holidayOpeningTime: _ho, holidayClosingTime: _hc, timeZoneOffsetMinutes: _tz, ...rest
   } = row
   return {
     ...rest,
-    isOpen: isShopCurrentlyOpen(hours.openingTime, hours.closingTime),
+    isOpen: isShopCurrentlyOpen(hours.openingTime, hours.closingTime, row.timeZoneOffsetMinutes),
     hoursLabel: formatShopHours(hours.openingTime, hours.closingTime),
   }
 }
@@ -292,6 +293,7 @@ export async function queryGeofence(input: GeofenceQuery = {}): Promise<Geofence
             s."openingTime", s."closingTime",
             s."sundayOpeningTime", s."sundayClosingTime",
             s."holidayOpeningTime", s."holidayClosingTime",
+            s."timeZoneOffsetMinutes",
             ${distance}             AS "distanceKm"
           FROM "shopkeeper_profiles" s
           WHERE ${within}
@@ -417,7 +419,7 @@ async function fallbackGeofence(args: {
             id: true, shopName: true, shopLogoUrl: true, shopCategory: true,
             rating: true, reviewCount: true, isVerified: true, latitude: true, longitude: true,
             openingTime: true, closingTime: true, sundayOpeningTime: true, sundayClosingTime: true,
-            holidayOpeningTime: true, holidayClosingTime: true,
+            holidayOpeningTime: true, holidayClosingTime: true, timeZoneOffsetMinutes: true,
           },
         })
       : Promise.resolve([]),
@@ -473,6 +475,7 @@ async function fallbackGeofence(args: {
       isVerified: s.isVerified,
       isOpen: isShopCurrentlyOpen(
         resolveShopHoursForToday(s).openingTime, resolveShopHoursForToday(s).closingTime,
+        s.timeZoneOffsetMinutes,
       ),
       hoursLabel: formatShopHours(
         resolveShopHoursForToday(s).openingTime, resolveShopHoursForToday(s).closingTime,

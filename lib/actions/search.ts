@@ -3,6 +3,7 @@
 import { db } from "@/lib/db"
 import { OFFER_ACTION_LABEL } from "@/lib/offer-constants"
 import { distanceFrom, sortByDistance, toCoordinates } from "@/lib/geo"
+import { isShopCurrentlyOpen, resolveShopHoursForToday } from "@/lib/format"
 import { getMyLocationOrigin } from "@/lib/actions/geo"
 
 export type SearchProductResult = {
@@ -12,6 +13,10 @@ export type SearchProductResult = {
   price: number
   discountPrice: number | null
   shopName: string
+  /** Distance to the shop selling it, so a match the customer can collect
+   *  today outranks an identical one across the country. */
+  shopDistanceKm: number | null
+  shopIsOpen: boolean
 }
 
 export type SearchServiceResult = {
@@ -28,6 +33,7 @@ export type SearchShopResult = {
   name: string
   image: string | null
   rating: number
+  isOpen: boolean
   /** Straight-line km from the searcher, so matches they can actually reach
    *  come first. Null when either side is unlocated. */
   distanceKm: number | null
@@ -81,8 +87,18 @@ export async function unifiedSearch(query: string): Promise<UnifiedSearchResult>
         isActive: true,
         OR: [{ name: { contains: q, mode: "insensitive" } }, { description: { contains: q, mode: "insensitive" } }],
       },
-      include: { shopkeeper: { select: { shopName: true } } },
-      take: RESULTS_PER_ENTITY,
+      include: {
+        shopkeeper: {
+          select: {
+            shopName: true, latitude: true, longitude: true,
+            openingTime: true, closingTime: true, sundayOpeningTime: true, sundayClosingTime: true,
+            holidayOpeningTime: true, holidayClosingTime: true, timeZoneOffsetMinutes: true,
+          },
+        },
+      },
+      // Over-fetch so the proximity ranking below has something to choose
+      // from; the database can rank by relevance but not by distance.
+      take: RESULTS_PER_ENTITY * 4,
     }),
     db.service.findMany({
       where: {
@@ -120,14 +136,22 @@ export async function unifiedSearch(query: string): Promise<UnifiedSearchResult>
   const rentals = offerRows.filter((o) => o.actionType === "RENT").slice(0, RESULTS_PER_ENTITY)
 
   return {
-    products: products.map((p) => ({
-      id: p.id,
-      name: p.name,
-      image: p.images[0] ?? null,
-      price: Number(p.price),
-      discountPrice: p.discountPrice != null ? Number(p.discountPrice) : null,
-      shopName: p.shopkeeper.shopName,
-    })),
+    // Nearby open shops first, then nearby, then the rest — location
+    // improves the order without hiding anything, so a product only sold
+    // far away is still findable, just lower.
+    products: rankProducts(products.map((p) => {
+      const hours = resolveShopHoursForToday(p.shopkeeper)
+      return {
+        id: p.id,
+        name: p.name,
+        image: p.images[0] ?? null,
+        price: Number(p.price),
+        discountPrice: p.discountPrice != null ? Number(p.discountPrice) : null,
+        shopName: p.shopkeeper.shopName,
+        shopDistanceKm: distanceFrom(origin, toCoordinates(p.shopkeeper.latitude, p.shopkeeper.longitude)),
+        shopIsOpen: isShopCurrentlyOpen(hours.openingTime, hours.closingTime, p.shopkeeper.timeZoneOffsetMinutes),
+      }
+    })).slice(0, RESULTS_PER_ENTITY),
     services: services.map((s) => ({
       serviceId: s.id,
       title: s.title,
@@ -139,13 +163,17 @@ export async function unifiedSearch(query: string): Promise<UnifiedSearchResult>
     // Nearest matching shop first — a name match 400 km away is almost never
     // the one the searcher meant. Unlocated shops keep their relevance order
     // at the end rather than being dropped.
-    shops: sortByDistance(shops.map((s) => ({
-      id: s.id,
-      name: s.shopName,
-      image: s.shopLogoUrl,
-      rating: Number(s.rating),
-      distanceKm: distanceFrom(origin, toCoordinates(s.latitude, s.longitude)),
-    }))),
+    shops: sortByDistance(shops.map((s) => {
+      const hours = resolveShopHoursForToday(s)
+      return {
+        id: s.id,
+        name: s.shopName,
+        image: s.shopLogoUrl,
+        rating: Number(s.rating),
+        isOpen: isShopCurrentlyOpen(hours.openingTime, hours.closingTime, s.timeZoneOffsetMinutes),
+        distanceKm: distanceFrom(origin, toCoordinates(s.latitude, s.longitude)),
+      }
+    })),
     offers: offers.map((o) => ({
       offerId: o.id,
       title: o.title,
@@ -162,4 +190,18 @@ export async function unifiedSearch(query: string): Promise<UnifiedSearchResult>
       pricePerDay: Number(r.price ?? 0),
     })),
   }
+}
+
+/** Nearby and open, then nearby, then whatever relevance already decided.
+ *  Never drops a result for being distant — ranking only. */
+function rankProducts(rows: SearchProductResult[]): SearchProductResult[] {
+  const tier = (r: SearchProductResult) => {
+    if (r.shopDistanceKm == null) return 2
+    return r.shopIsOpen ? 0 : 1
+  }
+  return rows.sort((a, b) => {
+    const byTier = tier(a) - tier(b)
+    if (byTier !== 0) return byTier
+    return (a.shopDistanceKm ?? Infinity) - (b.shopDistanceKm ?? Infinity)
+  })
 }

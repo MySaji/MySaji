@@ -1086,6 +1086,13 @@ model ShopkeeperProfile {
   /// Zero by default, so a shop that never touches it keeps exactly the
   /// flat fee it has always charged.
   deliveryFeePerKm Decimal  @default(0) @db.Decimal(10, 2)
+  /// Minutes to add to UTC to get this shop's wall clock (180 for UTC+3).
+  /// Captured from the shopkeeper's own browser when they save settings,
+  /// because trading hours are stored as zone-less strings and the server
+  /// runs in UTC in production — without this a shop reads as open at the
+  /// wrong times by the whole offset. Null until they next save, in which
+  /// case the server clock is used, exactly as before.
+  timeZoneOffsetMinutes Int?
   isOnVacation    Boolean  @default(false)
   vacationNote    String?
   createdAt       DateTime @default(now())

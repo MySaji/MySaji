@@ -4,6 +4,9 @@ import { z } from "zod"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
 import type { Prisma } from "@prisma/client"
+import { isShopCurrentlyOpen, resolveShopHoursForToday } from "@/lib/format"
+import { distanceFrom, toCoordinates } from "@/lib/geo"
+import { getMyLocationOrigin } from "@/lib/actions/geo"
 
 type ProductWithRelations = Prisma.ProductGetPayload<{ include: { category: true; shopkeeper: true; inventory: true } }>
 
@@ -24,6 +27,12 @@ export type ProductCard = {
   images: string[]
   stock: number
   isFeatured: boolean
+  /** Straight-line km from the customer to the shop selling this, when
+   *  both are located. Null is normal and must render fine: most shops
+   *  have no coordinates yet. */
+  shopDistanceKm: number | null
+  /** Whether that shop is trading right now, by its own configured hours. */
+  shopIsOpen: boolean
 }
 
 function toCard(p: ProductWithRelations): ProductCard {
@@ -47,6 +56,14 @@ function toCard(p: ProductWithRelations): ProductCard {
     images: p.images,
     stock,
     isFeatured: p.isFeatured,
+    // Filled in by withShopProximity once the shops are known; a bare
+    // toCard has no customer to measure from.
+    shopDistanceKm: null,
+    shopIsOpen: isShopCurrentlyOpen(
+      resolveShopHoursForToday(p.shopkeeper).openingTime,
+      resolveShopHoursForToday(p.shopkeeper).closingTime,
+      p.shopkeeper.timeZoneOffsetMinutes,
+    ),
   }
 }
 
@@ -161,7 +178,7 @@ export async function getMarketplaceProducts(params?: {
   const perPage = params?.perPage ?? 24
   const page = Math.max(1, params?.page ?? 1)
 
-  const [products, totalCount] = await Promise.all([
+  const [products, totalCount, origin] = await Promise.all([
     db.product.findMany({
       where,
       include: { category: true, shopkeeper: true, inventory: true },
@@ -170,9 +187,56 @@ export async function getMarketplaceProducts(params?: {
       take: perPage,
     }),
     db.product.count({ where }),
+    getMyLocationOrigin(),
   ])
 
-  return { products: products.map(toCard), totalCount }
+  const cards = withShopProximity(products.map(toCard), products, origin)
+
+  // Location is an extra ranking signal, never a filter: nothing is hidden
+  // for being far away. Only the default ordering is adjusted — a customer
+  // who explicitly asked for "price, low to high" means it, and reshuffling
+  // that by distance would be ignoring them.
+  //
+  // Known limit: this reorders the page the database returned, so it
+  // promotes nearby stock within a page rather than pulling a nearby item
+  // from page 4 onto page 1. Doing that globally needs the distance in the
+  // SQL ORDER BY, which this query cannot express while it still uses
+  // Prisma's filter/pagination builder.
+  if (!params?.sortBy && origin) rankByProximity(cards)
+
+  return { products: cards, totalCount }
+}
+
+/** Attaches each product's shop distance. One query for the distinct shops
+ *  on the page, not one per product — a page of 24 items from 6 shops
+ *  costs 6 rows, not 24 lookups. */
+function withShopProximity(
+  cards: ProductCard[],
+  rows: ProductWithRelations[],
+  origin: { latitude: number; longitude: number } | null,
+): ProductCard[] {
+  if (!origin) return cards
+  const coordsByShop = new Map(
+    rows.map((r) => [r.shopkeeperId, toCoordinates(r.shopkeeper.latitude, r.shopkeeper.longitude)]),
+  )
+  return cards.map((card) => ({
+    ...card,
+    shopDistanceKm: distanceFrom(origin, coordsByShop.get(card.shopId) ?? null),
+  }))
+}
+
+/** Nearby open shops first, then nearby, then everything else in the order
+ *  the database already chose. Sorts in place. */
+function rankByProximity(cards: ProductCard[]): void {
+  const rank = (c: ProductCard) => {
+    if (c.shopDistanceKm == null) return 2        // unlocated: keep original order, last
+    return c.shopIsOpen ? 0 : 1                    // open nearby beats closed nearby
+  }
+  cards.sort((a, b) => {
+    const byRank = rank(a) - rank(b)
+    if (byRank !== 0) return byRank
+    return (a.shopDistanceKm ?? Infinity) - (b.shopDistanceKm ?? Infinity)
+  })
 }
 
 /** Real price bounds from the actual catalog — the price-range slider's

@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { MapPin, Star, ShieldCheck, Store, Loader2, Map as MapIcon, List, ChevronRight } from "lucide-react"
+import { MapPin, Star, ShieldCheck, Store, Loader2, Map as MapIcon, List, ChevronRight, LocateFixed } from "lucide-react"
 import { useGeofence } from "@/lib/hooks/useGeofence"
 import { DEFAULT_RADIUS_KM, RADIUS_OPTIONS_KM, formatDistance } from "@/lib/geo"
 import { useLocalization } from "@/lib/hooks/useLocalization"
@@ -11,6 +11,8 @@ import { NearbyMap } from "@/components/geo/nearby-map"
 import { PresenceBadge } from "@/components/geo/online-dot"
 import { isGoogleMapsConfigured } from "@/lib/google-maps"
 import type { FencedProvider, FencedShop } from "@/lib/actions/geofence"
+import { updateMyLocation } from "@/lib/actions/geo"
+import { useRouter } from "next/navigation"
 
 /**
  * The home page's two proximity rows: SAJI Pros Near You, and Shops Near
@@ -24,8 +26,9 @@ import type { FencedProvider, FencedShop } from "@/lib/actions/geofence"
  *
  * The first pull deliberately sends no centre, so the server fills one in
  * from the request's IP geolocation and this renders real nearby results
- * before the browser has been asked for permission. Renders nothing at all
- * when no location could be resolved, rather than an empty shell.
+ * before the browser has been asked for permission. When no location can
+ * be resolved at all it falls back to EnableLocationPrompt rather than an
+ * empty shell — the rest of the marketplace is unaffected either way.
  */
 export function NearYouSection() {
   const { t } = useLocalization()
@@ -41,7 +44,11 @@ export function NearYouSection() {
     limit: 12,
   })
 
-  if (!isLoading && !data?.fence) return null
+  // No fence means we could not work out where the customer is at all —
+  // permission denied, no saved address, no usable edge geolocation. The
+  // marketplace below still works; this offers the two ways to fix it
+  // rather than silently showing nothing.
+  if (!isLoading && !data?.fence) return <EnableLocationPrompt />
 
   const providers = data?.providers ?? []
   const shops = data?.shops ?? []
@@ -267,5 +274,65 @@ function ShopCard({ shop }: { shop: FencedShop }) {
         {t("nearby.viewShop")}
       </Link>
     </div>
+  )
+}
+
+/**
+ * Shown when no location could be resolved. Offers both routes the feature
+ * supports: grant the browser permission, or pick a saved address, which
+ * resolveLocationOrigin honours identically. Never blocks anything — the
+ * rest of the marketplace is unaffected by dismissing this.
+ */
+function EnableLocationPrompt() {
+  const { t } = useLocalization()
+  const router = useRouter()
+  const [asking, setAsking] = useState(false)
+  const [denied, setDenied] = useState(false)
+
+  const ask = () => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) { setDenied(true); return }
+    setAsking(true)
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        await updateMyLocation({ latitude: position.coords.latitude, longitude: position.coords.longitude })
+        setAsking(false)
+        // Re-run the server components so the sections appear with the
+        // position that was just granted.
+        router.refresh()
+      },
+      () => { setAsking(false); setDenied(true) },
+      { enableHighAccuracy: false, timeout: 15000, maximumAge: 5 * 60 * 1000 },
+    )
+  }
+
+  return (
+    <section className="rounded-xl border border-border bg-muted/40 p-4">
+      <div className="flex items-start gap-3">
+        <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-foreground">{t("nearby.enableTitle")}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {denied ? t("nearby.enableDenied") : t("nearby.enableBody")}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={ask}
+              disabled={asking}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-[11px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
+            >
+              {asking ? <Loader2 className="h-3 w-3 animate-spin" /> : <LocateFixed className="h-3 w-3" />}
+              {t("nearby.enableCta")}
+            </button>
+            <Link
+              href="/customer/saved-addresses"
+              className="inline-flex items-center rounded-lg border border-border px-3 py-1.5 text-[11px] font-semibold text-foreground transition-colors hover:bg-muted"
+            >
+              {t("nearby.chooseManually")}
+            </Link>
+          </div>
+        </div>
+      </div>
+    </section>
   )
 }

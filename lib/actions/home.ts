@@ -72,7 +72,7 @@ function mapShop(s: ShopWithPromotions, origin: Coordinates | null = null): Home
     category: s.shopCategory,
     rating: Number(s.rating),
     reviews: s.reviewCount,
-    isOpen: isShopCurrentlyOpen(resolveShopHoursForToday(s).openingTime, resolveShopHoursForToday(s).closingTime),
+    isOpen: isShopCurrentlyOpen(resolveShopHoursForToday(s).openingTime, resolveShopHoursForToday(s).closingTime, s.timeZoneOffsetMinutes),
     hoursLabel: formatShopHours(resolveShopHoursForToday(s).openingTime, resolveShopHoursForToday(s).closingTime),
     hasSale: s.promotions.length > 0,
     distanceKm: distanceFrom(origin, toCoordinates(s.latitude, s.longitude)),
@@ -273,6 +273,9 @@ type NearbyShopRow = {
   shopName: string
   shopLogoUrl: string | null
   shopCategory: string | null
+  /** Carried only so the open/closed check can use the shop's own local
+   *  time; never returned to the client. */
+  timeZoneOffsetMinutes: number | null
   rating: number
   reviewCount: number
   openingTime: string | null
@@ -296,7 +299,7 @@ function mapNearbyShopRow(row: NearbyShopRow): HomeFeaturedShop {
     category: row.shopCategory,
     rating: Number(row.rating),
     reviews: row.reviewCount,
-    isOpen: isShopCurrentlyOpen(hours.openingTime, hours.closingTime),
+    isOpen: isShopCurrentlyOpen(hours.openingTime, hours.closingTime, row.timeZoneOffsetMinutes),
     hoursLabel: formatShopHours(hours.openingTime, hours.closingTime),
     hasSale: row.hasSale,
     distanceKm: Math.round(row.distanceKm * 10) / 10,
