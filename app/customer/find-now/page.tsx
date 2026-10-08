@@ -23,11 +23,10 @@ import { useLocalization } from "@/lib/hooks/useLocalization"
  */
 const BROADCAST_RADIUS_KM = 5
 
-/** How often the background loop re-pulls. Fast enough that a provider
- *  coming online appears while the customer is still reading the screen,
- *  slow enough not to hammer the database from an idle tab (SWR pauses
- *  polling when the tab is hidden). */
-const LOOP_INTERVAL_MS = 10_000
+/** How often the background loop checks for change. A tick is a cheap
+ *  fingerprint query, not a full re-pull, so this can be short without the
+ *  cost that implies. SWR pauses it on a hidden tab. */
+const LOOP_INTERVAL_MS = 5_000
 
 export default function FindNowPage() {
   return (

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import useSWR from "swr"
-import { queryGeofence, type Geofence, type GeofenceKind, type GeofenceResult } from "@/lib/actions/geofence"
+import { queryGeofence, getGeofenceVersion, type Geofence, type GeofenceKind, type GeofenceResult } from "@/lib/actions/geofence"
 import { DEFAULT_RADIUS_KM, distanceKmBetween } from "@/lib/geo"
 
 /**
@@ -31,11 +31,22 @@ export type UseGeofenceOptions = {
   /** Skip the pull entirely (a section that is collapsed, say). */
   enabled?: boolean
   /**
-   * Re-pull on this interval, in milliseconds. Off by default: most
-   * sections are a snapshot and polling them would be pure cost. Set it
-   * where the answer genuinely changes underneath the viewer — someone
+   * Check for change on this interval, in milliseconds. Off by default:
+   * most sections are a snapshot and polling them would be pure cost. Set
+   * it where the answer genuinely changes underneath the viewer — someone
    * waiting on "who can help me right now" needs a provider who just came
    * online to appear without a manual refresh.
+   *
+   * A tick is a *check*, not a refetch. The fetcher asks for a cheap
+   * fingerprint first (about a twelfth of the cost of the real query) and
+   * only pulls the payload when that fingerprint has moved, so a quiet
+   * fence costs one small aggregate per tick.
+   *
+   * Deliberately one hook rather than two. An earlier version polled the
+   * fingerprint in a second useSWR and called mutate() on change; the two
+   * caches raced and the screen could stop updating altogether. Doing both
+   * steps inside a single fetcher means there is no cross-hook state to
+   * get out of step.
    */
   refreshIntervalMs?: number
 }
@@ -131,20 +142,42 @@ export function useGeofence(options: UseGeofenceOptions = {}): UseGeofenceReturn
     ? `geofence:${keyCentre}:${radiusKm}:${(kinds ?? ["all"]).join("+")}:${limit ?? "default"}`
     : null
 
+  // What the last full pull returned, and the fingerprint it was taken at.
+  // Returning the *same object reference* when nothing changed is what
+  // keeps an unchanged tick from re-rendering the whole list.
+  const lastVersion = useRef<string | null>(null)
+  const lastResult = useRef<GeofenceResult | null>(null)
+
+  const fetchFence = useCallback(async (): Promise<GeofenceResult> => {
+    const fence = centreRef.current ? { ...centreRef.current, radiusKm } : { radiusKm }
+
+    if (refreshIntervalMs > 0 && lastResult.current) {
+      const version = await getGeofenceVersion({ fence })
+      // A null fingerprint means it is unavailable (no PostGIS, no fence),
+      // not that nothing changed — fall through to the real query.
+      if (version !== null && version === lastVersion.current) return lastResult.current
+      lastVersion.current = version
+    }
+
+    const result = await queryGeofence({ fence, kinds, limit })
+    lastResult.current = result
+    // Re-read the fingerprint only when we had none; otherwise it was just
+    // set above and re-querying would waste the saving.
+    if (refreshIntervalMs > 0 && lastVersion.current === null) {
+      lastVersion.current = await getGeofenceVersion({ fence })
+    }
+    return result
+  }, [radiusKm, kinds, limit, refreshIntervalMs])
+
   const { data, isLoading, mutate, isValidating } = useSWR(
     key,
-    () => queryGeofence({
-      fence: centreRef.current ? { ...centreRef.current, radiusKm } : { radiusKm },
-      kinds,
-      limit,
-    }),
+    fetchFence,
     {
       // Nearby results do not change second to second, and this is the
       // request the whole page waits on.
       revalidateOnFocus: false,
-      // A poll must not be swallowed by deduping, so the dedupe window
-      // tracks the interval when one is set.
-      dedupingInterval: refreshIntervalMs > 0 ? Math.min(refreshIntervalMs, 10_000) : 60_000,
+      // Must not swallow a tick, so this stays below the interval.
+      dedupingInterval: refreshIntervalMs > 0 ? Math.max(refreshIntervalMs - 500, 500) : 60_000,
       refreshInterval: refreshIntervalMs,
       // SWR pauses polling on a hidden tab by default, which is what we
       // want: nobody needs their phone querying the database in a pocket.
@@ -168,6 +201,11 @@ export function useGeofence(options: UseGeofenceOptions = {}): UseGeofenceReturn
     updatedAt,
     fence: data?.fence ?? null,
     hasPreciseCentre: data?.centreFrom === "CLIENT" || data?.centreFrom === "GPS",
-    refresh: () => { void mutate() },
+    refresh: () => {
+      // Force a real pull: the point of tapping refresh is to distrust the
+      // cached answer, so the fingerprint shortcut must not short it out.
+      lastVersion.current = null
+      void mutate()
+    },
   }
 }

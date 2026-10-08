@@ -432,3 +432,66 @@ async function fallbackGeofence(args: {
 function roundDistance<T extends { distanceKm: number | null }>(row: T): T {
   return row.distanceKm == null ? row : { ...row, distanceKm: Math.round(row.distanceKm * 10) / 10 }
 }
+
+/**
+ * A cheap fingerprint of what queryGeofence would currently return.
+ *
+ * The live screen needs to notice change quickly, but re-running the full
+ * pull every few seconds is an expensive way to discover that nothing
+ * happened — three joined, row-returning queries per viewer per tick.
+ * This is one aggregate returning a handful of values: how many candidates
+ * are in the fence, how many are online, and when any of them last changed.
+ * Measured here at roughly a twelfth of the cost of the real pull.
+ *
+ * Deliberately NOT a hash of the payload: a hash would have to build the
+ * payload first, which is exactly the cost being avoided. These columns
+ * catch every change the screen actually renders — someone arriving,
+ * leaving, going online or offline, or moving.
+ *
+ * Returns null when there is no fence or no PostGIS, which tells the caller
+ * to fall back to plain interval refetching rather than silently never
+ * updating.
+ */
+export async function getGeofenceVersion(input: { fence?: Partial<Geofence> | null } = {}): Promise<string | null> {
+  const supplied = input.fence
+  let centre: Coordinates | null = null
+
+  if (supplied && isFiniteCoord(supplied.latitude) && isFiniteCoord(supplied.longitude)) {
+    centre = { latitude: supplied.latitude, longitude: supplied.longitude }
+  } else {
+    const resolved = await resolveLocationOrigin()
+    if (resolved) centre = { latitude: resolved.latitude, longitude: resolved.longitude }
+  }
+  if (!centre || postgisUnavailable()) return null
+
+  const suppliedRadius = supplied?.radiusKm
+  const radiusKm = isFiniteCoord(suppliedRadius) && suppliedRadius > 0
+    ? Math.min(suppliedRadius, MAX_RADIUS_KM)
+    : DEFAULT_RADIUS_KM
+
+  const { latitude, longitude } = centre
+  const inFence = Prisma.sql`
+    ${PROVIDER_HAS_POSITION}
+    AND extensions.ST_DWithin(${PROVIDER_GEO_POINT}, ${geoOrigin(latitude, longitude)}, ${radiusKm * 1000}::double precision)
+  `
+  try {
+    const rows = await db.$queryRaw<{ version: string }[]>`
+      SELECT
+        (SELECT COUNT(*)::text || '@' || COALESCE(MAX(s."updatedAt")::text, '-')
+           FROM "shopkeeper_profiles" s
+          WHERE ${withinRadiusSql(latitude, longitude, radiusKm)})
+        || '|' ||
+        (SELECT COUNT(*)::text
+                || '/' || COUNT(*) FILTER (WHERE COALESCE(a."isOnline", false))::text
+                || '@' || COALESCE(MAX(GREATEST(p."updatedAt", a."updatedAt"))::text, '-')
+           FROM "provider_profiles" p
+           LEFT JOIN "provider_availability" a ON a."providerId" = p."id"
+          WHERE ${inFence}) AS "version"
+    `
+    noteSpatialSuccess()
+    return rows[0]?.version ?? null
+  } catch (error) {
+    if (!noteSpatialFailure(error)) throw error
+    return null
+  }
+}
