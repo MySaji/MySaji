@@ -1693,6 +1693,15 @@ model ProviderAvailability {
   lastKnownLatitude     Decimal?  @db.Decimal(9, 6)
   lastKnownLongitude    Decimal?  @db.Decimal(9, 6)
   lastLocationUpdatedAt DateTime?
+  /// Last time this provider's own device told us it was still there.
+  /// Refreshed by a heartbeat while the Go Online toggle is on, so that
+  /// "online" means a live session rather than a flag somebody set once
+  /// and forgot. Without it a provider who closes the tab, loses signal,
+  /// logs out or lets their session expire stays green forever, and the
+  /// green dot stops meaning anything. Read as stale -> offline rather
+  /// than being swept by a cron, matching the lazy-reconciliation
+  /// convention already used for StaffInvite expiry.
+  lastSeenAt            DateTime?
   updatedAt      DateTime @updatedAt
 
   provider ProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)

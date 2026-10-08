@@ -146,3 +146,23 @@ export function distanceFrom(origin: Coordinates | null, point: Coordinates | nu
 export function sortByDistance<T extends { distanceKm: number | null }>(rows: T[]): T[] {
   return rows.sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity))
 }
+
+
+/**
+ * Distance as a person would say it.
+ *
+ * Under a kilometre people think in metres, and rounding those to the
+ * nearest 50 m avoids implying a precision this measurement does not have
+ * (it is straight-line, from a position that may itself be approximate).
+ * Over 10 km the decimal is noise — "12 km" and "12.3 km" mean the same
+ * thing to someone deciding whether to call.
+ */
+export function formatDistance(km: number | null | undefined): string | null {
+  if (km == null || !Number.isFinite(km) || km < 0) return null
+  if (km < 1) {
+    const metres = Math.max(Math.round((km * 1000) / 50) * 50, 50)
+    return `${metres} m`
+  }
+  if (km < 10) return `${(Math.round(km * 10) / 10).toFixed(1)} km`
+  return `${Math.round(km)} km`
+}

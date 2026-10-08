@@ -27,6 +27,7 @@ import { getActiveProviderStories } from "@/lib/actions/provider-stories"
 import { withTimeout, DASHBOARD_FETCH_TIMEOUT_MS } from "@/lib/swr-utils"
 import type { TranslationKey } from "@/lib/i18n"
 import { offerHref } from "@/lib/offer-constants"
+import { formatDistance } from "@/lib/geo"
 
 type Translate = (key: TranslationKey, params?: Record<string, string | number>) => string
 
@@ -667,7 +668,7 @@ function AvailableNowSection({ providers }: { providers: OnlineProviderCard[] })
                 {p.distanceKm != null && (
                   <p className="mt-0.5 flex items-center gap-0.5 truncate text-[10px] font-medium text-primary">
                     <MapPin className="h-2.5 w-2.5 flex-shrink-0" />
-                    {t("nearby.distanceAway", { km: p.distanceKm })}
+                    {t("nearby.distanceAway", { km: formatDistance(p.distanceKm) ?? "" })}
                   </p>
                 )}
               </div>

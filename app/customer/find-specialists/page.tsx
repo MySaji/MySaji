@@ -21,6 +21,7 @@ import { RadiusFilter, type RadiusSelection } from "@/components/geo/radius-filt
 import { getServiceCategories, type HomeServiceCategory } from "@/lib/actions/home"
 import { toggleWishlist } from "@/lib/actions/wishlist"
 import { useLocalization } from "@/lib/hooks/useLocalization"
+import { formatDistance } from "@/lib/geo"
 
 const BADGE_STYLE: Record<string, string> = {
   Verified: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
@@ -279,7 +280,7 @@ export default function FindSpecialistsPage() {
                       </span>
                       <span className="flex items-center gap-0.5 min-w-0"><MapPin className="w-3 h-3 flex-shrink-0" /><span className="truncate">{s.location}</span></span>
                       {s.distanceKm != null && (
-                        <span className="text-primary font-medium whitespace-nowrap">{t("nearby.distanceAway", { km: s.distanceKm })}</span>
+                        <span className="text-primary font-medium whitespace-nowrap">{t("nearby.distanceAway", { km: formatDistance(s.distanceKm) ?? "" })}</span>
                       )}
                       <span className="flex items-center gap-0.5 flex-shrink-0"><Briefcase className="w-3 h-3" />{s.completedJobs}</span>
                     </div>

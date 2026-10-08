@@ -11,6 +11,7 @@ import { getAllShops, type HomeFeaturedShop } from "@/lib/actions/home"
 import { getMyLocationOrigin } from "@/lib/actions/geo"
 import { RadiusFilter, type RadiusSelection } from "@/components/geo/radius-filter"
 import { useLocalization } from "@/lib/hooks/useLocalization"
+import { formatDistance } from "@/lib/geo"
 
 export default function CustomerShopsPage() {
   const { t } = useLocalization()
@@ -130,7 +131,7 @@ export default function CustomerShopsPage() {
                   {shop.distanceKm != null ? (
                     <p className="text-[10px] text-primary font-medium mt-1 flex items-center gap-1">
                       <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
-                      {t("nearby.distanceAway", { km: shop.distanceKm })}
+                      {t("nearby.distanceAway", { km: formatDistance(shop.distanceKm) ?? "" })}
                     </p>
                   ) : shop.hoursLabel ? (
                     <p className="text-[10px] text-muted-foreground mt-1 truncate">{shop.hoursLabel}</p>

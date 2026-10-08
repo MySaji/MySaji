@@ -1,6 +1,7 @@
 "use server"
 
 import { z } from "zod"
+import { isLiveOnline } from "@/lib/provider-presence"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
 
@@ -123,6 +124,7 @@ export async function setVacationMode(input: unknown): Promise<ProviderAvailabil
 
 // ============================= ONLINE STATUS =============================
 
+
 export type ProviderOnlineStatus = {
   isOnline: boolean
   lastKnownLatitude: number | null
@@ -135,13 +137,22 @@ export async function getMyOnlineStatus(): Promise<ProviderOnlineStatus | null> 
   if (!provider) return null
 
   const availability = await db.providerAvailability.findUnique({ where: { providerId: provider.providerId } })
+  // A provider whose own session went quiet is not online, even to
+  // themselves — otherwise the toggle would show green on a page that has
+  // not checked in for an hour.
+  const live = isLiveOnline(availability?.isOnline, availability?.lastSeenAt)
   return {
-    isOnline: availability?.isOnline ?? false,
+    isOnline: live,
     lastKnownLatitude: availability?.lastKnownLatitude != null ? Number(availability.lastKnownLatitude) : null,
     lastKnownLongitude: availability?.lastKnownLongitude != null ? Number(availability.lastKnownLongitude) : null,
     lastLocationUpdatedAt: availability?.lastLocationUpdatedAt?.toISOString() ?? null,
   }
 }
+
+const heartbeatSchema = z.object({
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
+})
 
 const setOnlineStatusSchema = z.object({
   isOnline: z.boolean(),
@@ -168,14 +179,47 @@ export async function setOnlineStatus(input: unknown): Promise<ProviderAvailabil
   const locationData = latitude != null && longitude != null
     ? { lastKnownLatitude: latitude, lastKnownLongitude: longitude, lastLocationUpdatedAt: new Date() }
     : {}
+  // Going online starts the clock; going offline stops it, so a stale
+  // lastSeenAt can never make an offline provider look briefly online.
+  const seen = isOnline ? { lastSeenAt: new Date() } : { lastSeenAt: null }
 
   await db.providerAvailability.upsert({
     where: { providerId: provider.providerId },
-    create: { providerId: provider.providerId, weeklySchedule: DEFAULT_SCHEDULE, isOnline, ...locationData },
-    update: { isOnline, ...locationData },
+    create: { providerId: provider.providerId, weeklySchedule: DEFAULT_SCHEDULE, isOnline, ...locationData, ...seen },
+    update: { isOnline, ...locationData, ...seen },
   })
 
   return { success: true }
+}
+
+/**
+ * "I am still here." Called on an interval by the Go Online control while
+ * the provider has the app open.
+ *
+ * Deliberately cannot turn anyone online — it only refreshes the clock for
+ * a provider who already is. A client that could assert its own online
+ * state would make the whole stale mechanism pointless, since the thing we
+ * are defending against is precisely a client that has stopped talking.
+ *
+ * Updates an optional fresh position at the same time, so a provider who
+ * moves while online is discoverable where they actually are rather than
+ * where they switched on.
+ */
+export async function heartbeat(input: unknown): Promise<{ online: boolean }> {
+  const provider = await requireProvider()
+  if (!provider) return { online: false }
+
+  const parsed = heartbeatSchema.safeParse(input)
+  const coords = parsed.success && parsed.data.latitude != null && parsed.data.longitude != null
+    ? { lastKnownLatitude: parsed.data.latitude, lastKnownLongitude: parsed.data.longitude, lastLocationUpdatedAt: new Date() }
+    : {}
+
+  const result = await db.providerAvailability.updateMany({
+    where: { providerId: provider.providerId, isOnline: true },
+    data: { lastSeenAt: new Date(), ...coords },
+  })
+
+  return { online: result.count > 0 }
 }
 
 const addBlockedDateSchema = z.object({

@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useGeofence } from "@/lib/hooks/useGeofence"
 import { describeTerms, matchScore } from "@/lib/match-description"
+import { formatDistance } from "@/lib/geo"
 import { useLocalization } from "@/lib/hooks/useLocalization"
 
 /**
@@ -291,7 +292,7 @@ function Section({
                 {r.distanceKm != null && (
                   <span className="flex items-center gap-0.5 font-medium text-primary">
                     <MapPin className="h-2.5 w-2.5" />
-                    {t("nearby.distanceAway" as never, { km: r.distanceKm })}
+                    {t("nearby.distanceAway" as never, { km: formatDistance(r.distanceKm) ?? "" })}
                   </span>
                 )}
                 {r.isOnline && <span className="font-medium text-emerald-600">{t("nearby.online" as never)}</span>}

@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { Loader2, Power } from "lucide-react"
-import { getMyOnlineStatus, setOnlineStatus } from "@/lib/actions/provider-availability"
+import { getMyOnlineStatus, setOnlineStatus, heartbeat } from "@/lib/actions/provider-availability"
+import { HEARTBEAT_INTERVAL_MS } from "@/lib/provider-presence"
 import { useLocalization } from "@/lib/hooks/useLocalization"
 
 /**
@@ -18,6 +19,14 @@ import { useLocalization } from "@/lib/hooks/useLocalization"
  * work with. A silent retry runs on mount if already online, in case a
  * prior attempt never got a location (permission denied, transient GPS
  * error) — self-heals without requiring an off/on cycle.
+ *
+ * While online it also sends a heartbeat. That is what makes the green dot
+ * mean something: the server treats a provider whose device has stopped
+ * checking in as offline, so closing the tab, losing signal, logging out
+ * or letting a session expire all retire the listing on their own. The
+ * heartbeat cannot turn anyone online — only refresh a provider who
+ * already is — because a client that could assert its own status would
+ * defeat the mechanism entirely.
  */
 export function ProviderOnlineToggle({ variant = "full" }: { variant?: "full" | "compact" }) {
   const { t } = useLocalization()
@@ -38,6 +47,35 @@ export function ProviderOnlineToggle({ variant = "full" }: { variant?: "full" | 
       }
     })
   }, [])
+
+  // The heartbeat. Carries a position when the browser will give one
+  // cheaply, so a provider who moves while online stays discoverable where
+  // they actually are. Only runs while online, so an offline provider is
+  // never located — see the battery/permission rules this feature follows.
+  useEffect(() => {
+    if (!isOnline) return
+    let cancelled = false
+
+    const beat = () => {
+      if (cancelled) return
+      if (!navigator.geolocation) { void heartbeat({}); return }
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          if (!cancelled) void heartbeat({ latitude: position.coords.latitude, longitude: position.coords.longitude })
+        },
+        // No position is fine; the point of the beat is "still here".
+        () => { if (!cancelled) void heartbeat({}) },
+        // Deliberately low accuracy and a generous cache: this runs every
+        // 90s for as long as someone is working, and a precise fix each
+        // time would cost battery for precision nobody uses.
+        { enableHighAccuracy: false, timeout: 20000, maximumAge: HEARTBEAT_INTERVAL_MS },
+      )
+    }
+
+    beat()
+    const id = setInterval(beat, HEARTBEAT_INTERVAL_MS)
+    return () => { cancelled = true; clearInterval(id) }
+  }, [isOnline])
 
   const handleToggleOnline = () => {
     setOnlineError("")

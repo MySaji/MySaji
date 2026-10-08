@@ -10,10 +10,13 @@ import {
   distanceKmSql, withinRadiusSql, geoOrigin,
   PROVIDER_GEO_POINT, PROVIDER_HAS_POSITION,
   PROVIDER_LATITUDE, PROVIDER_LONGITUDE, PROVIDER_POSITION_IS_FRESH,
+  providerIsLiveOnline, withinProviderServiceRadius,
   noteSpatialFailure, noteSpatialSuccess, postgisUnavailable,
 } from "@/lib/geo-sql"
 import { auth } from "@/auth"
 import { resolveLocationOrigin, type OriginSource } from "@/lib/actions/geo"
+import { isLiveOnline, onlineSince } from "@/lib/provider-presence"
+import { isShopCurrentlyOpen, resolveShopHoursForToday, formatShopHours } from "@/lib/format"
 
 /**
  * A circular fence to query inside — a centre and a radius.
@@ -41,13 +44,27 @@ export type FencedShop = {
   rating: number
   reviewCount: number
   isVerified: boolean
+  /** Computed from the shop's own configured trading hours — never from
+   *  whether the shopkeeper happens to be logged in. */
+  isOpen: boolean
+  hoursLabel: string | null
   distanceKm: number | null
 }
 
 export type FencedProvider = {
   providerId: string
-  latitude: number
-  longitude: number
+  /**
+   * A COARSENED position, never the provider's real one.
+   *
+   * A provider's working position is frequently their home. Shipping it to
+   * every customer who opens a nearby search would publish that, so this is
+   * snapped to roughly a kilometre (see COARSE_DP) — enough for a map pin
+   * to show which direction they are in, not enough to find a doorstep.
+   * The precise figure stays server-side; `distanceKm` is computed there
+   * from the real position and is the only exact thing a customer gets.
+   */
+  approxLatitude: number
+  approxLongitude: number
   userId: string
   name: string
   avatar: string | null
@@ -66,8 +83,10 @@ export type FencedProvider = {
 
 export type FencedRequest = {
   id: string
-  latitude: number
-  longitude: number
+  /** Coarsened for the same reason as FencedProvider: a request's location
+   *  is a customer's home or workplace. */
+  approxLatitude: number
+  approxLongitude: number
   title: string
   categoryName: string
   location: string
@@ -101,6 +120,57 @@ export type GeofenceResult = {
   providers: FencedProvider[]
   requests: FencedRequest[]
 }
+
+/**
+ * Decimal places kept when handing a person's position to the client.
+ * Two places is on the order of a kilometre at these latitudes, which
+ * places a pin in the right neighbourhood and nowhere near a specific
+ * building. Shops are exempt: a shop's address is public by definition and
+ * a customer needs to be able to walk to it.
+ */
+const COARSE_DP = 2
+
+function coarsen(value: number): number {
+  const factor = 10 ** COARSE_DP
+  return Math.round(value * factor) / factor
+}
+
+/** Mirrors ProviderAvailability.travelRadiusKm's schema default, for
+ *  providers who have no availability row at all. */
+/** The trading-hours columns the open/closed helper needs, carried through
+ *  the raw query and stripped before the payload leaves. */
+type ShopHoursRow = {
+  openingTime: string | null
+  closingTime: string | null
+  sundayOpeningTime: string | null
+  sundayClosingTime: string | null
+  holidayOpeningTime: string | null
+  holidayClosingTime: string | null
+}
+
+/** What the raw shop query actually selects: the public card fields plus
+ *  the trading-hours columns, which are resolved into isOpen/hoursLabel
+ *  and then dropped rather than shipped. */
+type FencedShopRow = Omit<FencedShop, "isOpen" | "hoursLabel"> & ShopHoursRow
+
+/** Reuses the trading-hours logic the shop pages already use, rather than
+ *  reimplementing "is it open" a second time and letting the two drift. */
+function withOpenState(row: FencedShopRow): FencedShop {
+  const hours = resolveShopHoursForToday(row)
+  const {
+    openingTime: _o, closingTime: _c, sundayOpeningTime: _so, sundayClosingTime: _sc,
+    holidayOpeningTime: _ho, holidayClosingTime: _hc, ...rest
+  } = row
+  return {
+    ...rest,
+    isOpen: isShopCurrentlyOpen(hours.openingTime, hours.closingTime),
+    hoursLabel: formatShopHours(hours.openingTime, hours.closingTime),
+  }
+}
+
+/** Mirrors ProviderAvailability.travelRadiusKm's schema default, for
+ *  providers who have no availability row at all. */
+const DEFAULT_TRAVEL_RADIUS_KM = 10
 
 const DEFAULT_LIMIT = 12
 const MAX_LIMIT = 50
@@ -208,7 +278,7 @@ export async function queryGeofence(input: GeofenceQuery = {}): Promise<Geofence
   try {
   const [shops, providers, requests] = await Promise.all([
     wantShops
-      ? db.$queryRaw<FencedShop[]>`
+      ? db.$queryRaw<FencedShopRow[]>`
           SELECT
             s."id",
             s."latitude"::float8  AS "latitude",
@@ -219,19 +289,22 @@ export async function queryGeofence(input: GeofenceQuery = {}): Promise<Geofence
             s."rating"::float8      AS "rating",
             s."reviewCount"         AS "reviewCount",
             s."isVerified"          AS "isVerified",
+            s."openingTime", s."closingTime",
+            s."sundayOpeningTime", s."sundayClosingTime",
+            s."holidayOpeningTime", s."holidayClosingTime",
             ${distance}             AS "distanceKm"
           FROM "shopkeeper_profiles" s
           WHERE ${within}
           ORDER BY ${distance} ASC
           LIMIT ${limit}
         `
-      : Promise.resolve([] as FencedShop[]),
+      : Promise.resolve([] as FencedShopRow[]),
     wantProviders
       ? db.$queryRaw<FencedProvider[]>`
           SELECT
             p."id"            AS "providerId",
-            ${PROVIDER_LATITUDE}::float8   AS "latitude",
-            ${PROVIDER_LONGITUDE}::float8  AS "longitude",
+            ${PROVIDER_LATITUDE}::float8   AS "approxLatitude",
+            ${PROVIDER_LONGITUDE}::float8  AS "approxLongitude",
             -- Lets the UI say whether this is where they are working from
             -- today or just the base on their profile.
             ${PROVIDER_POSITION_IS_FRESH}  AS "positionIsLive",
@@ -244,7 +317,7 @@ export async function queryGeofence(input: GeofenceQuery = {}): Promise<Geofence
             p."reviewCount"           AS "reviewCount",
             p."hourlyRate"::float8    AS "hourlyRate",
             p."slug"                  AS "slug",
-            COALESCE(a."isOnline", false) AS "isOnline",
+            ${providerIsLiveOnline(onlineSince())} AS "isOnline",
             (extensions.ST_Distance(${PROVIDER_GEO_POINT}, ${geoOrigin(latitude, longitude)}) / 1000.0) AS "distanceKm"
           FROM "provider_profiles" p
           JOIN "users" u ON u."id" = p."userId"
@@ -252,6 +325,10 @@ export async function queryGeofence(input: GeofenceQuery = {}): Promise<Geofence
           LEFT JOIN "provider_availability" a ON a."providerId" = p."id"
           WHERE ${PROVIDER_HAS_POSITION}
             AND extensions.ST_DWithin(${PROVIDER_GEO_POINT}, ${geoOrigin(latitude, longitude)}, ${radiusKm * 1000}::double precision)
+            -- Nearby has to be mutual: a provider who will only travel
+            -- 5 km should not surface to someone 12 km away just because
+            -- the customer's own search radius was wider.
+            AND ${withinProviderServiceRadius(latitude, longitude, DEFAULT_TRAVEL_RADIUS_KM)}
             -- Staff are dispatched by their employer rather than booked
             -- directly, so they do not belong in a customer's results.
             AND p."parentBusinessId" IS NULL
@@ -264,8 +341,8 @@ export async function queryGeofence(input: GeofenceQuery = {}): Promise<Geofence
       ? db.$queryRaw<FencedRequest[]>`
           SELECT
             r."id",
-            r."latitude"::float8  AS "latitude",
-            r."longitude"::float8 AS "longitude",
+            r."latitude"::float8  AS "approxLatitude",
+            r."longitude"::float8 AS "approxLongitude",
             r."title",
             c."name"      AS "categoryName",
             r."location"  AS "location",
@@ -291,10 +368,12 @@ export async function queryGeofence(input: GeofenceQuery = {}): Promise<Geofence
     centreFrom,
     // Rounded here rather than in SQL so the rounding rule lives in one
     // place alongside distanceFrom's.
-    shops: shops.map(roundDistance),
-    providers: providers.map(roundDistance),
+    shops: shops.map((row) => withOpenState(roundDistance(row))),
+    // Coarsened here, at the boundary, so no caller can forget to do it.
+    providers: providers.map((p) => ({ ...roundDistance(p), ...coarsePosition(p) })),
     requests: requests.map((r) => ({
       ...roundDistance(r),
+      ...coarsePosition(r),
       // node-postgres hands back a Date for timestamptz; the API contract
       // is an ISO string.
       createdAt: new Date(r.createdAt).toISOString(),
@@ -337,6 +416,8 @@ async function fallbackGeofence(args: {
           select: {
             id: true, shopName: true, shopLogoUrl: true, shopCategory: true,
             rating: true, reviewCount: true, isVerified: true, latitude: true, longitude: true,
+            openingTime: true, closingTime: true, sundayOpeningTime: true, sundayClosingTime: true,
+            holidayOpeningTime: true, holidayClosingTime: true,
           },
         })
       : Promise.resolve([]),
@@ -350,7 +431,7 @@ async function fallbackGeofence(args: {
             hourlyRate: true, slug: true, latitude: true, longitude: true,
             user: { select: { name: true, image: true } },
             category: { select: { name: true } },
-            availability: { select: { isOnline: true, lastKnownLatitude: true, lastKnownLongitude: true, lastLocationUpdatedAt: true } },
+            availability: { select: { isOnline: true, lastSeenAt: true, travelRadiusKm: true, lastKnownLatitude: true, lastKnownLongitude: true, lastLocationUpdatedAt: true } },
           },
         })
       : Promise.resolve([]),
@@ -373,6 +454,10 @@ async function fallbackGeofence(args: {
   const inFence = <T extends { distanceKm: number | null }>(rows: T[]): T[] =>
     sortByDistance(rows.filter((r) => r.distanceKm != null && r.distanceKm <= radiusKm)).slice(0, limit)
 
+  /** Same mutual-radius rule the SQL path applies. */
+  const withinTheirRadius = (distanceKm: number | null, travelRadiusKm: number | null | undefined) =>
+    distanceKm != null && distanceKm <= (travelRadiusKm ?? DEFAULT_TRAVEL_RADIUS_KM)
+
   return {
     fence,
     centreFrom,
@@ -386,12 +471,32 @@ async function fallbackGeofence(args: {
       rating: Number(s.rating),
       reviewCount: s.reviewCount,
       isVerified: s.isVerified,
+      isOpen: isShopCurrentlyOpen(
+        resolveShopHoursForToday(s).openingTime, resolveShopHoursForToday(s).closingTime,
+      ),
+      hoursLabel: formatShopHours(
+        resolveShopHoursForToday(s).openingTime, resolveShopHoursForToday(s).closingTime,
+      ),
       distanceKm: distanceFrom(centre, toCoordinates(s.latitude, s.longitude)),
     }))),
-    providers: inFence(providerRows.map((p) => ({
+    providers: inFence(providerRows
+      .filter((p) => withinTheirRadius(
+        distanceFrom(
+          centre,
+          (isPositionFresh(p.availability)
+            ? toCoordinates(p.availability?.lastKnownLatitude, p.availability?.lastKnownLongitude)
+            : null) ?? toCoordinates(p.latitude, p.longitude),
+        ),
+        p.availability?.travelRadiusKm,
+      ))
+      .map((p) => ({
       providerId: p.id,
-      latitude: Number(p.latitude),
-      longitude: Number(p.longitude),
+      approxLatitude: coarsen(Number(
+        isPositionFresh(p.availability) ? p.availability!.lastKnownLatitude : p.latitude,
+      )),
+      approxLongitude: coarsen(Number(
+        isPositionFresh(p.availability) ? p.availability!.lastKnownLongitude : p.longitude,
+      )),
       userId: p.userId,
       name: p.user.name,
       avatar: p.user.image,
@@ -401,7 +506,7 @@ async function fallbackGeofence(args: {
       reviewCount: p.reviewCount,
       hourlyRate: p.hourlyRate != null ? Number(p.hourlyRate) : null,
       slug: p.slug,
-      isOnline: p.availability?.isOnline ?? false,
+      isOnline: isLiveOnline(p.availability?.isOnline, p.availability?.lastSeenAt),
       positionIsLive: isPositionFresh(p.availability),
       distanceKm: distanceFrom(
         centre,
@@ -414,8 +519,8 @@ async function fallbackGeofence(args: {
     }))),
     requests: inFence(requestRows.map((r) => ({
       id: r.id,
-      latitude: Number(r.latitude),
-      longitude: Number(r.longitude),
+      approxLatitude: coarsen(Number(r.latitude)),
+      approxLongitude: coarsen(Number(r.longitude)),
       title: r.title,
       categoryName: r.category.name,
       location: r.location,
@@ -431,6 +536,15 @@ async function fallbackGeofence(args: {
 /** One decimal place — the precision the UI actually renders ("2.4 km"). */
 function roundDistance<T extends { distanceKm: number | null }>(row: T): T {
   return row.distanceKm == null ? row : { ...row, distanceKm: Math.round(row.distanceKm * 10) / 10 }
+}
+
+/** Blunts a person's position before it leaves the server. Applied at the
+ *  return boundary rather than per-field so a new caller cannot forget. */
+function coarsePosition<T extends { approxLatitude: number; approxLongitude: number }>(row: T) {
+  return {
+    approxLatitude: coarsen(row.approxLatitude),
+    approxLongitude: coarsen(row.approxLongitude),
+  }
 }
 
 /**
