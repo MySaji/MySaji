@@ -3,10 +3,12 @@
 import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { MapPin, Star, ShieldCheck, Store, Loader2 } from "lucide-react"
+import { MapPin, Star, ShieldCheck, Store, Loader2, Map as MapIcon, List } from "lucide-react"
 import { useGeofence } from "@/lib/hooks/useGeofence"
 import { DEFAULT_RADIUS_KM, RADIUS_OPTIONS_KM } from "@/lib/geo"
 import { useLocalization } from "@/lib/hooks/useLocalization"
+import { NearbyMap } from "@/components/geo/nearby-map"
+import { isGoogleMapsConfigured } from "@/lib/google-maps"
 
 /**
  * The home page's "Near you" row.
@@ -24,6 +26,10 @@ import { useLocalization } from "@/lib/hooks/useLocalization"
 export function NearYouSection() {
   const { t } = useLocalization()
   const [radiusKm, setRadiusKm] = useState(DEFAULT_RADIUS_KM)
+  // List stays the default: it works without a Maps key, reads fine on a
+  // phone, and is what someone scanning a feed actually wants. The map is
+  // for the question a list answers badly — "which direction is all this".
+  const [asMap, setAsMap] = useState(false)
   const { data, isLoading, hasPreciseCentre } = useGeofence({
     radiusKm,
     // Open requests are other people's jobs — not something a customer
@@ -79,9 +85,47 @@ export function NearYouSection() {
             {km} km
           </button>
         ))}
+
+        {/* Only offered when a map could actually render; without a Maps key
+            the toggle would lead to a placeholder. */}
+        {isGoogleMapsConfigured() && (
+          <div className="ml-auto flex items-center gap-1 rounded-full border border-border p-0.5">
+            <button
+              type="button"
+              onClick={() => setAsMap(false)}
+              aria-pressed={!asMap}
+              className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                !asMap ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <List className="h-3 w-3" />
+              {t("nearby.showList")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setAsMap(true)}
+              aria-pressed={asMap}
+              className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                asMap ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <MapIcon className="h-3 w-3" />
+              {t("nearby.showMap")}
+            </button>
+          </div>
+        )}
       </div>
 
-      {isEmpty ? (
+      {asMap ? (
+        // Same payload the list renders, so the pins and the cards can
+        // never disagree.
+        <NearbyMap
+          shops={shops}
+          providers={providers}
+          fence={data?.fence ?? null}
+          className="h-[380px] w-full overflow-hidden rounded-xl border border-border"
+        />
+      ) : isEmpty ? (
         <div className="rounded-xl border border-border bg-card p-6 text-center">
           <Store className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
           <p className="text-sm font-medium text-foreground">{t("nearby.sectionEmpty", { km: radiusKm })}</p>

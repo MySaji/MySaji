@@ -226,6 +226,10 @@ const en = {
   "nearby.viewAllShops": "All shops",
   "nearby.viewAllPros": "All pros",
   "nearby.online": "Online now",
+  "nearby.mapUnavailable": "Map unavailable",
+  "nearby.youAreHere": "You are here",
+  "nearby.showMap": "Map",
+  "nearby.showList": "List",
 } as const
 
 const sw: Record<keyof typeof en, string> = {
@@ -447,6 +451,10 @@ const sw: Record<keyof typeof en, string> = {
   "nearby.viewAllShops": "Maduka yote",
   "nearby.viewAllPros": "Wataalamu wote",
   "nearby.online": "Mtandaoni sasa",
+  "nearby.mapUnavailable": "Ramani haipatikani",
+  "nearby.youAreHere": "Uko hapa",
+  "nearby.showMap": "Ramani",
+  "nearby.showList": "Orodha",
 }
 
 const fr: Record<keyof typeof en, string> = {
@@ -668,6 +676,10 @@ const fr: Record<keyof typeof en, string> = {
   "nearby.viewAllShops": "Toutes les boutiques",
   "nearby.viewAllPros": "Tous les pros",
   "nearby.online": "En ligne",
+  "nearby.mapUnavailable": "Carte indisponible",
+  "nearby.youAreHere": "Vous etes ici",
+  "nearby.showMap": "Carte",
+  "nearby.showList": "Liste",
 }
 
 export const commonDictionary = { en, sw, fr }

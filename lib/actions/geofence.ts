@@ -29,6 +29,10 @@ export type GeofenceKind = "shops" | "providers" | "requests"
 
 export type FencedShop = {
   id: string
+  /** Where to draw the pin. Always present: a row without coordinates
+   *  cannot match a geofence in the first place. */
+  latitude: number
+  longitude: number
   name: string
   image: string | null
   category: string | null
@@ -40,6 +44,8 @@ export type FencedShop = {
 
 export type FencedProvider = {
   providerId: string
+  latitude: number
+  longitude: number
   userId: string
   name: string
   avatar: string | null
@@ -55,6 +61,8 @@ export type FencedProvider = {
 
 export type FencedRequest = {
   id: string
+  latitude: number
+  longitude: number
   title: string
   categoryName: string
   location: string
@@ -182,6 +190,8 @@ export async function queryGeofence(input: GeofenceQuery = {}): Promise<Geofence
       ? db.$queryRaw<FencedShop[]>`
           SELECT
             s."id",
+            s."latitude"::float8  AS "latitude",
+            s."longitude"::float8 AS "longitude",
             s."shopName"      AS "name",
             s."shopLogoUrl"   AS "image",
             s."shopCategory"  AS "category",
@@ -199,6 +209,8 @@ export async function queryGeofence(input: GeofenceQuery = {}): Promise<Geofence
       ? db.$queryRaw<FencedProvider[]>`
           SELECT
             p."id"            AS "providerId",
+            p."latitude"::float8  AS "latitude",
+            p."longitude"::float8 AS "longitude",
             p."userId"        AS "userId",
             u."name"          AS "name",
             u."image"         AS "avatar",
@@ -227,6 +239,8 @@ export async function queryGeofence(input: GeofenceQuery = {}): Promise<Geofence
       ? db.$queryRaw<FencedRequest[]>`
           SELECT
             r."id",
+            r."latitude"::float8  AS "latitude",
+            r."longitude"::float8 AS "longitude",
             r."title",
             c."name"      AS "categoryName",
             r."location"  AS "location",
@@ -339,6 +353,8 @@ async function fallbackGeofence(args: {
     centreFrom,
     shops: inFence(shopRows.map((s) => ({
       id: s.id,
+      latitude: Number(s.latitude),
+      longitude: Number(s.longitude),
       name: s.shopName,
       image: s.shopLogoUrl,
       category: s.shopCategory,
@@ -349,6 +365,8 @@ async function fallbackGeofence(args: {
     }))),
     providers: inFence(providerRows.map((p) => ({
       providerId: p.id,
+      latitude: Number(p.latitude),
+      longitude: Number(p.longitude),
       userId: p.userId,
       name: p.user.name,
       avatar: p.user.image,
@@ -363,6 +381,8 @@ async function fallbackGeofence(args: {
     }))),
     requests: inFence(requestRows.map((r) => ({
       id: r.id,
+      latitude: Number(r.latitude),
+      longitude: Number(r.longitude),
       title: r.title,
       categoryName: r.category.name,
       location: r.location,
