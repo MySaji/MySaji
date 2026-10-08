@@ -38,7 +38,7 @@ const TYPE_COLOR: Record<LocationType, string> = {
   DISTRIBUTOR: "from-teal-500 to-cyan-600",
 }
 
-const EMPTY_LOCATION_FORM = { name: "", type: "WAREHOUSE" as LocationType, address: "", city: "", phone: "", isPrimary: false, deliveryFee: "500" }
+const EMPTY_LOCATION_FORM = { name: "", type: "WAREHOUSE" as LocationType, address: "", city: "", phone: "", isPrimary: false, deliveryFee: "500", deliveryRadiusKm: "", deliveryFeePerKm: "0" }
 
 export default function DistributorLocationsPage() {
   const { t } = useLocalization()
@@ -89,7 +89,9 @@ export default function DistributorLocationsPage() {
 
   const openEdit = (loc: DistributorLocationRow) => {
     setEditingId(loc.id)
-    setLocationForm({ name: loc.name, type: loc.type, address: loc.address, city: loc.city ?? "", phone: loc.phone ?? "", isPrimary: loc.isPrimary, deliveryFee: String(loc.deliveryFee) })
+    setLocationForm({ name: loc.name, type: loc.type, address: loc.address, city: loc.city ?? "", phone: loc.phone ?? "", isPrimary: loc.isPrimary, deliveryFee: String(loc.deliveryFee),
+      deliveryRadiusKm: loc.deliveryRadiusKm != null ? String(loc.deliveryRadiusKm) : "",
+      deliveryFeePerKm: String(loc.deliveryFeePerKm) })
     setLocationError("")
     setShowLocationModal(true)
   }
@@ -102,7 +104,18 @@ export default function DistributorLocationsPage() {
     }
     setIsSavingLocation(true)
     setLocationError("")
-    const payload = { ...locationForm, deliveryFee }
+    const radiusRaw = locationForm.deliveryRadiusKm.trim()
+    const deliveryRadiusKm = radiusRaw === "" ? null : Number(radiusRaw)
+    if (deliveryRadiusKm != null && (!Number.isFinite(deliveryRadiusKm) || deliveryRadiusKm <= 0)) {
+      setLocationError(t("distributor.locations.deliveryRadiusInvalid"))
+      return
+    }
+    const deliveryFeePerKm = Number(locationForm.deliveryFeePerKm || 0)
+    if (!Number.isFinite(deliveryFeePerKm) || deliveryFeePerKm < 0) {
+      setLocationError(t("distributor.locations.deliveryPerKmInvalid"))
+      return
+    }
+    const payload = { ...locationForm, deliveryFee, deliveryRadiusKm, deliveryFeePerKm }
     const result = editingId
       ? await updateLocation({ id: editingId, ...payload })
       : await createLocation(payload)
@@ -348,6 +361,43 @@ export default function DistributorLocationsPage() {
                 />
               </div>
               <p className="text-[11px] text-muted-foreground mt-1.5">{t("distributor.locations.deliveryFeeHint")}</p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <Label>{t("distributor.locations.deliveryRadiusLabel")}</Label>
+                <div className="relative mt-1.5">
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    value={locationForm.deliveryRadiusKm}
+                    onChange={(e) => setLocationForm({ ...locationForm, deliveryRadiusKm: e.target.value })}
+                    placeholder={t("distributor.locations.deliveryRadiusPlaceholder")}
+                    className="pr-10"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">km</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-1.5">
+                  {locationForm.deliveryRadiusKm.trim() === ""
+                    ? t("distributor.locations.deliveryRadiusUnset")
+                    : t("distributor.locations.deliveryRadiusHint", { km: locationForm.deliveryRadiusKm })}
+                </p>
+              </div>
+              <div>
+                <Label>{t("distributor.locations.deliveryPerKmLabel")}</Label>
+                <div className="relative mt-1.5">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">KES</span>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={locationForm.deliveryFeePerKm}
+                    onChange={(e) => setLocationForm({ ...locationForm, deliveryFeePerKm: e.target.value })}
+                    className="pl-12"
+                  />
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-1.5">{t("distributor.locations.deliveryPerKmHint")}</p>
+              </div>
             </div>
             <label className="flex items-center gap-2 cursor-pointer">
               <Checkbox checked={locationForm.isPrimary} onCheckedChange={(c) => setLocationForm({ ...locationForm, isPrimary: c === true })} />

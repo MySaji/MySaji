@@ -8,6 +8,8 @@ import { requireShopkeeper } from "@/lib/actions/shopkeeper-dashboard"
 import { requireDistributor } from "@/lib/actions/distributor-dashboard"
 import { getEffectiveCommissionRate, splitByCommission } from "@/lib/commission"
 import { pushToUser } from "@/lib/actions/push"
+import { quoteDelivery, outOfRangeMessage, type DeliveryZone } from "@/lib/delivery-zone"
+import { toCoordinates } from "@/lib/geo"
 
 export type BuyerDistributorSummary = {
   id: string
@@ -192,7 +194,24 @@ export async function placeWholesaleOrder(input: unknown): Promise<WholesaleOrde
     lineItems.push({ distributorProductId: item.distributorProductId, quantity: item.quantity, unitPrice, totalPrice, restockProductId: item.restockProductId })
   }
 
-  const deliveryFee = location.deliveryFee != null ? Number(location.deliveryFee) : DEFAULT_WHOLESALE_DELIVERY_FEE
+  // Delivery zone, same contract as retail checkout: a location with no
+  // radius ships anywhere, and an unlocated buyer or location is never
+  // refused — only priced at the flat fee. See lib/delivery-zone.ts.
+  const zone: DeliveryZone = {
+    radiusKm: location.deliveryRadiusKm != null ? Number(location.deliveryRadiusKm) : null,
+    flatFee: location.deliveryFee != null ? Number(location.deliveryFee) : DEFAULT_WHOLESALE_DELIVERY_FEE,
+    perKm: Number(location.deliveryFeePerKm),
+  }
+  const quote = quoteDelivery(
+    zone,
+    toCoordinates(location.latitude, location.longitude),
+    toCoordinates(buyerProfile.latitude, buyerProfile.longitude),
+  )
+  if (!quote.deliverable) {
+    return { success: false, error: outOfRangeMessage(location.name, quote) }
+  }
+
+  const deliveryFee = quote.fee
   const total = subtotal + deliveryFee
 
   const wallet = await db.wallet.findUnique({ where: { userId: shopkeeper.userId } })

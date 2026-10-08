@@ -32,6 +32,7 @@ export default function ShopkeeperSettingsPage() {
 
   const [account, setAccount] = useState<ShopkeeperAccountData>(null)
   const [accountForm, setAccountForm] = useState({ shopName: "", businessLicense: "", phone: "", location: "", shopDescription: "", shopCategory: "", openingTime: "", closingTime: "", deliveryFee: "500",
+    deliveryRadiusKm: "", deliveryFeePerKm: "0",
     sundayOpeningTime: "", sundayClosingTime: "", holidayOpeningTime: "", holidayClosingTime: "" })
   const [isSavingAccount, setIsSavingAccount] = useState(false)
   const [accountError, setAccountError] = useState("")
@@ -67,6 +68,11 @@ export default function ShopkeeperSettingsPage() {
           sundayOpeningTime: acc.sundayOpeningTime ?? "", sundayClosingTime: acc.sundayClosingTime ?? "",
           holidayOpeningTime: acc.holidayOpeningTime ?? "", holidayClosingTime: acc.holidayClosingTime ?? "",
           deliveryFee: String(acc.deliveryFee),
+          // Empty string means "no limit" in the form, matching the null
+          // the column uses — a shop that never sets this keeps delivering
+          // everywhere.
+          deliveryRadiusKm: acc.deliveryRadiusKm != null ? String(acc.deliveryRadiusKm) : "",
+          deliveryFeePerKm: String(acc.deliveryFeePerKm),
         })
         setVacationEnabled(acc.isOnVacation)
         setVacationNote(acc.vacationNote ?? "")
@@ -91,7 +97,20 @@ export default function ShopkeeperSettingsPage() {
     }
     setIsSavingAccount(true)
     setAccountError("")
-    const result = await updateMyShopAccount({ ...accountForm, deliveryFee, ...(coords ?? {}) })
+    const radiusRaw = accountForm.deliveryRadiusKm.trim()
+    const deliveryRadiusKm = radiusRaw === "" ? null : Number(radiusRaw)
+    if (deliveryRadiusKm != null && (!Number.isFinite(deliveryRadiusKm) || deliveryRadiusKm <= 0)) {
+      setAccountError(t("shopkeeper.settings.deliveryRadiusInvalid"))
+      return
+    }
+    const deliveryFeePerKm = Number(accountForm.deliveryFeePerKm || 0)
+    if (!Number.isFinite(deliveryFeePerKm) || deliveryFeePerKm < 0) {
+      setAccountError(t("shopkeeper.settings.deliveryPerKmInvalid"))
+      return
+    }
+    const result = await updateMyShopAccount({
+      ...accountForm, deliveryFee, deliveryRadiusKm, deliveryFeePerKm, ...(coords ?? {}),
+    })
     setIsSavingAccount(false)
     if (!result.success) { setAccountError(result.error); return }
     flashSuccess()
@@ -280,6 +299,50 @@ export default function ShopkeeperSettingsPage() {
                     />
                   </div>
                   <p className="text-[11px] text-muted-foreground mt-1.5">{t("shopkeeper.settings.deliveryFeeHint")}</p>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t("shopkeeper.settings.deliveryRadiusLabel")}</label>
+                    <div className="relative max-w-xs">
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.5"
+                        value={accountForm.deliveryRadiusKm}
+                        onChange={(e) => setAccountForm({ ...accountForm, deliveryRadiusKm: e.target.value })}
+                        placeholder={t("shopkeeper.settings.deliveryRadiusPlaceholder")}
+                        className="pr-10"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">km</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-1.5">
+                      {/* Says plainly what an empty box means, because the
+                          safe default here is "no limit", not "zero". */}
+                      {accountForm.deliveryRadiusKm.trim() === ""
+                        ? t("shopkeeper.settings.deliveryRadiusUnset")
+                        : t("shopkeeper.settings.deliveryRadiusHint", { km: accountForm.deliveryRadiusKm })}
+                    </p>
+                    {!coords && accountForm.deliveryRadiusKm.trim() !== "" && (
+                      <p className="text-[11px] text-amber-600 mt-1">{t("shopkeeper.settings.deliveryRadiusNeedsPin")}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t("shopkeeper.settings.deliveryPerKmLabel")}</label>
+                    <div className="relative max-w-xs">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">KES</span>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={accountForm.deliveryFeePerKm}
+                        onChange={(e) => setAccountForm({ ...accountForm, deliveryFeePerKm: e.target.value })}
+                        className="pl-12"
+                      />
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-1.5">{t("shopkeeper.settings.deliveryPerKmHint")}</p>
+                  </div>
                 </div>
 
                 <div>

@@ -14,6 +14,8 @@ export type DistributorLocationRow = {
   isActive: boolean
   isPrimary: boolean
   deliveryFee: number
+  deliveryRadiusKm: number | null
+  deliveryFeePerKm: number
   itemCount: number
   totalStock: number
   createdAt: string
@@ -39,6 +41,8 @@ export async function getMyLocations(): Promise<DistributorLocationRow[]> {
     isActive: l.isActive,
     isPrimary: l.isPrimary,
     deliveryFee: Number(l.deliveryFee),
+    deliveryRadiusKm: l.deliveryRadiusKm != null ? Number(l.deliveryRadiusKm) : null,
+    deliveryFeePerKm: Number(l.deliveryFeePerKm),
     itemCount: l.inventories.length,
     totalStock: l.inventories.reduce((sum, i) => sum + i.currentStock, 0),
     createdAt: l.createdAt.toISOString(),
@@ -50,6 +54,10 @@ export type DistributorLocationActionResult = { success: true } | { success: fal
 const locationTypeSchema = z.enum(["WAREHOUSE", "RETAIL_STORE", "WHOLESALER", "DISTRIBUTOR"])
 
 const deliveryFeeSchema = z.number().min(0, "Delivery fee can't be negative").max(50000, "That delivery fee looks too high")
+// Null is meaningful, not missing: it clears a radius back to "delivers
+// anywhere", which is what every location had before zones existed.
+const deliveryRadiusSchema = z.number().positive("Delivery radius must be greater than zero").max(2000, "That delivery radius looks too large").nullable()
+const deliveryPerKmSchema = z.number().min(0, "Per-km fee can't be negative").max(5000, "That per-km fee looks too high")
 
 const createLocationSchema = z.object({
   name: z.string().trim().min(1, "Location name is required"),
@@ -61,6 +69,8 @@ const createLocationSchema = z.object({
   longitude: z.number().min(-180).max(180).optional(),
   isPrimary: z.boolean().optional(),
   deliveryFee: deliveryFeeSchema.optional(),
+  deliveryRadiusKm: deliveryRadiusSchema.optional(),
+  deliveryFeePerKm: deliveryPerKmSchema.optional(),
 })
 
 export async function createLocation(input: unknown): Promise<DistributorLocationActionResult> {
@@ -87,6 +97,8 @@ export async function createLocation(input: unknown): Promise<DistributorLocatio
         longitude: data.longitude,
         isPrimary: data.isPrimary ?? false,
         deliveryFee: data.deliveryFee ?? undefined,
+        deliveryRadiusKm: data.deliveryRadiusKm ?? undefined,
+        deliveryFeePerKm: data.deliveryFeePerKm ?? undefined,
       },
     })
   })
@@ -105,6 +117,8 @@ const updateLocationSchema = z.object({
   longitude: z.number().min(-180).max(180).optional(),
   isPrimary: z.boolean().optional(),
   deliveryFee: deliveryFeeSchema.optional(),
+  deliveryRadiusKm: deliveryRadiusSchema.optional(),
+  deliveryFeePerKm: deliveryPerKmSchema.optional(),
 })
 
 export async function updateLocation(input: unknown): Promise<DistributorLocationActionResult> {
@@ -136,6 +150,8 @@ export async function updateLocation(input: unknown): Promise<DistributorLocatio
         longitude: data.longitude,
         isPrimary: data.isPrimary,
         deliveryFee: data.deliveryFee,
+        deliveryRadiusKm: data.deliveryRadiusKm === undefined ? undefined : data.deliveryRadiusKm,
+        deliveryFeePerKm: data.deliveryFeePerKm,
       },
     })
   })
@@ -277,6 +293,8 @@ export type DistributorLocationDetail = {
   isActive: boolean
   isPrimary: boolean
   deliveryFee: number
+  deliveryRadiusKm: number | null
+  deliveryFeePerKm: number
   inventory: { id: string; productName: string; sku: string; currentStock: number; lowStockThreshold: number; unit: string | null }[]
 } | null
 
@@ -300,6 +318,8 @@ export async function getLocationDetail(locationId: string): Promise<Distributor
     isActive: location.isActive,
     isPrimary: location.isPrimary,
     deliveryFee: Number(location.deliveryFee),
+    deliveryRadiusKm: location.deliveryRadiusKm != null ? Number(location.deliveryRadiusKm) : null,
+    deliveryFeePerKm: Number(location.deliveryFeePerKm),
     inventory: location.inventories.map((i) => ({
       id: i.id,
       productName: i.distributorProduct.name,

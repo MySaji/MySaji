@@ -1074,6 +1074,18 @@ model ShopkeeperProfile {
   // the shopkeeper (see app/shopkeeper/settings) — replaces what used to be
   // a single hardcoded platform-wide constant in checkout().
   deliveryFee     Decimal  @default(500) @db.Decimal(10, 2)
+  /// How far this shop will deliver, in kilometres. Null means no limit,
+  /// which is what every shop had before this existed and what they keep
+  /// until a shopkeeper sets one — so this can never retroactively block an
+  /// order that would have gone through yesterday. Enforced at checkout
+  /// (lib/actions/cart.ts) against the delivery address's coordinates, and
+  /// only when those coordinates are known: an address nobody could locate
+  /// is let through rather than refused on a guess.
+  deliveryRadiusKm Decimal? @db.Decimal(6, 2)
+  /// Optional surcharge per kilometre, added to the flat deliveryFee above.
+  /// Zero by default, so a shop that never touches it keeps exactly the
+  /// flat fee it has always charged.
+  deliveryFeePerKm Decimal  @default(0) @db.Decimal(10, 2)
   isOnVacation    Boolean  @default(false)
   vacationNote    String?
   createdAt       DateTime @default(now())
@@ -1172,6 +1184,10 @@ model DistributorLocation {
   // fulfills, self-managed by the distributor — replaces what used to be a
   // single hardcoded platform-wide constant in placeWholesaleOrder().
   deliveryFee   Decimal                 @default(500) @db.Decimal(10, 2)
+  /// Same contract as ShopkeeperProfile.deliveryRadiusKm: null means this
+  /// location delivers anywhere, which is the pre-existing behaviour.
+  deliveryRadiusKm Decimal?             @db.Decimal(6, 2)
+  deliveryFeePerKm Decimal              @default(0) @db.Decimal(10, 2)
   createdAt     DateTime                @default(now())
   updatedAt     DateTime                @updatedAt
 

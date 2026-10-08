@@ -10,6 +10,8 @@ import { pushToUser } from "@/lib/actions/push"
 import { resolvePromoDiscount } from "@/lib/promo-code"
 import { canAcceptAnotherJob } from "@/lib/job-limits"
 import { createAndEmailReceipt, type ReceiptLineItem, type ReceiptAdjustment } from "@/lib/actions/receipts"
+import { quoteDelivery, outOfRangeMessage, type DeliveryZone } from "@/lib/delivery-zone"
+import { toCoordinates, type Coordinates } from "@/lib/geo"
 
 // Gap 2 (product+service sequencing): when the cart mixes a product with a
 // service, the service can't be scheduled sooner than this lead time — a
@@ -386,6 +388,11 @@ export async function removeOfferCartItem(input: unknown): Promise<CartActionRes
 
 const checkoutSchema = z.object({
   shippingAddress: z.string().trim().min(1, "Delivery address is required"),
+  // Set when the customer picked their address from Places autocomplete.
+  // Optional on purpose: a typed address still checks out, it just cannot
+  // be distance-checked or distance-priced (see lib/delivery-zone.ts).
+  shippingLatitude: z.number().min(-90).max(90).optional(),
+  shippingLongitude: z.number().min(-180).max(180).optional(),
   shippingPhone: z.string().trim().min(7, "Enter a valid phone number"),
   notes: z.string().trim().optional(),
   promoCode: z.string().trim().optional(),
@@ -422,7 +429,11 @@ export async function checkout(input: unknown): Promise<CheckoutResult> {
 
   const parsed = checkoutSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
-  const { shippingAddress, shippingPhone, notes, promoCode } = parsed.data
+  const { shippingAddress, shippingLatitude, shippingLongitude, shippingPhone, notes, promoCode } = parsed.data
+  const destination: Coordinates | null =
+    shippingLatitude != null && shippingLongitude != null
+      ? { latitude: shippingLatitude, longitude: shippingLongitude }
+      : null
 
   const cartItems = await db.cartItem.findMany({
     where: { customerId },
@@ -518,10 +529,30 @@ export async function checkout(input: unknown): Promise<CheckoutResult> {
 
   const shopkeeperProfiles = await db.shopkeeperProfile.findMany({
     where: { id: { in: [...byShop.keys()] } },
-    select: { id: true, userId: true, deliveryFee: true },
+    select: {
+      id: true, userId: true, shopName: true, deliveryFee: true,
+      deliveryRadiusKm: true, deliveryFeePerKm: true,
+      latitude: true, longitude: true,
+    },
   })
   const shopkeeperUserIdById = new Map(shopkeeperProfiles.map((s) => [s.id, s.userId]))
-  const shopkeeperDeliveryFeeById = new Map(shopkeeperProfiles.map((s) => [s.id, Number(s.deliveryFee)]))
+
+  // Delivery zones: each shop decides how far it will go and what that
+  // costs. A shop with no radius set delivers anywhere, and an address with
+  // no coordinates is never refused — see quoteDelivery for why.
+  const shopkeeperDeliveryFeeById = new Map<string, number>()
+  for (const shop of shopkeeperProfiles) {
+    const zone: DeliveryZone = {
+      radiusKm: shop.deliveryRadiusKm != null ? Number(shop.deliveryRadiusKm) : null,
+      flatFee: Number(shop.deliveryFee),
+      perKm: Number(shop.deliveryFeePerKm),
+    }
+    const quote = quoteDelivery(zone, toCoordinates(shop.latitude, shop.longitude), destination)
+    if (!quote.deliverable) {
+      return { success: false, error: outOfRangeMessage(shop.shopName, quote) }
+    }
+    shopkeeperDeliveryFeeById.set(shop.id, quote.fee)
+  }
 
   const shippingTotal = [...byShop.keys()].reduce((sum, shopkeeperId) => sum + (shopkeeperDeliveryFeeById.get(shopkeeperId) ?? DEFAULT_SHIPPING_COST), 0)
   const productsSubtotal = productItems.reduce((sum, item) => sum + Number(item.product!.discountPrice ?? item.product!.price) * item.quantity, 0)
@@ -568,7 +599,14 @@ export async function checkout(input: unknown): Promise<CheckoutResult> {
     await tx.wallet.update({ where: { userId: customerId }, data: { balance: balanceAfter } })
 
     const address = productItems.length > 0
-      ? await tx.address.create({ data: { userId: customerId, label: "Delivery", type: "OTHER", address: shippingAddress } })
+      // Coordinates are stored when known, so the order carries where it
+      // was actually sent rather than only the text the customer typed.
+      ? await tx.address.create({
+          data: {
+            userId: customerId, label: "Delivery", type: "OTHER", address: shippingAddress,
+            latitude: destination?.latitude, longitude: destination?.longitude,
+          },
+        })
       : null
 
     for (const [shopkeeperId, items] of byShop) {

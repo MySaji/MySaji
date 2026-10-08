@@ -14,6 +14,7 @@ import { useGatedAction } from "@/lib/hooks/useGatedAction"
 import { getWalletSummary } from "@/lib/actions/wallet"
 import { validatePromoCode } from "@/lib/actions/promo"
 import { useLocalization } from "@/lib/hooks/useLocalization"
+import { AddressAutocompleteInput, type PlaceResult } from "@/components/maps/address-autocomplete-input"
 
 export default function CustomerCartPage() {
   const { t, formatMoney } = useLocalization()
@@ -21,6 +22,10 @@ export default function CustomerCartPage() {
   const [cart, setCart] = useState<CartLine[]>([])
   const [walletBalance, setWalletBalance] = useState(0)
   const [shippingAddress, setShippingAddress] = useState("")
+  // Only set when the address was picked from autocomplete. Without it the
+  // order still goes through, it just can't be distance-checked against a
+  // shop's delivery radius — see lib/delivery-zone.ts.
+  const [shippingCoords, setShippingCoords] = useState<{ latitude: number; longitude: number } | null>(null)
   const [shippingPhone, setShippingPhone] = useState("")
   const [notes, setNotes] = useState("")
   const [checkoutState, setCheckoutState] = useState<"idle" | "ordered">("idle")
@@ -122,7 +127,11 @@ export default function CustomerCartPage() {
     if (!canCheckout || cart.length === 0 || !shippingAddress || !shippingPhone) return
     setIsSubmitting(true)
     setCheckoutError("")
-    const result = await checkout({ shippingAddress, shippingPhone, notes, promoCode: appliedPromo ? promoCode : undefined })
+    const result = await checkout({
+      shippingAddress, shippingPhone, notes,
+      promoCode: appliedPromo ? promoCode : undefined,
+      ...(shippingCoords ?? {}),
+    })
     setIsSubmitting(false)
     // A verification refusal opens the wizard instead of leaving the
     // shopper staring at a message with nowhere to act on it.
@@ -336,7 +345,21 @@ export default function CustomerCartPage() {
                     {t("customer.cart.deliveryNotice")}
                   </div>
                   <Input placeholder={t("customer.cart.phonePlaceholder")} value={shippingPhone} onChange={(e) => setShippingPhone(e.target.value)} />
-                  <Input placeholder={t("customer.cart.addressPlaceholder")} value={shippingAddress} onChange={(e) => setShippingAddress(e.target.value)} />
+                  <AddressAutocompleteInput
+                    value={shippingAddress}
+                    onChange={(value) => {
+                      setShippingAddress(value)
+                      // Typing by hand invalidates the pin: the text and the
+                      // coordinates must describe the same place, and there
+                      // is no geocoder here to re-derive one from the other.
+                      setShippingCoords(null)
+                    }}
+                    onPlaceSelected={(place: PlaceResult) => {
+                      setShippingAddress(place.address)
+                      setShippingCoords({ latitude: place.latitude, longitude: place.longitude })
+                    }}
+                    placeholder={t("customer.cart.addressPlaceholder")}
+                  />
                   <Textarea placeholder={t("customer.cart.notesPlaceholder")} value={notes} onChange={(e) => setNotes(e.target.value)} />
                 </div>
               </Card>

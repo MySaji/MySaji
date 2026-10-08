@@ -28,6 +28,9 @@ export type ShopkeeperAccountData = {
   holidayClosingTime: string | null
   closingTime: string | null
   deliveryFee: number
+  /// Null means this shop delivers anywhere — the pre-existing behaviour.
+  deliveryRadiusKm: number | null
+  deliveryFeePerKm: number
   isVerified: boolean
   rating: number
   reviewCount: number
@@ -75,6 +78,8 @@ export async function getMyShopAccount(): Promise<ShopkeeperAccountData> {
     holidayClosingTime: profile.holidayClosingTime,
     closingTime: profile.closingTime,
     deliveryFee: Number(profile.deliveryFee),
+    deliveryRadiusKm: profile.deliveryRadiusKm != null ? Number(profile.deliveryRadiusKm) : null,
+    deliveryFeePerKm: Number(profile.deliveryFeePerKm),
     isVerified: profile.isVerified,
     rating: Number(profile.rating),
     reviewCount: profile.reviewCount,
@@ -111,6 +116,10 @@ const updateAccountSchema = z.object({
   holidayClosingTime: timeSchema,
   closingTime: timeSchema,
   deliveryFee: z.number().min(0, "Delivery fee can't be negative").max(50000, "That delivery fee looks too high").optional(),
+  // Null is meaningful here, not missing: it is how a shopkeeper clears a
+  // radius and goes back to delivering everywhere.
+  deliveryRadiusKm: z.number().positive("Delivery radius must be greater than zero").max(2000, "That delivery radius looks too large").nullable().optional(),
+  deliveryFeePerKm: z.number().min(0, "Per-km fee can't be negative").max(5000, "That per-km fee looks too high").optional(),
 })
 
 export async function updateMyShopAccount(input: unknown): Promise<ShopkeeperAccountActionResult> {
@@ -120,6 +129,7 @@ export async function updateMyShopAccount(input: unknown): Promise<ShopkeeperAcc
   const parsed = updateAccountSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
   const { shopName, shopDescription, shopCategory, businessLicense, phone, location, latitude, longitude, openingTime, closingTime, deliveryFee,
+    deliveryRadiusKm, deliveryFeePerKm,
     sundayOpeningTime, sundayClosingTime, holidayOpeningTime, holidayClosingTime } = parsed.data
   const coords = latitude != null && longitude != null ? { latitude, longitude } : {}
 
@@ -141,6 +151,9 @@ export async function updateMyShopAccount(input: unknown): Promise<ShopkeeperAcc
         holidayClosingTime: holidayClosingTime !== undefined ? (holidayClosingTime || null) : undefined,
         closingTime: closingTime !== undefined ? (closingTime || null) : undefined,
         deliveryFee: deliveryFee ?? undefined,
+        // `undefined` leaves it alone, `null` clears it back to "no limit".
+        deliveryRadiusKm: deliveryRadiusKm === undefined ? undefined : deliveryRadiusKm,
+        deliveryFeePerKm: deliveryFeePerKm ?? undefined,
         // Mirrored onto the OFFICE Address row below. These columns are what
         // customer-facing radius search actually queries (see getAllShops),
         // because a filter cannot reach through a join to another table.
