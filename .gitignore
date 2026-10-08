@@ -39,3 +39,6 @@ build-output.txt
 .claude/scheduled_tasks.lock
 # Originals saved by scripts/reencode-oversized-images.js --backup
 image-backup/
+
+# Local backup written by scripts/seed-demo-presence.js
+scripts/.demo-presence-backup.json

@@ -10,6 +10,18 @@ import { distanceKm } from "@/lib/google-maps"
  *  than in each page so the shops and specialists filters cannot drift. */
 export const RADIUS_OPTIONS_KM = [2, 5, 10, 25, 50] as const
 
+/**
+ * The window automatic discovery searches when nobody has chosen a radius.
+ *
+ * Generous on purpose. The home page does not ask the customer to pick a
+ * distance, so this is not a promise that everything returned is walking
+ * distance — results come back nearest-first and each card states its own
+ * distance. A wide window lets a sparse area still fill the row rather
+ * than showing an empty section, while the ordering keeps a dense area
+ * looking local.
+ */
+export const AUTO_DISCOVERY_RADIUS_KM = 50
+
 /** What a "near me" filter starts at when the customer turns it on without
  *  picking a distance. 10 km covers most of a Kenyan town without being so
  *  tight that a half-populated database returns nothing. */

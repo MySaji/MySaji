@@ -106,6 +106,17 @@ export type GeofenceQuery = {
   kinds?: GeofenceKind[]
   /** Per-kind cap on returned rows. */
   limit?: number
+  /**
+   * Return only providers who are live-online and only shops inside their
+   * trading hours.
+   *
+   * Filtering here rather than in the caller matters because of `limit`:
+   * taking the twenty nearest and then discarding the offline ones can
+   * leave nothing, while an online pro sits just outside that twenty. With
+   * the predicate in SQL the limit counts only rows that will actually be
+   * shown.
+   */
+  availableOnly?: boolean
 }
 
 export type GeofenceResult = {
@@ -146,6 +157,11 @@ type ShopHoursRow = {
 }
 
 type FencedShopRow = Omit<FencedShop, "isOpen"> & ShopHoursRow
+
+/** Drops rows the caller does not want, or passes everything through. */
+function filterAvailable<T>(rows: T[], enabled: boolean, keep: (row: T) => boolean): T[] {
+  return enabled ? rows.filter(keep) : rows
+}
 
 /** Reuses the trading-hours logic the shop pages already use rather than
  *  reimplementing "is it open" and letting the two drift. */
@@ -211,6 +227,7 @@ function isFiniteCoord(value: unknown): value is number {
 export async function queryGeofence(input: GeofenceQuery = {}): Promise<GeofenceResult> {
   const kinds = input.kinds?.length ? input.kinds : ALL_KINDS
   const limit = Math.min(Math.max(input.limit ?? DEFAULT_LIMIT, 1), MAX_LIMIT)
+  const availableOnly = input.availableOnly === true
 
   // A client-supplied centre wins: it is the browser's own fix, which is
   // both more accurate and more current than anything the server can infer.
@@ -258,7 +275,7 @@ export async function queryGeofence(input: GeofenceQuery = {}): Promise<Geofence
   // instance without it degrades to the Prisma bounding-box path below
   // instead of failing every pull. Cached after the first failure.
   if (postgisUnavailable()) {
-    return fallbackGeofence({ centre, radiusKm, fence, centreFrom, limit, wantShops, wantProviders, wantRequests: wantRequests && maySeeRequests })
+    return fallbackGeofence({ centre, radiusKm, fence, centreFrom, limit, wantShops, wantProviders, wantRequests: wantRequests && maySeeRequests, availableOnly })
   }
 
   try {
@@ -315,6 +332,7 @@ export async function queryGeofence(input: GeofenceQuery = {}): Promise<Geofence
             -- directly, so they do not belong in a customer's results.
             AND p."parentBusinessId" IS NULL
             AND u."isActive" = true
+            ${availableOnly ? Prisma.sql`AND ${providerIsLiveOnline(onlineSince())}` : Prisma.empty}
           ORDER BY extensions.ST_Distance(${PROVIDER_GEO_POINT}, ${geoOrigin(latitude, longitude)}) ASC
           LIMIT ${limit}
         `
@@ -350,7 +368,15 @@ export async function queryGeofence(input: GeofenceQuery = {}): Promise<Geofence
     centreFrom,
     // Rounded here rather than in SQL so the rounding rule lives in one
     // place alongside distanceFrom's.
-    shops: shops.map((row) => withOpenState(roundDistance(row))),
+    // Trading hours are zone-less wall-clock strings resolved by
+    // resolveShopHoursForToday, which has weekday and holiday rules SQL
+    // would have to duplicate. Cheaper to over-fetch and filter here than
+    // to keep two definitions of "open" in step.
+    shops: filterAvailable(
+      shops.map((row) => withOpenState(roundDistance(row))),
+      availableOnly,
+      (shop) => shop.isOpen,
+    ),
     // Coarsened here, at the boundary, so no caller can forget to do it.
     providers: providers.map((p) => ({ ...roundDistance(p), ...coarsePosition(p) })),
     requests: requests.map((r) => ({
@@ -363,7 +389,7 @@ export async function queryGeofence(input: GeofenceQuery = {}): Promise<Geofence
   }
   } catch (error) {
     if (!noteSpatialFailure(error)) throw error
-    return fallbackGeofence({ centre, radiusKm, fence, centreFrom, limit, wantShops, wantProviders, wantRequests: wantRequests && maySeeRequests })
+    return fallbackGeofence({ centre, radiusKm, fence, centreFrom, limit, wantShops, wantProviders, wantRequests: wantRequests && maySeeRequests, availableOnly })
   }
 }
 
@@ -384,8 +410,9 @@ async function fallbackGeofence(args: {
   wantShops: boolean
   wantProviders: boolean
   wantRequests: boolean
+  availableOnly: boolean
 }): Promise<GeofenceResult> {
-  const { centre, radiusKm, fence, centreFrom, limit } = args
+  const { centre, radiusKm, fence, centreFrom, limit, availableOnly } = args
   const within = boundingBoxWhere(boundingBox(centre.latitude, centre.longitude, radiusKm))
   const take = limit * 3
 
@@ -439,7 +466,7 @@ async function fallbackGeofence(args: {
   return {
     fence,
     centreFrom,
-    shops: inFence(shopRows.map((s) => ({
+    shops: filterAvailable(inFence(shopRows.map((s) => ({
       id: s.id,
       latitude: Number(s.latitude),
       longitude: Number(s.longitude),
@@ -453,7 +480,7 @@ async function fallbackGeofence(args: {
         resolveShopHoursForToday(s).openingTime, resolveShopHoursForToday(s).closingTime,
       ),
       distanceKm: distanceFrom(centre, toCoordinates(s.latitude, s.longitude)),
-    }))),
+    }))), availableOnly, (shop) => shop.isOpen),
     providers: inFence(providerRows.map((p) => ({
       providerId: p.id,
       approxLatitude: coarsen(Number(

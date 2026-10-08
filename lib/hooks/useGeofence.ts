@@ -30,6 +30,9 @@ export type UseGeofenceOptions = {
   follow?: boolean
   /** Skip the pull entirely (a section that is collapsed, say). */
   enabled?: boolean
+  /** Only pros who are live-online and shops inside their trading hours.
+   *  Filtered in SQL so the limit counts rows that will be shown. */
+  availableOnly?: boolean
   /**
    * Check for change on this interval, in milliseconds. Off by default:
    * most sections are a snapshot and polling them would be pure cost. Set
@@ -90,6 +93,7 @@ export function useGeofence(options: UseGeofenceOptions = {}): UseGeofenceReturn
     limit,
     follow = false,
     enabled = true,
+    availableOnly = false,
     refreshIntervalMs = 0,
   } = options
 
@@ -139,7 +143,7 @@ export function useGeofence(options: UseGeofenceOptions = {}): UseGeofenceReturn
     ? `${centre.latitude.toFixed(2)},${centre.longitude.toFixed(2)}`
     : "server"
   const key = enabled
-    ? `geofence:${keyCentre}:${radiusKm}:${(kinds ?? ["all"]).join("+")}:${limit ?? "default"}`
+    ? `geofence:${keyCentre}:${radiusKm}:${(kinds ?? ["all"]).join("+")}:${limit ?? "default"}:${availableOnly ? "avail" : "all"}`
     : null
 
   // What the last full pull returned, and the fingerprint it was taken at.
@@ -159,7 +163,7 @@ export function useGeofence(options: UseGeofenceOptions = {}): UseGeofenceReturn
       lastVersion.current = version
     }
 
-    const result = await queryGeofence({ fence, kinds, limit })
+    const result = await queryGeofence({ fence, kinds, limit, availableOnly })
     lastResult.current = result
     // Re-read the fingerprint only when we had none; otherwise it was just
     // set above and re-querying would waste the saving.
@@ -167,7 +171,7 @@ export function useGeofence(options: UseGeofenceOptions = {}): UseGeofenceReturn
       lastVersion.current = await getGeofenceVersion({ fence })
     }
     return result
-  }, [radiusKm, kinds, limit, refreshIntervalMs])
+  }, [radiusKm, kinds, limit, refreshIntervalMs, availableOnly])
 
   const { data, isLoading, mutate, isValidating } = useSWR(
     key,

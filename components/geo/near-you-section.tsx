@@ -5,7 +5,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { MapPin, Star, ShieldCheck, Store, Loader2, Map as MapIcon, List, ChevronRight } from "lucide-react"
 import { useGeofence } from "@/lib/hooks/useGeofence"
-import { DEFAULT_RADIUS_KM, RADIUS_OPTIONS_KM } from "@/lib/geo"
+import { AUTO_DISCOVERY_RADIUS_KM } from "@/lib/geo"
 import { useLocalization } from "@/lib/hooks/useLocalization"
 import { NearbyMap } from "@/components/geo/nearby-map"
 import { PresenceBadge } from "@/components/geo/online-dot"
@@ -23,32 +23,37 @@ import type { FencedProvider, FencedShop } from "@/lib/actions/geofence"
  * and the browse pages still show everyone, offline and closed included.
  *
  * Both rows come from ONE geofence pull, so the second costs no extra
- * query. The first pull sends no centre, so the server fills one in from
- * the request's IP geolocation and this renders before the browser has
- * been asked for permission.
+ * query, and the online/open predicate runs in SQL so the row limit
+ * counts results that will actually be shown. The first pull sends no
+ * centre, so the server fills one in from the request's IP geolocation
+ * and this renders before the browser has been asked for permission.
  */
 export function NearYouSection() {
   const { t } = useLocalization()
-  const [radiusKm, setRadiusKm] = useState(DEFAULT_RADIUS_KM)
   const [asMap, setAsMap] = useState(false)
 
   const { data, isLoading, hasPreciseCentre } = useGeofence({
-    radiusKm,
+    // No radius control. The customer did not come to their home page to
+    // tune a search; they came to see who is around. One generous window
+    // is searched and the nearest available results come back ordered, so
+    // the answer adapts to how dense their area happens to be — dense
+    // areas fill the row from a few streets, sparse ones reach further —
+    // without anyone picking a number. Each card states its own distance,
+    // which is the honest version of what a radius chip was implying.
+    radiusKm: AUTO_DISCOVERY_RADIUS_KM,
     kinds: ["shops", "providers"],
-    // Over-fetch, because most of what comes back is filtered out below:
-    // a radius holding twenty pros may have two of them online.
-    limit: 40,
+    // Filtered in SQL, so this counts pros and shops that will actually
+    // be shown rather than rows about to be discarded.
+    availableOnly: true,
+    limit: 8,
   })
 
   // No location at all — permission denied, no saved address, no usable
   // edge geolocation. The rest of the home page is unaffected.
   if (!isLoading && !data?.fence) return null
 
-  // The filter this section exists for. Applied here rather than in the
-  // query because the same pull also feeds the map, where a closed shop is
-  // still a landmark worth seeing.
-  const providers = (data?.providers ?? []).filter((p) => p.isOnline)
-  const shops = (data?.shops ?? []).filter((s) => s.isOpen)
+  const providers = data?.providers ?? []
+  const shops = data?.shops ?? []
   const nothing = !isLoading && providers.length === 0 && shops.length === 0
 
   return (
@@ -60,29 +65,12 @@ export function NearYouSection() {
         {/* Says plainly how good the position is. An IP guess can be tens
             of kilometres out, and presenting that as a precise fix would
             make the distances below look wrong rather than approximate. */}
-        <span className="text-[11px] text-muted-foreground">
+        <span className="order-last w-full truncate text-[11px] text-muted-foreground sm:order-none sm:w-auto">
           {hasPreciseCentre ? t("nearby.precise") : t("nearby.approximate")}
         </span>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-1.5">
-        {RADIUS_OPTIONS_KM.map((km) => (
-          <button
-            key={km}
-            type="button"
-            onClick={() => setRadiusKm(km)}
-            className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
-              radiusKm === km
-                ? "border-primary bg-primary text-primary-foreground"
-                : "border-border bg-transparent text-muted-foreground hover:border-primary/50"
-            }`}
-          >
-            {km} km
-          </button>
-        ))}
 
         {isGoogleMapsConfigured() && (
-          <div className="ml-auto flex items-center gap-1 rounded-full border border-border p-0.5">
+          <div className="ml-auto flex flex-shrink-0 items-center gap-1 rounded-full border border-border p-0.5">
             <ToggleButton active={!asMap} onClick={() => setAsMap(false)} icon={<List className="h-3 w-3" />} label={t("nearby.showList")} />
             <ToggleButton active={asMap} onClick={() => setAsMap(true)} icon={<MapIcon className="h-3 w-3" />} label={t("nearby.showMap")} />
           </div>
@@ -101,7 +89,7 @@ export function NearYouSection() {
       ) : nothing ? (
         <div className="rounded-xl border border-border bg-card p-6 text-center">
           <Store className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
-          <p className="text-sm font-medium text-foreground">{t("nearby.noneAvailable", { km: radiusKm })}</p>
+          <p className="text-sm font-medium text-foreground">{t("nearby.noneAvailableAuto")}</p>
           <p className="mx-auto mt-1 max-w-sm text-xs text-muted-foreground">{t("nearby.noneAvailableHint")}</p>
           <Link
             href="/customer/find-specialists"
@@ -158,9 +146,14 @@ function Row({
           <ChevronRight className="h-3 w-3" />
         </Link>
       </div>
-      {/* One column on the narrowest phones so a card never has to squeeze
-          a name, a trade, a rating and a distance into half of 320px. */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">{children}</div>
+      {/* Horizontal strip on a phone, grid at sm+ — the same shape the
+          other browse rows on this page use, so these read as part of the
+          system rather than a third style. The negative margin lets the
+          strip bleed to the screen edge so a half-visible next card
+          signals that it scrolls. */}
+      <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 scrollbar-hide sm:mx-0 sm:grid sm:snap-none sm:grid-cols-2 sm:overflow-visible sm:px-0 lg:grid-cols-3">
+        {children}
+      </div>
     </div>
   )
 }
@@ -172,7 +165,7 @@ function ProviderCard({ provider }: { provider: FencedProvider }) {
     : `/customer/find-specialists?provider=${provider.providerId}`
 
   return (
-    <div className="flex flex-col rounded-xl border border-border bg-card p-3">
+    <div className="flex w-[82%] max-w-[300px] flex-shrink-0 snap-start flex-col rounded-xl border border-border bg-card p-3 sm:w-auto sm:max-w-none">
       <div className="flex items-start gap-2.5">
         <div className="relative h-11 w-11 flex-shrink-0 overflow-hidden rounded-full bg-muted">
           <Image src={provider.avatar || "/placeholder.svg"} alt={provider.name} fill sizes="44px" className="object-cover" />
@@ -233,7 +226,7 @@ function ShopCard({ shop }: { shop: FencedShop }) {
   const { t } = useLocalization()
 
   return (
-    <div className="flex flex-col rounded-xl border border-border bg-card p-3">
+    <div className="flex w-[82%] max-w-[300px] flex-shrink-0 snap-start flex-col rounded-xl border border-border bg-card p-3 sm:w-auto sm:max-w-none">
       <div className="flex items-start gap-2.5">
         <div className="relative h-11 w-11 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
           <Image src={shop.image || "/placeholder.svg"} alt={shop.name} fill sizes="44px" className="object-cover" />
