@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react"
 import Link from "next/link"
-import { useJsApiLoader, GoogleMap, MarkerF, CircleF, InfoWindowF } from "@react-google-maps/api"
+import { useJsApiLoader, GoogleMap, MarkerF, InfoWindowF } from "@react-google-maps/api"
 import { MapPin, Star, ShieldCheck } from "lucide-react"
 import { GOOGLE_MAPS_LIBRARIES, GOOGLE_MAPS_LOADER_ID, isGoogleMapsConfigured } from "@/lib/google-maps"
 import type { FencedProvider, FencedShop, Geofence } from "@/lib/actions/geofence"
@@ -24,8 +24,16 @@ type Pin = {
   subtitle: string | null
 }
 
+/** Open shops: amber, matching the storefront accent used on their cards. */
 const SHOP_COLOUR = "#f59e0b"
-const PROVIDER_COLOUR = "#2563eb"
+/** Online pros: the same emerald the live dot uses, so a green pin on the
+ *  map and a green dot on a card obviously mean the same thing. Previously
+ *  these were the same blue as the "you are here" marker, which made a
+ *  provider look like the viewer. */
+const PROVIDER_COLOUR = "#10b981"
+/** The viewer. Blue, and drawn smaller with a ring, so it reads as "me"
+ *  rather than as another result. */
+const VIEWER_COLOUR = "#2563eb"
 
 /**
  * The nearby results, drawn as a map instead of a list.
@@ -87,19 +95,30 @@ export function NearbyMap({
     })),
   ], [shops, providers])
 
-  // Fit to the fence rather than to the pins: the circle is the thing the
-  // customer chose, and framing to the pins alone would silently zoom in on
-  // a cluster and hide how much of the radius is empty.
+  // Fit to the results and the viewer, not to the search window.
+  //
+  // This used to frame the fence, back when the radius was something the
+  // customer picked and the circle was worth showing them. Discovery now
+  // chooses its own window — currently 50 km — so framing that zoomed out
+  // far enough to collapse pins a couple of kilometres apart into one
+  // blob. What matters is where the results actually are.
   const onLoad = useCallback((map: google.maps.Map) => {
     if (!fence) return
     const bounds = new google.maps.LatLngBounds()
-    // A degree of latitude is ~111.32 km everywhere, which is close enough
-    // to frame a circle; longitude is handled by fitBounds squaring it off.
-    const pad = fence.radiusKm / 111.32
-    bounds.extend({ lat: fence.latitude + pad, lng: fence.longitude + pad })
-    bounds.extend({ lat: fence.latitude - pad, lng: fence.longitude - pad })
-    map.fitBounds(bounds, 24)
-  }, [fence])
+    bounds.extend({ lat: fence.latitude, lng: fence.longitude })
+    for (const pin of pins) bounds.extend({ lat: pin.latitude, lng: pin.longitude })
+
+    // One result sitting on top of the viewer gives a zero-area box, which
+    // fitBounds answers by zooming to maximum. Pad it out to a few hundred
+    // metres so a single nearby pin lands at street level instead.
+    const span = bounds.toSpan()
+    if (span.lat() < 0.004 && span.lng() < 0.004) {
+      const pad = 0.004
+      bounds.extend({ lat: fence.latitude + pad, lng: fence.longitude + pad })
+      bounds.extend({ lat: fence.latitude - pad, lng: fence.longitude - pad })
+    }
+    map.fitBounds(bounds, 48)
+  }, [fence, pins])
 
   const containerClass = className ?? "h-[420px] w-full rounded-xl"
 
@@ -130,16 +149,6 @@ export function NearbyMap({
         gestureHandling: "cooperative",
       }}
     >
-      {/* The fence. Drawn under the pins so it never swallows a click. */}
-      <CircleF
-        center={centre}
-        radius={fence.radiusKm * 1000}
-        options={{
-          strokeColor: "#2563eb", strokeOpacity: 0.5, strokeWeight: 1,
-          fillColor: "#2563eb", fillOpacity: 0.06, clickable: false,
-        }}
-      />
-
       {/* Where the customer is. Deliberately distinct from the results. */}
       <MarkerF
         position={centre}
@@ -147,10 +156,10 @@ export function NearbyMap({
         icon={{
           path: google.maps.SymbolPath.CIRCLE,
           scale: 7,
-          fillColor: "#2563eb",
+          fillColor: VIEWER_COLOUR,
           fillOpacity: 1,
           strokeColor: "#ffffff",
-          strokeWeight: 2,
+          strokeWeight: 3,
         }}
         zIndex={1}
       />
@@ -185,6 +194,10 @@ export function NearbyMap({
               {open.name}
               {open.verified && <ShieldCheck className="ml-1 inline h-3 w-3 align-[-1px] text-emerald-600" />}
             </Link>
+            <p className="mt-0.5 flex items-center gap-1 text-[11px] font-medium text-emerald-700">
+              <span className="inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              {open.kind === "shop" ? t("nearby.openNow") : t("nearby.online")}
+            </p>
             {open.subtitle && <p className="mt-0.5 text-[11px] text-gray-600">{open.subtitle}</p>}
             <p className="mt-1 flex items-center gap-2 text-[11px] text-gray-600">
               {open.reviewCount > 0 && (

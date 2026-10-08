@@ -78,8 +78,11 @@ export function NearYouSection() {
       </div>
 
       {asMap ? (
-        // The map keeps the unfiltered set: hiding closed shops would make
-        // the area look emptier than it is.
+        // Same rows as the list, so a pin on the map and a card in the
+        // list always mean the same thing: this pro is online now, or this
+        // shop is open now. A provider's position is only ever on the map
+        // while they are online — going offline removes the pin, and the
+        // position shown is coarsened to about a kilometre either way.
         <NearbyMap
           shops={data?.shops ?? []}
           providers={data?.providers ?? []}

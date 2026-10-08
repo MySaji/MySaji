@@ -8,20 +8,25 @@
  * last touched in August. Nothing renders until something is genuinely
  * available, which is correct but makes the feature impossible to look at.
  *
- * IMPORTANT — presence expires. A provider counts as online only while
- * their device keeps checking in (five minutes, see
- * lib/provider-presence.ts). This script writes one check-in, so the two
- * providers drop off about five minutes later. That is the mechanism
- * working, not a bug. Use --watch to keep beating for them while you look
- * at the page.
+ * Presence expires: a provider counts as online only while their device
+ * keeps checking in (five minutes, see lib/provider-presence.ts). A real
+ * device beats every 90s. This script has no device, so by default it
+ * dates the check-in slightly in the FUTURE — a deliberate demo-only fib
+ * that holds the providers online for --minutes with nothing left
+ * running. Without it the demo went lopsided within five minutes, because
+ * shops do not expire: shops still listed, providers silently gone.
+ *
+ * --watch is the honest alternative — it beats on a real interval, exactly
+ * as a device would, for as long as you leave it open.
  *
  * Original opening hours are saved to scripts/.demo-presence-backup.json
  * and restored exactly by --revert, so a shop's real trading hours are
  * never guessed at.
  *
- *   node scripts/seed-demo-presence.js            # one check-in, ~5 min
- *   node scripts/seed-demo-presence.js --watch    # keep alive until Ctrl+C
- *   node scripts/seed-demo-presence.js --revert   # undo everything
+ *   node scripts/seed-demo-presence.js                # holds ~60 min
+ *   node scripts/seed-demo-presence.js --minutes 240  # holds ~4 hours
+ *   node scripts/seed-demo-presence.js --watch        # real beats, until Ctrl+C
+ *   node scripts/seed-demo-presence.js --revert       # undo everything
  */
 
 require("dotenv").config()
@@ -38,6 +43,13 @@ const db = new PrismaClient({ datasources: { db: { url: process.env.DIRECT_URL |
 const BACKUP = path.join(__dirname, ".demo-presence-backup.json")
 const REVERT = process.argv.includes("--revert")
 const WATCH = process.argv.includes("--watch")
+
+/** How long seeded providers stay visible, in minutes. */
+function holdMinutes() {
+  const i = process.argv.indexOf("--minutes")
+  const raw = i >= 0 ? Number(process.argv[i + 1]) : NaN
+  return Number.isFinite(raw) && raw > 0 ? Math.min(raw, 24 * 60) : 60
+}
 
 /** Refreshed well inside the five-minute staleness window. */
 const BEAT_MS = 60 * 1000
@@ -56,13 +68,16 @@ async function pickTargets() {
       user: { isActive: true },
     },
     select: { id: true, user: { select: { name: true } } },
-    orderBy: { rating: "desc" },
+    // id breaks ties, so repeated runs pick the SAME rows. Without it
+    // Postgres is free to return a different shop each time and each run
+    // forces another one open.
+    orderBy: [{ rating: "desc" }, { id: "asc" }],
     take: PROVIDER_COUNT,
   })
   const shops = await db.shopkeeperProfile.findMany({
     where: { latitude: { not: null } },
     select: { id: true, shopName: true, openingTime: true, closingTime: true },
-    orderBy: { rating: "desc" },
+    orderBy: [{ rating: "desc" }, { id: "asc" }],
     take: SHOP_COUNT,
   })
   return { providers, shops }
@@ -76,19 +91,33 @@ async function seed() {
   }
 
   // Record real hours before overwriting them, so --revert restores the
-  // actual values rather than a plausible-looking default.
-  if (!fs.existsSync(BACKUP)) {
-    fs.writeFileSync(BACKUP, JSON.stringify({
-      shops: shops.map((s) => ({ id: s.id, openingTime: s.openingTime, closingTime: s.closingTime })),
-      providerIds: providers.map((p) => p.id),
-    }, null, 2))
-  }
+  // actual values rather than a plausible-looking default. Merged rather
+  // than written once: an earlier version skipped this entirely when the
+  // file already existed, so a re-run that happened to pick a different
+  // shop forced it open with its real hours recorded nowhere. A shop
+  // already in the file is never re-recorded, or the second run would
+  // save the 00:00-23:59 the first one set.
+  const prior = fs.existsSync(BACKUP) ? JSON.parse(fs.readFileSync(BACKUP, "utf8")) : { shops: [], providerIds: [] }
+  const known = new Set(prior.shops.map((s) => s.id))
+  fs.writeFileSync(BACKUP, JSON.stringify({
+    shops: [
+      ...prior.shops,
+      ...shops.filter((s) => !known.has(s.id))
+        .map((s) => ({ id: s.id, openingTime: s.openingTime, closingTime: s.closingTime })),
+    ],
+    providerIds: [...new Set([...prior.providerIds, ...providers.map((p) => p.id)])],
+  }, null, 2))
+
+  // Dated forward so the five-minute staleness check keeps passing for the
+  // whole window. Only --watch writes an honest "now", because only
+  // --watch sticks around to write the next one.
+  const seenAt = WATCH ? new Date() : new Date(Date.now() + holdMinutes() * 60 * 1000)
 
   for (const p of providers) {
     await db.providerAvailability.upsert({
       where: { providerId: p.id },
-      create: { providerId: p.id, weeklySchedule: {}, isOnline: true, lastSeenAt: new Date() },
-      update: { isOnline: true, lastSeenAt: new Date() },
+      create: { providerId: p.id, weeklySchedule: {}, isOnline: true, lastSeenAt: seenAt },
+      update: { isOnline: true, lastSeenAt: seenAt },
     })
   }
   for (const s of shops) {
@@ -137,8 +166,8 @@ async function main() {
 
   const providerIds = await seed()
   if (!WATCH) {
-    console.log("\nThis lasts about five minutes, then presence goes stale and the rows empty again.")
-    console.log("Re-run, or use --watch to hold it open.")
+    console.log(`\nHolding for about ${holdMinutes()} minutes, then presence goes stale and the pro row empties.`)
+    console.log("Re-run to extend, --minutes N for longer, or --watch for real heartbeats.")
     console.log("Undo with: node scripts/seed-demo-presence.js --revert")
     return
   }
