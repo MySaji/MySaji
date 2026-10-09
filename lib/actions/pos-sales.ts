@@ -90,6 +90,16 @@ const money = (v: Prisma.Decimal) => Number(v.toFixed(2))
 // Reading the till
 // ---------------------------------------------------------------------------
 
+export type TillVariant = {
+  id: string
+  label: string
+  sku: string | null
+  barcode: string | null
+  /** The variant's own price, or the product's where it has none. */
+  price: number
+  stock: number
+}
+
 export type TillProduct = {
   id: string
   name: string
@@ -103,6 +113,20 @@ export type TillProduct = {
   /** Exact stock where the ledger knows it, else the integer figure. */
   stock: number
   categoryName: string | null
+  /**
+   * Sizes, colours or packs. Empty for a product that sells as itself.
+   *
+   * The till must not let a variant product be added without one of these
+   * chosen: "three shirts" across four sizes is not something a cashier can
+   * hand to a customer.
+   */
+  variants: TillVariant[]
+  /**
+   * Set when a scan matched a VARIANT barcode rather than the product's.
+   * The till uses it to skip the picker and ring up that size directly —
+   * which is the whole value of barcoding each size.
+   */
+  matchedVariantId: string | null
 }
 
 export type TillShift = {
@@ -249,9 +273,14 @@ export async function findTillProducts(input: unknown): Promise<TillProduct[]> {
 
   const select = {
     id: true, name: true, sku: true, barcode: true, unit: true,
-    price: true, discountPrice: true,
+    price: true, discountPrice: true, hasVariants: true,
     category: { select: { name: true } },
     inventory: { select: { currentStock: true, stockOnHand: true } },
+    variants: {
+      where: { isActive: true },
+      orderBy: { position: "asc" },
+      select: { id: true, label: true, sku: true, barcode: true, price: true, currentStock: true, stockOnHand: true },
+    },
   } as const
 
   // Every query below is scoped to this shop. A till that could see another
@@ -259,6 +288,9 @@ export async function findTillProducts(input: unknown): Promise<TillProduct[]> {
   const base = { shopkeeperId: till.shopkeeperId }
 
   let rows
+  // Which variant a scan landed on, where it was a variant's own barcode.
+  let matchedVariantId: string | null = null
+
   if (query.length > 0) {
     const exact = await db.product.findMany({
       where: { ...base, barcode: query },
@@ -268,6 +300,17 @@ export async function findTillProducts(input: unknown): Promise<TillProduct[]> {
     if (exact.length > 0) {
       rows = exact
     } else {
+      // A VARIANT barcode. Checked before any fuzzy search, for the same
+      // reason the product barcode is: a scan must land exactly, and
+      // barcoding each size is pointless if scanning one opens a picker.
+      const variantHit = await db.productVariant.findFirst({
+        where: { shopkeeperId: till.shopkeeperId, barcode: query, isActive: true },
+        select: { id: true, productId: true },
+      })
+      if (variantHit) {
+        matchedVariantId = variantHit.id
+        rows = await db.product.findMany({ where: { ...base, id: variantHit.productId }, select, take: 1 })
+      } else {
       rows = await db.product.findMany({
         where: {
           ...base,
@@ -280,6 +323,7 @@ export async function findTillProducts(input: unknown): Promise<TillProduct[]> {
         orderBy: [{ totalSold: "desc" }, { name: "asc" }],
         take: limit,
       })
+      }
     }
   } else {
     // An empty query is the till's opening screen. Best sellers first is the
@@ -306,6 +350,18 @@ export async function findTillProducts(input: unknown): Promise<TillProduct[]> {
       ? Number((p.inventory.stockOnHand ?? D(p.inventory.currentStock)).toString())
       : 0,
     categoryName: p.category?.name ?? null,
+    variants: p.variants.map((v) => ({
+      id: v.id,
+      label: v.label,
+      sku: v.sku,
+      barcode: v.barcode,
+      // Falls back to the product's price: most sizes cost the same, and
+      // copying the price onto every variant would mean a price change had
+      // to be written to all of them.
+      price: money(D(v.price ?? p.discountPrice ?? p.price)),
+      stock: Number((v.stockOnHand ?? D(v.currentStock)).toString()),
+    })),
+    matchedVariantId: p.id === rows[0]?.id ? matchedVariantId : null,
   }))
 }
 
@@ -430,6 +486,8 @@ const saleSchema = z.object({
   idempotencyKey: z.string().trim().min(8).max(100),
   lines: z.array(z.object({
     productId: z.string().trim().min(1),
+    /** Which size or option. Required where the product has them. */
+    variantId: z.string().trim().min(1).optional(),
     /** A string, not a number — see the note on quantity in pos-ledger.ts. */
     quantity: z.string().trim().regex(/^\d+(\.\d{1,3})?$/, "Enter a valid quantity"),
     /** Only honoured when the OPEN_PRICE trait is on. */
@@ -452,6 +510,8 @@ const saleSchema = z.object({
 
 export type ReceiptLine = {
   name: string
+  /** "Red / M". Null for a product that sells as itself. */
+  variantLabel: string | null
   sku: string | null
   quantity: string
   unit: string
@@ -515,15 +575,31 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
   // --- price it on the server ---------------------------------------------
   const products = await db.product.findMany({
     where: { shopkeeperId: till.shopkeeperId, id: { in: body.lines.map((l) => l.productId) } },
-    select: { id: true, name: true, sku: true, barcode: true, unit: true, price: true, discountPrice: true, costPrice: true },
+    select: {
+      id: true, name: true, sku: true, barcode: true, unit: true,
+      price: true, discountPrice: true, costPrice: true, hasVariants: true,
+    },
   })
   const byId = new Map(products.map((p) => [p.id, p]))
+
+  // Scoped to the shop, like everything else here. A variant id from a till
+  // is a value from a browser.
+  const variantIds = body.lines.map((l) => l.variantId).filter(Boolean) as string[]
+  const variants = variantIds.length
+    ? await db.productVariant.findMany({
+        where: { shopkeeperId: till.shopkeeperId, id: { in: variantIds } },
+        select: { id: true, productId: true, label: true, sku: true, barcode: true, price: true, costPrice: true },
+      })
+    : []
+  const variantById = new Map(variants.map((v) => [v.id, v]))
 
   const allowFractional = till.traits.includes("MEASURED")
   const allowOverride = till.traits.includes("OPEN_PRICE")
 
   type PricedLine = {
     productId: string
+    variantId: string | null
+    variantLabel: string | null
     name: string
     sku: string
     barcode: string | null
@@ -546,6 +622,21 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
     // Same message for both, deliberately.
     if (!product) return { success: false, error: "One of those products is no longer in your catalogue." }
 
+    // --- the variant, where the product has them ------------------------
+    //
+    // Refusing a variant product with no variant chosen is not pedantry: the
+    // stock figure for such a product is the SUM across its sizes, so
+    // selling against it would take a shirt off a total without saying which
+    // size left the shelf, and the shop could not restock from its own
+    // records.
+    const variant = line.variantId ? variantById.get(line.variantId) : undefined
+    if (line.variantId && (!variant || variant.productId !== product.id)) {
+      return { success: false, error: `That option is no longer available for ${product.name}.` }
+    }
+    if (product.hasVariants && !variant) {
+      return { success: false, error: `${product.name} is sold in sizes or options — choose one.` }
+    }
+
     const quantity = D(line.quantity)
     if (quantity.lessThanOrEqualTo(0)) {
       return { success: false, error: `Enter how much ${product.name} to sell.` }
@@ -560,7 +651,10 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
       }
     }
 
-    let unitPrice = D(product.discountPrice ?? product.price)
+    // A variant's own price where it has one, otherwise the product's. Most
+    // sizes cost the same and carrying the price on every variant would mean
+    // a price change had to be written to all of them.
+    let unitPrice = D(variant?.price ?? product.discountPrice ?? product.price)
     let overridden = false
     if (line.unitPriceOverride !== undefined) {
       if (!allowOverride) {
@@ -582,15 +676,21 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
 
     priced.push({
       productId: product.id,
+      variantId: variant?.id ?? null,
+      variantLabel: variant?.label ?? null,
       name: product.name,
-      sku: product.sku,
-      barcode: product.barcode,
+      // The variant's own code where it has one: that is what was scanned
+      // and what the shopkeeper will look for on the receipt.
+      sku: variant?.sku ?? product.sku,
+      barcode: variant?.barcode ?? product.barcode,
       unit: product.unit,
       quantity,
       unitPrice,
       lineDiscount,
       totalPrice,
-      costAtSale: product.costPrice != null ? D(product.costPrice) : null,
+      costAtSale: variant?.costPrice != null
+        ? D(variant.costPrice)
+        : product.costPrice != null ? D(product.costPrice) : null,
       priceOverridden: overridden,
       notes: line.notes?.trim() || null,
     })
@@ -676,6 +776,11 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
             items: {
               create: priced.map((l) => ({
                 productId: l.productId,
+                variantId: l.variantId,
+                // Snapshotted beside the id, for the same reason the name
+                // is: a receipt must stay readable after a size is
+                // discontinued and the row is gone.
+                variantLabel: l.variantLabel,
                 name: l.name,
                 sku: l.sku,
                 barcode: l.barcode,
@@ -708,6 +813,7 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
           const moved = await recordStockMovement(tx as never, {
             shopkeeperId: till.shopkeeperId,
             productId: l.productId,
+            variantId: l.variantId,
             kind: "SALE",
             quantity: l.quantity.negated(),
             unit: l.unit,
@@ -785,7 +891,7 @@ function buildReceipt(
     amountPaid: Prisma.Decimal; changeGiven: Prisma.Decimal; customerName: string | null
   },
   items: {
-    name: string; sku: string | null; quantity: Prisma.Decimal; unit: string
+    name: string; variantLabel: string | null; sku: string | null; quantity: Prisma.Decimal; unit: string
     unitPrice: Prisma.Decimal; lineDiscount: Prisma.Decimal; totalPrice: Prisma.Decimal
     priceOverridden: boolean
   }[],
@@ -804,6 +910,7 @@ function buildReceipt(
     occurredAt: sale.occurredAt.toISOString(),
     lines: items.map((i) => ({
       name: i.name,
+      variantLabel: i.variantLabel,
       sku: i.sku,
       // A string, so 1.350 kg does not become 1.35 and 2 does not become 2.000
       // on the printed line. The stored Decimal already carries the scale.
@@ -872,6 +979,10 @@ export async function voidPosSale(input: unknown): Promise<TillActionResult> {
         const back = await recordStockMovement(tx as never, {
           shopkeeperId: till.shopkeeperId,
           productId: item.productId,
+          // Back onto the size it came off, not onto the product. Restocking
+          // a generic shirt after selling a medium is how a size count goes
+          // wrong in a way nobody notices for weeks.
+          variantId: item.variantId,
           kind: "SALE_REVERSAL",
           quantity: D(item.quantity),
           unit: item.unit,

@@ -65,6 +65,16 @@ export type StockRow = {
   drifted: boolean
   lastMovementAt: string | null
   movementCount: number
+  /**
+   * Sizes, colours or packs, with each one's own figure. Empty for a product
+   * that sells as itself.
+   *
+   * Returned with the row rather than fetched on demand: the per-size
+   * figures are the reason to open this page for a clothes shop, and making
+   * them a second request would mean the list shows a total that cannot be
+   * acted on.
+   */
+  variants: { id: string; label: string; onHand: number; isActive: boolean }[]
 }
 
 export type StockSummary = {
@@ -123,6 +133,21 @@ export async function getStockView(): Promise<StockView> {
     }),
   ])
 
+  // One query for every variant in the shop, grouped in JS. A shop has tens
+  // of products and a handful of sizes each; a query per product would turn
+  // this page into a hundred round trips.
+  const allVariants = await db.productVariant.findMany({
+    where: { shopkeeperId: tenant.shopkeeperId },
+    orderBy: [{ position: "asc" }, { label: "asc" }],
+    select: { id: true, productId: true, label: true, stockOnHand: true, currentStock: true, isActive: true },
+  })
+  const variantsByProduct = new Map<string, typeof allVariants>()
+  for (const v of allVariants) {
+    const list = variantsByProduct.get(v.productId) ?? []
+    list.push(v)
+    variantsByProduct.set(v.productId, list)
+  }
+
   const ledgerByProduct = new Map(sums.map((s) => [s.productId, s]))
 
   let totalValue = 0
@@ -167,6 +192,12 @@ export async function getStockView(): Promise<StockView> {
       drifted: hasDrift,
       lastMovementAt: agg?._max.occurredAt?.toISOString() ?? null,
       movementCount: agg?._count ?? 0,
+      variants: (variantsByProduct.get(p.id) ?? []).map((v) => ({
+        id: v.id,
+        label: v.label,
+        onHand: Number((v.stockOnHand ?? new Prisma.Decimal(v.currentStock)).toString()),
+        isActive: v.isActive,
+      })),
     }
   })
 
@@ -240,6 +271,8 @@ export type StockActionResult = { success: true; balance: number } | { success: 
 
 const adjustSchema = z.object({
   productId: z.string().trim().min(1),
+  /** Which size or option. The ledger refuses a variant product without it. */
+  variantId: z.string().trim().min(1).optional(),
   /** A positive magnitude. The action decides the direction. */
   quantity: z.string().trim().regex(/^\d+(\.\d{1,3})?$/, "Enter a valid quantity"),
   reason: z.string().trim().max(300).optional(),
@@ -256,6 +289,7 @@ export async function receiveStock(input: unknown): Promise<StockActionResult> {
 
   return runMovement(tenant, {
     productId: parsed.data.productId,
+    variantId: parsed.data.variantId ?? null,
     kind: "PURCHASE",
     quantity: parsed.data.quantity,
     unitCost: parsed.data.unitCost ?? null,
@@ -288,6 +322,7 @@ export async function recordWastage(input: unknown): Promise<StockActionResult> 
 
   return runMovement(tenant, {
     productId: parsed.data.productId,
+    variantId: parsed.data.variantId ?? null,
     kind: "WASTAGE",
     quantity: "-" + parsed.data.quantity,
     reason: parsed.data.reason.trim(),
@@ -296,6 +331,7 @@ export async function recordWastage(input: unknown): Promise<StockActionResult> 
 
 const countSchema = z.object({
   productId: z.string().trim().min(1),
+  variantId: z.string().trim().min(1).optional(),
   /** What was actually on the shelf. Not a delta. */
   counted: z.string().trim().regex(/^\d+(\.\d{1,3})?$/, "Enter a valid count"),
   reason: z.string().trim().max(300).optional(),
@@ -321,13 +357,31 @@ export async function recordStockCount(input: unknown): Promise<StockActionResul
   })
   if (!product) return { success: false, error: "That product no longer exists." }
 
+  // Counting a SIZE compares against that size's own figure, not the
+  // product's. Counting four mediums against a product total that also
+  // includes smalls and larges would record a correction the size of the
+  // other sizes.
+  let variantHolder: { stockOnHand: Prisma.Decimal | null; currentStock: number } | null = null
+  if (parsed.data.variantId) {
+    variantHolder = await db.productVariant.findFirst({
+      where: { id: parsed.data.variantId, shopkeeperId: tenant.shopkeeperId, productId: product.id },
+      select: { stockOnHand: true, currentStock: true },
+    })
+    if (!variantHolder) return { success: false, error: "That option no longer exists." }
+  }
+
   const agg = await db.stockMovement.aggregate({
-    where: { shopkeeperId: tenant.shopkeeperId, productId: product.id },
+    where: {
+      shopkeeperId: tenant.shopkeeperId,
+      productId: product.id,
+      variantId: parsed.data.variantId ?? null,
+    },
     _sum: { quantity: true },
   })
+  const holder = variantHolder ?? product.inventory
   const expected = agg._sum.quantity !== null
     ? new Prisma.Decimal(agg._sum.quantity)
-    : new Prisma.Decimal(product.inventory?.stockOnHand ?? product.inventory?.currentStock ?? 0)
+    : new Prisma.Decimal(holder?.stockOnHand ?? holder?.currentStock ?? 0)
 
   const counted = new Prisma.Decimal(parsed.data.counted)
   const delta = counted.minus(expected)
@@ -338,6 +392,7 @@ export async function recordStockCount(input: unknown): Promise<StockActionResul
   const direction = delta.greaterThan(0) ? "more" : "fewer"
   return runMovement(tenant, {
     productId: product.id,
+    variantId: parsed.data.variantId ?? null,
     kind: "COUNT_ADJUSTMENT",
     quantity: delta.toString(),
     reason: parsed.data.reason?.trim()
@@ -348,13 +403,14 @@ export async function recordStockCount(input: unknown): Promise<StockActionResul
 /** The shared write path, so every adjustment goes through the ledger. */
 async function runMovement(
   tenant: { userId: string; shopkeeperId: string; negativeStock: ReturnType<typeof parsePosConfig>["negativeStock"] },
-  move: { productId: string; kind: "PURCHASE" | "WASTAGE" | "COUNT_ADJUSTMENT"; quantity: string; reason: string | null; unitCost?: number | null },
+  move: { productId: string; variantId?: string | null; kind: "PURCHASE" | "WASTAGE" | "COUNT_ADJUSTMENT"; quantity: string; reason: string | null; unitCost?: number | null },
 ): Promise<StockActionResult> {
   try {
     const result = await db.$transaction(
       (tx) => recordStockMovement(tx as never, {
         shopkeeperId: tenant.shopkeeperId,
         productId: move.productId,
+        variantId: move.variantId ?? null,
         kind: move.kind,
         quantity: move.quantity,
         // A string, not a number: the ledger takes Decimal-safe values so a
@@ -370,4 +426,165 @@ async function runMovement(
   } catch {
     return { success: false, error: "That could not be saved. Nothing was changed — try again." }
   }
+}
+
+// ---------------------------------------------------------------------------
+// Sizes, colours and packs
+// ---------------------------------------------------------------------------
+
+export type VariantRow = {
+  id: string
+  label: string
+  sku: string | null
+  barcode: string | null
+  /** Null means "same as the product". */
+  price: number | null
+  costPrice: number | null
+  onHand: number
+  isActive: boolean
+  position: number
+}
+
+export async function getProductVariants(input: unknown): Promise<VariantRow[]> {
+  const tenant = await requireStockTenant()
+  if (!tenant) return []
+  const parsed = z.object({ productId: z.string().trim().min(1) }).safeParse(input)
+  if (!parsed.success) return []
+
+  const rows = await db.productVariant.findMany({
+    where: { shopkeeperId: tenant.shopkeeperId, productId: parsed.data.productId },
+    orderBy: [{ position: "asc" }, { label: "asc" }],
+  })
+  return rows.map((v) => ({
+    id: v.id,
+    label: v.label,
+    sku: v.sku,
+    barcode: v.barcode,
+    price: v.price == null ? null : Number(v.price),
+    costPrice: v.costPrice == null ? null : Number(v.costPrice),
+    onHand: Number((v.stockOnHand ?? new Prisma.Decimal(v.currentStock)).toString()),
+    isActive: v.isActive,
+    position: v.position,
+  }))
+}
+
+const saveVariantSchema = z.object({
+  productId: z.string().trim().min(1),
+  /** Absent to create, present to edit. */
+  variantId: z.string().trim().min(1).optional(),
+  label: z.string().trim().min(1).max(60),
+  sku: z.string().trim().max(40).optional(),
+  barcode: z.string().trim().max(40).optional(),
+  price: z.number().min(0).max(100_000_000).nullable().optional(),
+  costPrice: z.number().min(0).max(100_000_000).nullable().optional(),
+})
+
+export type VariantResult = { success: true; variantId: string } | { success: false; error: string }
+
+/**
+ * Create or rename one option.
+ *
+ * Creating the first one flips Product.hasVariants, which is what makes the
+ * till start asking which size — so the two can never disagree.
+ *
+ * Stock is NOT settable here. A new option starts at zero and gets its stock
+ * through the ledger like everything else, because a figure typed straight
+ * into a row is a figure with no explanation behind it, which is the thing
+ * this whole design exists to avoid.
+ */
+export async function saveProductVariant(input: unknown): Promise<VariantResult> {
+  const tenant = await requireStockTenant()
+  if (!tenant) return { success: false, error: "There is no till on this account." }
+  const parsed = saveVariantSchema.safeParse(input)
+  if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
+  const d = parsed.data
+
+  const product = await db.product.findFirst({
+    where: { id: d.productId, shopkeeperId: tenant.shopkeeperId },
+    select: { id: true, hasVariants: true },
+  })
+  if (!product) return { success: false, error: "That product no longer exists." }
+
+  try {
+    const result = await db.$transaction(async (tx) => {
+      if (d.variantId) {
+        const existing = await tx.productVariant.findFirst({
+          where: { id: d.variantId, shopkeeperId: tenant.shopkeeperId, productId: product.id },
+          select: { id: true },
+        })
+        if (!existing) throw new Error("That option no longer exists.")
+        await tx.productVariant.update({
+          where: { id: existing.id },
+          data: {
+            label: d.label,
+            sku: d.sku?.trim() || null,
+            barcode: d.barcode?.trim() || null,
+            price: d.price ?? null,
+            costPrice: d.costPrice ?? null,
+          },
+        })
+        return existing.id
+      }
+
+      const count = await tx.productVariant.count({ where: { productId: product.id } })
+      const created = await tx.productVariant.create({
+        data: {
+          productId: product.id,
+          shopkeeperId: tenant.shopkeeperId,
+          label: d.label,
+          sku: d.sku?.trim() || null,
+          barcode: d.barcode?.trim() || null,
+          price: d.price ?? null,
+          costPrice: d.costPrice ?? null,
+          position: count,
+        },
+        select: { id: true },
+      })
+      if (!product.hasVariants) {
+        await tx.product.update({ where: { id: product.id }, data: { hasVariants: true } })
+      }
+      return created.id
+    }, { timeout: 30000 })
+
+    return { success: true, variantId: result }
+  } catch (e) {
+    const message = e instanceof Error ? e.message : ""
+    // The per-shop unique on sku. Worth naming, because the shopkeeper can
+    // fix it and a generic failure gives them nothing to act on.
+    if (message.includes("Unique constraint") || (e as { code?: string })?.code === "P2002") {
+      return { success: false, error: "Another product or option in this shop already uses that code." }
+    }
+    return { success: false, error: message || "That could not be saved. Try again." }
+  }
+}
+
+/**
+ * Retire an option, or bring it back.
+ *
+ * Deactivates rather than deletes, always. The option is on sale lines and
+ * stock movements that have to stay readable, and a shop that stops stocking
+ * size XL in March still needs last year's figures to make sense.
+ *
+ * Deactivating the LAST active option does not clear hasVariants: a product
+ * whose sizes are all retired has nothing sellable, and silently turning it
+ * back into a single sellable unit would hand the cashier the sum of several
+ * retired size counts.
+ */
+export async function setVariantActive(input: unknown): Promise<VariantResult> {
+  const tenant = await requireStockTenant()
+  if (!tenant) return { success: false, error: "There is no till on this account." }
+  const parsed = z.object({
+    variantId: z.string().trim().min(1),
+    isActive: z.boolean(),
+  }).safeParse(input)
+  if (!parsed.success) return { success: false, error: "Invalid input" }
+
+  const variant = await db.productVariant.findFirst({
+    where: { id: parsed.data.variantId, shopkeeperId: tenant.shopkeeperId },
+    select: { id: true },
+  })
+  if (!variant) return { success: false, error: "That option no longer exists." }
+
+  await db.productVariant.update({ where: { id: variant.id }, data: { isActive: parsed.data.isActive } })
+  return { success: true, variantId: variant.id }
 }

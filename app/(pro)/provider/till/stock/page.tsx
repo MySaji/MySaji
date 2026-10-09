@@ -3,14 +3,15 @@
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import {
-  ArrowLeft, Loader2, Search, Package, AlertTriangle, TrendingDown, Plus,
-  ClipboardCheck, Trash2, X, History, Check, Boxes, Calculator,
+  ArrowLeft, Loader2, Search, Package, AlertTriangle, Plus,
+  ClipboardCheck, Trash2, X, History, Check, Boxes, Calculator, Shapes, RotateCcw,
 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
   getStockView, getProductMovements, receiveStock, recordWastage, recordStockCount,
+  saveProductVariant, setVariantActive,
   type StockView, type StockRow, type MovementRow,
 } from "@/lib/actions/pos-stock"
 
@@ -54,6 +55,7 @@ const KIND_LABEL: Record<string, string> = {
 type Sheet =
   | { mode: "history"; row: StockRow }
   | { mode: "receive" | "waste" | "count"; row: StockRow }
+  | { mode: "options"; row: StockRow }
   | null
 
 export default function StockPage() {
@@ -67,6 +69,13 @@ export default function StockPage() {
   const [reason, setReason] = useState("")
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState("")
+  /**
+   * Which size an adjustment applies to. A product with options has no
+   * figure of its own to adjust — its number is the sum of its sizes — so
+   * the sheet asks before it will accept anything.
+   */
+  const [targetVariant, setTargetVariant] = useState<string | null>(null)
+  const [newOption, setNewOption] = useState({ label: "", sku: "", barcode: "", price: "" })
   const [saved, setSaved] = useState("")
 
   const reload = () => getStockView().then(setView)
@@ -87,26 +96,67 @@ export default function StockPage() {
   const openSheet = async (mode: Exclude<Sheet, null>["mode"], row: StockRow) => {
     setSheet({ mode, row } as Sheet)
     setAmount(""); setReason(""); setError(""); setMovements(null)
+    setNewOption({ label: "", sku: "", barcode: "", price: "" })
+    // Preselect where there is no choice to make.
+    setTargetVariant(row.variants.length === 1 ? row.variants[0].id : null)
     if (mode === "history") {
       const m = await getProductMovements({ productId: row.productId })
       setMovements(m)
     }
   }
 
+  /** Reload and keep the open options sheet pointed at the fresh row. */
+  const refreshSheet = async (productId: string) => {
+    const fresh = await getStockView()
+    setView(fresh)
+    const updated = fresh?.rows.find((x) => x.productId === productId)
+    if (updated) setSheet({ mode: "options", row: updated })
+  }
+
+  const toggleOption = async (row: StockRow, variantId: string, isActive: boolean) => {
+    setBusy(true); setError("")
+    const r = await setVariantActive({ variantId, isActive })
+    setBusy(false)
+    if (!r.success) { setError(r.error); return }
+    await refreshSheet(row.productId)
+  }
+
+  const addOption = async (row: StockRow) => {
+    if (!newOption.label.trim()) { setError("Give the option a name."); return }
+    setBusy(true); setError("")
+    const r = await saveProductVariant({
+      productId: row.productId,
+      label: newOption.label.trim(),
+      barcode: newOption.barcode.trim() || undefined,
+      price: newOption.price ? Number(newOption.price) : null,
+    })
+    setBusy(false)
+    if (!r.success) { setError(r.error); return }
+    setNewOption({ label: "", sku: "", barcode: "", price: "" })
+    await refreshSheet(row.productId)
+    flash("Option added")
+  }
+
   const flash = (msg: string) => { setSaved(msg); setTimeout(() => setSaved(""), 2500) }
 
   const submit = async () => {
     if (!sheet || sheet.mode === "history") return
+    if (sheet.row.variants.length > 0 && !targetVariant) {
+      setError("Choose which option this applies to.")
+      return
+    }
     setBusy(true); setError("")
-    const base = { productId: sheet.row.productId, reason: reason.trim() || undefined }
+    const variantId = targetVariant ?? undefined
+    const base = { productId: sheet.row.productId, variantId, reason: reason.trim() || undefined }
     const r =
       sheet.mode === "receive" ? await receiveStock({ ...base, quantity: amount })
       : sheet.mode === "waste" ? await recordWastage({ ...base, quantity: amount })
-      : await recordStockCount({ productId: sheet.row.productId, counted: amount, reason: reason.trim() || undefined })
+      : await recordStockCount({ productId: sheet.row.productId, variantId, counted: amount, reason: reason.trim() || undefined })
     setBusy(false)
     if (!r.success) { setError(r.error); return }
     await reload()
-    flash(`${sheet.row.name} is now ${qty(r.balance)} ${sheet.row.unit}`)
+    const label = sheet.row.variants.find((v) => v.id === targetVariant)?.label
+    flash(`${sheet.row.name}${label ? " " + label : ""} is now ${qty(r.balance)} ${sheet.row.unit}`)
     setSheet(null)
   }
 
@@ -250,7 +300,29 @@ export default function StockPage() {
                 </div>
               </div>
 
+              {r.variants.length > 0 && (
+                <div className="mt-1.5 flex flex-wrap gap-1">
+                  {r.variants.map((v) => (
+                    <span
+                      key={v.id}
+                      className={`inline-flex items-center gap-1 h-6 px-1.5 rounded-md text-[10px] tabular-nums ${
+                        !v.isActive
+                          ? "bg-muted/50 text-gray-400 line-through"
+                          : v.onHand <= 0
+                            ? "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400"
+                            : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
+                      }`}
+                    >
+                      <span className="font-semibold">{v.label}</span> {qty(v.onHand)}
+                    </span>
+                  ))}
+                </div>
+              )}
+
               <div className="mt-2 flex flex-wrap gap-1.5">
+                <SmallButton onClick={() => openSheet("options", r)} icon={Shapes}>
+                  {r.variants.length > 0 ? `Options (${r.variants.length})` : "Add options"}
+                </SmallButton>
                 <SmallButton onClick={() => openSheet("history", r)} icon={History}>
                   History{r.movementCount > 0 ? ` (${r.movementCount})` : ""}
                 </SmallButton>
@@ -293,7 +365,80 @@ export default function StockPage() {
                 </div>
               )}
 
-              {sheet.mode === "history" ? (
+              {sheet.mode === "options" ? (
+                <>
+                  <p className="text-[11px] text-gray-600 dark:text-gray-400 leading-snug">
+                    Sizes, colours or packs. Each one keeps its own stock and can carry its own
+                    barcode, so scanning a size rings up that size rather than asking.
+                  </p>
+
+                  {sheet.row.variants.length > 0 && (
+                    <div className="space-y-1.5">
+                      {sheet.row.variants.map((v) => (
+                        <div key={v.id} className="flex items-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 p-2.5">
+                          <div className="min-w-0 flex-1">
+                            <p className={v.isActive ? "text-xs font-semibold text-gray-900 dark:text-white" : "text-xs font-semibold text-gray-400 line-through"}>
+                              {v.label}
+                            </p>
+                            <p className="text-[10px] text-gray-400 tabular-nums">
+                              {qty(v.onHand)} {sheet.row.unit === "piece" ? "in stock" : sheet.row.unit}
+                            </p>
+                          </div>
+                          {/* Retired, never deleted: the size is on sale lines
+                              and stock movements that have to stay readable,
+                              and last year's figures must still make sense. */}
+                          <button
+                            onClick={() => void toggleOption(sheet.row, v.id, !v.isActive)}
+                            disabled={busy}
+                            className="h-8 px-2.5 rounded-lg border border-gray-200 dark:border-gray-700 text-[11px] text-gray-500 active:scale-95 inline-flex items-center gap-1"
+                          >
+                            {v.isActive
+                              ? <><Trash2 className="w-3 h-3" /> Retire</>
+                              : <><RotateCcw className="w-3 h-3" /> Bring back</>}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="rounded-xl border border-dashed border-gray-300 dark:border-gray-600 p-3 space-y-2">
+                    <p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">Add an option</p>
+                    <Input
+                      value={newOption.label}
+                      onChange={(e) => setNewOption((o) => ({ ...o, label: e.target.value }))}
+                      placeholder="Name it - M, Red / 42, 500ml"
+                      className="h-10 rounded-xl text-sm"
+                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input
+                        value={newOption.barcode}
+                        onChange={(e) => setNewOption((o) => ({ ...o, barcode: e.target.value }))}
+                        placeholder="Barcode (optional)"
+                        className="h-10 rounded-xl text-xs"
+                      />
+                      <Input
+                        value={newOption.price}
+                        onChange={(e) => setNewOption((o) => ({ ...o, price: e.target.value.replace(/[^0-9.]/g, "") }))}
+                        inputMode="decimal"
+                        placeholder={"Price (" + sh(sheet.row.price) + ")"}
+                        className="h-10 rounded-xl text-xs tabular-nums"
+                      />
+                    </div>
+                    <p className="text-[10px] text-gray-400 leading-snug">
+                      Leave the price blank to charge the product&apos;s own. A new option starts
+                      at zero stock - put stock in with Received, so there is a record of where it
+                      came from.
+                    </p>
+                    <Button
+                      onClick={() => void addOption(sheet.row)}
+                      disabled={busy || !newOption.label.trim()}
+                      className="w-full h-10 rounded-xl text-xs"
+                    >
+                      {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Add it"}
+                    </Button>
+                  </div>
+                </>
+              ) : sheet.mode === "history" ? (
                 movements === null ? (
                   <div className="py-8 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-gray-400" /></div>
                 ) : movements.length === 0 ? (
@@ -339,6 +484,31 @@ export default function StockPage() {
                 )
               ) : (
                 <>
+                  {/* Which size, where the product has them. A product with
+                      options has no figure of its own to adjust - its number
+                      is the sum of its sizes. */}
+                  {sheet.row.variants.length > 0 && (
+                    <div>
+                      <p className="text-[11px] font-medium text-gray-700 dark:text-gray-300 mb-1">Which option?</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {sheet.row.variants.filter((v) => v.isActive).map((v) => (
+                          <button
+                            key={v.id}
+                            onClick={() => { setTargetVariant(v.id); setError("") }}
+                            aria-pressed={targetVariant === v.id}
+                            className={
+                              targetVariant === v.id
+                                ? "h-9 px-3 rounded-lg border text-[11px] font-semibold tabular-nums active:scale-95 border-primary bg-primary/5 text-primary"
+                                : "h-9 px-3 rounded-lg border text-[11px] font-semibold tabular-nums active:scale-95 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300"
+                            }
+                          >
+                            {v.label} <span className="font-normal text-gray-400">{qty(v.onHand)}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <div>
                     <label htmlFor="stock-amount" className="block text-[11px] font-medium text-gray-700 dark:text-gray-300 mb-1">
                       {sheet.mode === "receive" && `How much arrived, in ${sheet.row.unit}`}

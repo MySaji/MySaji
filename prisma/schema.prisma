@@ -1623,6 +1623,12 @@ model Product {
   /// Defaults to "piece", which is what every existing product implicitly
   /// is, so this changes nothing for them.
   unit          String   @default("piece")
+  /// True once this product sells as sizes, colours or packs rather than as
+  /// itself. A denormalised flag rather than a count of the relation below,
+  /// so the till can tell without a join whether to show a variant picker —
+  /// and so a product that HAD variants and lost them does not silently
+  /// start selling as a single unit with the old stock figure.
+  hasVariants   Boolean  @default(false)
   price         Decimal  @db.Decimal(12, 2)
   discountPrice Decimal? @db.Decimal(12, 2)
   images        String[]
@@ -1656,6 +1662,7 @@ model Product {
 
   stockMovements  StockMovement[]
   posSaleItems    PosSaleItem[]
+  variants        ProductVariant[]
 
   @@unique([shopkeeperId, sku])
   @@index([shopkeeperId])
@@ -4274,6 +4281,11 @@ model StockMovement {
   id           String            @id @default(cuid())
   shopkeeperId String
   productId    String
+  /// Which variant moved, where the product has them. Null for a product
+  /// that sells as itself, which is most of them. The balance for a variant
+  /// product is therefore per (productId, variantId), and the product-level
+  /// figure is the sum across its variants.
+  variantId    String?
   kind         StockMovementKind
   /// SIGNED. Positive is stock arriving, negative is stock leaving. Signing
   /// the quantity rather than pairing a magnitude with a direction flag means
@@ -4321,8 +4333,10 @@ model StockMovement {
 
   shopkeeper ShopkeeperProfile @relation(fields: [shopkeeperId], references: [id], onDelete: Cascade)
   product    Product           @relation(fields: [productId], references: [id])
+  variant    ProductVariant?   @relation(fields: [variantId], references: [id])
 
   @@unique([shopkeeperId, idempotencyKey])
+  @@index([shopkeeperId, variantId, occurredAt])
   @@index([shopkeeperId, productId, occurredAt])
   @@index([shopkeeperId, occurredAt])
   @@index([shopkeeperId, kind, occurredAt])
@@ -4415,6 +4429,10 @@ model PosSaleItem {
   /// stay readable after a product is deleted or renamed. An OrderItem can
   /// rely on its Product surviving; a till receipt from two years ago cannot.
   productId String?
+  /// Nullable for the same reason productId is: a receipt must stay
+  /// readable after the variant is gone, so the label below is snapshotted.
+  variantId    String?
+  variantLabel String?
   name      String
   sku       String?
   barcode   String?
@@ -4437,8 +4455,9 @@ model PosSaleItem {
   priceOverridden Boolean @default(false)
   notes           String?
 
-  sale    PosSale  @relation(fields: [saleId], references: [id], onDelete: Cascade)
-  product Product? @relation(fields: [productId], references: [id])
+  sale    PosSale         @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product Product?        @relation(fields: [productId], references: [id])
+  variant ProductVariant? @relation(fields: [variantId], references: [id])
 
   @@index([saleId])
   @@index([productId])
@@ -4545,4 +4564,70 @@ model PosCashier {
 
   @@index([shopkeeperId, isActive])
   @@map("pos_cashiers")
+}
+
+/// One sellable unit of a product: a size, a colour, a pack.
+///
+/// WHY VARIANT STOCK DOES NOT LIVE IN Inventory.
+///
+/// Inventory is keyed `productId @unique`, and eight call sites across cart,
+/// checkout, wholesale and the distributor portal do
+/// `inventory.update({ where: { productId } })`. Relaxing that key to
+/// (productId, variantId) would break every one of them, for a feature none
+/// of them have any concept of. So a variant carries its own figures here,
+/// and the product-level Inventory row becomes the SUM of its variants —
+/// maintained by the ledger, so the marketplace keeps reading one number per
+/// product exactly as it always has and cannot oversell.
+///
+/// A product with no variants is untouched by any of this: hasVariants stays
+/// false, this table stays empty for it, and Inventory remains the truth.
+model ProductVariant {
+  id           String @id @default(cuid())
+  productId    String
+  /// The tenant, denormalised, as on every other POS table — so a variant
+  /// query filters on one indexed column rather than joining to find out
+  /// whose it is.
+  shopkeeperId String
+
+  /// What the cashier reads on the button: "Red / M", "500ml", "Size 42".
+  /// A single display string rather than a structured size+colour pair,
+  /// because the axes differ by trade — shoes have one, clothes two,
+  /// paint has colour and tin size — and inventing a schema for all of
+  /// them would fit none. `options` holds the structure when it matters.
+  label   String
+  /// Optional structured form, e.g. { "Size": "M", "Colour": "Red" }, for
+  /// grouping the picker into rows. Display never depends on it.
+  options Json?
+
+  /// Unique within the shop, like Product.sku and for the same reason.
+  sku     String?
+  barcode String?
+
+  /// Null means "same as the parent product". Most variants do not differ
+  /// in price, and copying the parent's price into every row would mean a
+  /// price change had to be written to all of them.
+  price     Decimal? @db.Decimal(12, 2)
+  costPrice Decimal? @db.Decimal(12, 2)
+
+  /// The exact figure, maintained by lib/pos-ledger.ts. Same contract as
+  /// Inventory.stockOnHand: null means no ledger history yet.
+  stockOnHand Decimal? @db.Decimal(14, 3)
+  /// floor(stockOnHand), never below zero — the whole-unit figure.
+  currentStock Int     @default(0)
+
+  isActive  Boolean  @default(true)
+  /// Display order in the till's picker. Sizes are not alphabetical: S, M,
+  /// L, XL sorts to L, M, S, XL, which is useless at a counter.
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product        Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  stockMovements StockMovement[]
+  posSaleItems   PosSaleItem[]
+
+  @@unique([shopkeeperId, sku])
+  @@index([productId, position])
+  @@index([shopkeeperId, barcode])
+  @@map("product_variants")
 }

@@ -40,6 +40,7 @@
  * safe. Remove it with --revert when you are done.
  *
  *   node scripts/seed-pos-demo.js                     # butchery
+ *   node scripts/seed-pos-demo.js --profile CLOTHES     # exercises VARIANTS
  *   node scripts/seed-pos-demo.js --profile SUPERMARKET
  *   node scripts/seed-pos-demo.js --profile MITUMBA    # exercises OPEN_PRICE
  *   node scripts/seed-pos-demo.js --revert             # remove it again
@@ -113,6 +114,48 @@ const PROFILES = {
       { name: "Rice, Pishori", price: 210, cost: 180, unit: "kg", stock: "34.75", barcode: null },
       { name: "Omo 1kg", price: 290, cost: 248, unit: "piece", stock: "18", barcode: "6161101510058" },
       { name: "Eggs, tray of 30", price: 540, cost: 470, unit: "piece", stock: "12", barcode: null },
+    ],
+  },
+  CLOTHES: {
+    label: "Clothes & fashion",
+    traits: ["VARIANTS"],
+    unit: "piece",
+    shopName: "Rehema Fashion House",
+    // Every product here has sizes, which is the point of this profile:
+    // VARIANTS is the trait 23 of the 35 shop types want, and a clothes
+    // shop is the shortest path to seeing it work.
+    products: [
+      { name: "Mens Shirt", price: 1200, cost: 700, unit: "piece", stock: "0", barcode: null,
+        variants: [
+          { label: "S", stock: "4", barcode: "6161102110011" },
+          { label: "M", stock: "9", barcode: "6161102110028" },
+          { label: "L", stock: "6", barcode: "6161102110035" },
+          { label: "XL", stock: "2", barcode: "6161102110042" },
+        ] },
+      { name: "Ladies Dress", price: 2200, cost: 1300, unit: "piece", stock: "0", barcode: null,
+        variants: [
+          { label: "S / Blue", stock: "3", barcode: null },
+          { label: "M / Blue", stock: "5", barcode: null },
+          { label: "M / Red", stock: "4", barcode: null },
+          { label: "L / Red", stock: "1", barcode: null },
+        ] },
+      { name: "Jeans", price: 1800, cost: 1050, unit: "piece", stock: "0", barcode: null,
+        variants: [
+          { label: "30", stock: "3", barcode: null },
+          { label: "32", stock: "7", barcode: null },
+          { label: "34", stock: "5", barcode: null },
+          { label: "36", stock: "0", barcode: null },
+        ] },
+      { name: "School Sweater", price: 950, cost: 560, unit: "piece", stock: "0", barcode: null,
+        variants: [
+          { label: "Age 6", stock: "8", barcode: null },
+          { label: "Age 10", stock: "6", barcode: null },
+          { label: "Age 14", stock: "4", barcode: null },
+        ] },
+      // Deliberately plain: a clothes shop still sells things that have no
+      // sizes, and the till must handle both side by side.
+      { name: "Leather Belt", price: 800, cost: 430, unit: "piece", stock: "14", barcode: "6161102110059" },
+      { name: "Socks, pair", price: 250, cost: 120, unit: "pair", stock: "40", barcode: "6161102110066" },
     ],
   },
   MITUMBA: {
@@ -203,6 +246,10 @@ async function revert() {
       shifts: (await db.tillSession.deleteMany({ where: { shopkeeperId: shopId } })).count,
       cashiers: (await db.posCashier.deleteMany({ where: { shopkeeperId: shopId } })).count,
       devices: (await db.posDevice.deleteMany({ where: { shopkeeperId: shopId } })).count,
+      // Before the products: deleting a product cascades its variants, but
+      // doing it explicitly means the count below is a real check rather
+      // than an assumption about the cascade.
+      variants: (await db.productVariant.deleteMany({ where: { shopkeeperId: shopId } })).count,
       inventory: (await db.inventory.deleteMany({ where: { productId: { in: productIds } } })).count,
       products: (await db.product.deleteMany({ where: { id: { in: productIds } } })).count,
     }
@@ -307,6 +354,58 @@ async function seed() {
       },
       select: { id: true },
     })
+
+    // Sizes, where this product has them. Each one carries its own opening
+    // stock as a real ledger row, exactly as a product's does — so a size's
+    // figure is explainable from day one.
+    if (p.variants && p.variants.length > 0) {
+      await db.product.update({ where: { id: product.id }, data: { hasVariants: true } })
+      let total = 0
+      for (const [position, v] of p.variants.entries()) {
+        const variant = await db.productVariant.create({
+          data: {
+            productId: product.id,
+            shopkeeperId: shop.id,
+            label: v.label,
+            sku: (p.name + "-" + v.label).toUpperCase().replace(/[^A-Z0-9]+/g, "-").slice(0, 36),
+            barcode: v.barcode ?? null,
+            position,
+            stockOnHand: v.stock,
+            currentStock: Math.max(0, Math.floor(Number(v.stock))),
+          },
+          select: { id: true },
+        })
+        if (Number(v.stock) !== 0) {
+          await db.stockMovement.create({
+            data: {
+              shopkeeperId: shop.id, productId: product.id, variantId: variant.id,
+              kind: "OPENING_BALANCE", quantity: v.stock, unit: p.unit, unitCost: p.cost,
+              balanceAfter: v.stock, reason: "Opening stock, seeded for the demo",
+              idempotencyKey: "seed:opening:" + variant.id, occurredAt: new Date(),
+            },
+          })
+        }
+        total += Number(v.stock)
+      }
+      // The product-level figure is the sum of its sizes, the same invariant
+      // lib/pos-ledger.ts maintains on every write.
+      //
+      // upsert, not update: this branch returns before the Inventory row is
+      // created further down, so there is nothing to update on a first run.
+      await db.inventory.upsert({
+        where: { productId: product.id },
+        update: { stockOnHand: String(total), currentStock: Math.max(0, Math.floor(total)) },
+        create: {
+          productId: product.id,
+          stockOnHand: String(total),
+          currentStock: Math.max(0, Math.floor(total)),
+          lowStockThreshold: 5,
+          reorderLevel: 10,
+        },
+      })
+      made++
+      continue
+    }
 
     // Opening stock goes in as a LEDGER ROW, not as a bare number, so the
     // demo shop's figures are explainable from the first day exactly as a

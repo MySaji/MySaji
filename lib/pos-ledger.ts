@@ -93,6 +93,16 @@ export type RecordMovementInput = {
   /** The tenant. Never taken from the client; always from the session. */
   shopkeeperId: string
   productId: string
+  /**
+   * Which variant moved, for a product that sells as sizes or colours.
+   *
+   * The balance is kept PER VARIANT, and the product-level figure the
+   * marketplace reads becomes the sum across them. Passing null for a
+   * product that has variants is refused rather than quietly treated as the
+   * whole product: "three shirts left" across four sizes is not a number
+   * anybody can sell against.
+   */
+  variantId?: string | null
   kind: StockMovementKind
   /**
    * SIGNED. Positive in, negative out. A string or Decimal, not a number:
@@ -122,6 +132,11 @@ export type RecordMovementResult =
 /** The slice of Prisma this needs, so importing it pulls in no engine. */
 type LedgerTx = {
   product: { findUnique: (args: unknown) => Promise<unknown> }
+  productVariant: {
+    findUnique: (args: unknown) => Promise<unknown>
+    findMany: (args: unknown) => Promise<unknown>
+    update: (args: unknown) => Promise<unknown>
+  }
   inventory: {
     findUnique: (args: unknown) => Promise<unknown>
     create: (args: unknown) => Promise<unknown>
@@ -137,6 +152,16 @@ type LedgerTx = {
 
 const D = (v: Prisma.Decimal | string | number) => new Prisma.Decimal(v)
 
+/** The variant columns the ledger reads. Named so the cast below is not
+ *  `as typeof variant`, which narrows to `never` at the declaration. */
+type LedgerVariant = {
+  id: string
+  shopkeeperId: string
+  productId: string
+  currentStock: number
+  stockOnHand: Prisma.Decimal | null
+}
+
 /**
  * The idempotency key for a product's opening-balance row.
  *
@@ -145,8 +170,11 @@ const D = (v: Prisma.Decimal | string | number) => new Prisma.Decimal(v)
  * enforces that against concurrent writers rather than hoping no two of them
  * seed at once. Namespaced so it cannot collide with a device-issued key.
  */
-function openingKey(productId: string): string {
-  return `seed:opening:${productId}`
+function openingKey(productId: string, variantId?: string | null): string {
+  // Per VARIANT where there is one: each sellable unit has its own opening
+  // balance, and sharing a key across a product's sizes would let the first
+  // one seeded silently block the rest.
+  return `seed:opening:${variantId ?? productId}`
 }
 
 /**
@@ -184,14 +212,40 @@ export async function recordStockMovement(
   // miss rather than a check somebody can forget to write.
   const product = (await tx.product.findUnique({
     where: { id: input.productId },
-    select: { id: true, shopkeeperId: true, unit: true },
-  })) as { id: string; shopkeeperId: string; unit: string } | null
+    select: { id: true, shopkeeperId: true, unit: true, hasVariants: true },
+  })) as { id: string; shopkeeperId: string; unit: string; hasVariants: boolean } | null
 
   if (!product) return { ok: false, code: "NOT_FOUND", message: "That product no longer exists." }
   if (product.shopkeeperId !== input.shopkeeperId) {
     // Deliberately the same message a missing product gets: whether another
     // shop holds this id is not something a caller should be able to learn.
     return { ok: false, code: "WRONG_TENANT", message: "That product no longer exists." }
+  }
+
+  // --- the variant, where there is one -----------------------------------
+  //
+  // Both directions are errors, and both are easy to write by accident:
+  // moving a variant product without saying which variant, and naming a
+  // variant on a product that does not have any. Either one would put a
+  // movement somewhere no reader of the stock figures would look for it.
+  let variant: LedgerVariant | null = null
+  if (input.variantId) {
+    variant = (await tx.productVariant.findUnique({
+      where: { id: input.variantId },
+      select: { id: true, shopkeeperId: true, productId: true, currentStock: true, stockOnHand: true },
+    })) as LedgerVariant | null
+    if (!variant || variant.shopkeeperId !== input.shopkeeperId) {
+      return { ok: false, code: "NOT_FOUND", message: "That option no longer exists." }
+    }
+    if (variant.productId !== input.productId) {
+      return { ok: false, code: "NOT_FOUND", message: "That option does not belong to that product." }
+    }
+  } else if (product.hasVariants) {
+    return {
+      ok: false,
+      code: "NOT_FOUND",
+      message: "This product is sold in sizes or options — say which one.",
+    }
   }
 
   // --- a replayed offline movement is a no-op, not an error ---------------
@@ -210,8 +264,12 @@ export async function recordStockMovement(
   }
 
   // --- the balance before this movement -----------------------------------
+  // Scoped to the variant where there is one. `variantId: null` is an
+  // explicit filter, not an omission: without it a product's own movements
+  // and its variants' would be summed together and every figure would be
+  // double-counted.
   const agg = (await tx.stockMovement.aggregate({
-    where: { shopkeeperId: input.shopkeeperId, productId: input.productId },
+    where: { shopkeeperId: input.shopkeeperId, productId: input.productId, variantId: input.variantId ?? null },
     _sum: { quantity: true },
   })) as { _sum: { quantity: Prisma.Decimal | null } }
 
@@ -219,6 +277,9 @@ export async function recordStockMovement(
     where: { productId: input.productId },
     select: { id: true, currentStock: true, stockOnHand: true },
   })) as { id: string; currentStock: number; stockOnHand: Prisma.Decimal | null } | null
+
+  /** Where this movement's balance is kept: the variant, or the product. */
+  const holder = variant ?? inv
 
   // A product that predates POS has no ledger rows, and its integer
   // currentStock is the only record of what is on the shelf. That figure has
@@ -236,7 +297,7 @@ export async function recordStockMovement(
   let ledgerSum = agg._sum.quantity
 
   if (ledgerSum === null) {
-    const opening = inv?.stockOnHand ?? D(inv?.currentStock ?? 0)
+    const opening = holder?.stockOnHand ?? D(holder?.currentStock ?? 0)
     // Not when the caller is itself declaring the opening figure. Someone
     // recording OPENING_BALANCE is stating what is on the shelf; importing
     // the old number as well would add the two together and double it.
@@ -249,13 +310,14 @@ export async function recordStockMovement(
         data: [{
           shopkeeperId: input.shopkeeperId,
           productId: input.productId,
+          variantId: input.variantId ?? null,
           kind: "OPENING_BALANCE",
           quantity: opening,
           unit: input.unit ?? product.unit,
           balanceAfter: opening,
           reason: "Stock on record when the till started keeping this product's history",
           actorUserId: input.actorUserId ?? null,
-          idempotencyKey: openingKey(input.productId),
+          idempotencyKey: openingKey(input.productId, input.variantId),
           occurredAt: input.occurredAt ?? new Date(),
         }],
         skipDuplicates: true,
@@ -291,6 +353,7 @@ export async function recordStockMovement(
     data: {
       shopkeeperId: input.shopkeeperId,
       productId: input.productId,
+      variantId: input.variantId ?? null,
       kind: input.kind,
       quantity: qty,
       unit: input.unit ?? product.unit,
@@ -310,17 +373,62 @@ export async function recordStockMovement(
 
   // --- the projection ------------------------------------------------------
   // floor, and never below zero: see the module comment.
-  const projected = Math.max(0, Math.floor(Number(after.toString())))
+  const floorOf = (v: Prisma.Decimal) => Math.max(0, Math.floor(Number(v.toString())))
+  const projected = floorOf(after)
+  const restocked = qty.greaterThan(0) && (input.kind === "PURCHASE" || input.kind === "TRANSFER_IN")
 
-  if (inv) {
+  if (variant) {
+    await tx.productVariant.update({
+      where: { id: variant.id },
+      data: { stockOnHand: after, currentStock: projected },
+    })
+
+    // THE ROLL-UP, and the reason variants are safe to add to a shop that
+    // also sells on SAJI.
+    //
+    // The marketplace reads ONE number per product and has no idea variants
+    // exist. If that number stayed at whatever it was, a shop could sell
+    // four shirts online while holding one of each size. So the product-level
+    // figure becomes the sum across every variant, recomputed here from the
+    // rows themselves rather than adjusted by a delta — a delta would drift
+    // the moment a variant is added, removed or corrected by hand.
+    //
+    // `stockOnHand ?? currentStock` per variant, because a variant with no
+    // ledger history yet still has a real figure; coalescing it to zero
+    // would make the product look emptier than the shelf.
+    const siblings = (await tx.productVariant.findMany({
+      where: { productId: input.productId },
+      select: { id: true, stockOnHand: true, currentStock: true },
+    })) as { id: string; stockOnHand: Prisma.Decimal | null; currentStock: number }[]
+
+    let total = D(0)
+    for (const sib of siblings) {
+      // The row just written is not necessarily visible to this read yet.
+      const value = sib.id === variant.id ? after : (sib.stockOnHand ?? D(sib.currentStock))
+      total = total.plus(value)
+    }
+
+    if (inv) {
+      await tx.inventory.update({
+        where: { id: inv.id },
+        data: {
+          stockOnHand: total,
+          currentStock: floorOf(total),
+          ...(restocked ? { lastRestockedAt: input.occurredAt ?? new Date() } : {}),
+        },
+      })
+    } else {
+      await tx.inventory.create({
+        data: { productId: input.productId, stockOnHand: total, currentStock: floorOf(total) },
+      })
+    }
+  } else if (inv) {
     await tx.inventory.update({
       where: { id: inv.id },
       data: {
         stockOnHand: after,
         currentStock: projected,
-        ...(qty.greaterThan(0) && (input.kind === "PURCHASE" || input.kind === "TRANSFER_IN")
-          ? { lastRestockedAt: input.occurredAt ?? new Date() }
-          : {}),
+        ...(restocked ? { lastRestockedAt: input.occurredAt ?? new Date() } : {}),
       },
     })
   } else {

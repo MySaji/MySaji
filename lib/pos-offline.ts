@@ -61,6 +61,23 @@ export type QueuedSale = {
   createdAt: string
 }
 
+export type CachedVariant = {
+  id: string
+  label: string
+  sku: string | null
+  barcode: string | null
+  price: number
+  stock: number
+}
+
+/**
+ * Deliberately the same shape as TillProduct in lib/actions/pos-sales.ts.
+ *
+ * The till renders cached products through exactly the same component as
+ * live ones, so the two types have to stay assignable. A cached product
+ * missing its variants would mean a clothes shop losing its sizes the moment
+ * the line drops — which is the moment it can least afford to.
+ */
 export type CachedProduct = {
   id: string
   name: string
@@ -71,6 +88,8 @@ export type CachedProduct = {
   listPrice: number
   stock: number
   categoryName: string | null
+  variants: CachedVariant[]
+  matchedVariantId: string | null
 }
 
 /** IndexedDB is absent in SSR, in some private modes, and can be blocked. */
@@ -157,12 +176,23 @@ export async function readCatalogue(): Promise<{ products: CachedProduct[]; upda
  */
 export function searchCached(products: CachedProduct[], query: string, limit = 20): CachedProduct[] {
   const q = query.trim().toLowerCase()
-  if (!q) return products.slice(0, limit)
+  if (!q) return products.slice(0, limit).map((p) => ({ ...p, matchedVariantId: null }))
+
   const exact = products.filter((p) => p.barcode && p.barcode.toLowerCase() === q)
-  if (exact.length > 0) return exact.slice(0, limit)
+  if (exact.length > 0) return exact.slice(0, limit).map((p) => ({ ...p, matchedVariantId: null }))
+
+  // A variant's own barcode, before any fuzzy match — same order as the
+  // server, so a scan that rings up a size online rings up the same size
+  // offline rather than opening a picker.
+  for (const p of products) {
+    const hit = p.variants.find((v) => v.barcode && v.barcode.toLowerCase() === q)
+    if (hit) return [{ ...p, matchedVariantId: hit.id }]
+  }
+
   return products
     .filter((p) => p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q))
     .slice(0, limit)
+    .map((p) => ({ ...p, matchedVariantId: null }))
 }
 
 // ---------------------------------------------------------------------------

@@ -75,7 +75,7 @@ export const POS_TRAIT_META: Record<PosTrait, PosTraitMeta> = {
     question: "Same product, different size or colour?",
     effect: "One product holds many sellable units, each with its own stock and barcode",
     icon: "Shapes",
-    stage: "planned",
+    stage: "live",
   },
   SERIALISED: {
     label: "Track each item individually",

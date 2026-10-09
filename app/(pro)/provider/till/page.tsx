@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
   getTillState, findTillProducts, recordPosSale, openTillShift, closeTillShift, voidPosSale,
-  type TillState, type TillProduct, type Receipt, type ShiftCloseSummary,
+  type TillState, type TillProduct, type TillVariant, type Receipt, type ShiftCloseSummary,
 } from "@/lib/actions/pos-sales"
 import { TillReceipt } from "@/components/pos/till-receipt"
 import { TillInstall } from "@/components/pos/till-install"
@@ -50,11 +50,17 @@ function shShort(n: number): string {
 
 type CartLine = {
   product: TillProduct
+  /** The chosen size or option, for a product that has them. */
+  variant: TillVariant | null
   /** A string throughout, so "1.3" mid-typing is not coerced to 1.3 and back. */
   quantity: string
   unitPriceOverride?: number
   lineDiscount?: number
 }
+
+/** A cart line is identified by product AND variant: two sizes of the same
+ *  shirt are two lines, not one with a quantity of two. */
+const lineKey = (productId: string, variantId: string | null) => `${productId}::${variantId ?? ""}`
 
 type PaymentDraft = { method: "CASH" | "MPESA" | "CARD" | "BANK" | "CREDIT"; amount: string; reference: string }
 
@@ -112,6 +118,8 @@ export default function TillPage() {
   // there and the sale DID happen, so a receipt is still shown — what
   // changes is the wording on it.
   const [queuedReceipt, setQueuedReceipt] = useState<{ total: number; change: number; items: number } | null>(null)
+  /** The product whose size is being chosen, if any. */
+  const [pickVariantFor, setPickVariantFor] = useState<TillProduct | null>(null)
 
   const [shiftOpening, setShiftOpening] = useState("")
   const [shiftCounted, setShiftCounted] = useState("")
@@ -161,7 +169,9 @@ export default function TillPage() {
   // ---- cart maths. Mirrors the server, which prices the sale for real. ----
   const lineTotal = (l: CartLine) => {
     const qty = Number(l.quantity || 0)
-    const price = l.unitPriceOverride ?? l.product.price
+    // The variant's price where there is one — it may differ from the
+    // product's, and charging the product's would undercharge silently.
+    const price = l.unitPriceOverride ?? l.variant?.price ?? l.product.price
     return Math.max(0, qty * price - (l.lineDiscount ?? 0))
   }
   const subtotal = useMemo(() => cart.reduce((a, l) => a + lineTotal(l), 0), [cart])
@@ -179,11 +189,27 @@ export default function TillPage() {
   const itemCount = cart.length
 
   // ---- cart actions -------------------------------------------------------
-  const addProduct = (product: TillProduct) => {
+  const addProduct = (product: TillProduct, variant?: TillVariant | null) => {
     setError("")
+
+    // A product sold in sizes cannot be added without one. If the scan
+    // already identified the size, use it and skip the question; otherwise
+    // ask, because "a shirt" is not something that can be handed over.
+    if (product.variants.length > 0 && !variant) {
+      const scanned = product.matchedVariantId
+        ? product.variants.find((v) => v.id === product.matchedVariantId)
+        : undefined
+      if (scanned) return addProduct(product, scanned)
+      setPickVariantFor(product)
+      return
+    }
+
+    const chosen = variant ?? null
+    setPickVariantFor(null)
     setCart((prev) => {
-      const at = prev.findIndex((l) => l.product.id === product.id)
-      if (at === -1) return [...prev, { product, quantity: "1" }]
+      const key = lineKey(product.id, chosen?.id ?? null)
+      const at = prev.findIndex((l) => lineKey(l.product.id, l.variant?.id ?? null) === key)
+      if (at === -1) return [...prev, { product, variant: chosen, quantity: "1" }]
       // A second scan of the same barcode means one more of it, which is what
       // a cashier scanning three identical tins expects. For a measured
       // product that is still +1 of the unit; they can type the weight after.
@@ -193,36 +219,36 @@ export default function TillPage() {
     })
   }
 
-  const setQuantity = (productId: string, quantity: string) => {
+  const setQuantity = (key: string, quantity: string) => {
     // Only digits and at most one dot, and only a dot at all where the shop
     // actually sells by measure.
     const cleaned = state?.canSellFractional
       ? quantity.replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1")
       : quantity.replace(/\D/g, "")
-    setCart((prev) => prev.map((l) => (l.product.id === productId ? { ...l, quantity: cleaned } : l)))
+    setCart((prev) => prev.map((l) => (lineKey(l.product.id, l.variant?.id ?? null) === key ? { ...l, quantity: cleaned } : l)))
   }
 
-  const bumpQuantity = (productId: string, by: number) => {
+  const bumpQuantity = (key: string, by: number) => {
     setCart((prev) => prev.map((l) => {
-      if (l.product.id !== productId) return l
+      if (lineKey(l.product.id, l.variant?.id ?? null) !== key) return l
       const next = Math.max(0, Number(l.quantity || 0) + by)
       return { ...l, quantity: next === 0 ? "" : String(Number(next.toFixed(3))) }
     }))
   }
 
-  const setOverride = (productId: string, raw: string) => {
+  const setOverride = (key: string, raw: string) => {
     const value = raw.replace(/[^\d.]/g, "")
     setCart((prev) => prev.map((l) =>
-      l.product.id === productId
+      lineKey(l.product.id, l.variant?.id ?? null) === key
         ? { ...l, unitPriceOverride: value === "" ? undefined : Number(value) }
         : l))
   }
 
-  const removeLine = (productId: string) =>
-    setCart((prev) => prev.filter((l) => l.product.id !== productId))
+  const removeLine = (key: string) =>
+    setCart((prev) => prev.filter((l) => lineKey(l.product.id, l.variant?.id ?? null) !== key))
 
   const clearSale = () => {
-    setCart([]); setSaleDiscount(""); setCustomerName("")
+    setCart([]); setSaleDiscount(""); setCustomerName(""); setPickVariantFor(null)
     setPayments([{ method: "CASH", amount: "", reference: "" }])
     setReceipt(null); setError(""); setCartOpen(false)
     setIdempotencyKey(newKey())
@@ -240,6 +266,7 @@ export default function TillPage() {
         .filter((l) => Number(l.quantity || 0) > 0)
         .map((l) => ({
           productId: l.product.id,
+          ...(l.variant ? { variantId: l.variant.id } : {}),
           quantity: String(Number(l.quantity)),
           ...(l.unitPriceOverride !== undefined ? { unitPriceOverride: l.unitPriceOverride } : {}),
           ...(l.lineDiscount ? { lineDiscount: l.lineDiscount } : {}),
@@ -615,6 +642,12 @@ export default function TillPage() {
                   </p>
                   <p className={`mt-0.5 text-[10px] tabular-nums ${out ? "text-red-500 font-semibold" : "text-gray-400"}`}>
                     {out ? "out of stock" : `${shShort(p.stock)} ${p.unit === "piece" ? "left" : p.unit}`}
+                    {/* The total across sizes, with the count, so a cashier
+                        knows a tap opens a choice rather than adding
+                        something. */}
+                    {p.variants.length > 0 && (
+                      <span className="text-gray-400"> &middot; {p.variants.length} options</span>
+                    )}
                   </p>
                   {inCart && (
                     <span className="absolute top-2 right-2 min-w-5 h-5 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center tabular-nums">
@@ -663,21 +696,26 @@ export default function TillPage() {
                 </div>
               ) : (
                 <div className="divide-y divide-gray-100 dark:divide-gray-700">
-                  {cart.map((l) => (
-                    <div key={l.product.id} className="p-3">
+                  {cart.map((l) => {
+                    const key = lineKey(l.product.id, l.variant?.id ?? null)
+                    return (
+                    <div key={key} className="p-3">
                       <div className="flex items-start gap-2">
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs font-semibold text-gray-900 dark:text-white leading-tight">{l.product.name}</p>
+                          <p className="text-xs font-semibold text-gray-900 dark:text-white leading-tight">
+                            {l.product.name}
+                            {l.variant && <span className="text-gray-500 font-normal"> &middot; {l.variant.label}</span>}
+                          </p>
                           <p className="text-[10px] text-gray-400 tabular-nums">
-                            {shShort(l.unitPriceOverride ?? l.product.price)}
+                            {shShort(l.unitPriceOverride ?? l.variant?.price ?? l.product.price)}
                             {l.product.unit !== "piece" && `/${l.product.unit}`}
                             {l.unitPriceOverride !== undefined && " (price set)"}
                           </p>
                         </div>
                         <p className="text-xs font-bold text-gray-900 dark:text-white tabular-nums">{sh(lineTotal(l))}</p>
                         <button
-                          onClick={() => removeLine(l.product.id)}
-                          aria-label={`Remove ${l.product.name}`}
+                          onClick={() => removeLine(key)}
+                          aria-label={`Remove ${l.product.name}${l.variant ? " " + l.variant.label : ""}`}
                           className="-m-1 w-9 h-9 rounded-lg flex items-center justify-center text-gray-300 hover:text-red-500 active:scale-90"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -686,7 +724,7 @@ export default function TillPage() {
 
                       <div className="mt-2 flex items-center gap-1.5">
                         <button
-                          onClick={() => bumpQuantity(l.product.id, -1)}
+                          onClick={() => bumpQuantity(key, -1)}
                           aria-label="One less"
                           className="w-9 h-9 rounded-lg border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-500 active:scale-90"
                         >
@@ -697,14 +735,14 @@ export default function TillPage() {
                             server enforces the same rule. */}
                         <Input
                           value={l.quantity}
-                          onChange={(e) => setQuantity(l.product.id, e.target.value)}
+                          onChange={(e) => setQuantity(key, e.target.value)}
                           inputMode={state.canSellFractional ? "decimal" : "numeric"}
-                          aria-label={`Quantity of ${l.product.name}`}
+                          aria-label={`Quantity of ${l.product.name}${l.variant ? " " + l.variant.label : ""}`}
                           className="h-9 w-16 rounded-lg text-center tabular-nums px-1"
                         />
                         <span className="text-[10px] text-gray-400 w-8">{l.product.unit === "piece" ? "" : l.product.unit}</span>
                         <button
-                          onClick={() => bumpQuantity(l.product.id, 1)}
+                          onClick={() => bumpQuantity(key, 1)}
                           aria-label="One more"
                           className="w-9 h-9 rounded-lg border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-500 active:scale-90"
                         >
@@ -714,16 +752,17 @@ export default function TillPage() {
                         {state.canOverridePrice && (
                           <Input
                             value={l.unitPriceOverride ?? ""}
-                            onChange={(e) => setOverride(l.product.id, e.target.value)}
+                            onChange={(e) => setOverride(key, e.target.value)}
                             inputMode="decimal"
                             placeholder="price"
-                            aria-label={`Price for ${l.product.name}`}
+                            aria-label={`Price for ${l.product.name}${l.variant ? " " + l.variant.label : ""}`}
                             className="h-9 flex-1 min-w-0 rounded-lg text-center tabular-nums px-1 text-xs"
                           />
                         )}
                       </div>
                     </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
 
@@ -780,6 +819,64 @@ export default function TillPage() {
           </span>
           <span className="text-base font-bold tabular-nums">KSh {sh(total)}</span>
         </button>
+      )}
+
+      {/* ---- which size? ---------------------------------------------------
+          Only ever opened by tapping a product that has options. A scan that
+          matched a size's own barcode skips this entirely, which is the whole
+          reason each size can carry its own barcode. */}
+      {pickVariantFor && (
+        <div className="fixed inset-0 z-50 flex items-end lg:items-center lg:justify-center bg-black/40">
+          <div className="w-full lg:max-w-md bg-white dark:bg-gray-900 rounded-t-2xl lg:rounded-2xl max-h-[80vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-700 px-3 py-2.5 flex items-center gap-2">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold text-gray-900 dark:text-white truncate">{pickVariantFor.name}</p>
+                <p className="text-[11px] text-gray-500">Which one?</p>
+              </div>
+              <button
+                onClick={() => setPickVariantFor(null)}
+                aria-label="Close"
+                className="w-9 h-9 rounded-lg flex items-center justify-center text-gray-400 active:scale-90 flex-shrink-0"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-3 grid grid-cols-2 min-[460px]:grid-cols-3 gap-2">
+              {pickVariantFor.variants.map((v) => {
+                const none = v.stock <= 0
+                return (
+                  <button
+                    key={v.id}
+                    onClick={() => addProduct(pickVariantFor, v)}
+                    className={`min-h-[72px] p-2.5 rounded-xl border text-left active:scale-[0.98] transition-all ${
+                      none
+                        ? "border-dashed border-gray-300 dark:border-gray-600 bg-muted/30"
+                        : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-primary/50"
+                    }`}
+                  >
+                    <p className="text-sm font-bold text-gray-900 dark:text-white leading-tight">{v.label}</p>
+                    <p className="mt-0.5 text-xs font-semibold text-gray-900 dark:text-white tabular-nums">
+                      {shShort(v.price)}
+                    </p>
+                    {/* Out-of-stock sizes stay tappable. A shopkeeper holding
+                        the thing in their hand must be able to sell it; the
+                        negative-stock policy decides what happens, not this
+                        button. */}
+                    <p className={`text-[10px] tabular-nums ${none ? "text-red-500 font-semibold" : "text-gray-400"}`}>
+                      {none ? "none left" : `${shShort(v.stock)} left`}
+                    </p>
+                  </button>
+                )
+              })}
+            </div>
+            {pickVariantFor.variants.length === 0 && (
+              <p className="px-3 pb-4 text-xs text-gray-500">
+                This product is marked as having options but none are set up yet. Add them under
+                Stock before selling it.
+              </p>
+            )}
+          </div>
+        </div>
       )}
 
       {/* ---- payment sheet ------------------------------------------------ */}

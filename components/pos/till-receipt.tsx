@@ -112,7 +112,10 @@ export function TillReceipt({
         <div className="mt-2.5 border-t border-dashed border-gray-300 dark:border-gray-600 pt-2 space-y-1.5">
           {receipt.lines.map((line, i) => (
             <div key={i}>
-              <p className="leading-tight">{line.name}</p>
+              <p className="leading-tight">
+                {line.name}
+                {line.variantLabel && <span className="text-gray-600"> &middot; {line.variantLabel}</span>}
+              </p>
               <div className="flex justify-between text-gray-600 dark:text-gray-400">
                 {/* The quantity keeps the scale it was sold at: 1.35 kg reads
                     as 1.35, and 2 pieces reads as 2, not 2.000. */}

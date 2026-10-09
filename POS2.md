@@ -845,3 +845,75 @@ heard. Then the same sale is deliberately re-queued and replayed: no
 second sale, no second stock movement, and the entry clears.
 
 `286` assertions still green across the six server-side suites.
+
+### VARIANTS — **live**
+
+The trait 23 of the 35 shop types want. One product, many sellable units,
+each with its own stock, barcode and optional price.
+
+**Variant stock does not live in `Inventory`.** That table is keyed
+`productId @unique`, and eight call sites across cart, checkout,
+wholesale and the distributor portal do
+`inventory.update({ where: { productId } })`. Relaxing that key would
+break every one of them for a feature none of them has any concept of.
+So a variant carries its own figures, and **the product-level `Inventory`
+row becomes the SUM of its variants**, maintained by the ledger.
+
+That roll-up is the whole reason variants are safe to add to a shop that
+also sells on SAJI. The marketplace reads one number per product and has
+no idea sizes exist; without it a shop could sell four shirts online
+while holding one of each size. It is recomputed from the variant rows
+rather than adjusted by a delta — a delta drifts the moment a size is
+added, removed or corrected by hand.
+
+**A variant product cannot be moved without naming a variant.** The
+ledger refuses it, the sale refuses it, and the stock adjustments refuse
+it. Not pedantry: the product's figure is a sum, so selling against it
+would take a shirt off a total without recording which size left the
+shelf, and the shop could not restock from its own records. The
+negative-stock policy checks the SIZE's figure too — a product-level
+check would have let "sell 5 of L" through while 2 were left and 10 were
+in stock across all sizes.
+
+**Scanning a size's barcode skips the picker.** Checked before any fuzzy
+search, in the same order on the server and in the offline cache, because
+barcoding each size is pointless if scanning one still opens a question.
+
+Sizes are **retired, never deleted** — they are on sale lines and stock
+movements that have to stay readable, and last year's figures must still
+make sense. Retiring the last one does not clear `hasVariants`: a product
+whose sizes are all retired has nothing sellable, and silently turning it
+back into a single unit would hand the cashier the sum of several retired
+counts.
+
+Stock is not settable when creating a size. It starts at zero and arrives
+through the ledger like everything else, because a figure typed straight
+into a row is a figure with no explanation behind it.
+
+**Known limit:** variants are POS-only. `OrderItem` has no `variantId`,
+so a marketplace order against a variant product sells it generically and
+the roll-up absorbs it. For a shop running both channels that means
+online orders cannot pick a size yet.
+
+### Verified
+
+- `28/28` the ledger: per-size balances, the roll-up invariant, opening
+  keys that do not collide across sizes, policy applied per size, and a
+  plain product completely unaffected.
+- `37/37` sale, void and counting: pricing from the size's own price,
+  voiding restocking the size it came off, counting one size comparing
+  against that size rather than the product.
+- `27/27` in real Chrome: tapping a shirt asks which size, scanning XL's
+  barcode skips the question, the size chosen is the one that leaves the
+  shelf, and the product figure follows.
+- `345` assertions across eight server-side suites. `tsc` clean; build
+  compiles 207/207.
+
+The portal suite was rewritten to be profile-agnostic along the way. It
+had hard-coded butchery specifics and failed the moment the seeder's
+default profile changed — a test reporting its own coupling rather than a
+problem with the code.
+
+`scripts/seed-pos-demo.js --profile CLOTHES` seeds a fashion shop with
+four sized products and two plain ones, because a till has to handle both
+side by side.
