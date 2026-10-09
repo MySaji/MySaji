@@ -14,7 +14,7 @@
  * override of the defaults below.
  */
 
-export type ProBusinessType = "SERVICES" | "PRODUCTS" | "RENTALS" | "FREELANCE" | "TUTORING" | "CONSULTING"
+export type ProBusinessType = "SERVICES" | "PRODUCTS" | "RENTALS" | "FREELANCE" | "TUTORING" | "CONSULTING" | "POS"
 
 export type ProCapabilityStatus = "ACTIVE" | "PENDING" | "REJECTED"
 
@@ -22,6 +22,10 @@ export type ProCapabilityStatus = "ACTIVE" | "PENDING" | "REJECTED"
 export const PRO_BUSINESS_TYPES: ProBusinessType[] = [
   "SERVICES",
   "PRODUCTS",
+  // Sits next to PRODUCTS deliberately: "Run a till" and "Sell Products" are
+  // the only pair that may be held together, so the picker should read them
+  // adjacently rather than making the customer hunt for the compatible one.
+  "POS",
   "RENTALS",
   "FREELANCE",
   "TUTORING",
@@ -65,6 +69,18 @@ export const PRO_BUSINESS_TYPE_META: Record<ProBusinessType, ProBusinessTypeMeta
     workHref: "/provider/sales",
     offerActionTypes: ["BUY"],
     accent: "amber",
+  },
+  POS: {
+    label: "Run a Till (POS)",
+    description: "Serve customers at your counter — scan, weigh, take cash or M-Pesa, print a receipt",
+    icon: "Calculator",
+    workLabel: "Till",
+    workHref: "/provider/till",
+    // A counter sale creates nothing a customer browses. POS is the one
+    // business type that does not publish offers, which is exactly why it
+    // can stand alone without a marketplace listing.
+    offerActionTypes: [],
+    accent: "slate",
   },
   RENTALS: {
     label: "Rent Out Items",
@@ -115,7 +131,7 @@ export type ProModule = {
   /** lucide-react icon name. */
   icon: string
   /** Sidebar grouping, matching the existing GROUP_LABEL map. */
-  group: "shop" | "business" | "insights" | null
+  group: "shop" | "business" | "insights" | "till" | null
   /** Shown to the admin in the matrix so a toggle isn't a guess. */
   description: string
   /** Never hidden by the matrix — the portal is unusable without these. */
@@ -172,6 +188,26 @@ export const PRO_MODULES: ProModule[] = [
   { key: "shop", label: "My Shop", href: "/provider/shop", icon: "Store", group: "shop", description: "Shop profile, hours and storefront" },
   { key: "shopSettings", label: "Shop Settings", href: "/shopkeeper/settings", icon: "Settings", group: "shop", description: "Delivery fees, payouts and shop preferences" },
 
+  // --- The Till: a counter, not a storefront ---
+  //
+  // Deliberately a separate group from "My Shop". A POS-only account has no
+  // storefront, no marketplace orders and no delivery; putting the till in
+  // with Shop Orders would imply all three. The two groups coexist for an
+  // account holding POS + PRODUCTS, which is the point: one stock figure,
+  // two places it can be sold from.
+  { key: "till", label: "Till", href: "/provider/till", icon: "Calculator", group: "till", exact: true, description: "The register screen — ring up a sale at the counter" },
+  { key: "posSettings", label: "POS Settings", href: "/provider/till/settings", icon: "SlidersHorizontal", group: "till", description: "Shop type, selling behaviours and stock policy" },
+  // Declared so the admin matrix knows they exist and so the build order is
+  // visible here rather than only in POS2.md — but their pages are NOT built
+  // yet, which is why they are absent from DEFAULT_MODULES_BY_TYPE.POS below.
+  // Nothing links to a page that does not exist; switching one of these on
+  // from the admin matrix today would produce a dead nav item, hence the
+  // warning in each description.
+  { key: "posStock", label: "Stock", href: "/provider/till/stock", icon: "Boxes", group: "till", description: "Stock on hand, receipts, counts and losses — NOT BUILT YET" },
+  { key: "posShifts", label: "Cash Shifts", href: "/provider/till/shifts", icon: "Clock", group: "till", description: "Open and close the drawer, and reconcile the cash — NOT BUILT YET" },
+  { key: "posReports", label: "Till Reports", href: "/provider/till/reports", icon: "BarChart3", group: "till", description: "Takings by day, by cashier and by product — NOT BUILT YET" },
+  { key: "posDevices", label: "Devices & Download", href: "/provider/till/devices", icon: "MonitorDown", group: "till", description: "Install the till on a counter machine, revoke a lost device — NOT BUILT YET" },
+
   // --- Business ---
   { key: "portfolio", label: "My Work", href: "/provider/portfolio", icon: "Camera", group: "business", description: "Photo and video portfolio on the public profile" },
   { key: "content", label: "Showcase", href: "/provider/content", icon: "ImageIcon", group: "business", description: "Posts and before/after stories" },
@@ -215,6 +251,19 @@ export const DEFAULT_MODULES_BY_TYPE: Record<ProBusinessType, string[]> = {
     "shopSuppliers", "wholesaleOrders", "shopReviews", "shopEndorsements",
     "shopShowcase", "shop", "shopSettings", "invoices", "content", "clients",
     "referrals", "proDashboard", "proPlan",
+  ],
+  // A counter. Note what is ABSENT: no shopOrders, no shopSuppliers, no
+  // shopShowcase, no offers-driven Sales page, no delivery. A POS-only shop
+  // is not listed on SAJI, so a module that only makes sense to a listed
+  // shop would be a dead page. It does get Products & Stock, because the
+  // till needs a catalogue, and the full till group.
+  POS: [
+    // Only pages that exist. posStock, posShifts, posReports and posDevices
+    // join this list as they are built; until then a POS account's nav
+    // contains no link that 404s.
+    "till", "posSettings",
+    "shopProducts", "shopCustomers", "shopEarnings", "invoices", "clients",
+    "proDashboard", "proPlan",
   ],
   // A rental business: the items, the dates they are out, and the paperwork.
   RENTALS: [
@@ -299,4 +348,116 @@ export function suggestedOfferActionTypes(types: ProBusinessType[]): string[] {
     for (const a of PRO_BUSINESS_TYPE_META[t].offerActionTypes) seen.add(a)
   }
   return Array.from(seen)
+}
+
+// ---------------------------------------------------------------------------
+// Which business types may be held together
+// ---------------------------------------------------------------------------
+
+/**
+ * POS is the first business type in SAJI that is EXCLUSIVE rather than
+ * additive.
+ *
+ * Every other type composes freely — a plumber who also tutors is a normal
+ * account, and the portal simply shows both module sets. POS does not
+ * compose, for a reason that is commercial rather than technical:
+ *
+ *   A till is a tool the shopkeeper runs on their own counter. "Sell
+ *   Products" is a listing customers browse. Those two can share one stock
+ *   figure, and that is the upgrade path worth selling. But a plumber with a
+ *   till is not a shop with a side trade — it is two unrelated businesses
+ *   wearing one login, and every report, every stock figure and every day's
+ *   takings becomes ambiguous.
+ *
+ * So: POS alone, or POS with PRODUCTS. Nothing else alongside it.
+ *
+ * This is enforced in three places and must agree in all of them: the
+ * picker dims what it cannot offer (and says why), the signup action
+ * validates the whole set rather than each value, and requestProCapability
+ * validates the set the account WOULD hold afterwards. A picker that only
+ * dims is a suggestion, not a rule.
+ */
+export const POS_COMPATIBLE_TYPES: ProBusinessType[] = ["PRODUCTS"]
+
+export type CombinationVerdict =
+  | { ok: true }
+  | { ok: false; reason: string; conflicting: ProBusinessType[] }
+
+/**
+ * Is this the complete, final set of business types for one account?
+ *
+ * Takes the WHOLE set, not a single value — the rule is about combinations,
+ * so it cannot be expressed as a per-value check. Order and duplicates are
+ * irrelevant.
+ */
+export function isAllowedCombination(types: readonly ProBusinessType[]): CombinationVerdict {
+  const set = new Set(types)
+  if (set.size === 0) {
+    return { ok: false, reason: "Choose at least one thing you do.", conflicting: [] }
+  }
+  if (!set.has("POS")) return { ok: true }
+
+  const conflicting = PRO_BUSINESS_TYPES.filter(
+    (t) => t !== "POS" && set.has(t) && !POS_COMPATIBLE_TYPES.includes(t),
+  )
+  if (conflicting.length === 0) return { ok: true }
+
+  const names = conflicting.map((t) => PRO_BUSINESS_TYPE_META[t].label)
+  const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`
+  return {
+    ok: false,
+    reason:
+      `A till can be run on its own, or alongside ${PRO_BUSINESS_TYPE_META.PRODUCTS.label} ` +
+      `so the same stock also sells on SAJI. It cannot be combined with ${list}.`,
+    conflicting,
+  }
+}
+
+/**
+ * For the picker: may this type be added to what is already ticked, and if
+ * not, what should the tooltip say?
+ *
+ * Deliberately returns a reason for every refusal. A control that is dimmed
+ * with no explanation reads as a bug, and in this case the explanation is
+ * also the sales pitch for the one combination that IS allowed.
+ */
+export function isTypeSelectable(
+  type: ProBusinessType,
+  selected: readonly ProBusinessType[],
+): { selectable: boolean; reason: string | null } {
+  // Already ticked: always un-tickable, or nothing could be undone.
+  if (selected.includes(type)) return { selectable: true, reason: null }
+
+  const verdict = isAllowedCombination([...selected, type])
+  if (verdict.ok) return { selectable: true, reason: null }
+
+  // Phrase it from the perspective of the control being dimmed, which is not
+  // necessarily the one that caused the conflict.
+  if (type === "POS") {
+    return {
+      selectable: false,
+      reason:
+        `A till cannot be combined with ${verdict.conflicting.map((t) => PRO_BUSINESS_TYPE_META[t].label).join(", ")}. ` +
+        `Untick those to run a till, or add the till later from My Business.`,
+    }
+  }
+  return {
+    selectable: false,
+    reason: `${PRO_BUSINESS_TYPE_META[type].label} cannot be combined with ${PRO_BUSINESS_TYPE_META.POS.label}.`,
+  }
+}
+
+/** Does this set of types mean "run a till"? */
+export function hasPos(types: readonly ProBusinessType[]): boolean {
+  return types.includes("POS")
+}
+
+/**
+ * A POS account that did NOT also tick Sell Products has no storefront.
+ * Used to default ShopkeeperProfile.listedOnMarketplace at signup, and to
+ * decide whether marketplace-only modules are worth showing at all.
+ */
+export function shouldListOnMarketplace(types: readonly ProBusinessType[]): boolean {
+  if (!types.includes("POS")) return true
+  return types.includes("PRODUCTS")
 }

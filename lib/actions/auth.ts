@@ -9,6 +9,8 @@ import { sendEmail } from "@/lib/email"
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit"
 import { checkKycDuplicate, buildKycDedupeFields, KYC_DUPLICATE_ERROR } from "@/lib/kyc-duplicate-check"
 import { isSignupProofValid, consumeSignupProof } from "@/lib/actions/otp"
+import { isAllowedCombination } from "@/lib/pro-modules"
+import { provisionPos } from "@/lib/pos-provision"
 
 const registerSchema = z.object({
   name: z.string().trim().min(2, "Name must be at least 2 characters").max(100),
@@ -30,9 +32,13 @@ const registerSchema = z.object({
   // which pages to show. Absent/empty is valid and means the same thing it
   // meant before this field existed: a plain service provider.
   businessTypes: z
-    .array(z.enum(["SERVICES", "PRODUCTS", "RENTALS", "FREELANCE", "TUTORING", "CONSULTING"]))
-    .max(6)
+    .array(z.enum(["SERVICES", "PRODUCTS", "RENTALS", "FREELANCE", "TUTORING", "CONSULTING", "POS"]))
+    .max(7)
     .optional(),
+  /// Which of the shop presets a POS account picked, e.g. "BUTCHERY". Only
+  /// meaningful alongside POS in businessTypes; validated against the
+  /// registry rather than trusted, and ignored entirely without POS.
+  posProfileKey: z.string().trim().max(64).optional(),
   kyc: z
     .object({
       documentType: z.enum(["National ID", "Driver's License", "Passport"]),
@@ -60,7 +66,19 @@ export async function registerUser(input: unknown): Promise<RegisterResult> {
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
   }
-  const { name, email, phone, password, role, kyc, referralCode, verificationProof, businessTypes } = parsed.data
+  const { name, email, phone, password, role, kyc, referralCode, verificationProof, businessTypes, posProfileKey } = parsed.data
+
+  // The combination rule, enforced on the server.
+  //
+  // The picker dims what it cannot offer, but this action is reachable
+  // directly and the schema above cannot express the rule: it validates each
+  // value independently, and the rule is about the set. A POS account that
+  // got here holding RENTALS as well would end up with a till it may not
+  // have and a portal nobody designed.
+  if (role === "provider" && businessTypes && businessTypes.length > 0) {
+    const verdict = isAllowedCombination(businessTypes)
+    if (!verdict.ok) return { success: false, error: verdict.reason }
+  }
 
   // Everything below touches the DB (rate-limit check, dup lookup, the
   // transaction itself) — wrapped as one block so a transient connection
@@ -154,9 +172,27 @@ export async function registerUser(input: unknown): Promise<RegisterResult> {
         // pages inside Saji Pro read from it, and without one they would have
         // nothing to render. `role` stays PROVIDER; this is a second profile
         // on the same account, exactly as switchActiveRole already creates.
-        if (chosenTypes.includes("PRODUCTS")) {
+        // A POS account needs the same row, so provisionPos creates it —
+        // including the listedOnMarketplace flag, which is the one thing
+        // this create cannot get right on its own. Guarded so the two paths
+        // never both try to create it.
+        if (chosenTypes.includes("PRODUCTS") && !chosenTypes.includes("POS")) {
           await tx.shopkeeperProfile.create({
             data: { userId: created.id, shopName: `${name}'s Shop` },
+          })
+        }
+
+        // The till. ShopkeeperProfile is its tenant, seeded with the preset
+        // for whichever shop type was picked; an unrecognised key falls back
+        // to General rather than failing the signup, because a shopkeeper
+        // who has already handed over their details should not lose the
+        // account over a preset they can change in two taps.
+        if (chosenTypes.includes("POS")) {
+          await provisionPos(tx as never, {
+            userId: created.id,
+            userName: name,
+            profileKey: posProfileKey ?? null,
+            businessTypes: chosenTypes,
           })
         }
 

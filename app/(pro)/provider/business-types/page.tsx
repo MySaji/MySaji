@@ -5,6 +5,7 @@ import Link from "next/link"
 import {
   ArrowLeft, Check, Clock, Loader2, Plus, ShieldCheck, X, XCircle,
   Wrench, Store, Package, Laptop, GraduationCap, Briefcase, Layers,
+  Calculator, Lock,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -13,11 +14,11 @@ import {
 } from "@/lib/actions/pro-capabilities"
 import {
   PRO_BUSINESS_TYPES, PRO_BUSINESS_TYPE_META, PRO_MODULE_BY_KEY,
-  DEFAULT_MODULES_BY_TYPE, type ProBusinessType,
+  DEFAULT_MODULES_BY_TYPE, isTypeSelectable, type ProBusinessType,
 } from "@/lib/pro-modules"
 
 const TYPE_ICON: Record<string, typeof Wrench> = {
-  Wrench, Store, Package, Laptop, GraduationCap, Briefcase,
+  Wrench, Store, Package, Laptop, GraduationCap, Briefcase, Calculator,
 }
 
 const ACCENT: Record<string, string> = {
@@ -27,6 +28,7 @@ const ACCENT: Record<string, string> = {
   emerald: "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400",
   rose: "bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400",
   sky: "bg-sky-100 text-sky-600 dark:bg-sky-900/30 dark:text-sky-400",
+  slate: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
 }
 
 /**
@@ -148,6 +150,15 @@ export default function BusinessTypesPage() {
           const status = statusOf(type)
           const isOpen = openRequest === type
           const isBusy = busy === type
+          // POS does not compose with anything but Sell Products, so a type
+          // this account cannot hold must not offer a "Request to add"
+          // button that the server would only refuse. Measured against what
+          // the account holds AND what it has already asked for, which is
+          // the same set requestProCapability validates — the two would
+          // otherwise disagree and the button would look broken.
+          const held = [...(data?.active ?? []), ...(data?.pending ?? [])].filter((t) => t !== type)
+          const { selectable, reason } = isTypeSelectable(type, held)
+          const blocked = status !== "ACTIVE" && status !== "PENDING" && !selectable
           // Which pages this type would add, named so the ask is concrete
           // rather than "trust us, you get more menu items".
           const unlocks = (DEFAULT_MODULES_BY_TYPE[type] ?? [])
@@ -197,6 +208,14 @@ export default function BusinessTypesPage() {
                     </p>
                   )}
 
+                  {/* Why there is no button, stated rather than implied. */}
+                  {blocked && reason && (
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-2 leading-snug flex items-start gap-1.5">
+                      <Lock className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                      <span>{reason}</span>
+                    </p>
+                  )}
+
                   {status === "REJECTED" && rejectedNote(type) && (
                     <p className="text-[11px] text-red-600 dark:text-red-400 mt-1.5 leading-snug">
                       Our team said: {rejectedNote(type)}
@@ -226,7 +245,7 @@ export default function BusinessTypesPage() {
                       </Button>
                     )}
 
-                    {(status === "NONE" || status === "REJECTED") && !isOpen && (
+                    {(status === "NONE" || status === "REJECTED") && !isOpen && !blocked && (
                       <Button
                         size="sm"
                         onClick={() => { setOpenRequest(type); setNote(""); setError("") }}

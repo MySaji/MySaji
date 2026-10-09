@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import {
   Check, Clock, Layers, Loader2, RotateCcw, ShieldCheck, Sliders, X, XCircle,
-  Wrench, Store, Package, Laptop, GraduationCap, Briefcase, Lock,
+  Wrench, Store, Package, Laptop, GraduationCap, Briefcase, Lock, Calculator,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -16,7 +16,7 @@ import {
 } from "@/lib/pro-modules"
 
 const TYPE_ICON: Record<string, typeof Wrench> = {
-  Wrench, Store, Package, Laptop, GraduationCap, Briefcase,
+  Wrench, Store, Package, Laptop, GraduationCap, Briefcase, Calculator,
 }
 
 function timeAgo(iso: string): string {
@@ -306,10 +306,11 @@ export function ProBusinessControl({ canEditMatrix = true }: { canEditMatrix?: b
             {!canEditMatrix && " You can view this, but only an Admin or Sub-Admin can change it."}
           </p>
 
-          {/* Wide by nature — 6 business types plus labels never fits a phone,
-              so it scrolls inside its own container and the page body doesn't. */}
+          {/* Wide by nature — seven business types plus labels never fits a phone,
+              so it scrolls inside its own container and the page body doesn't.
+              Seven types since POS was added, hence the wider minimum. */}
           <div className="overflow-x-auto rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-            <table className="w-full min-w-[720px] text-sm">
+            <table className="w-full min-w-[820px] text-sm">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700">
                   <th className="text-left font-semibold text-gray-900 dark:text-white px-4 py-3 sticky left-0 bg-white dark:bg-gray-800 z-10">

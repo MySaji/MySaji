@@ -148,6 +148,9 @@ export default function ProviderSidebar({ isOpen, onClose, isCollapsed, onToggle
 
   const GROUP_LABEL: Record<string, string> = {
     shop: "My Shop",
+    // Deliberately separate from "My Shop": the till is a counter, not a
+    // storefront, and a POS-only account has no storefront at all.
+    till: "My Till",
     business: "Business",
     insights: "Insights",
   }

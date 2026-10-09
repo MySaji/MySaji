@@ -1088,6 +1088,41 @@ model ShopkeeperProfile {
   deliveryFeePerKm Decimal  @default(0) @db.Decimal(10, 2)
   isOnVacation    Boolean  @default(false)
   vacationNote    String?
+
+  // ---------------------------------------------------------------------
+  // Point of sale
+  // ---------------------------------------------------------------------
+  /// Does this shop appear to customers browsing SAJI?
+  ///
+  /// Until POS existed, "has a ShopkeeperProfile" and "is listed on SAJI"
+  /// were the same statement. They are not the same thing: a POS-only shop
+  /// keeps a catalogue and takes money at a counter without ever being
+  /// listed. Defaults true so no existing shop changes visibility, and it
+  /// is set false only for an account that took POS WITHOUT also taking
+  /// Sell Products (see shouldListOnMarketplace in lib/pro-modules.ts).
+  ///
+  /// This is a LISTING flag, not a permission. Route guards, verification
+  /// gates and ownership checks are untouched.
+  listedOnMarketplace Boolean @default(true)
+  /// Whether the till is switched on for this shop. Mirrors an ACTIVE POS
+  /// ProCapability; kept here too so a till query does not have to join
+  /// capabilities on every request.
+  posEnabled      Boolean  @default(false)
+  /// Which shop profile the preset came from — a key in lib/pos-profiles.ts.
+  /// Null for every shop that has never configured a till.
+  posProfileKey   String?
+  /// The selling behaviours actually switched on. Written from the profile
+  /// preset when POS is enabled and editable afterwards, so for a POS shop
+  /// this is always explicit; an empty array on a POS shop therefore means
+  /// "the shopkeeper turned everything off", not "unconfigured". Read it
+  /// through resolveShopPosConfig, never directly.
+  posTraits       String[]
+  /// Till preferences that are not worth a column each: receipt header and
+  /// footer, whether negative stock is permitted, rounding, and so on.
+  /// Shape lives in lib/pos-config.ts.
+  posConfig       Json?
+  posActivatedAt  DateTime?
+
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -1104,6 +1139,11 @@ model ShopkeeperProfile {
   shopReviews                Review[]            @relation("ReviewShopkeeper")
   blockedCustomers           BlockedShopCustomer[]
   wishlistedBy               WishlistItem[]      @relation("WishlistedShop")
+  stockMovements             StockMovement[]
+  posSales                   PosSale[]
+  tillSessions               TillSession[]
+  posDevices                 PosDevice[]
+  posCashiers                PosCashier[]
 
   // Supports the bounding-box prefilter in lib/geo.ts: a radius search
   // narrows on these two columns in SQL before any exact haversine runs in
@@ -1562,7 +1602,27 @@ model Product {
   categoryId    String?
   name          String
   description   String
-  sku           String   @unique
+  /// Unique WITHIN ONE SHOP, not globally. It was globally unique, which
+  /// is wrong on its face for a multi-tenant catalogue — two unrelated
+  /// shops may both call a thing "SUGAR-1KG", and under a global constraint
+  /// the second one to try would be refused. Relaxing a unique constraint
+  /// cannot invalidate existing rows, so no shop's data had to move.
+  sku           String
+  /// What the scanner reads. Distinct from `sku`, which is the shop's own
+  /// code: a barcode is the manufacturer's, shared across every shop that
+  /// stocks the item, and a shop may well have products with no barcode at
+  /// all (loose produce, mitumba). Not unique, even per shop — a shop can
+  /// legitimately have two products sharing one EAN during a repack.
+  barcode       String?
+  /// What the shop paid. Needed for margin, for the value of stock on hand,
+  /// and for wastage to be costed rather than merely counted. Nullable
+  /// because no existing product has one and guessing would corrupt every
+  /// margin figure that reads it.
+  costPrice     Decimal? @db.Decimal(12, 2)
+  /// What "one" of this means: piece, kg, l, m. See lib/pos-traits.ts.
+  /// Defaults to "piece", which is what every existing product implicitly
+  /// is, so this changes nothing for them.
+  unit          String   @default("piece")
   price         Decimal  @db.Decimal(12, 2)
   discountPrice Decimal? @db.Decimal(12, 2)
   images        String[]
@@ -1594,18 +1654,39 @@ model Product {
   liveSessionFeatures LiveSessionProduct[]
   restockedByWholesaleItems WholesaleOrderItem[] @relation("ProductRestockSource")
 
+  stockMovements  StockMovement[]
+  posSaleItems    PosSaleItem[]
+
+  @@unique([shopkeeperId, sku])
   @@index([shopkeeperId])
   @@index([categoryId])
   @@index([isActive, createdAt])
   @@index([isActive, rating])
+  // The till's primary lookup: scan a barcode, get this shop's product.
+  // Shop-scoped so one shop's scan can never reach another's catalogue.
+  @@index([shopkeeperId, barcode])
   @@map("products")
 }
 
 model Inventory {
   id                String    @id @default(cuid())
   productId         String    @unique
+  /// The INTEGER projection the marketplace has always used. Two hundred-odd
+  /// call sites across cart, checkout, wholesale and the distributor portal
+  /// read this as a number, so it stays an Int and stays authoritative for
+  /// anything that sells whole units.
   currentStock      Int       @default(0)
   reservedStock     Int       @default(0)
+  /// The FRACTIONAL truth, maintained by the StockMovement ledger.
+  ///
+  /// A butchery sells 1.35 kg; an Int cannot hold that. Rather than widen
+  /// `currentStock` and change the type every existing consumer sees, the
+  /// ledger maintains this column exactly and keeps `currentStock` as
+  /// floor(stockOnHand) — so the marketplace continues to see a whole
+  /// number it can never oversell against, and the till sees the real
+  /// figure. Null on every row that predates POS, and null MEANS
+  /// "currentStock is the truth here": do not coalesce it to zero.
+  stockOnHand       Decimal?  @db.Decimal(14, 3)
   lowStockThreshold Int       @default(5)
   reorderLevel      Int       @default(10)
   lastRestockedAt   DateTime?
@@ -4073,6 +4154,10 @@ enum ProBusinessType {
   FREELANCE  // Freelance online
   TUTORING   // Teach & tutor
   CONSULTING // Consulting
+  POS        // Run a till — backed by ShopkeeperProfile as the tenant, but
+             // not necessarily listed on SAJI. The one value here that is
+             // exclusive rather than additive: see isAllowedCombination in
+             // lib/pro-modules.ts.
 }
 
 enum ProCapabilityStatus {
@@ -4123,4 +4208,341 @@ model ProModuleSetting {
   @@unique([businessType, moduleKey])
   @@index([businessType])
   @@map("pro_module_settings")
+}
+
+// ===========================================================================
+// POINT OF SALE
+// ===========================================================================
+//
+// Four ideas hold this together. They are worth stating before the models,
+// because each one is a decision that could reasonably have gone the other
+// way:
+//
+// 1. THE TENANT IS ShopkeeperProfile. No new `businesses` table. SAJI already
+//    has exactly one row per shop, already owns the catalogue, already carries
+//    the location and the trading hours. A second tenant table would mean two
+//    answers to "which shop is this", and the till would eventually disagree
+//    with the storefront.
+//
+// 2. EVERY POS TABLE CARRIES shopkeeperId DIRECTLY, even where it could be
+//    reached through a parent. Tenant isolation then needs no joins: every
+//    query filters on one indexed column, and a missing filter is visible by
+//    reading the query rather than by tracing a relation. Denormalisation
+//    bought deliberately.
+//
+// 3. STOCK IS A LEDGER, NOT A NUMBER. StockMovement is append-only. A
+//    correction is a new row with the opposite sign, never an edit, because a
+//    stock figure nobody can explain is a stock figure nobody trusts — and
+//    "who took the twelve crates" is the single question a shopkeeper most
+//    wants a POS to answer. Inventory.stockOnHand is a PROJECTION of this
+//    ledger, kept for speed; the ledger is the truth.
+//
+// 4. A COUNTER SALE IS NOT AN Order.
+//
+//    POS2.md proposed reusing Order with a channel flag, and that was wrong.
+//    Order requires a customerId that FKs to a real User account; a walk-in
+//    has none. Order carries an address, a delivery fee, an escrow-backed
+//    Payment and a PENDING -> SHIPPED -> DELIVERED lifecycle; a counter sale
+//    is complete the moment the cash is in the drawer. Worse, every existing
+//    revenue, "orders today" and shop-analytics query counts Order rows
+//    unfiltered — overloading the table would silently fold counter takings
+//    into figures that have always meant marketplace orders.
+//
+//    So PosSale is its own table. The two channels meet where they should:
+//    at the shared Product catalogue and the shared StockMovement ledger.
+//    One stock figure, two ways to sell from it, and no ambiguity about
+//    which kind of sale a row is.
+
+enum StockMovementKind {
+  OPENING_BALANCE  // the figure the shop started with when POS was switched on
+  PURCHASE         // received from a supplier or a wholesale order
+  SALE             // sold at the till
+  SALE_REVERSAL    // a voided or refunded till sale putting stock back
+  ORDER_FULFILMENT // shipped against a marketplace Order
+  ORDER_RESTOCK    // a cancelled or returned marketplace Order
+  RETURN           // a customer brought it back over the counter
+  COUNT_ADJUSTMENT // a physical count disagreed with the ledger
+  WASTAGE          // spoiled, broken, expired or stolen
+  TRANSFER_IN
+  TRANSFER_OUT
+  BULK_BREAK_IN    // the pieces a broken bale produced
+  BULK_BREAK_OUT   // the bale that was broken
+}
+
+/// One immutable fact about stock moving. Never updated, never deleted.
+model StockMovement {
+  id           String            @id @default(cuid())
+  shopkeeperId String
+  productId    String
+  kind         StockMovementKind
+  /// SIGNED. Positive is stock arriving, negative is stock leaving. Signing
+  /// the quantity rather than pairing a magnitude with a direction flag means
+  /// the balance is a plain SUM() and cannot be got wrong by forgetting to
+  /// branch on the kind.
+  quantity     Decimal           @db.Decimal(14, 3)
+  /// The unit this movement was measured in, snapshotted. A product's unit
+  /// can be changed later and that must not retroactively reinterpret
+  /// history: 40 recorded as bags stays 40 bags.
+  unit         String            @default("piece")
+  /// Cost per unit at the time, for valuing stock on hand and costing loss.
+  unitCost     Decimal?          @db.Decimal(12, 2)
+  /// The projected balance immediately after this movement. Strictly
+  /// redundant — it is the running SUM — and kept anyway so a shopkeeper
+  /// reading a stock history sees the figure the till showed them at the
+  /// time, and so a divergence between ledger and projection is detectable
+  /// rather than merely suspected.
+  balanceAfter Decimal?          @db.Decimal(14, 3)
+  reason       String?
+
+  /// What caused this. At most one of these is set.
+  posSaleId        String?
+  orderId          String?
+  wholesaleOrderId String?
+  /// Who recorded it. A plain column, not a relation: adding a back-relation
+  /// to User for each of these would mean more fields on a model that already
+  /// carries dozens, for no query anyone needs.
+  actorUserId      String?
+
+  /// Offline-first, and the reason stock cannot be double-counted.
+  ///
+  /// A till that lost its connection queues movements locally and replays
+  /// them. A replay must be a no-op, not a second deduction, so the device
+  /// generates this key once and the unique constraint below makes the
+  /// second insert fail rather than succeed quietly. Nullable: a movement
+  /// recorded on the server has no device and needs no key.
+  idempotencyKey String?
+  deviceId       String?
+
+  /// When it happened at the counter, which on an offline till is not when
+  /// the server heard about it. Reports must use occurredAt; sync debugging
+  /// needs createdAt. Keeping both is the whole point.
+  occurredAt DateTime
+  createdAt  DateTime @default(now())
+
+  shopkeeper ShopkeeperProfile @relation(fields: [shopkeeperId], references: [id], onDelete: Cascade)
+  product    Product           @relation(fields: [productId], references: [id])
+
+  @@unique([shopkeeperId, idempotencyKey])
+  @@index([shopkeeperId, productId, occurredAt])
+  @@index([shopkeeperId, occurredAt])
+  @@index([shopkeeperId, kind, occurredAt])
+  @@index([posSaleId])
+  @@map("stock_movements")
+}
+
+enum PosSaleStatus {
+  COMPLETED
+  PARKED    // rung up and set aside, not yet paid
+  VOIDED    // cancelled before the drawer closed
+  REFUNDED
+}
+
+enum PosPaymentMethod {
+  CASH
+  MPESA
+  CARD
+  BANK
+  CREDIT // on the shop's own book, to be settled later
+  SPLIT  // several of the above; see PosPayment rows
+}
+
+/// A sale across the counter.
+model PosSale {
+  id           String        @id @default(cuid())
+  shopkeeperId String
+  /// Human-readable and sequential WITHIN A SHOP. Two shops both having a
+  /// sale 0001 is correct and expected; Order.orderNumber is globally unique
+  /// because a customer quotes it to support, whereas a receipt number is
+  /// quoted to the shop that issued it.
+  saleNumber   String
+  tillSessionId String?
+  /// Who served. Plain columns, as on StockMovement.
+  cashierUserId String?
+  cashierName   String?
+
+  subtotal    Decimal @db.Decimal(14, 2)
+  discount    Decimal @default(0) @db.Decimal(14, 2)
+  tax         Decimal @default(0) @db.Decimal(14, 2)
+  total       Decimal @db.Decimal(14, 2)
+  /// What was handed over, and what went back. Cash reconciliation is the
+  /// first thing a shopkeeper checks and the last thing they forgive.
+  amountPaid  Decimal @default(0) @db.Decimal(14, 2)
+  changeGiven Decimal @default(0) @db.Decimal(14, 2)
+
+  status        PosSaleStatus    @default(COMPLETED)
+  paymentMethod PosPaymentMethod @default(CASH)
+
+  /// A walk-in has no account. Name and phone are free text precisely so a
+  /// sale never requires one to exist; customerId is set only when the buyer
+  /// happens to be a SAJI customer, and is a plain column for the same
+  /// reason as the others.
+  customerName  String?
+  customerPhone String?
+  customerId    String?
+
+  /// Same contract as StockMovement.idempotencyKey: generated by the device,
+  /// unique per shop, so replaying a queued sale cannot ring it up twice.
+  idempotencyKey String?
+  deviceId       String?
+
+  occurredAt DateTime
+  createdAt  DateTime  @default(now())
+  /// When the server accepted it. Null while a sale exists only on a till.
+  syncedAt   DateTime?
+
+  voidedAt       DateTime?
+  voidReason     String?
+  voidedByUserId String?
+
+  shopkeeper  ShopkeeperProfile @relation(fields: [shopkeeperId], references: [id], onDelete: Cascade)
+  tillSession TillSession?      @relation(fields: [tillSessionId], references: [id])
+
+  items    PosSaleItem[]
+  payments PosPayment[]
+
+  @@unique([shopkeeperId, saleNumber])
+  @@unique([shopkeeperId, idempotencyKey])
+  @@index([shopkeeperId, occurredAt])
+  @@index([shopkeeperId, status, occurredAt])
+  @@index([tillSessionId])
+  @@map("pos_sales")
+}
+
+model PosSaleItem {
+  id     String @id @default(cuid())
+  saleId String
+  /// Nullable, and the name below is snapshotted, because a receipt must
+  /// stay readable after a product is deleted or renamed. An OrderItem can
+  /// rely on its Product surviving; a till receipt from two years ago cannot.
+  productId String?
+  name      String
+  sku       String?
+  barcode   String?
+
+  /// Fractional, which is one reason this is not an OrderItem:
+  /// OrderItem.quantity is an Int and widening it would change the type that
+  /// two hundred-odd marketplace call sites already depend on.
+  quantity Decimal @db.Decimal(14, 3)
+  unit     String  @default("piece")
+
+  unitPrice    Decimal @db.Decimal(12, 2)
+  lineDiscount Decimal @default(0) @db.Decimal(12, 2)
+  totalPrice   Decimal @db.Decimal(14, 2)
+  /// Cost at the moment of sale, so margin is historical fact rather than
+  /// today's cost price applied to last year's sales.
+  costAtSale   Decimal? @db.Decimal(12, 2)
+  /// True when the cashier typed the price rather than taking the product's
+  /// (the OPEN_PRICE trait). Worth recording: it is the line a shopkeeper
+  /// reviewing a suspicious day looks for first.
+  priceOverridden Boolean @default(false)
+  notes           String?
+
+  sale    PosSale  @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id])
+
+  @@index([saleId])
+  @@index([productId])
+  @@map("pos_sale_items")
+}
+
+/// One tender against one sale. Only needed for SPLIT payments, but every
+/// sale gets rows so a day's takings can be summed by method from one table.
+model PosPayment {
+  id        String           @id @default(cuid())
+  saleId    String
+  method    PosPaymentMethod
+  amount    Decimal          @db.Decimal(14, 2)
+  /// An M-Pesa code, a card reference, or whatever the shopkeeper wrote down.
+  reference String?
+  createdAt DateTime         @default(now())
+
+  sale PosSale @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  @@index([saleId])
+  @@map("pos_payments")
+}
+
+/// A cashier's shift: the drawer opening, the drawer closing, and whether the
+/// cash in it matched what the till expected.
+model TillSession {
+  id            String  @id @default(cuid())
+  shopkeeperId  String
+  cashierUserId String?
+  cashierName   String?
+  deviceId      String?
+
+  openedAt     DateTime  @default(now())
+  closedAt     DateTime?
+  /// Cash in the drawer at the start.
+  openingFloat Decimal   @default(0) @db.Decimal(14, 2)
+  /// What the shift's sales say should be in the drawer. Computed and stored
+  /// at close rather than recomputed on read, so a later void or correction
+  /// cannot retroactively change what a closed shift reported.
+  expectedCash Decimal?  @db.Decimal(14, 2)
+  /// What was actually counted.
+  countedCash  Decimal?  @db.Decimal(14, 2)
+  /// countedCash - expectedCash. Stored for the same reason: a variance is a
+  /// fact about a moment, and recomputing it later would quietly rewrite it.
+  variance     Decimal?  @db.Decimal(14, 2)
+  note         String?
+
+  shopkeeper ShopkeeperProfile @relation(fields: [shopkeeperId], references: [id], onDelete: Cascade)
+  sales      PosSale[]
+
+  @@index([shopkeeperId, openedAt])
+  @@index([shopkeeperId, closedAt])
+  @@map("till_sessions")
+}
+
+/// A machine authorised to run this shop's till.
+///
+/// Exists so a stolen counter laptop can be revoked without changing the
+/// shopkeeper's password, and so an offline sale can be attributed to the
+/// device that took it.
+model PosDevice {
+  id           String @id @default(cuid())
+  shopkeeperId String
+  name         String
+  /// "web", "windows", "android", "ios" — free text, because the list will
+  /// grow and an enum migration per platform is not worth it.
+  platform     String @default("web")
+  /// SHA-256 of the pairing token. The plaintext is shown once, at pairing,
+  /// and never stored — the same contract as every other credential here.
+  tokenHash    String @unique
+
+  lastSeenAt DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  shopkeeper ShopkeeperProfile @relation(fields: [shopkeeperId], references: [id], onDelete: Cascade)
+
+  @@index([shopkeeperId])
+  @@map("pos_devices")
+}
+
+/// Someone allowed to operate the till, identified by a PIN at the counter.
+///
+/// Separate from User on purpose: a shop assistant should be able to ring up
+/// a sale without a SAJI account, an email address or a password, and the
+/// shopkeeper should be able to revoke them the same afternoon they leave.
+/// userId links the row to a real account where one exists.
+model PosCashier {
+  id           String  @id @default(cuid())
+  shopkeeperId String
+  userId       String?
+  name         String
+  /// bcrypt, never the PIN itself. A four-digit PIN is weak by nature, which
+  /// is exactly why it must not be recoverable from the database.
+  pinHash      String
+  /// "cashier" or "manager". A manager may void a sale and close a shift.
+  role         String  @default("cashier")
+  isActive     Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  shopkeeper ShopkeeperProfile @relation(fields: [shopkeeperId], references: [id], onDelete: Cascade)
+
+  @@index([shopkeeperId, isActive])
+  @@map("pos_cashiers")
 }

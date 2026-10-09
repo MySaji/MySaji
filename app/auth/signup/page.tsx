@@ -11,6 +11,7 @@ import {
   Mail, Lock, User, ArrowRight, Eye, EyeOff, Apple, ArrowLeft, Sparkles, Shield, Clock, Phone,
   HardHat, Store, Building2, Loader2, ShieldCheck, CheckCircle2, Circle, Check,
   Wrench, Package, Laptop, GraduationCap, Briefcase, Users, Crown,
+  Calculator, Lock as LockIcon, Search,
 } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import type { UserRole } from "@/lib/types"
@@ -23,12 +24,21 @@ import { useLocalization } from "@/lib/hooks/useLocalization"
 import type { TranslationKey } from "@/lib/i18n"
 import { AuthMobileHeader } from "@/components/auth/auth-mobile-header"
 import { AuthHeroIllustration } from "@/components/auth/auth-hero-illustration"
-import { PRO_BUSINESS_TYPES, PRO_BUSINESS_TYPE_META, type ProBusinessType } from "@/lib/pro-modules"
+import {
+  PRO_BUSINESS_TYPES, PRO_BUSINESS_TYPE_META, isTypeSelectable, hasPos,
+  type ProBusinessType,
+} from "@/lib/pro-modules"
+import { POS_PROFILES, posProfilesByGroup, DEFAULT_POS_PROFILE_KEY } from "@/lib/pos-profiles"
+import { POS_TRAIT_META } from "@/lib/pos-traits"
+import { POS_PROFILE_ICON } from "@/components/pos/pos-profile-icons"
 
 const OTP_LENGTH = 6
 const RESEND_COOLDOWN_SECONDS = 25
 
-type SignupStep = "role" | "proSetup" | "details" | "otp" | "password" | "success"
+// posShopType appears only for an account that picked POS. It is a real
+// step rather than a control inside proSetup because thirty-five options do
+// not fit beside the six business types without burying both.
+type SignupStep = "role" | "proSetup" | "posShopType" | "details" | "otp" | "password" | "success"
 type ProviderType = "solo" | "business"
 
 /**
@@ -51,7 +61,7 @@ const ROLE_CARDS: { role: UserRole; icon: typeof User; iconBg: string; iconColor
 
 /** Icon per business type, resolved from the registry's icon name. */
 const BUSINESS_TYPE_ICON: Record<string, typeof User> = {
-  Wrench, Store, Package, Laptop, GraduationCap, Briefcase,
+  Wrench, Store, Package, Laptop, GraduationCap, Briefcase, Calculator,
 }
 
 const BUSINESS_TYPE_ACCENT: Record<string, string> = {
@@ -61,6 +71,7 @@ const BUSINESS_TYPE_ACCENT: Record<string, string> = {
   emerald: "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400",
   rose: "bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400",
   sky: "bg-sky-100 text-sky-600 dark:bg-sky-900/30 dark:text-sky-400",
+  slate: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
 }
 
 const ROLE_NEXT_PATH: Record<UserRole, string> = {
@@ -77,10 +88,14 @@ export default function SignupPage() {
   const { t } = useLocalization()
   const [step, setStep] = useState<SignupStep>("role")
   const [signupMethod, setSignupMethod] = useState<"phone" | "email">("phone")
+  /** Filters the thirty-five shop types. Thirty-five is too many to scan. */
+  const [posSearch, setPosSearch] = useState("")
   const [formData, setFormData] = useState({
     role: "customer" as UserRole,
     providerType: null as ProviderType | null,
     businessTypes: [] as ProBusinessType[],
+    /** Which of the thirty-five shop presets a POS account picked. */
+    posProfileKey: null as string | null,
     name: "", email: "", phone: "", password: "", confirmPassword: "",
     agreeTerms: false,
   })
@@ -113,13 +128,45 @@ export default function SignupPage() {
   }
 
   const toggleBusinessType = (type: ProBusinessType) => {
+    const selected = formData.businessTypes
+    // Un-ticking is always allowed; it can only ever resolve a conflict.
+    if (!selected.includes(type)) {
+      const { selectable, reason } = isTypeSelectable(type, selected)
+      if (!selectable) {
+        // Say why. The card is already dimmed, but a dimmed control that
+        // does nothing when tapped reads as a broken app on a phone, where
+        // there is no hover to reveal the tooltip.
+        setError(reason ?? "")
+        return
+      }
+    }
     setError("")
-    setFormData((prev) => ({
-      ...prev,
-      businessTypes: prev.businessTypes.includes(type)
+    setFormData((prev) => {
+      const next = prev.businessTypes.includes(type)
         ? prev.businessTypes.filter((t) => t !== type)
-        : [...prev.businessTypes, type],
-    }))
+        : [...prev.businessTypes, type]
+      return {
+        ...prev,
+        businessTypes: next,
+        // Dropping POS drops the shop type with it, so backing out and
+        // choosing Services does not quietly carry a butchery preset along.
+        posProfileKey: hasPos(next) ? prev.posProfileKey : null,
+      }
+    })
+  }
+
+  const selectPosProfile = (key: string) => {
+    setError("")
+    setFormData((prev) => ({ ...prev, posProfileKey: key }))
+  }
+
+  const handlePosShopTypeContinue = () => {
+    if (!formData.posProfileKey) {
+      setError(t("authPage.signup.posShopTypeSelectOne"))
+      return
+    }
+    setError("")
+    setStep("details")
   }
 
   const handleSelectProviderType = (type: ProviderType) => {
@@ -132,6 +179,14 @@ export default function SignupPage() {
       return
     }
     setError("")
+    // A till has to know what trade it is serving before it is any use, so
+    // the shop type is asked here rather than left to a settings page the
+    // shopkeeper may never open.
+    if (hasPos(formData.businessTypes)) {
+      setFormData((prev) => ({ ...prev, providerType: prev.providerType ?? "solo" }))
+      setStep("posShopType")
+      return
+    }
     // Solo is the overwhelmingly common case, so it is the default rather
     // than a required extra tap.
     setFormData((prev) => ({ ...prev, providerType: prev.providerType ?? "solo" }))
@@ -253,6 +308,9 @@ export default function SignupPage() {
         password: formData.password,
         role: formData.role,
         businessTypes: formData.role === "provider" ? formData.businessTypes : undefined,
+        posProfileKey: formData.role === "provider" && hasPos(formData.businessTypes)
+          ? (formData.posProfileKey ?? DEFAULT_POS_PROFILE_KEY)
+          : undefined,
         verificationProof,
         referralCode: searchParams.get("ref") || undefined,
       })
@@ -294,6 +352,12 @@ export default function SignupPage() {
     // signup provisions the same ProCapability rows a credentials signup
     // does. auth.ts filters this against a fixed allowlist before using it.
     document.cookie = `oauth_pro_types=${formData.businessTypes.join(",")}; path=/; max-age=300; samesite=lax`
+    // Carried the same way as the types: the OAuth round trip loses component
+    // state, and a POS account that came back without its shop type would be
+    // provisioned as General with no way to tell that was not a choice.
+    if (hasPos(formData.businessTypes)) {
+      document.cookie = `oauth_pos_profile=${formData.posProfileKey ?? DEFAULT_POS_PROFILE_KEY}; path=/; max-age=300; samesite=lax`
+    }
     // resolveNextPath, not ROLE_HOME_PATH: a provider must reach
     // /provider/onboarding (carrying the Solo/Business choice already made
     // above), a shopkeeper /shopkeeper/register, and so on. Sending them to
@@ -311,7 +375,7 @@ export default function SignupPage() {
     setError(t("authPage.signup.appleNotSetup"))
   }
 
-  const STEP_ORDER: SignupStep[] = ["role", "proSetup", "details", "otp", "password"]
+  const STEP_ORDER: SignupStep[] = ["role", "proSetup", "posShopType", "details", "otp", "password"]
   const stepIndex = STEP_ORDER.indexOf(step)
 
   return (
@@ -379,6 +443,10 @@ export default function SignupPage() {
             <div className="flex gap-2 mb-5">
               {STEP_ORDER.slice(1)
                 .filter((s) => s !== "proSetup" || formData.role === "provider")
+                // The shop-type step only exists for a POS account, so the
+                // progress bar must not show an extra segment to everyone
+                // else — it would make the form look longer than it is.
+                .filter((s) => s !== "posShopType" || hasPos(formData.businessTypes))
                 .map((s) => (
                   <div key={s} className={`flex-1 h-1.5 rounded-full transition-colors ${STEP_ORDER.indexOf(step) >= STEP_ORDER.indexOf(s) ? "bg-primary" : "bg-muted"}`} />
                 ))}
@@ -437,16 +505,26 @@ export default function SignupPage() {
                   const meta = PRO_BUSINESS_TYPE_META[type]
                   const Icon = BUSINESS_TYPE_ICON[meta.icon] ?? Wrench
                   const selected = formData.businessTypes.includes(type)
+                  // POS does not compose with anything but Sell Products, so
+                  // some cards become unavailable the moment it is ticked —
+                  // and POS itself becomes unavailable once something else
+                  // is. Dimmed rather than hidden: a card that vanishes
+                  // looks like a bug, and the reason is worth reading.
+                  const { selectable, reason } = isTypeSelectable(type, formData.businessTypes)
                   return (
                     <button
                       key={type}
                       type="button"
                       aria-pressed={selected}
+                      aria-disabled={!selectable}
+                      title={reason ?? undefined}
                       onClick={() => toggleBusinessType(type)}
                       className={`relative flex flex-col items-start gap-2 p-3.5 rounded-2xl border text-left transition-all active:scale-[0.98] ${
                         selected
                           ? "border-primary bg-primary/5 shadow-sm"
-                          : "border-border bg-card hover:border-primary/50"
+                          : !selectable
+                            ? "border-dashed border-border bg-muted/40 opacity-55"
+                            : "border-border bg-card hover:border-primary/50"
                       }`}
                     >
                       <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${BUSINESS_TYPE_ACCENT[meta.accent]}`}>
@@ -458,10 +536,18 @@ export default function SignupPage() {
                       </div>
                       <span
                         className={`absolute top-3 right-3 w-5 h-5 rounded-full flex items-center justify-center transition-colors ${
-                          selected ? "bg-primary text-primary-foreground" : "border border-border bg-background"
+                          selected
+                            ? "bg-primary text-primary-foreground"
+                            : !selectable
+                              ? "bg-muted text-muted-foreground"
+                              : "border border-border bg-background"
                         }`}
                       >
-                        {selected && <Check className="w-3 h-3" strokeWidth={3} />}
+                        {selected
+                          ? <Check className="w-3 h-3" strokeWidth={3} />
+                          : !selectable
+                            ? <LockIcon className="w-2.5 h-2.5" strokeWidth={2.5} />
+                            : null}
                       </span>
                     </button>
                   )
@@ -504,6 +590,117 @@ export default function SignupPage() {
                     &middot; {t("authPage.signup.proSetupSelectedCount", { count: formData.businessTypes.length })}
                   </span>
                 )}
+                <ArrowRight className="w-4 h-4 ml-1" />
+              </Button>
+            </>
+          )}
+
+          {/* Step: which kind of shop (POS only) ----------------------------
+              Thirty-five options, so this is a searchable grouped list of
+              compact rows rather than a grid of cards: a card grid that size
+              is a wall on a phone, and the thing the shopkeeper is doing is
+              finding their own trade, not browsing. */}
+          {step === "posShopType" && (
+            <>
+              <button
+                onClick={() => { setStep("proSetup"); setError("") }}
+                className="text-sm text-muted-foreground hover:text-foreground mb-4 flex items-center gap-1 active:scale-95 transition-transform"
+              >
+                &larr; {t("authPage.back")}
+              </button>
+              <h2 className="text-2xl font-bold text-foreground mb-1">{t("authPage.signup.posShopTypeTitle")}</h2>
+              <p className="text-sm text-muted-foreground mb-4">{t("authPage.signup.posShopTypeSubtitle")}</p>
+
+              <div className="relative mb-3">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  value={posSearch}
+                  onChange={(e) => setPosSearch(e.target.value)}
+                  placeholder={t("authPage.signup.posShopTypeSearch")}
+                  className="h-11 pl-9 rounded-xl"
+                  autoComplete="off"
+                />
+              </div>
+
+              {/* Capped height with its own scroll so the Continue button
+                  stays reachable without scrolling the whole page. */}
+              <div className="max-h-[46vh] min-h-[220px] overflow-y-auto -mx-1 px-1 space-y-4">
+                {(() => {
+                  const q = posSearch.trim().toLowerCase()
+                  const groups = posProfilesByGroup()
+                    .map((g) => ({
+                      ...g,
+                      profiles: q
+                        ? g.profiles.filter((pr) =>
+                            pr.label.toLowerCase().includes(q) || pr.description.toLowerCase().includes(q))
+                        : g.profiles,
+                    }))
+                    .filter((g) => g.profiles.length > 0)
+
+                  if (groups.length === 0) {
+                    return (
+                      <p className="py-8 text-center text-sm text-muted-foreground">
+                        {t("authPage.signup.posShopTypeNoMatch")}
+                      </p>
+                    )
+                  }
+
+                  return groups.map((g) => (
+                    <div key={g.group}>
+                      <p className="sticky top-0 z-10 bg-card/95 backdrop-blur py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        {g.label}
+                      </p>
+                      <div className="mt-1.5 space-y-1.5">
+                        {g.profiles.map((pr) => {
+                          const Icon = POS_PROFILE_ICON[pr.icon] ?? Store
+                          const selected = formData.posProfileKey === pr.key
+                          return (
+                            <button
+                              key={pr.key}
+                              type="button"
+                              aria-pressed={selected}
+                              onClick={() => selectPosProfile(pr.key)}
+                              className={`w-full flex items-start gap-3 p-3 rounded-xl border text-left transition-all active:scale-[0.99] ${
+                                selected
+                                  ? "border-primary bg-primary/5 shadow-sm"
+                                  : "border-border bg-card hover:border-primary/50"
+                              }`}
+                            >
+                              <span className={`mt-0.5 w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                                selected
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-muted text-muted-foreground"
+                              }`}>
+                                <Icon className="w-4 h-4" />
+                              </span>
+                              <span className="min-w-0 flex-1">
+                                <span className="block font-semibold text-foreground text-sm leading-tight">{pr.label}</span>
+                                <span className="block text-[11px] text-muted-foreground mt-0.5 leading-snug">{pr.description}</span>
+                                {/* What picking this actually does. A preset
+                                    the shopkeeper cannot see is a preset they
+                                    cannot trust, and every one of these is
+                                    changeable afterwards. */}
+                                {selected && pr.traits.length > 0 && (
+                                  <span className="mt-2 block text-[11px] leading-snug text-foreground/80">
+                                    <span className="font-medium">{t("authPage.signup.posShopTypeIncluded")}</span>{" "}
+                                    {pr.traits.map((tr) => POS_TRAIT_META[tr].label).join(" &middot; ")}
+                                  </span>
+                                )}
+                              </span>
+                              {selected && (
+                                <Check className="w-4 h-4 text-primary flex-shrink-0 mt-1" strokeWidth={3} />
+                              )}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  ))
+                })()}
+              </div>
+
+              <Button onClick={handlePosShopTypeContinue} className="w-full h-12 mt-5 rounded-xl font-semibold">
+                {t("authPage.signup.proSetupContinue")}
                 <ArrowRight className="w-4 h-4 ml-1" />
               </Button>
             </>
@@ -557,7 +754,7 @@ export default function SignupPage() {
                   {signupMethod === "phone" ? t("authPage.signup.otpWillGoToPhone") : t("authPage.signup.otpWillGoToEmail")}
                 </p>
                 <div className="flex gap-3">
-                  <Button type="button" onClick={() => setStep(formData.role === "provider" ? "proSetup" : "role")} disabled={isLoading} variant="outline" className="h-10 rounded-xl bg-transparent gap-1 px-4">
+                  <Button type="button" onClick={() => setStep(formData.role !== "provider" ? "role" : hasPos(formData.businessTypes) ? "posShopType" : "proSetup")} disabled={isLoading} variant="outline" className="h-10 rounded-xl bg-transparent gap-1 px-4">
                     <ArrowLeft className="w-4 h-4" />
                   </Button>
                   <Button type="submit" disabled={isLoading} className="flex-1 h-10 rounded-xl font-semibold gap-2">

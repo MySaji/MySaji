@@ -6,11 +6,13 @@ import { db } from "@/lib/db"
 import { logAdminAction } from "@/lib/actions/admin-dashboard"
 import { pushToUser } from "@/lib/actions/push"
 import { buildProviderSlug } from "@/lib/provider-slug"
+import { provisionPos } from "@/lib/pos-provision"
 import {
   DEFAULT_MODULES_BY_TYPE,
   PRO_BUSINESS_TYPES,
   PRO_BUSINESS_TYPE_META,
   PRO_MODULES,
+  isAllowedCombination,
   resolveModuleKeys,
   resolveWorkSlot,
   type ProBusinessType,
@@ -28,7 +30,7 @@ import {
  * are backed by that profile and would have nothing to render without it.
  */
 
-const businessTypeSchema = z.enum(["SERVICES", "PRODUCTS", "RENTALS", "FREELANCE", "TUTORING", "CONSULTING"])
+const businessTypeSchema = z.enum(["SERVICES", "PRODUCTS", "RENTALS", "FREELANCE", "TUTORING", "CONSULTING", "POS"])
 
 // ---------------------------------------------------------------------------
 // Pro side
@@ -92,7 +94,12 @@ export async function getMyProCapabilities(): Promise<MyProCapabilities> {
     // Neither of these is about access — they exist purely so an account that
     // was already selling before business types existed keeps its selling
     // pages in the nav. See below.
-    db.shopkeeperProfile.findUnique({ where: { userId: session.user.id }, select: { id: true } }),
+    db.shopkeeperProfile.findUnique({
+      where: { userId: session.user.id },
+      // listedOnMarketplace decides whether this shop is a storefront or
+      // only a till. See the PRODUCTS force-add below.
+      select: { id: true, listedOnMarketplace: true },
+    }),
     db.offer.count({ where: { provider: { userId: session.user.id }, actionType: "BUY" } }),
   ])
 
@@ -111,8 +118,33 @@ export async function getMyProCapabilities(): Promise<MyProCapabilities> {
   //    merge that put those pages in this portal predates this feature, and
   //    silently taking a working shop out of somebody's nav is not a
   //    migration, it is a regression.
-  const effective: ProBusinessType[] = active.length > 0 ? [...active] : ["SERVICES"]
-  if (shop && !effective.includes("PRODUCTS")) effective.push("PRODUCTS")
+  //  - An account whose only business type is still PENDING must NOT be
+  //    treated as SERVICES. That fallback was written for accounts with no
+  //    rows at all, but `active.length > 0` is not the same test: someone who
+  //    signed up this morning and is awaiting review has rows, has chosen,
+  //    and chose something other than services. Showing them the Jobs,
+  //    Quotes and Service Menu pages of a trade they never picked is worse
+  //    than showing them the core set and the status of their request.
+  //    `rows.length === 0` is the condition that actually means
+  //    "predates business types".
+  const effective: ProBusinessType[] = active.length > 0
+    ? [...active]
+    : rows.length === 0
+      ? ["SERVICES"]
+      : []
+
+  //  - A shop force-adds PRODUCTS only if it is a STOREFRONT.
+  //
+  //    A POS account owns a ShopkeeperProfile too — that row is the till's
+  //    tenant, and the catalogue hangs off it — so "has a shop" stopped
+  //    meaning "sells on SAJI" the moment POS existed. Without this test a
+  //    POS-only shopkeeper would be handed Shop Orders, Suppliers, Promotions
+  //    and the public Showcase: a dozen pages about a storefront they
+  //    deliberately did not open, most of which would render empty.
+  //
+  //    listedOnMarketplace defaults true, so every shop that existed before
+  //    POS keeps exactly the modules it had.
+  if (shop?.listedOnMarketplace && !effective.includes("PRODUCTS")) effective.push("PRODUCTS")
 
   let moduleKeys = resolveModuleKeys(effective, overrides)
 
@@ -181,6 +213,23 @@ export async function requestProCapability(input: unknown): Promise<RequestCapab
     if (existing?.status === "PENDING") {
       return { success: false, error: "That request is already with our team." }
     }
+
+    // The combination rule, enforced on the server.
+    //
+    // The picker dims what it cannot offer, but a dimmed control is a
+    // suggestion — this request arrives as a plain POST and nothing in the
+    // schema above can catch it, because the rule is about the SET and
+    // businessTypeSchema validates one value at a time. Checked against what
+    // the account would hold afterwards, pending requests included: a pending
+    // POS is an intent, and letting someone queue POS and then Rentals would
+    // simply move the conflict to whichever one staff approved second.
+    const others = await db.proCapability.findMany({
+      where: { userId: session.user.id, status: { in: ["ACTIVE", "PENDING"] } },
+      select: { type: true },
+    })
+    const would = [...new Set([...others.map((o) => o.type as ProBusinessType), type])]
+    const verdict = isAllowedCombination(would)
+    if (!verdict.ok) return { success: false, error: verdict.reason }
 
     await db.proCapability.upsert({
       where: { userId_type: { userId: session.user.id, type } },
@@ -365,6 +414,27 @@ export async function reviewProCapabilityRequest(input: unknown): Promise<Review
           if (type === "PRODUCTS" && !row.user.shopkeeperProfile) {
             await tx.shopkeeperProfile.create({
               data: { userId: row.userId, shopName: `${row.user.name}'s Shop` },
+            })
+          }
+
+          // POS needs the same row, because ShopkeeperProfile IS the till's
+          // tenant — but it must not imply a storefront. provisionPos
+          // decides listedOnMarketplace from the whole set of types the
+          // account holds, so a POS-only account gets an unlisted shop and
+          // a POS + Sell Products account gets a listed one. Re-read the
+          // active set inside the transaction rather than trusting the
+          // snapshot above: this row is being approved right now and is not
+          // in it.
+          if (type === "POS") {
+            const active = await tx.proCapability.findMany({
+              where: { userId: row.userId, status: "ACTIVE" },
+              select: { type: true },
+            })
+            await provisionPos(tx as never, {
+              userId: row.userId,
+              userName: row.user.name,
+              profileKey: null,
+              businessTypes: [...new Set([...active.map((a) => a.type as ProBusinessType), "POS" as const])],
             })
           }
         }

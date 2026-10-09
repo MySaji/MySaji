@@ -1,0 +1,909 @@
+"use server"
+
+import { z } from "zod"
+import { Prisma } from "@prisma/client"
+import { auth } from "@/auth"
+import { db } from "@/lib/db"
+import { recordStockMovement } from "@/lib/pos-ledger"
+import { parsePosConfig, type NegativeStockPolicy } from "@/lib/pos-config"
+import { effectiveTraits } from "@/lib/pos-profiles"
+import type { PosTrait } from "@/lib/pos-traits"
+
+/**
+ * Taking money across the counter.
+ *
+ * Three rules govern this file, and every one of them is here because the
+ * obvious shortcut is wrong:
+ *
+ * 1. THE TENANT COMES FROM THE SESSION. No function takes a shopkeeperId.
+ *
+ * 2. THE SERVER PRICES THE SALE. The till sends what was scanned and how
+ *    much of it; it does not send what anything costs or what the total is.
+ *    A client-supplied total is a client-supplied discount.
+ *
+ * 3. A SALE IS ONE TRANSACTION OR IT IS NOTHING. The PosSale, its lines, its
+ *    tenders and the stock movements for every line commit together. A sale
+ *    recorded with stock untouched is a shop whose figures silently rot; a
+ *    stock movement with no sale behind it is worse.
+ *
+ * Deliberately NOT built on checkout() in lib/actions/cart.ts, which looks
+ * close enough and is not: it debits a customer wallet and holds funds in
+ * escrow. A counter sale is a shopkeeper recording money already in their
+ * hand. Reusing it would be the most damaging bug available in this project.
+ */
+
+// ---------------------------------------------------------------------------
+// Tenant
+// ---------------------------------------------------------------------------
+
+type TillTenant = {
+  userId: string
+  userName: string
+  shopkeeperId: string
+  shopName: string
+  traits: PosTrait[]
+  negativeStock: NegativeStockPolicy
+  taxRate: number
+  taxInclusive: boolean
+  cashRounding: number
+  receiptHeader: string
+  receiptFooter: string | null
+  taxPin: string | null
+}
+
+/** The signed-in user's till, or null if they have not got one. */
+async function requireTill(): Promise<TillTenant | null> {
+  const session = await auth()
+  if (!session?.user?.id) return null
+  if (session.user.role !== "provider" && session.user.role !== "shopkeeper") return null
+
+  const shop = await db.shopkeeperProfile.findUnique({
+    where: { userId: session.user.id },
+    select: {
+      id: true, shopName: true, posEnabled: true,
+      posProfileKey: true, posTraits: true, posConfig: true,
+    },
+  })
+  if (!shop || !shop.posEnabled) return null
+
+  const config = parsePosConfig(shop.posConfig)
+  return {
+    userId: session.user.id,
+    userName: session.user.name ?? "Cashier",
+    shopkeeperId: shop.id,
+    shopName: shop.shopName,
+    traits: effectiveTraits(shop.posProfileKey, shop.posTraits),
+    negativeStock: config.negativeStock,
+    taxRate: config.taxRate,
+    taxInclusive: config.taxInclusive,
+    cashRounding: config.cashRounding,
+    receiptHeader: config.receiptHeader?.trim() || shop.shopName,
+    receiptFooter: config.receiptFooter?.trim() || null,
+    taxPin: config.taxPin?.trim() || null,
+  }
+}
+
+const D = (v: Prisma.Decimal | string | number) => new Prisma.Decimal(v)
+const money = (v: Prisma.Decimal) => Number(v.toFixed(2))
+
+// ---------------------------------------------------------------------------
+// Reading the till
+// ---------------------------------------------------------------------------
+
+export type TillProduct = {
+  id: string
+  name: string
+  sku: string
+  barcode: string | null
+  unit: string
+  /** What the till should charge: the discount price if one is set. */
+  price: number
+  /** The undiscounted price, so the till can show what was knocked off. */
+  listPrice: number
+  /** Exact stock where the ledger knows it, else the integer figure. */
+  stock: number
+  categoryName: string | null
+}
+
+export type TillShift = {
+  id: string
+  cashierName: string | null
+  openedAt: string
+  openingFloat: number
+  /** Completed sales in this shift so far. */
+  saleCount: number
+  /** Cash tendered less change, i.e. what should be in the drawer. */
+  cashTaken: number
+  /** Everything else, by method, for the close-out screen. */
+  nonCashTaken: number
+}
+
+export type TillState = {
+  shopName: string
+  traits: PosTrait[]
+  canSellFractional: boolean
+  canOverridePrice: boolean
+  canRecordWastage: boolean
+  negativeStock: NegativeStockPolicy
+  taxRate: number
+  taxInclusive: boolean
+  cashRounding: number
+  shift: TillShift | null
+  /** Today's completed sales for this shop, newest first. */
+  recentSales: TillSaleSummary[]
+  takingsToday: number
+  salesToday: number
+}
+
+export type TillSaleSummary = {
+  id: string
+  saleNumber: string
+  total: number
+  paymentMethod: string
+  status: string
+  itemCount: number
+  occurredAt: string
+  customerName: string | null
+}
+
+export async function getTillState(): Promise<TillState | null> {
+  const till = await requireTill()
+  if (!till) return null
+
+  const startOfToday = new Date()
+  startOfToday.setHours(0, 0, 0, 0)
+
+  const [shiftRow, recent, todayAgg] = await Promise.all([
+    db.tillSession.findFirst({
+      where: { shopkeeperId: till.shopkeeperId, closedAt: null },
+      orderBy: { openedAt: "desc" },
+    }),
+    db.posSale.findMany({
+      where: { shopkeeperId: till.shopkeeperId, occurredAt: { gte: startOfToday } },
+      orderBy: { occurredAt: "desc" },
+      take: 20,
+      select: {
+        id: true, saleNumber: true, total: true, paymentMethod: true, status: true,
+        occurredAt: true, customerName: true, _count: { select: { items: true } },
+      },
+    }),
+    db.posSale.aggregate({
+      where: { shopkeeperId: till.shopkeeperId, occurredAt: { gte: startOfToday }, status: "COMPLETED" },
+      _sum: { total: true },
+      _count: true,
+    }),
+  ])
+
+  let shift: TillShift | null = null
+  if (shiftRow) {
+    // Computed rather than stored while the shift is open: a running figure
+    // that is only correct at close time is a figure the cashier cannot
+    // check against the drawer mid-shift, which is exactly when they want to.
+    const sales = await db.posSale.findMany({
+      where: { shopkeeperId: till.shopkeeperId, tillSessionId: shiftRow.id, status: "COMPLETED" },
+      select: { total: true, amountPaid: true, changeGiven: true, paymentMethod: true },
+    })
+    let cash = D(0)
+    let other = D(0)
+    for (const s of sales) {
+      if (s.paymentMethod === "CASH") cash = cash.plus(s.amountPaid).minus(s.changeGiven)
+      else other = other.plus(s.total)
+    }
+    shift = {
+      id: shiftRow.id,
+      cashierName: shiftRow.cashierName,
+      openedAt: shiftRow.openedAt.toISOString(),
+      openingFloat: money(D(shiftRow.openingFloat)),
+      saleCount: sales.length,
+      cashTaken: money(cash),
+      nonCashTaken: money(other),
+    }
+  }
+
+  return {
+    shopName: till.shopName,
+    traits: till.traits,
+    canSellFractional: till.traits.includes("MEASURED"),
+    canOverridePrice: till.traits.includes("OPEN_PRICE"),
+    canRecordWastage: till.traits.includes("WASTAGE"),
+    negativeStock: till.negativeStock,
+    taxRate: till.taxRate,
+    taxInclusive: till.taxInclusive,
+    cashRounding: till.cashRounding,
+    shift,
+    recentSales: recent.map((s) => ({
+      id: s.id,
+      saleNumber: s.saleNumber,
+      total: money(D(s.total)),
+      paymentMethod: s.paymentMethod,
+      status: s.status,
+      itemCount: s._count.items,
+      occurredAt: s.occurredAt.toISOString(),
+      customerName: s.customerName,
+    })),
+    takingsToday: money(D(todayAgg._sum.total ?? 0)),
+    salesToday: todayAgg._count,
+  }
+}
+
+const searchSchema = z.object({
+  query: z.string().trim().max(120),
+  limit: z.number().int().min(1).max(50).optional(),
+})
+
+/**
+ * The till's product lookup: barcode first, then name and SKU.
+ *
+ * Barcode is checked as an exact match before anything else, because that is
+ * what a scanner produces and a scan must never land on a fuzzy match — a
+ * cashier scanning a tin of milk and getting "Milk, fresh 500ml" because it
+ * sorted first is how a shop loses money quietly.
+ */
+export async function findTillProducts(input: unknown): Promise<TillProduct[]> {
+  const till = await requireTill()
+  if (!till) return []
+  const parsed = searchSchema.safeParse(input)
+  if (!parsed.success) return []
+  const { query } = parsed.data
+  const limit = parsed.data.limit ?? 20
+
+  const select = {
+    id: true, name: true, sku: true, barcode: true, unit: true,
+    price: true, discountPrice: true,
+    category: { select: { name: true } },
+    inventory: { select: { currentStock: true, stockOnHand: true } },
+  } as const
+
+  // Every query below is scoped to this shop. A till that could see another
+  // shop's catalogue is a till that could sell from it.
+  const base = { shopkeeperId: till.shopkeeperId }
+
+  let rows
+  if (query.length > 0) {
+    const exact = await db.product.findMany({
+      where: { ...base, barcode: query },
+      select,
+      take: limit,
+    })
+    if (exact.length > 0) {
+      rows = exact
+    } else {
+      rows = await db.product.findMany({
+        where: {
+          ...base,
+          OR: [
+            { name: { contains: query, mode: "insensitive" } },
+            { sku: { contains: query, mode: "insensitive" } },
+          ],
+        },
+        select,
+        orderBy: [{ totalSold: "desc" }, { name: "asc" }],
+        take: limit,
+      })
+    }
+  } else {
+    // An empty query is the till's opening screen. Best sellers first is the
+    // right default: it is what the cashier reaches for most.
+    rows = await db.product.findMany({
+      where: base,
+      select,
+      orderBy: [{ totalSold: "desc" }, { name: "asc" }],
+      take: limit,
+    })
+  }
+
+  return rows.map((p) => ({
+    id: p.id,
+    name: p.name,
+    sku: p.sku,
+    barcode: p.barcode,
+    unit: p.unit,
+    price: money(D(p.discountPrice ?? p.price)),
+    listPrice: money(D(p.price)),
+    // stockOnHand null means the ledger has nothing for this product yet and
+    // currentStock is the truth — NOT that there is no stock.
+    stock: p.inventory
+      ? Number((p.inventory.stockOnHand ?? D(p.inventory.currentStock)).toString())
+      : 0,
+    categoryName: p.category?.name ?? null,
+  }))
+}
+
+// ---------------------------------------------------------------------------
+// Shifts
+// ---------------------------------------------------------------------------
+
+export type TillActionResult<T = undefined> =
+  | ({ success: true } & (T extends undefined ? Record<string, never> : { data: T }))
+  | { success: false; error: string }
+
+const openShiftSchema = z.object({
+  openingFloat: z.number().min(0).max(10_000_000),
+  cashierName: z.string().trim().max(80).optional(),
+})
+
+export async function openTillShift(input: unknown): Promise<TillActionResult> {
+  const till = await requireTill()
+  if (!till) return { success: false, error: "There is no till on this account." }
+  const parsed = openShiftSchema.safeParse(input)
+  if (!parsed.success) return { success: false, error: "Enter the cash you are starting with." }
+
+  const existing = await db.tillSession.findFirst({
+    where: { shopkeeperId: till.shopkeeperId, closedAt: null },
+    select: { id: true },
+  })
+  if (existing) return { success: false, error: "A shift is already open. Close it before starting another." }
+
+  await db.tillSession.create({
+    data: {
+      shopkeeperId: till.shopkeeperId,
+      cashierUserId: till.userId,
+      cashierName: parsed.data.cashierName?.trim() || till.userName,
+      openingFloat: D(parsed.data.openingFloat),
+    },
+  })
+  return { success: true } as TillActionResult
+}
+
+const closeShiftSchema = z.object({
+  countedCash: z.number().min(0).max(10_000_000),
+  note: z.string().trim().max(300).optional(),
+})
+
+export type ShiftCloseSummary = {
+  openingFloat: number
+  cashTaken: number
+  nonCashTaken: number
+  expectedCash: number
+  countedCash: number
+  variance: number
+  saleCount: number
+}
+
+export async function closeTillShift(input: unknown): Promise<TillActionResult<ShiftCloseSummary>> {
+  const till = await requireTill()
+  if (!till) return { success: false, error: "There is no till on this account." }
+  const parsed = closeShiftSchema.safeParse(input)
+  if (!parsed.success) return { success: false, error: "Enter the cash you counted." }
+
+  const shift = await db.tillSession.findFirst({
+    where: { shopkeeperId: till.shopkeeperId, closedAt: null },
+    orderBy: { openedAt: "desc" },
+  })
+  if (!shift) return { success: false, error: "No shift is open." }
+
+  const sales = await db.posSale.findMany({
+    where: { shopkeeperId: till.shopkeeperId, tillSessionId: shift.id, status: "COMPLETED" },
+    select: { total: true, amountPaid: true, changeGiven: true, paymentMethod: true },
+  })
+
+  let cash = D(0)
+  let other = D(0)
+  for (const s of sales) {
+    if (s.paymentMethod === "CASH") cash = cash.plus(s.amountPaid).minus(s.changeGiven)
+    else other = other.plus(s.total)
+  }
+
+  const expected = D(shift.openingFloat).plus(cash)
+  const counted = D(parsed.data.countedCash)
+  const variance = counted.minus(expected)
+
+  // Stored, not recomputed on read. A void or a correction tomorrow must not
+  // retroactively change what this shift reported tonight — a variance is a
+  // fact about a moment, and the cashier signed off on this number.
+  await db.tillSession.update({
+    where: { id: shift.id },
+    data: {
+      closedAt: new Date(),
+      expectedCash: expected,
+      countedCash: counted,
+      variance,
+      note: parsed.data.note?.trim() || null,
+    },
+  })
+
+  return {
+    success: true,
+    data: {
+      openingFloat: money(D(shift.openingFloat)),
+      cashTaken: money(cash),
+      nonCashTaken: money(other),
+      expectedCash: money(expected),
+      countedCash: money(counted),
+      variance: money(variance),
+      saleCount: sales.length,
+    },
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Recording a sale
+// ---------------------------------------------------------------------------
+
+const PAYMENT_METHODS = ["CASH", "MPESA", "CARD", "BANK", "CREDIT"] as const
+
+const saleSchema = z.object({
+  /**
+   * Generated once by the till for this sale attempt, and resent unchanged on
+   * every retry. The reason a dropped connection cannot ring a sale up twice.
+   */
+  idempotencyKey: z.string().trim().min(8).max(100),
+  lines: z.array(z.object({
+    productId: z.string().trim().min(1),
+    /** A string, not a number — see the note on quantity in pos-ledger.ts. */
+    quantity: z.string().trim().regex(/^\d+(\.\d{1,3})?$/, "Enter a valid quantity"),
+    /** Only honoured when the OPEN_PRICE trait is on. */
+    unitPriceOverride: z.number().min(0).max(100_000_000).optional(),
+    lineDiscount: z.number().min(0).max(100_000_000).optional(),
+    notes: z.string().trim().max(200).optional(),
+  })).min(1).max(200),
+  payments: z.array(z.object({
+    method: z.enum(PAYMENT_METHODS),
+    amount: z.number().min(0).max(100_000_000),
+    reference: z.string().trim().max(60).optional(),
+  })).min(1).max(5),
+  saleDiscount: z.number().min(0).max(100_000_000).optional(),
+  customerName: z.string().trim().max(120).optional(),
+  customerPhone: z.string().trim().max(30).optional(),
+  deviceId: z.string().trim().max(60).optional(),
+  /** When it happened at the counter. An offline till sends its own time. */
+  occurredAt: z.string().datetime().optional(),
+})
+
+export type ReceiptLine = {
+  name: string
+  sku: string | null
+  quantity: string
+  unit: string
+  unitPrice: number
+  lineDiscount: number
+  totalPrice: number
+  priceOverridden: boolean
+}
+
+export type Receipt = {
+  saleId: string
+  saleNumber: string
+  shopName: string
+  header: string
+  footer: string | null
+  taxPin: string | null
+  cashierName: string | null
+  occurredAt: string
+  lines: ReceiptLine[]
+  subtotal: number
+  discount: number
+  tax: number
+  taxRate: number
+  taxInclusive: boolean
+  total: number
+  amountPaid: number
+  changeGiven: number
+  payments: { method: string; amount: number; reference: string | null }[]
+  customerName: string | null
+  /** True when this was a replay of a sale already recorded. */
+  replayed: boolean
+  /** Lines that went below zero stock under a WARN policy. */
+  stockWarnings: string[]
+}
+
+/** Zero-padded so lexicographic order is numeric order. */
+function formatSaleNumber(n: number): string {
+  return String(n).padStart(6, "0")
+}
+
+export async function recordPosSale(input: unknown): Promise<TillActionResult<Receipt>> {
+  const till = await requireTill()
+  if (!till) return { success: false, error: "There is no till on this account." }
+
+  const parsed = saleSchema.safeParse(input)
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message ?? "That sale could not be read." }
+  }
+  const body = parsed.data
+  const occurredAt = body.occurredAt ? new Date(body.occurredAt) : new Date()
+
+  // --- a replay returns the original receipt, not an error -----------------
+  const already = await db.posSale.findUnique({
+    where: { shopkeeperId_idempotencyKey: { shopkeeperId: till.shopkeeperId, idempotencyKey: body.idempotencyKey } },
+    include: { items: true, payments: true },
+  })
+  if (already) {
+    return { success: true, data: buildReceipt(till, already, already.items, already.payments, true, []) }
+  }
+
+  // --- price it on the server ---------------------------------------------
+  const products = await db.product.findMany({
+    where: { shopkeeperId: till.shopkeeperId, id: { in: body.lines.map((l) => l.productId) } },
+    select: { id: true, name: true, sku: true, barcode: true, unit: true, price: true, discountPrice: true, costPrice: true },
+  })
+  const byId = new Map(products.map((p) => [p.id, p]))
+
+  const allowFractional = till.traits.includes("MEASURED")
+  const allowOverride = till.traits.includes("OPEN_PRICE")
+
+  type PricedLine = {
+    productId: string
+    name: string
+    sku: string
+    barcode: string | null
+    unit: string
+    quantity: Prisma.Decimal
+    unitPrice: Prisma.Decimal
+    lineDiscount: Prisma.Decimal
+    totalPrice: Prisma.Decimal
+    costAtSale: Prisma.Decimal | null
+    priceOverridden: boolean
+    notes: string | null
+  }
+
+  const priced: PricedLine[] = []
+  let subtotal = D(0)
+
+  for (const line of body.lines) {
+    const product = byId.get(line.productId)
+    // Scoped to this shop above, so a miss means either gone or not ours.
+    // Same message for both, deliberately.
+    if (!product) return { success: false, error: "One of those products is no longer in your catalogue." }
+
+    const quantity = D(line.quantity)
+    if (quantity.lessThanOrEqualTo(0)) {
+      return { success: false, error: `Enter how much ${product.name} to sell.` }
+    }
+    // A shop that has not switched on "sell by weight or measure" must not be
+    // able to ring up 1.5 of something through a crafted request, or its
+    // integer marketplace stock figure stops meaning anything.
+    if (!allowFractional && !quantity.isInteger()) {
+      return {
+        success: false,
+        error: `${product.name} is sold in whole ${product.unit === "piece" ? "pieces" : product.unit}. Turn on "Sell by weight or measure" in POS Settings to sell parts of one.`,
+      }
+    }
+
+    let unitPrice = D(product.discountPrice ?? product.price)
+    let overridden = false
+    if (line.unitPriceOverride !== undefined) {
+      if (!allowOverride) {
+        return {
+          success: false,
+          error: `Prices are fixed for this shop. Turn on "Cashier sets the price" in POS Settings to change one at the till.`,
+        }
+      }
+      unitPrice = D(line.unitPriceOverride)
+      overridden = true
+    }
+
+    const lineDiscount = D(line.lineDiscount ?? 0)
+    const gross = unitPrice.times(quantity)
+    if (lineDiscount.greaterThan(gross)) {
+      return { success: false, error: `The discount on ${product.name} is more than the line is worth.` }
+    }
+    const totalPrice = gross.minus(lineDiscount)
+
+    priced.push({
+      productId: product.id,
+      name: product.name,
+      sku: product.sku,
+      barcode: product.barcode,
+      unit: product.unit,
+      quantity,
+      unitPrice,
+      lineDiscount,
+      totalPrice,
+      costAtSale: product.costPrice != null ? D(product.costPrice) : null,
+      priceOverridden: overridden,
+      notes: line.notes?.trim() || null,
+    })
+    subtotal = subtotal.plus(totalPrice)
+  }
+
+  const saleDiscount = D(body.saleDiscount ?? 0)
+  if (saleDiscount.greaterThan(subtotal)) {
+    return { success: false, error: "The discount is more than the sale is worth." }
+  }
+  const net = subtotal.minus(saleDiscount)
+
+  // Tax, and what it is not.
+  //
+  // taxInclusive means the prices already contain it, so the figure is
+  // informational and is NOT added — back-computed for the receipt only.
+  // This is arithmetic, not compliance: see the note in lib/pos-config.ts.
+  const rate = D(till.taxRate).dividedBy(100)
+  const tax = till.taxRate === 0
+    ? D(0)
+    : till.taxInclusive
+      ? net.minus(net.dividedBy(rate.plus(1)))
+      : net.times(rate)
+  const total = till.taxInclusive ? net : net.plus(tax)
+
+  const amountPaid = body.payments.reduce((acc, p) => acc.plus(D(p.amount)), D(0))
+  if (amountPaid.lessThan(total)) {
+    return {
+      success: false,
+      error: `Short by ${total.minus(amountPaid).toFixed(2)}. Take the full amount or record the rest as credit.`,
+    }
+  }
+  // Change is only ever cash. Overpaying by card is not change, it is a
+  // mistake, and the till should not quietly hand shillings back for it.
+  const hasCash = body.payments.some((p) => p.method === "CASH")
+  const changeGiven = hasCash ? amountPaid.minus(total) : D(0)
+
+  const paymentMethod = body.payments.length > 1 ? "SPLIT" : body.payments[0].method
+
+  const openShift = await db.tillSession.findFirst({
+    where: { shopkeeperId: till.shopkeeperId, closedAt: null },
+    orderBy: { openedAt: "desc" },
+    select: { id: true },
+  })
+
+  // --- write it, all or nothing -------------------------------------------
+  const stockWarnings: string[] = []
+
+  // Sale numbers are sequential per shop, so two tills closing a sale in the
+  // same instant can collide on the unique index. That is a retry, not an
+  // error: the second attempt reads the number the first one took.
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      const result = await db.$transaction(async (tx) => {
+        const last = await tx.posSale.findFirst({
+          where: { shopkeeperId: till.shopkeeperId },
+          orderBy: { saleNumber: "desc" },
+          select: { saleNumber: true },
+        })
+        const nextNumber = formatSaleNumber((last ? parseInt(last.saleNumber, 10) : 0) + 1)
+
+        const sale = await tx.posSale.create({
+          data: {
+            shopkeeperId: till.shopkeeperId,
+            saleNumber: nextNumber,
+            tillSessionId: openShift?.id ?? null,
+            cashierUserId: till.userId,
+            cashierName: till.userName,
+            subtotal,
+            discount: saleDiscount,
+            tax,
+            total,
+            amountPaid,
+            changeGiven,
+            status: "COMPLETED",
+            paymentMethod,
+            customerName: body.customerName?.trim() || null,
+            customerPhone: body.customerPhone?.trim() || null,
+            idempotencyKey: body.idempotencyKey,
+            deviceId: body.deviceId?.trim() || null,
+            occurredAt,
+            syncedAt: new Date(),
+            items: {
+              create: priced.map((l) => ({
+                productId: l.productId,
+                name: l.name,
+                sku: l.sku,
+                barcode: l.barcode,
+                quantity: l.quantity,
+                unit: l.unit,
+                unitPrice: l.unitPrice,
+                lineDiscount: l.lineDiscount,
+                totalPrice: l.totalPrice,
+                costAtSale: l.costAtSale,
+                priceOverridden: l.priceOverridden,
+                notes: l.notes,
+              })),
+            },
+            payments: {
+              create: body.payments.map((p) => ({
+                method: p.method,
+                amount: D(p.amount),
+                reference: p.reference?.trim() || null,
+              })),
+            },
+          },
+          include: { items: true, payments: true },
+        })
+
+        // Stock, in the same transaction. A line's movement key is derived
+        // from the sale's, so a replayed sale replays its movements to the
+        // same keys and the ledger refuses them individually too.
+        for (let i = 0; i < priced.length; i++) {
+          const l = priced[i]
+          const moved = await recordStockMovement(tx as never, {
+            shopkeeperId: till.shopkeeperId,
+            productId: l.productId,
+            kind: "SALE",
+            quantity: l.quantity.negated(),
+            unit: l.unit,
+            unitCost: l.costAtSale,
+            posSaleId: sale.id,
+            actorUserId: till.userId,
+            idempotencyKey: `${body.idempotencyKey}:L${i}`,
+            deviceId: body.deviceId?.trim() || null,
+            occurredAt,
+          }, till.negativeStock)
+
+          if (!moved.ok) {
+            // BLOCK, or a product that vanished mid-transaction. Throwing
+            // rolls back the sale entirely — a receipt the shop cannot
+            // account for is worse than a refused sale.
+            throw new PosSaleError(
+              moved.code === "INSUFFICIENT_STOCK"
+                ? `${l.name}: ${moved.message}`
+                : `${l.name} could not be taken out of stock. Nothing was recorded.`,
+            )
+          }
+          if (moved.balance.lessThan(0)) {
+            stockWarnings.push(`${l.name} is now ${moved.balance.toString()} ${l.unit} — below zero.`)
+          }
+        }
+
+        // totalSold is a display counter on Product and is not stock. Kept in
+        // step so the till's "best sellers" ordering reflects counter sales
+        // too, which for a POS-only shop is the only sales it has.
+        for (const l of priced) {
+          await tx.product.update({
+            where: { id: l.productId },
+            data: { totalSold: { increment: Math.max(1, Math.round(Number(l.quantity.toString()))) } },
+          })
+        }
+
+        return sale
+      }, { timeout: 30000, maxWait: 10000 })
+
+      return {
+        success: true,
+        data: buildReceipt(till, result, result.items, result.payments, false, stockWarnings),
+      }
+    } catch (e) {
+      if (e instanceof PosSaleError) return { success: false, error: e.message }
+      // A clash on saleNumber is retryable; a clash on idempotencyKey means
+      // another request for this same sale won the race, so read it back.
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+        const target = String((e.meta as { target?: string[] } | undefined)?.target ?? "")
+        if (target.includes("idempotencyKey")) {
+          const winner = await db.posSale.findUnique({
+            where: { shopkeeperId_idempotencyKey: { shopkeeperId: till.shopkeeperId, idempotencyKey: body.idempotencyKey } },
+            include: { items: true, payments: true },
+          })
+          if (winner) return { success: true, data: buildReceipt(till, winner, winner.items, winner.payments, true, []) }
+        }
+        stockWarnings.length = 0
+        continue
+      }
+      return { success: false, error: "That sale could not be saved. Nothing was recorded — try again." }
+    }
+  }
+
+  return { success: false, error: "The till is busy. Try that sale again." }
+}
+
+/** Thrown to abort a sale transaction with a message worth showing a cashier. */
+class PosSaleError extends Error {}
+
+function buildReceipt(
+  till: TillTenant,
+  sale: {
+    id: string; saleNumber: string; cashierName: string | null; occurredAt: Date
+    subtotal: Prisma.Decimal; discount: Prisma.Decimal; tax: Prisma.Decimal; total: Prisma.Decimal
+    amountPaid: Prisma.Decimal; changeGiven: Prisma.Decimal; customerName: string | null
+  },
+  items: {
+    name: string; sku: string | null; quantity: Prisma.Decimal; unit: string
+    unitPrice: Prisma.Decimal; lineDiscount: Prisma.Decimal; totalPrice: Prisma.Decimal
+    priceOverridden: boolean
+  }[],
+  payments: { method: string; amount: Prisma.Decimal; reference: string | null }[],
+  replayed: boolean,
+  stockWarnings: string[],
+): Receipt {
+  return {
+    saleId: sale.id,
+    saleNumber: sale.saleNumber,
+    shopName: till.shopName,
+    header: till.receiptHeader,
+    footer: till.receiptFooter,
+    taxPin: till.taxPin,
+    cashierName: sale.cashierName,
+    occurredAt: sale.occurredAt.toISOString(),
+    lines: items.map((i) => ({
+      name: i.name,
+      sku: i.sku,
+      // A string, so 1.350 kg does not become 1.35 and 2 does not become 2.000
+      // on the printed line. The stored Decimal already carries the scale.
+      quantity: i.quantity.toString(),
+      unit: i.unit,
+      unitPrice: money(D(i.unitPrice)),
+      lineDiscount: money(D(i.lineDiscount)),
+      totalPrice: money(D(i.totalPrice)),
+      priceOverridden: i.priceOverridden,
+    })),
+    subtotal: money(D(sale.subtotal)),
+    discount: money(D(sale.discount)),
+    tax: money(D(sale.tax)),
+    taxRate: till.taxRate,
+    taxInclusive: till.taxInclusive,
+    total: money(D(sale.total)),
+    amountPaid: money(D(sale.amountPaid)),
+    changeGiven: money(D(sale.changeGiven)),
+    payments: payments.map((p) => ({ method: p.method, amount: money(D(p.amount)), reference: p.reference })),
+    customerName: sale.customerName,
+    replayed,
+    stockWarnings,
+  }
+}
+
+const voidSchema = z.object({
+  saleId: z.string().trim().min(1),
+  reason: z.string().trim().min(3).max(300),
+})
+
+/**
+ * Void a completed sale and put the stock back.
+ *
+ * The sale row is NOT deleted and its lines are NOT edited. A voided sale is
+ * a sale that happened and was reversed, and a shopkeeper looking at a gap in
+ * the receipt numbers deserves to find out why rather than wonder.
+ */
+export async function voidPosSale(input: unknown): Promise<TillActionResult> {
+  const till = await requireTill()
+  if (!till) return { success: false, error: "There is no till on this account." }
+  const parsed = voidSchema.safeParse(input)
+  if (!parsed.success) return { success: false, error: "Say why this sale is being voided." }
+
+  const sale = await db.posSale.findFirst({
+    // Scoped to this shop: a sale id alone must never be enough.
+    where: { id: parsed.data.saleId, shopkeeperId: till.shopkeeperId },
+    include: { items: true },
+  })
+  if (!sale) return { success: false, error: "That sale was not found." }
+  if (sale.status !== "COMPLETED") return { success: false, error: "That sale is not completed, so there is nothing to void." }
+
+  try {
+    await db.$transaction(async (tx) => {
+      await tx.posSale.update({
+        where: { id: sale.id },
+        data: {
+          status: "VOIDED",
+          voidedAt: new Date(),
+          voidReason: parsed.data.reason,
+          voidedByUserId: till.userId,
+        },
+      })
+      for (let i = 0; i < sale.items.length; i++) {
+        const item = sale.items[i]
+        if (!item.productId) continue  // the product is gone; nothing to restock
+        const back = await recordStockMovement(tx as never, {
+          shopkeeperId: till.shopkeeperId,
+          productId: item.productId,
+          kind: "SALE_REVERSAL",
+          quantity: D(item.quantity),
+          unit: item.unit,
+          reason: `Sale ${sale.saleNumber} voided: ${parsed.data.reason}`,
+          posSaleId: sale.id,
+          actorUserId: till.userId,
+          // Derived from the sale id rather than the original key, so voiding
+          // is itself replay-safe and cannot restock twice.
+          idempotencyKey: `void:${sale.id}:L${i}`,
+          occurredAt: new Date(),
+        }, "ALLOW")
+        // A reversal adds stock, so no policy can refuse it; a failure here
+        // means something structural and must roll the void back.
+        if (!back.ok) throw new PosSaleError(`${item.name} could not be returned to stock. The sale was not voided.`)
+      }
+    }, { timeout: 30000, maxWait: 10000 })
+  } catch (e) {
+    if (e instanceof PosSaleError) return { success: false, error: e.message }
+    return { success: false, error: "That sale could not be voided. Nothing was changed — try again." }
+  }
+
+  return { success: true } as TillActionResult
+}
+
+/** One sale, for reprinting a receipt. */
+export async function getPosReceipt(saleId: string): Promise<Receipt | null> {
+  const till = await requireTill()
+  if (!till) return null
+  const sale = await db.posSale.findFirst({
+    where: { id: saleId, shopkeeperId: till.shopkeeperId },
+    include: { items: true, payments: true },
+  })
+  if (!sale) return null
+  return buildReceipt(till, sale, sale.items, sale.payments, false, [])
+}
