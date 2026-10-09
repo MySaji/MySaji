@@ -6,6 +6,7 @@ import { db } from "@/lib/db"
 import { requireVerified } from "@/lib/verification-gate"
 import { requireShopkeeper } from "@/lib/actions/shopkeeper-dashboard"
 import { pushToUser } from "@/lib/actions/push"
+import { recordOrderMovements, orderStockDelta } from "@/lib/pos-ledger"
 import { reverseOrder } from "@/lib/order-cancellation"
 
 export type ShopkeeperOrderStatus = "pending" | "processing" | "shipped" | "delivered" | "cancelled" | "refunded"
@@ -273,8 +274,22 @@ export async function acceptShopReturnRequest(input: unknown): Promise<Shopkeepe
       await tx.platformRevenue.update({ where: { id: revenueEntry.id }, data: { reversedAt: new Date() } })
     }
 
+    // Returned goods go back on the shelf, with the return named as the
+    // reason rather than the stock simply rising.
+    const restock = await recordOrderMovements(tx as never, {
+      shopkeeperId: order.shopkeeperId,
+      kind: "ORDER_RESTOCK",
+      orderId: order.id,
+      reason: `Order ${order.orderNumber} returned`,
+      lines: order.items.map((item) => ({ productId: item.productId, quantity: item.quantity })),
+    })
+    if (!restock.ok) throw new Error(`stock ledger refused the return of ${order.orderNumber}: ${restock.message}`)
+
     for (const item of order.items) {
-      await tx.inventory.updateMany({ where: { productId: item.productId }, data: { currentStock: { increment: item.quantity } } })
+      await tx.inventory.updateMany({
+        where: { productId: item.productId },
+        data: orderStockDelta("ORDER_RESTOCK", item.quantity),
+      })
       await tx.product.update({ where: { id: item.productId }, data: { totalSold: { decrement: item.quantity } } })
     }
 

@@ -197,16 +197,15 @@ export const PRO_MODULES: ProModule[] = [
   // two places it can be sold from.
   { key: "till", label: "Till", href: "/provider/till", icon: "Calculator", group: "till", exact: true, description: "The register screen — ring up a sale at the counter" },
   { key: "posSettings", label: "POS Settings", href: "/provider/till/settings", icon: "SlidersHorizontal", group: "till", description: "Shop type, selling behaviours and stock policy" },
-  // Declared so the admin matrix knows they exist and so the build order is
-  // visible here rather than only in POS2.md — but their pages are NOT built
-  // yet, which is why they are absent from DEFAULT_MODULES_BY_TYPE.POS below.
-  // Nothing links to a page that does not exist; switching one of these on
-  // from the admin matrix today would produce a dead nav item, hence the
-  // warning in each description.
-  { key: "posStock", label: "Stock", href: "/provider/till/stock", icon: "Boxes", group: "till", description: "Stock on hand, receipts, counts and losses — NOT BUILT YET" },
-  { key: "posShifts", label: "Cash Shifts", href: "/provider/till/shifts", icon: "Clock", group: "till", description: "Open and close the drawer, and reconcile the cash — NOT BUILT YET" },
-  { key: "posReports", label: "Till Reports", href: "/provider/till/reports", icon: "BarChart3", group: "till", description: "Takings by day, by cashier and by product — NOT BUILT YET" },
-  { key: "posDevices", label: "Devices & Download", href: "/provider/till/devices", icon: "MonitorDown", group: "till", description: "Install the till on a counter machine, revoke a lost device — NOT BUILT YET" },
+  { key: "posStock", label: "Stock", href: "/provider/till/stock", icon: "Boxes", group: "till", description: "Stock on hand, what moved it, receipts, counts and losses" },
+  { key: "posReports", label: "Till Reports", href: "/provider/till/reports", icon: "BarChart3", group: "till", description: "Takings by day, by method, by cashier and by product, plus shift history" },
+  // Still unbuilt, so still absent from DEFAULT_MODULES_BY_TYPE.POS below.
+  // Shift history lives on the reports page for now; a page of its own is
+  // only worth it once there is more to do there than read. Devices waits
+  // on device pairing, which belongs with the offline work — a page that
+  // only repeated the install button would be a dead end.
+  { key: "posShifts", label: "Cash Shifts", href: "/provider/till/shifts", icon: "Clock", group: "till", description: "A page of its own for shifts — NOT BUILT YET (history is on Till Reports)" },
+  { key: "posDevices", label: "Devices", href: "/provider/till/devices", icon: "MonitorDown", group: "till", description: "Pair and revoke counter machines — NOT BUILT YET (needs device pairing)" },
 
   // --- Business ---
   { key: "portfolio", label: "My Work", href: "/provider/portfolio", icon: "Camera", group: "business", description: "Photo and video portfolio on the public profile" },
@@ -258,10 +257,9 @@ export const DEFAULT_MODULES_BY_TYPE: Record<ProBusinessType, string[]> = {
   // shop would be a dead page. It does get Products & Stock, because the
   // till needs a catalogue, and the full till group.
   POS: [
-    // Only pages that exist. posStock, posShifts, posReports and posDevices
-    // join this list as they are built; until then a POS account's nav
-    // contains no link that 404s.
-    "till", "posSettings",
+    // Only pages that exist. posShifts and posDevices join this list as they
+    // are built; until then a POS account's nav contains no link that 404s.
+    "till", "posStock", "posReports", "posSettings",
     "shopProducts", "shopCustomers", "shopEarnings", "invoices", "clients",
     "proDashboard", "proPlan",
   ],

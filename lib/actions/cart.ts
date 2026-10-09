@@ -12,6 +12,7 @@ import { canAcceptAnotherJob } from "@/lib/job-limits"
 import { createAndEmailReceipt, type ReceiptLineItem, type ReceiptAdjustment } from "@/lib/actions/receipts"
 import { quoteDelivery, outOfRangeMessage, type DeliveryZone } from "@/lib/delivery-zone"
 import { toCoordinates, type Coordinates } from "@/lib/geo"
+import { recordOrderMovements, orderStockDelta } from "@/lib/pos-ledger"
 
 // Gap 2 (product+service sequencing): when the cart mixes a product with a
 // service, the service can't be scheduled sooner than this lead time — a
@@ -658,11 +659,39 @@ export async function checkout(input: unknown): Promise<CheckoutResult> {
         },
       })
 
+      // Stock leaves, and the ledger says why.
+      //
+      // Until POS existed this was a bare `decrement` and nothing recorded
+      // that the order was the cause. A shop running a till as well as a
+      // storefront then had two figures drifting apart with no way to tell
+      // which sale moved what. recordOrderMovements appends the audit rows
+      // in a fixed number of queries; the per-item update below still does
+      // the arithmetic, and still does it ATOMICALLY — two customers buying
+      // the last unit at the same instant must not lose one of the two
+      // decrements, which is exactly what reading the balance first would
+      // cost.
+      const stockedItems = items.filter((item) => item.product!.inventory)
+      if (stockedItems.length > 0) {
+        const moved = await recordOrderMovements(tx as never, {
+          shopkeeperId,
+          kind: "ORDER_FULFILMENT",
+          orderId: order.id,
+          actorUserId: customerId,
+          reason: `Order ${orderNumber}`,
+          lines: stockedItems.map((item) => ({ productId: item.productId!, quantity: item.quantity })),
+        })
+        // Only reachable if a line names a product this shop does not own,
+        // which the grouping above makes impossible — but a silent wrong
+        // stock figure is worse than a failed checkout, so it throws rather
+        // than continuing.
+        if (!moved.ok) throw new Error(`stock ledger refused order ${orderNumber}: ${moved.message}`)
+      }
+
       for (const item of items) {
         if (item.product!.inventory) {
           await tx.inventory.update({
             where: { productId: item.productId! },
-            data: { currentStock: { decrement: item.quantity } },
+            data: orderStockDelta("ORDER_FULFILMENT", item.quantity),
           })
         }
         await tx.product.update({ where: { id: item.productId! }, data: { totalSold: { increment: item.quantity } } })

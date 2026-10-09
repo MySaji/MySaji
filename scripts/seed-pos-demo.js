@@ -23,13 +23,21 @@
  * real account: it refuses to run if the email already belongs to a user it
  * did not create.
  *
- * NOT FOR PRODUCTION. This creates a working login whose password is
- * written in this file, which is in version control — so anyone who can read
- * the repo can sign into any database this has been run against. It is a
- * development convenience and nothing more. The account is POS-only and
- * never listed on the marketplace, so it cannot be seen by customers, but
- * that is a limit on blast radius, not a defence. Remove it with --revert
- * when you are done, and never run it against a live database.
+ * NOT FOR PRODUCTION, and THE PASSWORD IS NOT IN THIS FILE.
+ *
+ * It used to be, and that was wrong: a literal password in a script in
+ * version control is a working login for every database the script has ever
+ * been run against, readable by anyone who can read the repo. Deleting the
+ * account afterwards does not help, because the string stays in the history.
+ *
+ * So a fresh random password is generated on each run and printed once.
+ * Nothing persists it. If you lose it, run --revert and seed again, which is
+ * cheap by design. Set POS_DEMO_PASSWORD in the environment to choose your
+ * own — useful for a repeatable local loop, and still not committed.
+ *
+ * The account is POS-only and never listed on the marketplace, so customers
+ * cannot see it, but that limits the blast radius rather than making it
+ * safe. Remove it with --revert when you are done.
  *
  *   node scripts/seed-pos-demo.js                     # butchery
  *   node scripts/seed-pos-demo.js --profile SUPERMARKET
@@ -54,7 +62,17 @@ const profileArg = (() => {
 
 /** The marker. Every row this script owns is reachable from this address. */
 const EMAIL = "pos-demo@saji.test"
-const PASSWORD = "PosDemo1234"
+
+/**
+ * Generated per run, never stored, never committed.
+ *
+ * crypto.randomBytes rather than Math.random: this is a real login against a
+ * real database, and the fact that it is "only a demo" is exactly the
+ * reasoning that puts weak credentials into production.
+ */
+const PASSWORD =
+  process.env.POS_DEMO_PASSWORD ||
+  "Pos-" + require("crypto").randomBytes(9).toString("base64url")
 
 /**
  * Presets, duplicated from lib/pos-profiles.ts rather than imported.
@@ -321,8 +339,8 @@ async function seed() {
   }
 
   console.log("")
-  console.log("  NOTE: this account's password is published in the repo.")
-  console.log("  Remove it with --revert when you have finished testing.")
+  console.log("  This password is shown ONCE and is stored nowhere. Copy it now.")
+  console.log("  Remove the account with --revert when you have finished testing.")
   console.log("")
   console.log(`  ${preset.shopName}  (${preset.label})`)
   console.log(`  ${made} products, each with opening stock in the ledger`)

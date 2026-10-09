@@ -525,18 +525,16 @@ behind, and the one real product touched was restored and re-checked.
 ### Not built yet
 
 Phase 4's offline queue, Phase 5's remaining presets, Phase 6's native
-desktop build and hardware, Phase 7's marketplace tie-in, Phase 8's VAT.
+desktop build and hardware, Phase 8's VAT. Of the till's own pages, Cash
+Shifts and Devices are still unbuilt — shift history lives on the reports
+page for now, and a devices page waits on device pairing, which belongs
+with the offline work.
 Nine of the eleven traits are registry entries with `stage: "planned"`
 and no behaviour behind them — `POS_TRAIT_META` says which, so neither
 the settings page nor the till can promise a shopkeeper something that
 does not work.
 
-The sharpest remaining gap is the one in `lib/pos-ledger.ts`'s header:
-`checkout()` still moves `Inventory.currentStock` directly without
-writing the ledger, so a shop selling on **both** channels can drift.
-`ORDER_FULFILMENT` and `ORDER_RESTOCK` exist in the enum with nothing
-writing them, waiting for that change — which touches live checkout and
-so needs its own verification rather than riding along with the till.
+Phase 7's marketplace tie-in is **done** — see the entry below.
 
 ### Phase 3 — the till, online only — **done**
 
@@ -638,10 +636,212 @@ because the table holds too few rows for the planner to choose it.
 
 ### `scripts/seed-pos-demo.js`
 
-Creates a POS-only account (`pos-demo@saji.test` / `PosDemo1234`) with a
+Creates a POS-only account (`pos-demo@saji.test`, password generated per
+run and printed once) with a
 stocked butchery, supermarket or mitumba catalogue, opening stock written
 as real ledger rows. `--revert` removes it. It refuses to touch an
 account it did not create, and it checks its duplicated presets against
 `lib/pos-profiles.ts` and warns if they have drifted — because a demo
 configured differently from a real signup is the one thing a demo must
 not be.
+
+### Phase 7 — one stock figure, two channels — **done**
+
+`checkout()`, order cancellation and shop returns now append through
+`recordOrderMovements`. A till sale and a marketplace order come off the
+same figure, and the history distinguishes them: `SALE` versus
+`ORDER_FULFILMENT`, each naming what caused it.
+
+**A separate function from the till's, for two reasons.** Checkout is
+concurrent — two customers can buy the last unit in the same
+millisecond, and the code being replaced used Prisma's atomic
+`decrement` precisely so neither update is lost. The till's
+read-balance-then-write is right at a counter and would have been a
+lost-update bug in checkout. And checkout's transaction is already long;
+`recordStockMovement` costs about five round trips per line, which this
+project has hit transaction timeouts on before. The batched version is
+four queries regardless of line count.
+
+The price is `balanceAfter`, left null on order movements: the balance
+after an atomic adjustment cannot be known without locking the row, and
+locking inventory during checkout is a far worse trade than losing a
+convenience column. The ledger SUM is the truth either way.
+
+A shop with no till gets a stock history too. That is not a side effect
+— "who took the twelve crates" is worth answering for a plain storefront
+as much as for a counter.
+
+### The concurrency bug the test found
+
+Two checkouts at the same instant, for a product with no ledger yet,
+each read "nothing here" and each wrote an **OPENING_BALANCE** row. The
+projections stayed correct, because those move by atomic deltas — but
+the ledger said 12 while the shelf said 2.
+
+Deciding to seed is a read, and no amount of care in the surrounding
+code fixes a read-then-write race. The opening row now carries a
+deterministic idempotency key, `seed:opening:<productId>`, so the
+existing unique index on `(shopkeeperId, idempotencyKey)` enforces "one
+opening balance per product" in the database. `ON CONFLICT DO NOTHING`
+makes the loser of the race a no-op. The till path had the same hazard
+and got the same fix.
+
+**This is invisible to any test that does one thing at a time.** It was
+found only because the test runs two checkouts through `Promise.all`,
+which is worth keeping in mind for every balance this system grows.
+
+### Verified, this pass
+
+- `30/30` the marketplace path: a no-till shop gaining a history, the
+  opening row capturing what was already on the shelf, cancellation
+  restocking with a reason, and the race above.
+- `231` assertions green across all five suites after the change —
+  nothing in the till regressed.
+- `43/43` again in real Chrome, and `tsc` clean.
+
+### Stock and Reports — **done**
+
+`/provider/till/stock` is the screen the ledger was built for. Any system
+can show a number; this one shows that the number is 22.75 because it was
+20, 5.5 arrived on Friday, 1.5 spoiled overnight and a count found 1.25
+short. The drill-in per product is the whole point.
+
+Three things on it are deliberate:
+
+**A stock count records the gap, it does not set the figure.** Setting a
+number erases the discrepancy; recording the correction keeps both the
+old figure and the size of the difference, which is the thing worth
+looking at when it happens three weeks running.
+
+**A loss needs a reason, and the server insists.** "Stock went down" with
+no explanation is exactly the record this ledger exists to replace. The
+WASTAGE trait is enforced server-side too, not merely hidden — a shop
+that has not switched it on is refused and told which setting to turn on.
+
+**Drift is surfaced rather than silently repaired.** `stockOnHand` is a
+projection of the ledger; the page compares the two on read and says when
+they disagree, because "the ledger is missing a movement" and "the cache
+went stale" need completely different investigations and look identical
+from the shop floor. The ledger, not the cache, is reported as the
+figure.
+
+`/provider/till/reports` gives takings, payment mix, day-by-day, best
+sellers, margin and shift history. Two honesty rules: voided sales are
+excluded from every figure and shown separately, and the margin states
+what share of lines actually carry a cost price — a margin over 40% of
+lines is not the shop's margin, and presenting it as one would be the
+most misleading number on the page. With no costs recorded at all it
+reads "Not known" rather than zero.
+
+### Two bugs the browser found that the build did not
+
+**A `"use server"` file may export only async functions.** `pos-reports.ts`
+exported `REPORT_RANGES` as an array. `tsc --noEmit` passed. `next build`
+passed. The page 500'd at request time with *"A 'use server' file can only
+export async functions, found object"*. Moved to `lib/pos-reporting.ts`,
+and a scan confirmed it was the only such export in the codebase. The
+lesson is narrower than it sounds: **neither typecheck nor build catches
+this**, so a `"use server"` module's exports need checking by eye or by
+loading the page.
+
+**"12 sellable on Saji" on a shop that is not on Saji.** The stock page
+showed the floored integer beside the exact figure, which is useful for a
+shop selling through both channels and meaningless for the counter-only
+shops that are most POS accounts. Now gated on `listedOnMarketplace`.
+
+Also: `<Card>` ships `flex flex-col gap-6 py-6`, so four summary tiles
+filled half a 390px screen before any stock was visible. Compact tiles
+are plain divs; `Card` is for things that want that padding.
+
+### A guard against this recurring
+
+The signup suite now asserts that **every till module offered to a POS
+account points at a page that exists on disk**. Twice in this work a
+module was added to the nav before or after its page, and both times the
+only thing that caught it was a stale test failing for the wrong reason.
+Now a dead nav link fails a test on its own terms.
+
+### Verified
+
+`286` assertions green across six suites, plus `21/21` in real Chrome
+over the two new pages at 390px and 1280px — including recording a
+delivery through the UI and confirming the database agreed, with the
+demo data restored afterwards.
+
+### Phase 4 — offline — **done, with its boundary stated**
+
+Two different failures get called "offline" and only one is solved. Being
+clear which matters more than the feature, because a shopkeeper who
+believes the wrong one loses a morning.
+
+**The line drops while the till is open.** Handled. The catalogue is
+already local, sales queue, the cashier keeps serving. This is the
+dominant failure in practice.
+
+**The till is started cold with no connection.** *Not* handled. Loading
+the page still needs the network, because serving the app shell from a
+cache means eventually serving STALE CODE to a till — and stale code at
+a till prices things wrong. The queue page says so in as many words, and
+the browser test asserts that a cold offline reload *fails*, so that if
+shell caching is ever added the test says so rather than quietly passing
+on a claim that is no longer true.
+
+What is guaranteed either way is the thing that matters: **a sale that
+was rung up is never lost.** It sits in an IndexedDB outbox until the
+server confirms it, surviving a reload, a crash and a flat battery.
+
+Raw IndexedDB, no library: the surface used is small, and a dependency on
+a counter machine is a thing that can fail to load.
+
+**A queued sale is not a receipt.** It gets its own screen — amber, "Saved
+on this device", the change still shown because the customer is standing
+there, and no receipt number, because the server assigns those and
+inventing one would collide with a real one later. It says plainly: do
+not ring it up again.
+
+**A refusal is not a failure to send,** and the two get opposite handling.
+A thrown fetch means the server was never reached: stay pending, retry.
+A returned `{ success: false }` means it was reached and said no: stop
+retrying and show a person, because retrying forever would hide a sale
+the shop believes it made. `/provider/till/queue` keeps those two in
+separate lists, and discarding one requires confirming a sentence that
+says what discarding means.
+
+`navigator.onLine` is treated as a hint, never the answer. It reports
+"online" for a machine on a router with no upstream and for a captive
+portal — both ordinary in a Kenyan shopping centre. The authority is what
+happened to the last actual request.
+
+### A real race the offline test found
+
+`markSending` read the entry in one transaction and wrote it back in
+another. If the entry was dequeued in between — its send having just
+succeeded — the later write **resurrected it**: a sale the server had
+already accepted reappeared stuck in "sending" forever. `markFailed` and
+`retrySale` had the same shape. All three now do their read and write in
+one transaction and never re-create a row that is gone.
+
+Worth recording honestly: fixing this did **not** make the failing
+assertion pass. The assertion was reading the outbox once, immediately
+after a drain, and catching a *subsequent* sync pass mid-flight — on a
+dev server where a round trip is tens of seconds. The race was real and
+worth fixing; it was not what the test was showing. Those are two
+different findings and collapsing them would have left a genuine bug
+in place.
+
+### Verified
+
+`26/26` in a real browser with the network genuinely cut via Playwright's
+offline emulation — not route interception, which silently failed to
+match the server-action POSTs and let an earlier version of this test
+"pass" the offline step while the sale actually went through.
+
+The sequence proven: ring up with the line cut, nothing reaches the
+server, the sale is in the local outbox with its idempotency key; a cold
+reload fails as documented; reconnect and it arrives **exactly once**,
+with a receipt number, stock moved once, and `occurredAt` earlier than
+`createdAt` as it must be for a sale that happened before the server
+heard. Then the same sale is deliberately re-queued and replayed: no
+second sale, no second stock movement, and the entry clears.
+
+`286` assertions still green across the six server-side suites.

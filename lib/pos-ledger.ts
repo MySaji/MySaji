@@ -34,24 +34,17 @@
  * it up to 1 would let a customer order something that does not exist.
  *
  * ---------------------------------------------------------------------------
- * KNOWN GAP: THE MARKETPLACE DOES NOT WRITE THIS LEDGER YET
+ * BOTH CHANNELS WRITE HERE
  * ---------------------------------------------------------------------------
- * `checkout()` in lib/actions/cart.ts decrements `Inventory.currentStock`
- * directly, and order cancellation and returns increment it. None of them
- * append a StockMovement. So for a shop that sells BOTH at a counter and on
- * SAJI, a marketplace order moves `currentStock` without moving the ledger,
- * and the next till movement overwrites `currentStock` from the ledger
- * balance — losing that marketplace sale from the figure.
+ * A till sale and a marketplace order come off the same figure. checkout(),
+ * order cancellation and shop returns all append through
+ * recordOrderMovements below, so "how did this shop get to eleven crates"
+ * has one answer covering both.
  *
- * This is why ORDER_FULFILMENT and ORDER_RESTOCK exist in the enum with
- * nothing writing them: routing those three call sites through this module is
- * the "one stock figure, two channels" work, and it touches live checkout, so
- * it is its own change with its own verification rather than a side effect of
- * building the till.
- *
- * Until then the honest position is: the ledger is authoritative for a
- * POS-only shop, and for a POS + Sell Products shop the two channels can
- * drift. reconcileStock() below is how that is detected.
+ * They use a DIFFERENT function from the till for a reason worth reading
+ * before changing either: checkout is concurrent and its transaction is
+ * already long, so it adjusts atomically and in batch, while the till
+ * computes a running balance it can print. See recordOrderMovements.
  */
 
 import { Prisma } from "@prisma/client"
@@ -138,10 +131,23 @@ type LedgerTx = {
     findUnique: (args: unknown) => Promise<unknown>
     aggregate: (args: unknown) => Promise<unknown>
     create: (args: unknown) => Promise<unknown>
+    createMany: (args: unknown) => Promise<unknown>
   }
 }
 
 const D = (v: Prisma.Decimal | string | number) => new Prisma.Decimal(v)
+
+/**
+ * The idempotency key for a product's opening-balance row.
+ *
+ * Deterministic on purpose. A product can only ever have ONE opening
+ * balance, and the unique index on (shopkeeperId, idempotencyKey) is what
+ * enforces that against concurrent writers rather than hoping no two of them
+ * seed at once. Namespaced so it cannot collide with a device-issued key.
+ */
+function openingKey(productId: string): string {
+  return `seed:opening:${productId}`
+}
 
 /**
  * Append one movement, and bring the projection with it.
@@ -235,8 +241,12 @@ export async function recordStockMovement(
     // recording OPENING_BALANCE is stating what is on the shelf; importing
     // the old number as well would add the two together and double it.
     if (!opening.isZero() && input.kind !== "OPENING_BALANCE") {
-      await tx.stockMovement.create({
-        data: {
+      // createMany with the same deterministic key as the batched path, for
+      // the same reason: two writers that both find no ledger would
+      // otherwise both seed one. Less likely at a single counter than during
+      // checkout, but the same bug, and the fix costs nothing.
+      await tx.stockMovement.createMany({
+        data: [{
           shopkeeperId: input.shopkeeperId,
           productId: input.productId,
           kind: "OPENING_BALANCE",
@@ -245,8 +255,10 @@ export async function recordStockMovement(
           balanceAfter: opening,
           reason: "Stock on record when the till started keeping this product's history",
           actorUserId: input.actorUserId ?? null,
+          idempotencyKey: openingKey(input.productId),
           occurredAt: input.occurredAt ?? new Date(),
-        },
+        }],
+        skipDuplicates: true,
       })
     }
     ledgerSum = opening
@@ -318,6 +330,178 @@ export async function recordStockMovement(
   }
 
   return { ok: true, movementId: movement.id, balance: after, replayed: false }
+}
+
+// ---------------------------------------------------------------------------
+// Marketplace orders
+// ---------------------------------------------------------------------------
+
+export type OrderMovementLine = {
+  productId: string
+  /** A POSITIVE magnitude. The kind decides the direction, not the caller. */
+  quantity: number | string | Prisma.Decimal
+}
+
+export type OrderMovementResult =
+  | { ok: true; recorded: number; seeded: number }
+  | { ok: false; code: "WRONG_TENANT" | "NOT_FOUND"; message: string }
+
+/**
+ * Stock moving because of a marketplace Order, rather than a till sale.
+ *
+ * A SEPARATE FUNCTION FROM recordStockMovement, for two reasons that both
+ * come from checkout being a different kind of code than a counter.
+ *
+ * 1. CONCURRENCY. recordStockMovement reads the balance, decides, and
+ *    writes — fine at a till, where one cashier serves one customer at a
+ *    time. Checkout is not that: two customers can buy the last unit in the
+ *    same millisecond, and the code being replaced here used Prisma's atomic
+ *    `decrement` precisely so neither update is lost. Swapping that for a
+ *    read-modify-write would introduce a lost-update bug into the most
+ *    important path in the application. So this function never computes a
+ *    new stock figure; it only ever ADJUSTS by a delta, atomically.
+ *
+ * 2. QUERY COUNT. recordStockMovement costs about five round trips per
+ *    line. Checkout already runs a long transaction — wallets, orders,
+ *    payments, commission, notifications — against a database where a round
+ *    trip is not free, and this project has hit transaction timeouts before
+ *    by adding queries that scale with line count. This batches: four
+ *    queries total regardless of how many lines, plus the per-line inventory
+ *    updates that were already there.
+ *
+ * The price of atomicity is `balanceAfter`: it is left NULL on these rows,
+ * because the balance after a concurrent adjustment cannot be known without
+ * locking the row, and locking inventory during checkout is a far worse
+ * trade than losing a convenience column. Till movements still carry it.
+ * The ledger SUM remains the truth either way.
+ */
+export async function recordOrderMovements(
+  tx: LedgerTx & {
+    product: { findMany: (args: unknown) => Promise<unknown> }
+    inventory: { findMany: (args: unknown) => Promise<unknown> }
+    stockMovement: { createMany: (args: unknown) => Promise<unknown> }
+    $executeRawUnsafe: (sql: string, ...values: unknown[]) => Promise<number>
+  },
+  input: {
+    shopkeeperId: string
+    kind: Extract<StockMovementKind, "ORDER_FULFILMENT" | "ORDER_RESTOCK">
+    orderId: string
+    actorUserId?: string | null
+    occurredAt?: Date
+    reason?: string | null
+    lines: OrderMovementLine[]
+  },
+): Promise<OrderMovementResult> {
+  if (input.lines.length === 0) return { ok: true, recorded: 0, seeded: 0 }
+
+  const occurredAt = input.occurredAt ?? new Date()
+  const outward = MOVEMENT_DIRECTION[input.kind] === "out"
+  const ids = [...new Set(input.lines.map((l) => l.productId))]
+
+  // Scoped to the shop, as everywhere else. A line naming another shop's
+  // product is a bug upstream, not something to record.
+  const products = (await tx.product.findMany({
+    where: { shopkeeperId: input.shopkeeperId, id: { in: ids } },
+    select: { id: true, unit: true, costPrice: true },
+  })) as { id: string; unit: string; costPrice: Prisma.Decimal | null }[]
+
+  if (products.length !== ids.length) {
+    return {
+      ok: false,
+      code: "WRONG_TENANT",
+      message: "An order line refers to a product this shop does not own.",
+    }
+  }
+  const byId = new Map(products.map((p) => [p.id, p]))
+
+  // Which of these have never had a ledger row? Their integer currentStock
+  // is the only record of what is on the shelf, and it has to enter the
+  // ledger as an OPENING_BALANCE row before anything is appended — otherwise
+  // the balance (a SUM) would start from zero and every figure after it
+  // would be wrong. Same rule as recordStockMovement, batched.
+  const inventories = (await tx.inventory.findMany({
+    where: { productId: { in: ids } },
+    select: { productId: true, currentStock: true, stockOnHand: true },
+  })) as { productId: string; currentStock: number; stockOnHand: Prisma.Decimal | null }[]
+
+  const needSeeding = inventories.filter((i) => i.stockOnHand === null && i.currentStock !== 0)
+  if (needSeeding.length > 0) {
+    await tx.stockMovement.createMany({
+      data: needSeeding.map((i) => ({
+        shopkeeperId: input.shopkeeperId,
+        productId: i.productId,
+        kind: "OPENING_BALANCE" as const,
+        quantity: D(i.currentStock),
+        unit: byId.get(i.productId)?.unit ?? "piece",
+        balanceAfter: D(i.currentStock),
+        reason: "Stock on record when this product's history began",
+        idempotencyKey: openingKey(i.productId),
+        occurredAt,
+      })),
+      // THE RACE THIS CLOSES: deciding to seed is a read, and two checkouts
+      // for the same never-sold product both read "no ledger yet" and both
+      // wrote an opening row. The projections stayed correct, because those
+      // move by atomic deltas — but the ledger doubled, so the audit trail
+      // disagreed with the shelf. Found by running two checkouts at once;
+      // it is invisible to any test that does one thing at a time.
+      //
+      // The deterministic key plus ON CONFLICT DO NOTHING makes the second
+      // insert a no-op: Postgres blocks it until the first commits, then
+      // skips it.
+      skipDuplicates: true,
+    })
+  }
+
+  // Seed stockOnHand from each row's OWN currentStock in one statement. A
+  // read-then-write would be a lost update under concurrency; this reads and
+  // writes the same row inside the database. The IS NULL guard makes it a
+  // no-op for anything already seeded, so a race writes the same value twice
+  // rather than the wrong value once.
+  await tx.$executeRawUnsafe(
+    `UPDATE "inventory" SET "stockOnHand" = "currentStock"
+     WHERE "productId" = ANY($1::text[]) AND "stockOnHand" IS NULL`,
+    ids,
+  )
+
+  await tx.stockMovement.createMany({
+    data: input.lines.map((l) => {
+      const product = byId.get(l.productId)!
+      const magnitude = D(l.quantity).abs()
+      return {
+        shopkeeperId: input.shopkeeperId,
+        productId: l.productId,
+        kind: input.kind,
+        quantity: outward ? magnitude.negated() : magnitude,
+        unit: product.unit,
+        unitCost: product.costPrice,
+        // Deliberately absent. See the note above.
+        balanceAfter: null,
+        reason: input.reason ?? null,
+        orderId: input.orderId,
+        actorUserId: input.actorUserId ?? null,
+        occurredAt,
+      }
+    }),
+  })
+
+  return { ok: true, recorded: input.lines.length, seeded: needSeeding.length }
+}
+
+/**
+ * The atomic adjustment to apply alongside recordOrderMovements.
+ *
+ * Returned as data rather than applied here, because every caller already
+ * runs its own `inventory.update` per line and the point is to modify that
+ * call rather than add another round trip beside it. Both columns move by
+ * the same integer delta, which is what keeps
+ * `currentStock === floor(stockOnHand)` true: an Order quantity is an Int,
+ * so it can never introduce a fraction that the two would round differently.
+ */
+export function orderStockDelta(kind: "ORDER_FULFILMENT" | "ORDER_RESTOCK", quantity: number) {
+  const magnitude = Math.abs(quantity)
+  return MOVEMENT_DIRECTION[kind] === "out"
+    ? { currentStock: { decrement: magnitude }, stockOnHand: { decrement: magnitude } }
+    : { currentStock: { increment: magnitude }, stockOnHand: { increment: magnitude } }
 }
 
 /**

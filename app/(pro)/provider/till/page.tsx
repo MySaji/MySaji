@@ -5,7 +5,7 @@ import Link from "next/link"
 import {
   Calculator, Loader2, Search, Plus, Minus, Trash2, X, ArrowRight, ArrowLeft,
   SlidersHorizontal, Package, AlertTriangle, Clock, Banknote, Smartphone,
-  CreditCard, Landmark, HandCoins, ShoppingCart,
+  CreditCard, Landmark, HandCoins, ShoppingCart, CloudOff, RefreshCw,
 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -16,6 +16,8 @@ import {
 } from "@/lib/actions/pos-sales"
 import { TillReceipt } from "@/components/pos/till-receipt"
 import { TillInstall } from "@/components/pos/till-install"
+import { usePosOffline } from "@/lib/hooks/usePosOffline"
+import { searchCached } from "@/lib/pos-offline"
 
 /**
  * The register.
@@ -105,6 +107,12 @@ export default function TillPage() {
   // sale is successfully recorded.
   const [idempotencyKey, setIdempotencyKey] = useState(() => newKey())
 
+  const offline = usePosOffline()
+  // A sale that was queued rather than sent. The customer is standing
+  // there and the sale DID happen, so a receipt is still shown — what
+  // changes is the wording on it.
+  const [queuedReceipt, setQueuedReceipt] = useState<{ total: number; change: number; items: number } | null>(null)
+
   const [shiftOpening, setShiftOpening] = useState("")
   const [shiftCounted, setShiftCounted] = useState("")
   const [shiftNote, setShiftNote] = useState("")
@@ -116,8 +124,13 @@ export default function TillPage() {
   useEffect(() => {
     Promise.all([
       getTillState().then(setState),
-      findTillProducts({ query: "" }).then(setResults),
-    ]).finally(() => setLoading(false))
+      findTillProducts({ query: "" }).then((p) => { setResults(p); return p }),
+    ])
+      .then(([, products]) => { void offline.saveCatalogue(products) })
+      .catch(() => { /* the offline effect below renders what is cached */ })
+      .finally(() => setLoading(false))
+    // offline.saveCatalogue is stable; this must run once, on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Debounced, because a barcode scanner types a whole code in milliseconds
@@ -127,11 +140,23 @@ export default function TillPage() {
     const id = setTimeout(() => {
       setSearching(true)
       findTillProducts({ query })
-        .then(setResults)
+        .then((p) => {
+          setResults(p)
+          // Only a full, unfiltered result is worth caching — caching a
+          // search result would shrink the local catalogue to whatever was
+          // last typed.
+          if (query.trim() === "") void offline.saveCatalogue(p)
+        })
+        .catch(() => {
+          // Unreachable. Serve the last catalogue this till saw rather than
+          // an empty screen, and let the banner say which it is.
+          setResults(searchCached(offline.catalogue, query))
+        })
         .finally(() => setSearching(false))
     }, 180)
     return () => clearTimeout(id)
-  }, [query])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, offline.catalogue])
 
   // ---- cart maths. Mirrors the server, which prices the sale for real. ----
   const lineTotal = (l: CartLine) => {
@@ -208,7 +233,7 @@ export default function TillPage() {
   // ---- submitting ---------------------------------------------------------
   const takePayment = async () => {
     setBusy(true); setError("")
-    const r = await recordPosSale({
+    const payload = {
       idempotencyKey,
       lines: cart
         // A line left at empty or zero is a line the cashier backed out of.
@@ -228,16 +253,29 @@ export default function TillPage() {
         })),
       ...(discountNum > 0 ? { saleDiscount: discountNum } : {}),
       ...(customerName.trim() ? { customerName: customerName.trim() } : {}),
-    })
+    }
+
+    const r = await offline.submitSale(payload, { total, itemCount: cart.length })
     setBusy(false)
-    if (!r.success) { setError(r.error); return }
-    setReceipt(r.data)
+
+    if (!r.ok && !r.queued) { setError(r.error); return }
+
+    if (r.ok) {
+      setReceipt(r.receipt)
+      setQueuedReceipt(null)
+      void reload()
+      void findTillProducts({ query }).then(setResults).catch(() => {})
+    } else {
+      // Queued. No receipt number yet — the server assigns those, and
+      // inventing one here would collide with a real one later.
+      setQueuedReceipt({ total, change, items: cart.length })
+      setReceipt(null)
+    }
     setView("receipt")
-    // The key is only rotated here, after the server has confirmed. Rotating
-    // on failure would turn a retry into a second sale.
+    // Rotated only once the sale is either confirmed OR safely queued under
+    // this key. Rotating after a plain failure would turn the cashier's
+    // retry into a second sale.
     setIdempotencyKey(newKey())
-    void reload()
-    void findTillProducts({ query }).then(setResults)
   }
 
   const doVoid = async () => {
@@ -307,10 +345,85 @@ export default function TillPage() {
     )
   }
 
+  // Queued, not sent. Deliberately a different screen from a real receipt:
+  // there is no receipt number yet, nothing has been voided or can be, and
+  // saying "Sale recorded" would be a claim about a server that has not
+  // heard of it.
+  if (view === "receipt" && queuedReceipt) {
+    return (
+      <div className="p-4 mx-auto w-full max-w-sm">
+        <div className="rounded-2xl border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/15 p-4 text-center">
+          <div className="mx-auto w-10 h-10 rounded-full bg-amber-500 text-white flex items-center justify-center">
+            <CloudOff className="w-5 h-5" />
+          </div>
+          <p className="mt-2 text-xs font-semibold text-amber-900 dark:text-amber-300">Saved on this device</p>
+          {queuedReceipt.change > 0 ? (
+            <>
+              <p className="mt-2 text-[11px] uppercase tracking-wide text-amber-800/70 dark:text-amber-400/70">Change</p>
+              <p className="text-3xl font-bold text-amber-900 dark:text-amber-200 tabular-nums">
+                KSh {sh(queuedReceipt.change)}
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="mt-2 text-[11px] uppercase tracking-wide text-amber-800/70 dark:text-amber-400/70">Total</p>
+              <p className="text-3xl font-bold text-amber-900 dark:text-amber-200 tabular-nums">
+                KSh {sh(queuedReceipt.total)}
+              </p>
+            </>
+          )}
+          <p className="mt-2 text-[11px] text-amber-800 dark:text-amber-300 leading-snug">
+            There is no connection, so this sale is waiting on this device. It will go through
+            on its own when the line comes back. Do not ring it up again.
+          </p>
+          <p className="mt-1.5 text-[10px] text-amber-700/80 dark:text-amber-400/70 leading-snug">
+            A receipt number is given when it reaches the server, so there is none to print yet.
+          </p>
+        </div>
+        <button
+          onClick={clearSale}
+          className="mt-3 w-full h-12 rounded-xl bg-primary text-primary-foreground font-semibold text-sm active:scale-[0.98] transition-transform"
+        >
+          Next sale
+        </button>
+      </div>
+    )
+  }
+
   return (
     <div className="pb-28 lg:pb-4">
       {/* ---- shift and takings bar ---------------------------------------- */}
       <div className="sticky top-0 z-20 border-b border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-900/95 backdrop-blur px-3 py-2">
+        {/* Connection, stated before anything else. A cashier must never
+            have to infer it from a sale failing. */}
+        {(offline.connection === "offline" || offline.pendingCount > 0 || offline.failedCount > 0) && (
+          <div className="max-w-5xl mx-auto mb-2 flex flex-wrap items-center gap-1.5">
+            {offline.connection === "offline" && (
+              <span className="inline-flex items-center gap-1.5 h-7 px-2 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 text-[11px] font-semibold">
+                <CloudOff className="w-3 h-3" /> No connection — sales are saved here
+              </span>
+            )}
+            {offline.pendingCount > 0 && (
+              <button
+                onClick={() => void offline.sync()}
+                disabled={offline.syncing}
+                className="inline-flex items-center gap-1.5 h-7 px-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-[11px] font-semibold active:scale-95"
+              >
+                <RefreshCw className={`w-3 h-3 ${offline.syncing ? "animate-spin" : ""}`} />
+                {offline.pendingCount} waiting to send
+              </button>
+            )}
+            {offline.failedCount > 0 && (
+              <Link
+                href="/provider/till/queue"
+                className="inline-flex items-center gap-1.5 h-7 px-2 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-[11px] font-semibold active:scale-95"
+              >
+                <AlertTriangle className="w-3 h-3" /> {offline.failedCount} need attention
+              </Link>
+            )}
+          </div>
+        )}
+
         <div className="flex items-center gap-2 max-w-5xl mx-auto">
           <div className="min-w-0 flex-1">
             <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">{state.shopName}</p>

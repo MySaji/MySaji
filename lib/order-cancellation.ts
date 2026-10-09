@@ -6,6 +6,7 @@
 // lib/actions/orders.ts), and a shared helper importable by both must not
 // itself become a server-action boundary.
 import { db } from "@/lib/db"
+import { recordOrderMovements, orderStockDelta } from "@/lib/pos-ledger"
 
 export type OrderReversalResult =
   | { success: true; total: number; orderNumber: string; customerId: string; shopkeeperUserId: string }
@@ -42,8 +43,24 @@ export async function reverseOrder(orderId: string): Promise<OrderReversalResult
       await tx.platformRevenue.update({ where: { id: revenueEntry.id }, data: { reversedAt: new Date() } })
     }
 
+    // Stock comes back, and the ledger records that a cancellation is why.
+    // updateMany, not update, is kept deliberately: a product whose
+    // Inventory row has since been deleted should not fail a cancellation
+    // the customer is owed.
+    const restock = await recordOrderMovements(tx as never, {
+      shopkeeperId: order.shopkeeperId,
+      kind: "ORDER_RESTOCK",
+      orderId: order.id,
+      reason: `Order ${order.orderNumber} cancelled`,
+      lines: order.items.map((item) => ({ productId: item.productId, quantity: item.quantity })),
+    })
+    if (!restock.ok) throw new Error(`stock ledger refused the cancellation of ${order.orderNumber}: ${restock.message}`)
+
     for (const item of order.items) {
-      await tx.inventory.updateMany({ where: { productId: item.productId }, data: { currentStock: { increment: item.quantity } } })
+      await tx.inventory.updateMany({
+        where: { productId: item.productId },
+        data: orderStockDelta("ORDER_RESTOCK", item.quantity),
+      })
       await tx.product.update({ where: { id: item.productId }, data: { totalSold: { decrement: item.quantity } } })
     }
 
