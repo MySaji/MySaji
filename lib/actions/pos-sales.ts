@@ -117,6 +117,8 @@ export type TillProduct = {
   /** Exact stock where the ledger knows it, else the integer figure. */
   stock: number
   categoryName: string | null
+  /** May only be sold to someone old enough. */
+  ageRestricted: boolean
   /**
    * Sizes, colours or packs. Empty for a product that sells as itself.
    *
@@ -152,6 +154,8 @@ export type TillState = {
   canSellFractional: boolean
   canOverridePrice: boolean
   canRecordWastage: boolean
+  /** Whether the shop asks for an age check at all. */
+  checksAge: boolean
   negativeStock: NegativeStockPolicy
   taxRate: number
   taxInclusive: boolean
@@ -234,6 +238,7 @@ export async function getTillState(): Promise<TillState | null> {
     canSellFractional: till.traits.includes("MEASURED"),
     canOverridePrice: till.traits.includes("OPEN_PRICE"),
     canRecordWastage: till.traits.includes("WASTAGE"),
+    checksAge: till.traits.includes("AGE_RESTRICTED"),
     negativeStock: till.negativeStock,
     taxRate: till.taxRate,
     taxInclusive: till.taxInclusive,
@@ -277,7 +282,7 @@ export async function findTillProducts(input: unknown): Promise<TillProduct[]> {
 
   const select = {
     id: true, name: true, sku: true, barcode: true, unit: true,
-    price: true, discountPrice: true, hasVariants: true,
+    price: true, discountPrice: true, hasVariants: true, ageRestricted: true,
     category: { select: { name: true } },
     inventory: { select: { currentStock: true, stockOnHand: true } },
     variants: {
@@ -354,6 +359,7 @@ export async function findTillProducts(input: unknown): Promise<TillProduct[]> {
       ? Number((p.inventory.stockOnHand ?? D(p.inventory.currentStock)).toString())
       : 0,
     categoryName: p.category?.name ?? null,
+    ageRestricted: p.ageRestricted,
     variants: p.variants.map((v) => ({
       id: v.id,
       label: v.label,
@@ -505,6 +511,13 @@ const saleSchema = z.object({
     reference: z.string().trim().max(60).optional(),
   })).min(1).max(5),
   saleDiscount: z.number().min(0).max(100_000_000).optional(),
+  /**
+   * The cashier confirmed the buyer is old enough. Required when any line
+   * is age-restricted and the shop has the trait on; ignored otherwise, so
+   * a till that sends it spuriously cannot mark an ordinary sale as
+   * age-checked.
+   */
+  ageVerified: z.boolean().optional(),
   customerName: z.string().trim().max(120).optional(),
   customerPhone: z.string().trim().max(30).optional(),
   deviceId: z.string().trim().max(60).optional(),
@@ -582,6 +595,7 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
     select: {
       id: true, name: true, sku: true, barcode: true, unit: true,
       price: true, discountPrice: true, costPrice: true, hasVariants: true, tracksBatches: true,
+      ageRestricted: true,
     },
   })
   const byId = new Map(products.map((p) => [p.id, p]))
@@ -784,6 +798,25 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
     subtotal = subtotal.plus(totalPrice)
   }
 
+  // --- age-restricted lines -------------------------------------------
+  //
+  // Enforced on the server, like every other trait: the till asks, but a
+  // request that simply omits the answer must not go through. Gated on the
+  // trait as well as the flag, so a shop that has not switched it on is not
+  // blocked by a product somebody once ticked.
+  const restricted = body.lines
+    .map((l) => byId.get(l.productId))
+    .filter((p) => p?.ageRestricted)
+  if (till.traits.includes("AGE_RESTRICTED") && restricted.length > 0 && body.ageVerified !== true) {
+    return {
+      success: false,
+      error: `${restricted[0]!.name} is age-restricted. Confirm the buyer is old enough before taking payment.`,
+    }
+  }
+  // Only true where it MEANT something. A sale with no restricted line is
+  // recorded as unverified rather than carrying a confirmation nobody made.
+  const ageVerified = restricted.length > 0 && body.ageVerified === true
+
   const saleDiscount = D(body.saleDiscount ?? 0)
   if (saleDiscount.greaterThan(subtotal)) {
     return { success: false, error: "The discount is more than the sale is worth." }
@@ -803,17 +836,32 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
       : net.times(rate)
   const total = till.taxInclusive ? net : net.plus(tax)
 
+  // Cash rounding, which until now was read from config, carried into the
+  // till state and never applied to anything.
+  //
+  // Kenya has no coin below 1/- and many shops round to 5/-. Rounded DOWN,
+  // never up: rounding up is the shop taking money the customer did not
+  // agree to, and over a day of sales that is a real amount quietly
+  // collected. The rounding is applied to the payable total only — the
+  // subtotal, tax and line figures all stay exact, so the receipt still
+  // adds up and the difference is visible rather than smeared across lines.
+  const roundingStep = D(till.cashRounding)
+  const rounded = roundingStep.greaterThan(0)
+    ? total.dividedBy(roundingStep).floor().times(roundingStep)
+    : total
+  const roundingAdjustment = rounded.minus(total)
+
   const amountPaid = body.payments.reduce((acc, p) => acc.plus(D(p.amount)), D(0))
-  if (amountPaid.lessThan(total)) {
+  if (amountPaid.lessThan(rounded)) {
     return {
       success: false,
-      error: `Short by ${total.minus(amountPaid).toFixed(2)}. Take the full amount or record the rest as credit.`,
+      error: `Short by ${rounded.minus(amountPaid).toFixed(2)}. Take the full amount or record the rest as credit.`,
     }
   }
   // Change is only ever cash. Overpaying by card is not change, it is a
   // mistake, and the till should not quietly hand shillings back for it.
   const hasCash = body.payments.some((p) => p.method === "CASH")
-  const changeGiven = hasCash ? amountPaid.minus(total) : D(0)
+  const changeGiven = hasCash ? amountPaid.minus(rounded) : D(0)
 
   const paymentMethod = body.payments.length > 1 ? "SPLIT" : body.payments[0].method
 
@@ -847,13 +895,17 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
             cashierUserId: till.userId,
             cashierName: till.userName,
             subtotal,
-            discount: saleDiscount,
+            // The rounding comes off as a discount rather than being hidden
+            // inside the total, so the receipt still adds up line by line
+            // and the shopkeeper can see what rounding cost them.
+            discount: saleDiscount.minus(roundingAdjustment),
             tax,
-            total,
+            total: rounded,
             amountPaid,
             changeGiven,
             status: "COMPLETED",
             paymentMethod,
+            ageVerified,
             customerName: body.customerName?.trim() || null,
             customerPhone: body.customerPhone?.trim() || null,
             idempotencyKey: body.idempotencyKey,

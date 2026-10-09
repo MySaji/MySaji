@@ -5,7 +5,7 @@ import Link from "next/link"
 import {
   Calculator, Loader2, Search, Plus, Minus, Trash2, X, ArrowRight, ArrowLeft,
   SlidersHorizontal, Package, AlertTriangle, Clock, Banknote, Smartphone,
-  CreditCard, Landmark, HandCoins, ShoppingCart, CloudOff, RefreshCw,
+  CreditCard, Landmark, HandCoins, ShoppingCart, CloudOff, RefreshCw, Check,
 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -120,6 +120,9 @@ export default function TillPage() {
   const [queuedReceipt, setQueuedReceipt] = useState<{ total: number; change: number; items: number } | null>(null)
   /** The product whose size is being chosen, if any. */
   const [pickVariantFor, setPickVariantFor] = useState<TillProduct | null>(null)
+  /** Ticked by the cashier when the buyer's age has been checked. Reset
+   *  with every sale — a confirmation must never carry over. */
+  const [ageConfirmed, setAgeConfirmed] = useState(false)
 
   const [shiftOpening, setShiftOpening] = useState("")
   const [shiftCounted, setShiftCounted] = useState("")
@@ -187,6 +190,8 @@ export default function TillPage() {
   const shortBy = Math.max(0, total - paid)
 
   const itemCount = cart.length
+  /** Any restricted line in the basket, in a shop that checks. */
+  const needsAgeCheck = (state?.checksAge ?? false) && cart.some((l) => l.product.ageRestricted)
 
   // ---- cart actions -------------------------------------------------------
   const addProduct = (product: TillProduct, variant?: TillVariant | null) => {
@@ -250,7 +255,7 @@ export default function TillPage() {
   const clearSale = () => {
     setCart([]); setSaleDiscount(""); setCustomerName(""); setPickVariantFor(null)
     setPayments([{ method: "CASH", amount: "", reference: "" }])
-    setReceipt(null); setError(""); setCartOpen(false)
+    setReceipt(null); setError(""); setCartOpen(false); setAgeConfirmed(false)
     setIdempotencyKey(newKey())
     setView("sell")
     searchRef.current?.focus()
@@ -279,6 +284,7 @@ export default function TillPage() {
           ...(p.reference.trim() ? { reference: p.reference.trim() } : {}),
         })),
       ...(discountNum > 0 ? { saleDiscount: discountNum } : {}),
+      ...(needsAgeCheck ? { ageVerified: ageConfirmed } : {}),
       ...(customerName.trim() ? { customerName: customerName.trim() } : {}),
     }
 
@@ -1015,6 +1021,35 @@ export default function TillPage() {
                 </button>
               )}
 
+              {needsAgeCheck && (
+                <button
+                  type="button"
+                  role="checkbox"
+                  aria-checked={ageConfirmed}
+                  onClick={() => { setAgeConfirmed((v) => !v); setError("") }}
+                  className={`w-full flex items-start gap-2.5 p-3 rounded-xl border text-left active:scale-[0.99] transition-all ${
+                    ageConfirmed
+                      ? "border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20"
+                      : "border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/15"
+                  }`}
+                >
+                  <span className={`mt-0.5 w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 ${
+                    ageConfirmed ? "bg-emerald-500 text-white" : "border border-amber-400 bg-white dark:bg-gray-800"
+                  }`}>
+                    {ageConfirmed && <Check className="w-3 h-3" strokeWidth={3} />}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-xs font-semibold text-gray-900 dark:text-white">
+                      I have checked this buyer is old enough
+                    </span>
+                    <span className="block text-[11px] text-gray-600 dark:text-gray-400 leading-snug mt-0.5">
+                      This basket has age-restricted goods. The confirmation is recorded against
+                      the sale with your name and the time.
+                    </span>
+                  </span>
+                </button>
+              )}
+
               <Input
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
@@ -1045,12 +1080,14 @@ export default function TillPage() {
 
               <Button
                 onClick={takePayment}
-                disabled={busy || shortBy > 0 || cart.length === 0}
+                disabled={busy || shortBy > 0 || cart.length === 0 || (needsAgeCheck && !ageConfirmed)}
                 className="w-full h-14 rounded-xl text-base font-bold"
               >
                 {busy
                   ? <Loader2 className="w-5 h-5 animate-spin" />
-                  : shortBy > 0 ? `Short by ${shShort(shortBy)}` : "Record the sale"}
+                  : shortBy > 0 ? `Short by ${shShort(shortBy)}`
+                  : needsAgeCheck && !ageConfirmed ? "Confirm the age check first"
+                  : "Record the sale"}
               </Button>
             </div>
           </div>

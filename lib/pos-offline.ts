@@ -88,6 +88,7 @@ export type CachedProduct = {
   listPrice: number
   stock: number
   categoryName: string | null
+  ageRestricted: boolean
   variants: CachedVariant[]
   matchedVariantId: string | null
 }

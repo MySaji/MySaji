@@ -79,6 +79,8 @@ export type StockRow = {
   variants: { id: string; label: string; onHand: number; isActive: boolean }[]
   /** Whether this product's stock is kept per delivery. */
   tracksBatches: boolean
+  /** Needs an age check at the till, where the shop has the trait on. */
+  ageRestricted: boolean
   /** Live deliveries, soonest to expire first — the order the till uses. */
   batches: { id: string; batchNumber: string | null; expiryDate: string | null; variantId: string | null; onHand: number; expired: boolean; expiringSoon: boolean }[]
 }
@@ -93,6 +95,8 @@ export type StockSummary = {
   outOfStock: number
   drifted: number
   canRecordWastage: boolean
+  /** Whether this shop asks for an age check at the till. */
+  checksAge: boolean
   /**
    * Whether this shop is on the marketplace at all. The "sellable on Saji"
    * line is meaningless — worse, misleading — for a counter-only shop, which
@@ -128,7 +132,7 @@ export async function getStockView(): Promise<StockView> {
       where: { shopkeeperId: tenant.shopkeeperId },
       select: {
         id: true, name: true, sku: true, barcode: true, unit: true, price: true, costPrice: true,
-        tracksBatches: true,
+        tracksBatches: true, ageRestricted: true,
         inventory: { select: { currentStock: true, stockOnHand: true, lowStockThreshold: true } },
       },
       orderBy: { name: "asc" },
@@ -226,6 +230,7 @@ export async function getStockView(): Promise<StockView> {
         isActive: v.isActive,
       })),
       tracksBatches: p.tracksBatches,
+      ageRestricted: p.ageRestricted,
       batches: (batchesByProduct.get(p.id) ?? []).map((b) => {
         const left = b.expiryDate ? Math.floor((b.expiryDate.getTime() - nowMs) / dayMs) : null
         return {
@@ -250,6 +255,7 @@ export async function getStockView(): Promise<StockView> {
       outOfStock,
       drifted,
       canRecordWastage: tenant.traits.includes("WASTAGE"),
+      checksAge: tenant.traits.includes("AGE_RESTRICTED"),
       listedOnMarketplace: tenant.listedOnMarketplace,
       expiredBatches: rows.reduce((n, r) => n + r.batches.filter((b) => b.expired && b.onHand > 0).length, 0),
       expiringSoonBatches: rows.reduce((n, r) => n + r.batches.filter((b) => b.expiringSoon && b.onHand > 0).length, 0),
@@ -902,4 +908,33 @@ export async function getExpiringStock(): Promise<{ expired: ExpiringRow[]; soon
     expired: mapped.filter((b) => b.expired),
     soon: mapped.filter((b) => !b.expired),
   }
+}
+
+
+/**
+ * Mark a product as age-restricted, or clear it.
+ *
+ * Per product rather than per shop: a liquor store sells crisps and a
+ * supermarket sells both, so a shop-wide setting would either nag on every
+ * line or protect nothing.
+ */
+export async function setProductAgeRestricted(input: unknown): Promise<StockActionResult> {
+  const tenant = await requireStockTenant()
+  if (!tenant) return { success: false, error: "There is no till on this account." }
+  const parsed = z.object({
+    productId: z.string().trim().min(1),
+    ageRestricted: z.boolean(),
+  }).safeParse(input)
+  if (!parsed.success) return { success: false, error: "Invalid input" }
+
+  const product = await db.product.findFirst({
+    where: { id: parsed.data.productId, shopkeeperId: tenant.shopkeeperId },
+    select: { id: true },
+  })
+  if (!product) return { success: false, error: "That product no longer exists." }
+
+  await db.product.update({ where: { id: product.id }, data: { ageRestricted: parsed.data.ageRestricted } })
+  // The balance is not what changed, but the result shape is shared; the
+  // caller reloads the view rather than reading this.
+  return { success: true, balance: 0 }
 }

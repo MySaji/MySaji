@@ -5,13 +5,14 @@ import Link from "next/link"
 import {
   ArrowLeft, Loader2, Search, Package, AlertTriangle, Plus,
   ClipboardCheck, Trash2, X, History, Check, Boxes, Calculator, Shapes, RotateCcw, CalendarClock,
+  ShieldAlert,
 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
   getStockView, getProductMovements, receiveStock, recordWastage, recordStockCount,
-  saveProductVariant, setVariantActive, receiveBatch, writeOffBatch,
+  saveProductVariant, setVariantActive, receiveBatch, writeOffBatch, setProductAgeRestricted,
   type StockView, type StockRow, type MovementRow,
 } from "@/lib/actions/pos-stock"
 
@@ -413,6 +414,26 @@ export default function StockPage() {
                 <SmallButton onClick={() => openSheet("options", r)} icon={Shapes}>
                   {r.variants.length > 0 ? `Options (${r.variants.length})` : "Add options"}
                 </SmallButton>
+                {s.checksAge && (
+                  <button
+                    onClick={async () => {
+                      setBusy(true); setError("")
+                      const res = await setProductAgeRestricted({ productId: r.productId, ageRestricted: !r.ageRestricted })
+                      setBusy(false)
+                      if (!res.success) { setError(res.error); return }
+                      await reload()
+                      flash(r.ageRestricted ? r.name + " no longer needs an age check" : r.name + " now needs an age check")
+                    }}
+                    disabled={busy}
+                    className={
+                      r.ageRestricted
+                        ? "h-8 px-2.5 rounded-lg border text-[11px] font-medium inline-flex items-center gap-1 active:scale-95 transition-transform border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400"
+                        : "h-8 px-2.5 rounded-lg border text-[11px] font-medium inline-flex items-center gap-1 active:scale-95 transition-transform border-gray-200 dark:border-gray-700 text-gray-500"
+                    }
+                  >
+                    <ShieldAlert className="w-3 h-3" /> {r.ageRestricted ? "Age checked" : "No age check"}
+                  </button>
+                )}
                 <SmallButton onClick={() => openSheet("history", r)} icon={History}>
                   History{r.movementCount > 0 ? ` (${r.movementCount})` : ""}
                 </SmallButton>

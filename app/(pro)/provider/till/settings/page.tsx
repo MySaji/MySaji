@@ -407,6 +407,41 @@ export default function PosSettingsPage() {
         </p>
       </Card>
 
+      {/* --- rounding ------------------------------------------------------- */}
+      <Card className="p-4 rounded-2xl">
+        <h2 className="text-sm font-bold text-gray-900 dark:text-white">Rounding the total</h2>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
+          Kenya has no coin below 1/-, and many shops round to 5/-. The total is rounded
+          <span className="font-semibold"> down</span>, never up — rounding up is taking money
+          nobody agreed to.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {[0, 1, 5, 10].map((step) => {
+            const on = setup.config.cashRounding === step
+            return (
+              <button
+                key={step}
+                onClick={() => saveConfig({ cashRounding: step }, "cashRounding")}
+                aria-pressed={on}
+                disabled={busy === "cashRounding"}
+                className={
+                  on
+                    ? "h-10 px-4 rounded-xl border text-xs font-semibold active:scale-95 border-primary bg-primary/5 text-primary"
+                    : "h-10 px-4 rounded-xl border text-xs font-semibold active:scale-95 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300"
+                }
+              >
+                {step === 0 ? "No rounding" : "To " + step + "/-"}
+              </button>
+            )
+          })}
+          {busy === "cashRounding" && <Loader2 className="w-4 h-4 animate-spin text-gray-400 self-center" />}
+        </div>
+        <p className="mt-2 text-[11px] text-gray-400 dark:text-gray-500 leading-snug">
+          Whatever comes off shows on the receipt as a discount, so the slip still adds up and
+          you can see what rounding costs over a day.
+        </p>
+      </Card>
+
       {/* --- 4. expired stock ------------------------------------------------
           Only worth showing to a shop that actually tracks deliveries. */}
       {setup.traits.includes("BATCH_EXPIRY") && (

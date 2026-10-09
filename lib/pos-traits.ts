@@ -94,9 +94,9 @@ export const POS_TRAIT_META: Record<PosTrait, PosTraitMeta> = {
   AGE_RESTRICTED: {
     label: "Age-restricted goods",
     question: "May this person legally buy it?",
-    effect: "The till asks the cashier to confirm age before the line is accepted",
+    effect: "The till asks the cashier to confirm age, and records that they did",
     icon: "ShieldAlert",
-    stage: "planned",
+    stage: "live",
   },
   CONTROLLED: {
     label: "Controlled substances register",

@@ -983,3 +983,30 @@ failed on connections rather than on anything real.
 six products — two with an expired lot and a good one, one with no
 expiry date at all, and one with no batches, because a chemist still
 sells things nobody tracks by delivery.
+
+### AGE_RESTRICTED — **live**, and cash rounding finally does something
+
+**Age checks are per product, not per shop.** A liquor store sells crisps
+and a supermarket sells both, so a shop-wide setting would either nag on
+every line or protect nothing. The flag lives on the product; the trait
+decides whether the shop asks at all.
+
+The confirmation is **recorded, not just enforced**: `PosSale.ageVerified`,
+alongside the cashier's name and the time. For a licence the useful
+artefact is evidence the check happened on that sale — not a dialog
+nobody can prove appeared. A sale with no restricted line is recorded as
+unverified even if a client sends the flag, so the record cannot be
+padded with confirmations nobody made.
+
+**`cashRounding` was config that nothing read.** It was parsed, carried
+into the till state, and never applied to a total — through three
+commits. It now rounds the payable total **down**, never up: rounding up
+is the shop taking money the customer did not agree to, and over a day
+that is a real amount quietly collected. The subtotal, tax and line
+figures stay exact and the difference shows as a discount, so the receipt
+still adds up and a shopkeeper can see what rounding costs them.
+
+`17/17` on both, including the cases that would hide a mistake: a
+spurious confirmation on an ordinary sale, a shop without the trait not
+being blocked by a product flag, and paying one shilling under the
+rounded total being refused.
