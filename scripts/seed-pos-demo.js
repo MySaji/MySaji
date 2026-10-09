@@ -41,6 +41,7 @@
  *
  *   node scripts/seed-pos-demo.js                     # butchery
  *   node scripts/seed-pos-demo.js --profile CLOTHES     # exercises VARIANTS
+ *   node scripts/seed-pos-demo.js --profile PHARMACY    # exercises BATCH_EXPIRY
  *   node scripts/seed-pos-demo.js --profile SUPERMARKET
  *   node scripts/seed-pos-demo.js --profile MITUMBA    # exercises OPEN_PRICE
  *   node scripts/seed-pos-demo.js --revert             # remove it again
@@ -158,6 +159,39 @@ const PROFILES = {
       { name: "Socks, pair", price: 250, cost: 120, unit: "pair", stock: "40", barcode: "6161102110066" },
     ],
   },
+  PHARMACY: {
+    label: "Pharmacy",
+    traits: ["BATCH_EXPIRY", "AGE_RESTRICTED", "CONTROLLED", "WASTAGE"],
+    unit: "piece",
+    shopName: "Afya Bora Chemist",
+    // Every product here is tracked by delivery, which is the point: the
+    // till sells soonest-to-expire first and refuses expired stock, and a
+    // pharmacy is where that matters rather than being tidy.
+    products: [
+      { name: "Amoxicillin 500mg", price: 350, cost: 210, unit: "piece", stock: "0", barcode: "6161103110015",
+        batches: [
+          { number: "AMX-2301", days: 18, qty: "12" },
+          { number: "AMX-2404", days: 420, qty: "60" },
+        ] },
+      { name: "Paracetamol 500mg", price: 60, cost: 32, unit: "piece", stock: "0", barcode: "6161103110022",
+        batches: [
+          { number: "PCM-2210", days: -12, qty: "20" },
+          { number: "PCM-2405", days: 300, qty: "150" },
+        ] },
+      { name: "ORS Sachets", price: 45, cost: 22, unit: "piece", stock: "0", barcode: null,
+        batches: [{ number: "ORS-88", days: 75, qty: "90" }] },
+      { name: "Cough Syrup 100ml", price: 480, cost: 300, unit: "piece", stock: "0", barcode: null,
+        batches: [
+          { number: "CS-04", days: 25, qty: "8" },
+          { number: "CS-07", days: 200, qty: "24" },
+        ] },
+      { name: "Surgical Gloves", price: 25, cost: 12, unit: "pair", stock: "0", barcode: null,
+        batches: [{ number: "GL-19", days: null, qty: "300" }] },
+      // No batches: a chemist still sells things that never go off and
+      // nobody tracks by delivery.
+      { name: "Hot Water Bottle", price: 950, cost: 560, unit: "piece", stock: "7", barcode: null },
+    ],
+  },
   MITUMBA: {
     label: "Mitumba / second-hand",
     traits: ["VARIANTS", "BULK_BREAK", "OPEN_PRICE"],
@@ -249,6 +283,7 @@ async function revert() {
       // Before the products: deleting a product cascades its variants, but
       // doing it explicitly means the count below is a real check rather
       // than an assumption about the cascade.
+      batches: (await db.productBatch.deleteMany({ where: { shopkeeperId: shopId } })).count,
       variants: (await db.productVariant.deleteMany({ where: { shopkeeperId: shopId } })).count,
       inventory: (await db.inventory.deleteMany({ where: { productId: { in: productIds } } })).count,
       products: (await db.product.deleteMany({ where: { id: { in: productIds } } })).count,
@@ -354,6 +389,50 @@ async function seed() {
       },
       select: { id: true },
     })
+
+    // Deliveries, where this product is tracked by them. Each batch carries
+    // its own opening stock as a real ledger row, and the product figure is
+    // the sum — the same invariant lib/pos-ledger.ts maintains.
+    if (p.batches && p.batches.length > 0) {
+      await db.product.update({ where: { id: product.id }, data: { tracksBatches: true } })
+      let total = 0
+      for (const b of p.batches) {
+        const expiry = b.days === null || b.days === undefined
+          ? null
+          : new Date(Date.now() + b.days * 24 * 60 * 60 * 1000)
+        const batch = await db.productBatch.create({
+          data: {
+            productId: product.id,
+            shopkeeperId: shop.id,
+            batchNumber: b.number,
+            expiryDate: expiry,
+            costPrice: p.cost,
+            stockOnHand: b.qty,
+            currentStock: Math.max(0, Math.floor(Number(b.qty))),
+          },
+          select: { id: true },
+        })
+        await db.stockMovement.create({
+          data: {
+            shopkeeperId: shop.id, productId: product.id, batchId: batch.id,
+            kind: "OPENING_BALANCE", quantity: b.qty, unit: p.unit, unitCost: p.cost,
+            balanceAfter: b.qty, reason: "Opening stock, seeded for the demo",
+            idempotencyKey: "seed:opening:" + batch.id, occurredAt: new Date(),
+          },
+        })
+        total += Number(b.qty)
+      }
+      await db.inventory.upsert({
+        where: { productId: product.id },
+        update: { stockOnHand: String(total), currentStock: Math.max(0, Math.floor(total)) },
+        create: {
+          productId: product.id, stockOnHand: String(total),
+          currentStock: Math.max(0, Math.floor(total)), lowStockThreshold: 5, reorderLevel: 10,
+        },
+      })
+      made++
+      continue
+    }
 
     // Sizes, where this product has them. Each one carries its own opening
     // stock as a real ledger row, exactly as a product's does — so a size's

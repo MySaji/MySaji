@@ -917,3 +917,69 @@ problem with the code.
 `scripts/seed-pos-demo.js --profile CLOTHES` seeds a fashion shop with
 four sized products and two plain ones, because a till has to handle both
 side by side.
+
+### BATCH_EXPIRY — **live**
+
+14 of the 35 shop types, and the one with consequences rather than
+inconvenience: a pharmacy or agrovet selling past an expiry date is a
+licensing and safety matter.
+
+**Batches hold the stock; everything above them is a sum.** "Forty boxes
+of amoxicillin" is not a useful figure — ten expire next month and
+thirty next year, and which one leaves the shelf is the whole question.
+So the roll-up is now two levels deep where both apply:
+
+```
+batch -> size -> product     (a cosmetics shop)
+batch -> product             (a pharmacy)
+         size -> product     (a clothes shop)
+                  product    (everything else)
+```
+
+Each level is recomputed from the rows below it rather than adjusted by
+a delta, because a delta drifts the moment something is added, retired
+or corrected by hand.
+
+**The till never asks a cashier to pick a batch.** The server allocates
+first-expired-first-out. A counter is not the place for that decision,
+and a person doing it by hand reaches for the front of the shelf every
+time.
+
+**A line can span several deliveries** — nine boxes when the oldest has
+four left — and that is normal rather than an edge case. Such a line
+becomes one stock movement per delivery, which is what makes a recall
+answerable: "which sales touched batch X" is a query on those rows. The
+sale line records a single batch only when the whole line came from one;
+otherwise it records none rather than claiming a batch it cannot
+justify.
+
+**Voiding reverses the movements, not the lines.** A split line has to go
+back to both deliveries in the amounts it took from each, and the
+movements are the only record of that split. Reversing the line instead
+would put all nine onto whichever batch the line happened to name and
+silently move four boxes between deliveries.
+
+**Expired stock is refused by default.** `expiredStock` defaults to
+BLOCK — the opposite of the negative-stock default, and deliberately so.
+A grocer who wants to sell day-old bread can move it to WARN, in which
+case the receipt says the batch had expired. Writing an expired batch
+off is always allowed whichever policy is set, and records a WASTAGE
+movement with its reason rather than letting the stock vanish with the
+row.
+
+### Verified
+
+`45/45` first run, including the two cases most likely to be wrong: a
+line spanning two deliveries, and voiding that line back to both. Also
+FEFO skipping an expired lot, BLOCK naming itself in the refusal, the
+two-level roll-up through sizes, and tenant isolation on every batch
+operation.
+
+`396` assertions across nine server-side suites. Run them one at a time:
+nine in a tight loop exhausted the pooled connection limit and three
+failed on connections rather than on anything real.
+
+`scripts/seed-pos-demo.js --profile PHARMACY` seeds a chemist with
+six products — two with an expired lot and a good one, one with no
+expiry date at all, and one with no batches, because a chemist still
+sells things nobody tracks by delivery.

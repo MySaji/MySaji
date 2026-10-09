@@ -87,9 +87,9 @@ export const POS_TRAIT_META: Record<PosTrait, PosTraitMeta> = {
   BATCH_EXPIRY: {
     label: "Batches and expiry dates",
     question: "Which batch, and when does it expire?",
-    effect: "Stock is held per batch, sold oldest-first, and warns before expiry",
+    effect: "Stock is held per delivery, sold soonest-to-expire first, and warns before expiry",
     icon: "CalendarClock",
-    stage: "planned",
+    stage: "live",
   },
   AGE_RESTRICTED: {
     label: "Age-restricted goods",

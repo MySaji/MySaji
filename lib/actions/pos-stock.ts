@@ -33,12 +33,14 @@ async function requireStockTenant() {
     select: { id: true, posEnabled: true, posProfileKey: true, posTraits: true, posConfig: true, listedOnMarketplace: true },
   })
   if (!shop || !shop.posEnabled) return null
+  const config = parsePosConfig(shop.posConfig)
   return {
     userId: session.user.id,
     shopkeeperId: shop.id,
     listedOnMarketplace: shop.listedOnMarketplace,
     traits: effectiveTraits(shop.posProfileKey, shop.posTraits),
-    negativeStock: parsePosConfig(shop.posConfig).negativeStock,
+    negativeStock: config.negativeStock,
+    expiryWarningDays: config.expiryWarningDays,
   }
 }
 
@@ -75,6 +77,10 @@ export type StockRow = {
    * acted on.
    */
   variants: { id: string; label: string; onHand: number; isActive: boolean }[]
+  /** Whether this product's stock is kept per delivery. */
+  tracksBatches: boolean
+  /** Live deliveries, soonest to expire first — the order the till uses. */
+  batches: { id: string; batchNumber: string | null; expiryDate: string | null; variantId: string | null; onHand: number; expired: boolean; expiringSoon: boolean }[]
 }
 
 export type StockSummary = {
@@ -93,6 +99,10 @@ export type StockSummary = {
    * is most POS accounts.
    */
   listedOnMarketplace: boolean
+  /** Deliveries past their date, with stock still in them. */
+  expiredBatches: number
+  /** Deliveries inside the warning window, with stock still in them. */
+  expiringSoonBatches: number
   traits: PosTrait[]
 }
 
@@ -118,6 +128,7 @@ export async function getStockView(): Promise<StockView> {
       where: { shopkeeperId: tenant.shopkeeperId },
       select: {
         id: true, name: true, sku: true, barcode: true, unit: true, price: true, costPrice: true,
+        tracksBatches: true,
         inventory: { select: { currentStock: true, stockOnHand: true, lowStockThreshold: true } },
       },
       orderBy: { name: "asc" },
@@ -147,6 +158,22 @@ export async function getStockView(): Promise<StockView> {
     list.push(v)
     variantsByProduct.set(v.productId, list)
   }
+
+  // Same shape as the variants query, and ordered the way the till
+  // allocates: soonest to expire first, undated last.
+  const allBatches = await db.productBatch.findMany({
+    where: { shopkeeperId: tenant.shopkeeperId, isActive: true },
+    orderBy: [{ expiryDate: { sort: "asc", nulls: "last" } }, { receivedAt: "asc" }],
+    select: { id: true, productId: true, variantId: true, batchNumber: true, expiryDate: true, stockOnHand: true, currentStock: true },
+  })
+  const batchesByProduct = new Map<string, typeof allBatches>()
+  for (const b of allBatches) {
+    const list = batchesByProduct.get(b.productId) ?? []
+    list.push(b)
+    batchesByProduct.set(b.productId, list)
+  }
+  const nowMs = Date.now()
+  const dayMs = 24 * 60 * 60 * 1000
 
   const ledgerByProduct = new Map(sums.map((s) => [s.productId, s]))
 
@@ -198,6 +225,19 @@ export async function getStockView(): Promise<StockView> {
         onHand: Number((v.stockOnHand ?? new Prisma.Decimal(v.currentStock)).toString()),
         isActive: v.isActive,
       })),
+      tracksBatches: p.tracksBatches,
+      batches: (batchesByProduct.get(p.id) ?? []).map((b) => {
+        const left = b.expiryDate ? Math.floor((b.expiryDate.getTime() - nowMs) / dayMs) : null
+        return {
+          id: b.id,
+          batchNumber: b.batchNumber,
+          expiryDate: b.expiryDate?.toISOString() ?? null,
+          variantId: b.variantId,
+          onHand: Number((b.stockOnHand ?? new Prisma.Decimal(b.currentStock)).toString()),
+          expired: left !== null && left < 0,
+          expiringSoon: left !== null && left >= 0 && left <= tenant.expiryWarningDays,
+        }
+      }),
     }
   })
 
@@ -211,6 +251,8 @@ export async function getStockView(): Promise<StockView> {
       drifted,
       canRecordWastage: tenant.traits.includes("WASTAGE"),
       listedOnMarketplace: tenant.listedOnMarketplace,
+      expiredBatches: rows.reduce((n, r) => n + r.batches.filter((b) => b.expired && b.onHand > 0).length, 0),
+      expiringSoonBatches: rows.reduce((n, r) => n + r.batches.filter((b) => b.expiringSoon && b.onHand > 0).length, 0),
       traits: tenant.traits,
     },
     rows,
@@ -273,6 +315,8 @@ const adjustSchema = z.object({
   productId: z.string().trim().min(1),
   /** Which size or option. The ledger refuses a variant product without it. */
   variantId: z.string().trim().min(1).optional(),
+  /** Which delivery. The ledger refuses a batched product without it. */
+  batchId: z.string().trim().min(1).optional(),
   /** A positive magnitude. The action decides the direction. */
   quantity: z.string().trim().regex(/^\d+(\.\d{1,3})?$/, "Enter a valid quantity"),
   reason: z.string().trim().max(300).optional(),
@@ -290,6 +334,7 @@ export async function receiveStock(input: unknown): Promise<StockActionResult> {
   return runMovement(tenant, {
     productId: parsed.data.productId,
     variantId: parsed.data.variantId ?? null,
+    batchId: parsed.data.batchId ?? null,
     kind: "PURCHASE",
     quantity: parsed.data.quantity,
     unitCost: parsed.data.unitCost ?? null,
@@ -323,6 +368,7 @@ export async function recordWastage(input: unknown): Promise<StockActionResult> 
   return runMovement(tenant, {
     productId: parsed.data.productId,
     variantId: parsed.data.variantId ?? null,
+    batchId: parsed.data.batchId ?? null,
     kind: "WASTAGE",
     quantity: "-" + parsed.data.quantity,
     reason: parsed.data.reason.trim(),
@@ -332,6 +378,7 @@ export async function recordWastage(input: unknown): Promise<StockActionResult> 
 const countSchema = z.object({
   productId: z.string().trim().min(1),
   variantId: z.string().trim().min(1).optional(),
+  batchId: z.string().trim().min(1).optional(),
   /** What was actually on the shelf. Not a delta. */
   counted: z.string().trim().regex(/^\d+(\.\d{1,3})?$/, "Enter a valid count"),
   reason: z.string().trim().max(300).optional(),
@@ -393,6 +440,7 @@ export async function recordStockCount(input: unknown): Promise<StockActionResul
   return runMovement(tenant, {
     productId: product.id,
     variantId: parsed.data.variantId ?? null,
+    batchId: parsed.data.batchId ?? null,
     kind: "COUNT_ADJUSTMENT",
     quantity: delta.toString(),
     reason: parsed.data.reason?.trim()
@@ -403,7 +451,7 @@ export async function recordStockCount(input: unknown): Promise<StockActionResul
 /** The shared write path, so every adjustment goes through the ledger. */
 async function runMovement(
   tenant: { userId: string; shopkeeperId: string; negativeStock: ReturnType<typeof parsePosConfig>["negativeStock"] },
-  move: { productId: string; variantId?: string | null; kind: "PURCHASE" | "WASTAGE" | "COUNT_ADJUSTMENT"; quantity: string; reason: string | null; unitCost?: number | null },
+  move: { productId: string; variantId?: string | null; batchId?: string | null; kind: "PURCHASE" | "WASTAGE" | "COUNT_ADJUSTMENT"; quantity: string; reason: string | null; unitCost?: number | null },
 ): Promise<StockActionResult> {
   try {
     const result = await db.$transaction(
@@ -411,6 +459,7 @@ async function runMovement(
         shopkeeperId: tenant.shopkeeperId,
         productId: move.productId,
         variantId: move.variantId ?? null,
+        batchId: move.batchId ?? null,
         kind: move.kind,
         quantity: move.quantity,
         // A string, not a number: the ledger takes Decimal-safe values so a
@@ -587,4 +636,270 @@ export async function setVariantActive(input: unknown): Promise<VariantResult> {
 
   await db.productVariant.update({ where: { id: variant.id }, data: { isActive: parsed.data.isActive } })
   return { success: true, variantId: variant.id }
+}
+
+// ---------------------------------------------------------------------------
+// Deliveries and expiry dates
+// ---------------------------------------------------------------------------
+
+export type BatchRow = {
+  id: string
+  batchNumber: string | null
+  expiryDate: string | null
+  variantId: string | null
+  variantLabel: string | null
+  onHand: number
+  costPrice: number | null
+  isActive: boolean
+  /** Past its date. */
+  expired: boolean
+  /** Inside the shop's warning window. */
+  expiringSoon: boolean
+  daysLeft: number | null
+}
+
+export async function getProductBatches(input: unknown): Promise<BatchRow[]> {
+  const tenant = await requireStockTenant()
+  if (!tenant) return []
+  const parsed = z.object({ productId: z.string().trim().min(1) }).safeParse(input)
+  if (!parsed.success) return []
+
+  const rows = await db.productBatch.findMany({
+    where: { shopkeeperId: tenant.shopkeeperId, productId: parsed.data.productId },
+    // Soonest to expire first — the same order the till allocates in, so
+    // the list reads as "this is what goes out next".
+    orderBy: [{ expiryDate: { sort: "asc", nulls: "last" } }, { receivedAt: "asc" }],
+    include: { variant: { select: { label: true } } },
+  })
+
+  const now = Date.now()
+  const day = 24 * 60 * 60 * 1000
+  return rows.map((b) => {
+    const days = b.expiryDate ? Math.floor((b.expiryDate.getTime() - now) / day) : null
+    return {
+      id: b.id,
+      batchNumber: b.batchNumber,
+      expiryDate: b.expiryDate?.toISOString() ?? null,
+      variantId: b.variantId,
+      variantLabel: b.variant?.label ?? null,
+      onHand: Number((b.stockOnHand ?? new Prisma.Decimal(b.currentStock)).toString()),
+      costPrice: b.costPrice == null ? null : Number(b.costPrice),
+      isActive: b.isActive,
+      expired: days !== null && days < 0,
+      expiringSoon: days !== null && days >= 0 && days <= tenant.expiryWarningDays,
+      daysLeft: days,
+    }
+  })
+}
+
+const receiveBatchSchema = z.object({
+  productId: z.string().trim().min(1),
+  variantId: z.string().trim().min(1).optional(),
+  batchNumber: z.string().trim().max(60).optional(),
+  /** ISO date. Optional: some things are tracked by delivery but never expire. */
+  expiryDate: z.string().trim().min(1).optional(),
+  quantity: z.string().trim().regex(/^\d+(\.\d{1,3})?$/, "Enter a valid quantity"),
+  unitCost: z.number().min(0).max(100_000_000).optional(),
+  reason: z.string().trim().max(300).optional(),
+})
+
+export type BatchResult = { success: true; batchId: string; balance: number } | { success: false; error: string }
+
+/**
+ * Receive a delivery.
+ *
+ * Creating AND stocking in one action, deliberately — unlike a variant,
+ * which is created empty. A batch with no stock is meaningless: the whole
+ * point of the row is "these forty boxes, which expire in March", and
+ * splitting that into two steps invites a shop to record the boxes and
+ * forget the date, or the date and forget the boxes.
+ *
+ * The stock still arrives through the ledger, as a PURCHASE, so where it
+ * came from is on the record like everything else.
+ */
+export async function receiveBatch(input: unknown): Promise<BatchResult> {
+  const tenant = await requireStockTenant()
+  if (!tenant) return { success: false, error: "There is no till on this account." }
+  const parsed = receiveBatchSchema.safeParse(input)
+  if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
+  const d = parsed.data
+
+  if (Number(d.quantity) <= 0) return { success: false, error: "Enter how much arrived." }
+
+  let expiry: Date | null = null
+  if (d.expiryDate) {
+    expiry = new Date(d.expiryDate)
+    if (Number.isNaN(expiry.getTime())) return { success: false, error: "That expiry date could not be read." }
+    // A date already past is allowed — a shop may be recording stock it
+    // already has in order to write it off — but it is worth saying so
+    // rather than letting it look like a typo that went through.
+  }
+
+  const product = await db.product.findFirst({
+    where: { id: d.productId, shopkeeperId: tenant.shopkeeperId },
+    select: { id: true, hasVariants: true, tracksBatches: true },
+  })
+  if (!product) return { success: false, error: "That product no longer exists." }
+  if (product.hasVariants && !d.variantId) {
+    return { success: false, error: "This product is sold in sizes — say which one this delivery is for." }
+  }
+  if (d.variantId) {
+    const v = await db.productVariant.findFirst({
+      where: { id: d.variantId, shopkeeperId: tenant.shopkeeperId, productId: product.id },
+      select: { id: true },
+    })
+    if (!v) return { success: false, error: "That option no longer exists." }
+  }
+
+  try {
+    return await db.$transaction(async (tx) => {
+      const batch = await tx.productBatch.create({
+        data: {
+          productId: product.id,
+          variantId: d.variantId ?? null,
+          shopkeeperId: tenant.shopkeeperId,
+          batchNumber: d.batchNumber?.trim() || null,
+          expiryDate: expiry,
+          costPrice: d.unitCost ?? null,
+        },
+        select: { id: true },
+      })
+
+      // Flipping the flag makes the ledger start REQUIRING a batch on this
+      // product, so it has to happen in the same transaction as the first
+      // batch — otherwise a movement in between would be refused for naming
+      // no batch, or accepted against a product that now has one.
+      if (!product.tracksBatches) {
+        await tx.product.update({ where: { id: product.id }, data: { tracksBatches: true } })
+      }
+
+      const moved = await recordStockMovement(tx as never, {
+        shopkeeperId: tenant.shopkeeperId,
+        productId: product.id,
+        variantId: d.variantId ?? null,
+        batchId: batch.id,
+        kind: "PURCHASE",
+        quantity: d.quantity,
+        unitCost: d.unitCost == null ? null : String(d.unitCost),
+        reason: d.reason?.trim()
+          || (d.batchNumber ? `Delivery ${d.batchNumber.trim()}` : "Delivery received"),
+        actorUserId: tenant.userId,
+      }, tenant.negativeStock)
+
+      if (!moved.ok) throw new Error(moved.message)
+      return { success: true as const, batchId: batch.id, balance: Number(moved.balance.toString()) }
+    }, { timeout: 30000, maxWait: 10000 })
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : "That delivery could not be recorded." }
+  }
+}
+
+/**
+ * Write a batch off — expired, recalled, damaged.
+ *
+ * A WASTAGE movement for whatever is left, then the batch is retired. Not a
+ * delete: a recalled batch is precisely the one whose history matters most.
+ */
+export async function writeOffBatch(input: unknown): Promise<BatchResult> {
+  const tenant = await requireStockTenant()
+  if (!tenant) return { success: false, error: "There is no till on this account." }
+  const parsed = z.object({
+    batchId: z.string().trim().min(1),
+    reason: z.string().trim().min(3).max(300),
+  }).safeParse(input)
+  if (!parsed.success) return { success: false, error: "Say why this batch is being written off." }
+
+  const batch = await db.productBatch.findFirst({
+    where: { id: parsed.data.batchId, shopkeeperId: tenant.shopkeeperId },
+    select: { id: true, productId: true, variantId: true, stockOnHand: true, currentStock: true, batchNumber: true },
+  })
+  if (!batch) return { success: false, error: "That batch no longer exists." }
+
+  const onHand = batch.stockOnHand ?? new Prisma.Decimal(batch.currentStock)
+
+  try {
+    return await db.$transaction(async (tx) => {
+      let balance = Number(onHand.toString())
+      if (onHand.greaterThan(0)) {
+        const moved = await recordStockMovement(tx as never, {
+          shopkeeperId: tenant.shopkeeperId,
+          productId: batch.productId,
+          variantId: batch.variantId,
+          batchId: batch.id,
+          kind: "WASTAGE",
+          quantity: onHand.negated(),
+          reason: parsed.data.reason,
+          actorUserId: tenant.userId,
+        }, "ALLOW")
+        if (!moved.ok) throw new Error(moved.message)
+        balance = Number(moved.balance.toString())
+      }
+      // Retired after the write-off, so the quantity is recorded as lost
+      // rather than quietly disappearing with the row.
+      await tx.productBatch.update({ where: { id: batch.id }, data: { isActive: false } })
+      return { success: true as const, batchId: batch.id, balance }
+    }, { timeout: 30000, maxWait: 10000 })
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : "That batch could not be written off." }
+  }
+}
+
+export type ExpiringRow = BatchRow & { productId: string; productName: string; unit: string }
+
+/**
+ * Everything expiring soon or already expired, across the shop.
+ *
+ * The reason a shopkeeper opens this feature at all: not "what do I have"
+ * but "what am I about to lose".
+ */
+export async function getExpiringStock(): Promise<{ expired: ExpiringRow[]; soon: ExpiringRow[] } | null> {
+  const tenant = await requireStockTenant()
+  if (!tenant) return null
+
+  const horizon = new Date()
+  horizon.setDate(horizon.getDate() + tenant.expiryWarningDays)
+
+  const rows = await db.productBatch.findMany({
+    where: {
+      shopkeeperId: tenant.shopkeeperId,
+      isActive: true,
+      expiryDate: { not: null, lte: horizon },
+    },
+    orderBy: [{ expiryDate: "asc" }],
+    include: {
+      variant: { select: { label: true } },
+      product: { select: { name: true, unit: true } },
+    },
+    take: 200,
+  })
+
+  const now = Date.now()
+  const day = 24 * 60 * 60 * 1000
+  const mapped: ExpiringRow[] = rows
+    // Nothing left in it is nothing to worry about.
+    .filter((b) => Number((b.stockOnHand ?? new Prisma.Decimal(b.currentStock)).toString()) > 0)
+    .map((b) => {
+      const days = Math.floor((b.expiryDate!.getTime() - now) / day)
+      return {
+        id: b.id,
+        productId: b.productId,
+        productName: b.product.name,
+        unit: b.product.unit,
+        batchNumber: b.batchNumber,
+        expiryDate: b.expiryDate!.toISOString(),
+        variantId: b.variantId,
+        variantLabel: b.variant?.label ?? null,
+        onHand: Number((b.stockOnHand ?? new Prisma.Decimal(b.currentStock)).toString()),
+        costPrice: b.costPrice == null ? null : Number(b.costPrice),
+        isActive: b.isActive,
+        expired: days < 0,
+        expiringSoon: days >= 0,
+        daysLeft: days,
+      }
+    })
+
+  return {
+    expired: mapped.filter((b) => b.expired),
+    soon: mapped.filter((b) => !b.expired),
+  }
 }

@@ -27,6 +27,24 @@ import { POS_UNITS } from "./pos-traits"
 export const NEGATIVE_STOCK_POLICIES = ["BLOCK", "WARN", "ALLOW"] as const
 export type NegativeStockPolicy = (typeof NEGATIVE_STOCK_POLICIES)[number]
 
+/**
+ * What a till does when the only stock left has expired.
+ *
+ * BLOCK by default, which is the opposite of the negative-stock default and
+ * deliberately so. Selling past an expiry date is not an inconvenience for a
+ * pharmacy or an agrovet, it is a licensing and safety matter, and the right
+ * default is the one that refuses. A grocer who wants to sell day-old bread
+ * can move it to WARN.
+ */
+export const EXPIRED_STOCK_POLICIES = ["BLOCK", "WARN", "ALLOW"] as const
+export type ExpiredStockPolicy = (typeof EXPIRED_STOCK_POLICIES)[number]
+
+export const EXPIRED_STOCK_POLICY_LABEL: Record<ExpiredStockPolicy, string> = {
+  BLOCK: "Refuse to sell it",
+  WARN: "Warn the cashier, but allow it",
+  ALLOW: "Allow it silently",
+}
+
 export const posConfigSchema = z.object({
   /** Printed at the top of the receipt. Defaults to the shop name. */
   receiptHeader: z.string().trim().max(200).optional(),
@@ -35,6 +53,14 @@ export const posConfigSchema = z.object({
   taxPin: z.string().trim().max(40).optional(),
 
   negativeStock: z.enum(NEGATIVE_STOCK_POLICIES).default("WARN"),
+
+  expiredStock: z.enum(EXPIRED_STOCK_POLICIES).default("BLOCK"),
+  /**
+   * How many days ahead counts as "expiring soon" on the stock page.
+   * Thirty by default: long enough to return goods to a supplier, short
+   * enough that the list is not everything in the shop.
+   */
+  expiryWarningDays: z.number().int().min(0).max(365).default(30),
 
   /**
    * Round the payable total to the nearest this many shillings. Kenya has no

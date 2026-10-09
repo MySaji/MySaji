@@ -4,14 +4,14 @@ import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import {
   ArrowLeft, Loader2, Search, Package, AlertTriangle, Plus,
-  ClipboardCheck, Trash2, X, History, Check, Boxes, Calculator, Shapes, RotateCcw,
+  ClipboardCheck, Trash2, X, History, Check, Boxes, Calculator, Shapes, RotateCcw, CalendarClock,
 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
   getStockView, getProductMovements, receiveStock, recordWastage, recordStockCount,
-  saveProductVariant, setVariantActive,
+  saveProductVariant, setVariantActive, receiveBatch, writeOffBatch,
   type StockView, type StockRow, type MovementRow,
 } from "@/lib/actions/pos-stock"
 
@@ -56,6 +56,7 @@ type Sheet =
   | { mode: "history"; row: StockRow }
   | { mode: "receive" | "waste" | "count"; row: StockRow }
   | { mode: "options"; row: StockRow }
+  | { mode: "batches"; row: StockRow }
   | null
 
 export default function StockPage() {
@@ -76,6 +77,7 @@ export default function StockPage() {
    */
   const [targetVariant, setTargetVariant] = useState<string | null>(null)
   const [newOption, setNewOption] = useState({ label: "", sku: "", barcode: "", price: "" })
+  const [newBatch, setNewBatch] = useState({ batchNumber: "", expiryDate: "", quantity: "", unitCost: "", variantId: "" })
   const [saved, setSaved] = useState("")
 
   const reload = () => getStockView().then(setView)
@@ -97,6 +99,7 @@ export default function StockPage() {
     setSheet({ mode, row } as Sheet)
     setAmount(""); setReason(""); setError(""); setMovements(null)
     setNewOption({ label: "", sku: "", barcode: "", price: "" })
+    setNewBatch({ batchNumber: "", expiryDate: "", quantity: "", unitCost: "", variantId: row.variants.length === 1 ? row.variants[0].id : "" })
     // Preselect where there is no choice to make.
     setTargetVariant(row.variants.length === 1 ? row.variants[0].id : null)
     if (mode === "history") {
@@ -135,6 +138,43 @@ export default function StockPage() {
     setNewOption({ label: "", sku: "", barcode: "", price: "" })
     await refreshSheet(row.productId)
     flash("Option added")
+  }
+
+  const refreshBatches = async (productId: string) => {
+    const fresh = await getStockView()
+    setView(fresh)
+    const updated = fresh?.rows.find((x) => x.productId === productId)
+    if (updated) setSheet({ mode: "batches", row: updated })
+  }
+
+  const addBatch = async (row: StockRow) => {
+    if (!newBatch.quantity || Number(newBatch.quantity) <= 0) { setError("Enter how much arrived."); return }
+    if (row.variants.length > 0 && !newBatch.variantId) { setError("Choose which option this delivery is for."); return }
+    setBusy(true); setError("")
+    const r = await receiveBatch({
+      productId: row.productId,
+      variantId: newBatch.variantId || undefined,
+      batchNumber: newBatch.batchNumber.trim() || undefined,
+      expiryDate: newBatch.expiryDate || undefined,
+      quantity: newBatch.quantity,
+      unitCost: newBatch.unitCost ? Number(newBatch.unitCost) : undefined,
+    })
+    setBusy(false)
+    if (!r.success) { setError(r.error); return }
+    setNewBatch({ batchNumber: "", expiryDate: "", quantity: "", unitCost: "", variantId: newBatch.variantId })
+    await refreshBatches(row.productId)
+    flash("Delivery recorded")
+  }
+
+  const discardBatch = async (row: StockRow, batchId: string) => {
+    const why = window.prompt("Why is this delivery being written off? (expired, recalled, damaged)")
+    if (!why || why.trim().length < 3) return
+    setBusy(true); setError("")
+    const r = await writeOffBatch({ batchId, reason: why.trim() })
+    setBusy(false)
+    if (!r.success) { setError(r.error); return }
+    await refreshBatches(row.productId)
+    flash("Written off")
   }
 
   const flash = (msg: string) => { setSaved(msg); setTimeout(() => setSaved(""), 2500) }
@@ -204,6 +244,29 @@ export default function StockPage() {
         <Stat label="Running low" value={String(s.lowStock)} tone={s.lowStock > 0 ? "amber" : undefined} />
         <Stat label="Out of stock" value={String(s.outOfStock)} tone={s.outOfStock > 0 ? "red" : undefined} />
       </div>
+
+      {(s.expiredBatches > 0 || s.expiringSoonBatches > 0) && (
+        <Card className={
+          s.expiredBatches > 0
+            ? "p-3 rounded-2xl border-red-300 dark:border-red-900 bg-red-50/60 dark:bg-red-900/10"
+            : "p-3 rounded-2xl border-amber-300 dark:border-amber-800 bg-amber-50/60 dark:bg-amber-900/10"
+        }>
+          <div className="flex items-start gap-2">
+            <CalendarClock className={s.expiredBatches > 0 ? "w-4 h-4 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" : "w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0"} />
+            <div>
+              <p className="text-xs font-semibold text-gray-900 dark:text-white">
+                {s.expiredBatches > 0 && (s.expiredBatches + (s.expiredBatches === 1 ? " delivery has expired" : " deliveries have expired"))}
+                {s.expiredBatches > 0 && s.expiringSoonBatches > 0 && ", and "}
+                {s.expiringSoonBatches > 0 && (s.expiringSoonBatches + (s.expiringSoonBatches === 1 ? " is expiring soon" : " are expiring soon"))}
+              </p>
+              <p className="mt-0.5 text-[11px] text-gray-600 dark:text-gray-400 leading-snug">
+                The till sells the soonest-to-expire delivery first. Open Deliveries on a product
+                to write a batch off, which records the loss rather than letting it vanish.
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {s.drifted > 0 && (
         <Card className="p-3 rounded-2xl border-amber-300 dark:border-amber-800 bg-amber-50/60 dark:bg-amber-900/10">
@@ -319,7 +382,34 @@ export default function StockPage() {
                 </div>
               )}
 
+              {r.batches.length > 0 && (
+                <div className="mt-1.5 flex flex-wrap gap-1">
+                  {r.batches.slice(0, 4).map((b) => (
+                    <span
+                      key={b.id}
+                      className={
+                        b.expired
+                          ? "inline-flex items-center gap-1 h-6 px-1.5 rounded-md text-[10px] tabular-nums bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400"
+                          : b.expiringSoon
+                            ? "inline-flex items-center gap-1 h-6 px-1.5 rounded-md text-[10px] tabular-nums bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400"
+                            : "inline-flex items-center gap-1 h-6 px-1.5 rounded-md text-[10px] tabular-nums bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
+                      }
+                    >
+                      <CalendarClock className="w-2.5 h-2.5" />
+                      {b.batchNumber || "batch"} {qty(b.onHand)}
+                      {b.expiryDate && " · " + new Date(b.expiryDate).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "2-digit" })}
+                    </span>
+                  ))}
+                  {r.batches.length > 4 && (
+                    <span className="text-[10px] text-gray-400 self-center">+{r.batches.length - 4} more</span>
+                  )}
+                </div>
+              )}
+
               <div className="mt-2 flex flex-wrap gap-1.5">
+                <SmallButton onClick={() => openSheet("batches", r)} icon={CalendarClock}>
+                  {r.batches.length > 0 ? "Deliveries (" + r.batches.length + ")" : "Add a delivery"}
+                </SmallButton>
                 <SmallButton onClick={() => openSheet("options", r)} icon={Shapes}>
                   {r.variants.length > 0 ? `Options (${r.variants.length})` : "Add options"}
                 </SmallButton>
@@ -365,7 +455,120 @@ export default function StockPage() {
                 </div>
               )}
 
-              {sheet.mode === "options" ? (
+              {sheet.mode === "batches" ? (
+                <>
+                  <p className="text-[11px] text-gray-600 dark:text-gray-400 leading-snug">
+                    Each delivery keeps its own stock and expiry date. The till always sells the
+                    soonest-to-expire one first, so nobody at the counter has to choose.
+                  </p>
+
+                  {sheet.row.batches.length > 0 && (
+                    <div className="space-y-1.5">
+                      {sheet.row.batches.map((b) => {
+                        const label = sheet.row.variants.find((v) => v.id === b.variantId)?.label
+                        return (
+                          <div
+                            key={b.id}
+                            className={
+                              b.expired
+                                ? "flex items-center gap-2 rounded-xl border border-red-200 dark:border-red-900 bg-red-50/50 dark:bg-red-900/10 p-2.5"
+                                : "flex items-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 p-2.5"
+                            }
+                          >
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-semibold text-gray-900 dark:text-white">
+                                {b.batchNumber || "Unnumbered delivery"}
+                                {label && <span className="font-normal text-gray-500"> · {label}</span>}
+                              </p>
+                              <p className="text-[10px] text-gray-400 tabular-nums">
+                                {qty(b.onHand)} {sheet.row.unit === "piece" ? "left" : sheet.row.unit}
+                                {b.expiryDate && " · expires " + new Date(b.expiryDate).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
+                                {!b.expiryDate && " · no expiry date"}
+                              </p>
+                              {b.expired && (
+                                <p className="text-[10px] font-semibold text-red-600 dark:text-red-400">
+                                  Expired. The till refuses it unless POS Settings says otherwise.
+                                </p>
+                              )}
+                            </div>
+                            <button
+                              onClick={() => void discardBatch(sheet.row, b.id)}
+                              disabled={busy}
+                              className="h-8 px-2.5 rounded-lg border border-gray-200 dark:border-gray-700 text-[11px] text-gray-500 active:scale-95 inline-flex items-center gap-1"
+                            >
+                              <Trash2 className="w-3 h-3" /> Write off
+                            </button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+
+                  <div className="rounded-xl border border-dashed border-gray-300 dark:border-gray-600 p-3 space-y-2">
+                    <p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">Record a delivery</p>
+                    {sheet.row.variants.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {sheet.row.variants.filter((v) => v.isActive).map((v) => (
+                          <button
+                            key={v.id}
+                            onClick={() => setNewBatch((b) => ({ ...b, variantId: v.id }))}
+                            aria-pressed={newBatch.variantId === v.id}
+                            className={
+                              newBatch.variantId === v.id
+                                ? "h-9 px-3 rounded-lg border text-[11px] font-semibold active:scale-95 border-primary bg-primary/5 text-primary"
+                                : "h-9 px-3 rounded-lg border text-[11px] font-semibold active:scale-95 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300"
+                            }
+                          >
+                            {v.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input
+                        value={newBatch.quantity}
+                        onChange={(e) => setNewBatch((b) => ({ ...b, quantity: e.target.value.replace(/[^0-9.]/g, "") }))}
+                        inputMode="decimal"
+                        placeholder="How much arrived"
+                        className="h-10 rounded-xl text-xs tabular-nums"
+                      />
+                      <Input
+                        type="date"
+                        value={newBatch.expiryDate}
+                        onChange={(e) => setNewBatch((b) => ({ ...b, expiryDate: e.target.value }))}
+                        className="h-10 rounded-xl text-xs"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input
+                        value={newBatch.batchNumber}
+                        onChange={(e) => setNewBatch((b) => ({ ...b, batchNumber: e.target.value }))}
+                        placeholder="Batch / lot number"
+                        className="h-10 rounded-xl text-xs"
+                      />
+                      <Input
+                        value={newBatch.unitCost}
+                        onChange={(e) => setNewBatch((b) => ({ ...b, unitCost: e.target.value.replace(/[^0-9.]/g, "") }))}
+                        inputMode="decimal"
+                        placeholder="Cost each"
+                        className="h-10 rounded-xl text-xs tabular-nums"
+                      />
+                    </div>
+                    <p className="text-[10px] text-gray-400 leading-snug">
+                      The expiry date is optional — leave it blank for something tracked by
+                      delivery that does not go off. Cost can differ between deliveries, which is
+                      most of the reason to track them.
+                    </p>
+                    <Button
+                      onClick={() => void addBatch(sheet.row)}
+                      disabled={busy || !newBatch.quantity}
+                      className="w-full h-10 rounded-xl text-xs"
+                    >
+                      {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Record it"}
+                    </Button>
+                  </div>
+                </>
+              ) : sheet.mode === "options" ? (
                 <>
                   <p className="text-[11px] text-gray-600 dark:text-gray-400 leading-snug">
                     Sizes, colours or packs. Each one keeps its own stock and can carry its own

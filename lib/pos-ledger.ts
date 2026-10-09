@@ -103,6 +103,16 @@ export type RecordMovementInput = {
    * anybody can sell against.
    */
   variantId?: string | null
+  /**
+   * Which delivery moved, for a product whose stock is kept per batch.
+   *
+   * Required once a product tracksBatches, refused otherwise — the same
+   * contract as variantId, for the same reason. A batched product's figure
+   * is the sum of its batches; moving stock without naming one would take
+   * units off a total without recording which delivery they left, which is
+   * the only question a recall asks.
+   */
+  batchId?: string | null
   kind: StockMovementKind
   /**
    * SIGNED. Positive in, negative out. A string or Decimal, not a number:
@@ -137,6 +147,11 @@ type LedgerTx = {
     findMany: (args: unknown) => Promise<unknown>
     update: (args: unknown) => Promise<unknown>
   }
+  productBatch: {
+    findUnique: (args: unknown) => Promise<unknown>
+    findMany: (args: unknown) => Promise<unknown>
+    update: (args: unknown) => Promise<unknown>
+  }
   inventory: {
     findUnique: (args: unknown) => Promise<unknown>
     create: (args: unknown) => Promise<unknown>
@@ -162,6 +177,18 @@ type LedgerVariant = {
   stockOnHand: Prisma.Decimal | null
 }
 
+/** The batch columns the ledger reads. */
+type LedgerBatch = {
+  id: string
+  shopkeeperId: string
+  productId: string
+  variantId: string | null
+  currentStock: number
+  stockOnHand: Prisma.Decimal | null
+  expiryDate: Date | null
+  batchNumber: string | null
+}
+
 /**
  * The idempotency key for a product's opening-balance row.
  *
@@ -170,11 +197,11 @@ type LedgerVariant = {
  * enforces that against concurrent writers rather than hoping no two of them
  * seed at once. Namespaced so it cannot collide with a device-issued key.
  */
-function openingKey(productId: string, variantId?: string | null): string {
-  // Per VARIANT where there is one: each sellable unit has its own opening
-  // balance, and sharing a key across a product's sizes would let the first
-  // one seeded silently block the rest.
-  return `seed:opening:${variantId ?? productId}`
+function openingKey(productId: string, variantId?: string | null, batchId?: string | null): string {
+  // Per BATCH, then per VARIANT, then per product: whichever level actually
+  // holds the stock. Each holder has its own opening balance, and sharing a
+  // key across them would let the first one seeded silently block the rest.
+  return `seed:opening:${batchId ?? variantId ?? productId}`
 }
 
 /**
@@ -212,8 +239,8 @@ export async function recordStockMovement(
   // miss rather than a check somebody can forget to write.
   const product = (await tx.product.findUnique({
     where: { id: input.productId },
-    select: { id: true, shopkeeperId: true, unit: true, hasVariants: true },
-  })) as { id: string; shopkeeperId: string; unit: string; hasVariants: boolean } | null
+    select: { id: true, shopkeeperId: true, unit: true, hasVariants: true, tracksBatches: true },
+  })) as { id: string; shopkeeperId: string; unit: string; hasVariants: boolean; tracksBatches: boolean } | null
 
   if (!product) return { ok: false, code: "NOT_FOUND", message: "That product no longer exists." }
   if (product.shopkeeperId !== input.shopkeeperId) {
@@ -248,6 +275,36 @@ export async function recordStockMovement(
     }
   }
 
+  // --- the batch, where the product is tracked by delivery ---------------
+  let batch: LedgerBatch | null = null
+  if (input.batchId) {
+    batch = (await tx.productBatch.findUnique({
+      where: { id: input.batchId },
+      select: {
+        id: true, shopkeeperId: true, productId: true, variantId: true,
+        currentStock: true, stockOnHand: true, expiryDate: true, batchNumber: true,
+      },
+    })) as LedgerBatch | null
+    if (!batch || batch.shopkeeperId !== input.shopkeeperId) {
+      return { ok: false, code: "NOT_FOUND", message: "That batch no longer exists." }
+    }
+    if (batch.productId !== input.productId) {
+      return { ok: false, code: "NOT_FOUND", message: "That batch does not belong to that product." }
+    }
+    // A batch belongs to one size where the product has sizes. Letting a
+    // movement name a batch of size M against size L would put the units in
+    // the wrong place with no way to notice.
+    if ((batch.variantId ?? null) !== (input.variantId ?? null)) {
+      return { ok: false, code: "NOT_FOUND", message: "That batch is not for that option." }
+    }
+  } else if (product.tracksBatches) {
+    return {
+      ok: false,
+      code: "NOT_FOUND",
+      message: "This product is tracked by delivery — say which batch.",
+    }
+  }
+
   // --- a replayed offline movement is a no-op, not an error ---------------
   //
   // The unique constraint would refuse the insert anyway, but refusing is
@@ -269,7 +326,14 @@ export async function recordStockMovement(
   // and its variants' would be summed together and every figure would be
   // double-counted.
   const agg = (await tx.stockMovement.aggregate({
-    where: { shopkeeperId: input.shopkeeperId, productId: input.productId, variantId: input.variantId ?? null },
+    where: {
+      shopkeeperId: input.shopkeeperId,
+      productId: input.productId,
+      variantId: input.variantId ?? null,
+      // Explicit null, like variantId: without it a batched product's own
+      // movements and its batches' would sum together and double-count.
+      batchId: input.batchId ?? null,
+    },
     _sum: { quantity: true },
   })) as { _sum: { quantity: Prisma.Decimal | null } }
 
@@ -278,8 +342,8 @@ export async function recordStockMovement(
     select: { id: true, currentStock: true, stockOnHand: true },
   })) as { id: string; currentStock: number; stockOnHand: Prisma.Decimal | null } | null
 
-  /** Where this movement's balance is kept: the variant, or the product. */
-  const holder = variant ?? inv
+  /** Where this movement's balance is kept: batch, then size, then product. */
+  const holder = batch ?? variant ?? inv
 
   // A product that predates POS has no ledger rows, and its integer
   // currentStock is the only record of what is on the shelf. That figure has
@@ -311,13 +375,14 @@ export async function recordStockMovement(
           shopkeeperId: input.shopkeeperId,
           productId: input.productId,
           variantId: input.variantId ?? null,
+          batchId: input.batchId ?? null,
           kind: "OPENING_BALANCE",
           quantity: opening,
           unit: input.unit ?? product.unit,
           balanceAfter: opening,
           reason: "Stock on record when the till started keeping this product's history",
           actorUserId: input.actorUserId ?? null,
-          idempotencyKey: openingKey(input.productId, input.variantId),
+          idempotencyKey: openingKey(input.productId, input.variantId, input.batchId),
           occurredAt: input.occurredAt ?? new Date(),
         }],
         skipDuplicates: true,
@@ -354,6 +419,7 @@ export async function recordStockMovement(
       shopkeeperId: input.shopkeeperId,
       productId: input.productId,
       variantId: input.variantId ?? null,
+      batchId: input.batchId ?? null,
       kind: input.kind,
       quantity: qty,
       unit: input.unit ?? product.unit,
@@ -372,69 +438,104 @@ export async function recordStockMovement(
   })) as { id: string }
 
   // --- the projection ------------------------------------------------------
+  //
+  // Stock is held at ONE level — the batch if there is one, else the size,
+  // else the product — and every level above it is a SUM of the level below.
+  // Each roll-up is recomputed from the rows rather than adjusted by a
+  // delta, because a delta drifts the moment something is added, retired or
+  // corrected by hand.
+  //
+  //     batch  ->  size  ->  product        (a cosmetics shop)
+  //     batch  ->  product                  (a pharmacy)
+  //              size  ->  product          (a clothes shop)
+  //                        product          (everything else)
+  //
   // floor, and never below zero: see the module comment.
   const floorOf = (v: Prisma.Decimal) => Math.max(0, Math.floor(Number(v.toString())))
   const projected = floorOf(after)
   const restocked = qty.greaterThan(0) && (input.kind === "PURCHASE" || input.kind === "TRANSFER_IN")
 
-  if (variant) {
-    await tx.productVariant.update({
-      where: { id: variant.id },
-      data: { stockOnHand: after, currentStock: projected },
-    })
-
-    // THE ROLL-UP, and the reason variants are safe to add to a shop that
-    // also sells on SAJI.
-    //
-    // The marketplace reads ONE number per product and has no idea variants
-    // exist. If that number stayed at whatever it was, a shop could sell
-    // four shirts online while holding one of each size. So the product-level
-    // figure becomes the sum across every variant, recomputed here from the
-    // rows themselves rather than adjusted by a delta — a delta would drift
-    // the moment a variant is added, removed or corrected by hand.
-    //
-    // `stockOnHand ?? currentStock` per variant, because a variant with no
-    // ledger history yet still has a real figure; coalescing it to zero
-    // would make the product look emptier than the shelf.
-    const siblings = (await tx.productVariant.findMany({
-      where: { productId: input.productId },
-      select: { id: true, stockOnHand: true, currentStock: true },
-    })) as { id: string; stockOnHand: Prisma.Decimal | null; currentStock: number }[]
-
+  /** Sum a set of holders, using the freshly written value for the one just
+   *  moved — its row is not necessarily visible to a read in this
+   *  transaction yet. */
+  const sumHolders = (
+    rows: { id: string; stockOnHand: Prisma.Decimal | null; currentStock: number }[],
+    movedId: string | null,
+  ) => {
     let total = D(0)
-    for (const sib of siblings) {
-      // The row just written is not necessarily visible to this read yet.
-      const value = sib.id === variant.id ? after : (sib.stockOnHand ?? D(sib.currentStock))
+    for (const row of rows) {
+      const value = row.id === movedId ? after : (row.stockOnHand ?? D(row.currentStock))
       total = total.plus(value)
     }
+    return total
+  }
 
+  const writeProduct = async (value: Prisma.Decimal) => {
     if (inv) {
       await tx.inventory.update({
         where: { id: inv.id },
         data: {
-          stockOnHand: total,
-          currentStock: floorOf(total),
+          stockOnHand: value,
+          currentStock: floorOf(value),
           ...(restocked ? { lastRestockedAt: input.occurredAt ?? new Date() } : {}),
         },
       })
     } else {
       await tx.inventory.create({
-        data: { productId: input.productId, stockOnHand: total, currentStock: floorOf(total) },
+        data: { productId: input.productId, stockOnHand: value, currentStock: floorOf(value) },
       })
     }
-  } else if (inv) {
-    await tx.inventory.update({
-      where: { id: inv.id },
-      data: {
-        stockOnHand: after,
-        currentStock: projected,
-        ...(restocked ? { lastRestockedAt: input.occurredAt ?? new Date() } : {}),
-      },
+  }
+
+  if (batch) {
+    await tx.productBatch.update({
+      where: { id: batch.id },
+      data: { stockOnHand: after, currentStock: projected },
     })
+
+    if (variant) {
+      // batch -> size -> product
+      const siblingBatches = (await tx.productBatch.findMany({
+        where: { variantId: variant.id },
+        select: { id: true, stockOnHand: true, currentStock: true },
+      })) as { id: string; stockOnHand: Prisma.Decimal | null; currentStock: number }[]
+      const variantTotal = sumHolders(siblingBatches, batch.id)
+      await tx.productVariant.update({
+        where: { id: variant.id },
+        data: { stockOnHand: variantTotal, currentStock: floorOf(variantTotal) },
+      })
+
+      const siblingVariants = (await tx.productVariant.findMany({
+        where: { productId: input.productId },
+        select: { id: true, stockOnHand: true, currentStock: true },
+      })) as { id: string; stockOnHand: Prisma.Decimal | null; currentStock: number }[]
+      let productTotal = D(0)
+      for (const sib of siblingVariants) {
+        productTotal = productTotal.plus(sib.id === variant.id ? variantTotal : (sib.stockOnHand ?? D(sib.currentStock)))
+      }
+      await writeProduct(productTotal)
+    } else {
+      // batch -> product. Scoped to batches with no size, so a product that
+      // somehow has both shapes cannot double-count.
+      const siblingBatches = (await tx.productBatch.findMany({
+        where: { productId: input.productId, variantId: null },
+        select: { id: true, stockOnHand: true, currentStock: true },
+      })) as { id: string; stockOnHand: Prisma.Decimal | null; currentStock: number }[]
+      await writeProduct(sumHolders(siblingBatches, batch.id))
+    }
+  } else if (variant) {
+    // size -> product
+    await tx.productVariant.update({
+      where: { id: variant.id },
+      data: { stockOnHand: after, currentStock: projected },
+    })
+    const siblings = (await tx.productVariant.findMany({
+      where: { productId: input.productId },
+      select: { id: true, stockOnHand: true, currentStock: true },
+    })) as { id: string; stockOnHand: Prisma.Decimal | null; currentStock: number }[]
+    await writeProduct(sumHolders(siblings, variant.id))
   } else {
-    await tx.inventory.create({
-      data: { productId: input.productId, stockOnHand: after, currentStock: projected },
-    })
+    await writeProduct(after)
   }
 
   return { ok: true, movementId: movement.id, balance: after, replayed: false }

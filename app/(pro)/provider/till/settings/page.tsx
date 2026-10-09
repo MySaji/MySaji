@@ -14,7 +14,10 @@ import {
 } from "@/lib/actions/pos"
 import { POS_TRAITS, POS_TRAIT_META, POS_UNIT_LABEL, type PosTrait } from "@/lib/pos-traits"
 import { posProfilesByGroup } from "@/lib/pos-profiles"
-import { NEGATIVE_STOCK_POLICIES, NEGATIVE_STOCK_POLICY_LABEL, type NegativeStockPolicy } from "@/lib/pos-config"
+import {
+  NEGATIVE_STOCK_POLICIES, NEGATIVE_STOCK_POLICY_LABEL, type NegativeStockPolicy,
+  EXPIRED_STOCK_POLICIES, EXPIRED_STOCK_POLICY_LABEL, type ExpiredStockPolicy,
+} from "@/lib/pos-config"
 import { POS_PROFILE_ICON, POS_TRAIT_ICON } from "@/components/pos/pos-profile-icons"
 
 /**
@@ -403,6 +406,54 @@ export default function PosSettingsPage() {
           these is chosen — otherwise you could never correct a figure you know is wrong.
         </p>
       </Card>
+
+      {/* --- 4. expired stock ------------------------------------------------
+          Only worth showing to a shop that actually tracks deliveries. */}
+      {setup.traits.includes("BATCH_EXPIRY") && (
+        <Card className="p-4 rounded-2xl">
+          <h2 className="text-sm font-bold text-gray-900 dark:text-white">When stock has expired</h2>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
+            The till always sells the soonest-to-expire delivery first. This is what it does when
+            the only stock left is past its date.
+          </p>
+          <div className="mt-3 space-y-1.5">
+            {EXPIRED_STOCK_POLICIES.map((policy) => {
+              const on = setup.config.expiredStock === policy
+              return (
+                <button
+                  key={policy}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  disabled={busy === "expiredStock"}
+                  onClick={() => saveConfig({ expiredStock: policy as ExpiredStockPolicy }, "expiredStock")}
+                  className={`w-full flex items-center gap-2.5 p-3 rounded-xl border text-left transition-all active:scale-[0.99] disabled:opacity-60 ${
+                    on ? "border-primary bg-primary/5" : "border-gray-200 dark:border-gray-700"
+                  }`}
+                >
+                  <span className={`w-4 h-4 rounded-full border-[5px] flex-shrink-0 ${
+                    on ? "border-primary" : "border-gray-300 dark:border-gray-600"
+                  }`} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-xs font-semibold text-gray-900 dark:text-white">
+                      {EXPIRED_STOCK_POLICY_LABEL[policy]}
+                    </span>
+                    <span className="block text-[11px] text-gray-500 dark:text-gray-400 leading-snug mt-0.5">
+                      {policy === "BLOCK" && "The right answer for a pharmacy or agrovet, where selling past the date is a licensing matter rather than an inconvenience."}
+                      {policy === "WARN" && "The cashier is told and decides. Sensible for a bakery or grocer."}
+                      {policy === "ALLOW" && "No warning at all. Only where the date is advisory."}
+                    </span>
+                  </span>
+                  {busy === "expiredStock" && on && <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-400" />}
+                </button>
+              )
+            })}
+          </div>
+          <p className="mt-2.5 text-[11px] text-gray-400 dark:text-gray-500 leading-snug">
+            Writing an expired batch off is always allowed, whichever of these is chosen.
+          </p>
+        </Card>
+      )}
     </div>
   )
 }

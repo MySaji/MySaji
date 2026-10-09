@@ -5,7 +5,7 @@ import { Prisma } from "@prisma/client"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
 import { recordStockMovement } from "@/lib/pos-ledger"
-import { parsePosConfig, type NegativeStockPolicy } from "@/lib/pos-config"
+import { parsePosConfig, type NegativeStockPolicy, type ExpiredStockPolicy } from "@/lib/pos-config"
 import { effectiveTraits } from "@/lib/pos-profiles"
 import type { PosTrait } from "@/lib/pos-traits"
 
@@ -43,6 +43,8 @@ type TillTenant = {
   shopName: string
   traits: PosTrait[]
   negativeStock: NegativeStockPolicy
+  expiredStock: ExpiredStockPolicy
+  expiryWarningDays: number
   taxRate: number
   taxInclusive: boolean
   cashRounding: number
@@ -74,6 +76,8 @@ async function requireTill(): Promise<TillTenant | null> {
     shopName: shop.shopName,
     traits: effectiveTraits(shop.posProfileKey, shop.posTraits),
     negativeStock: config.negativeStock,
+    expiredStock: config.expiredStock,
+    expiryWarningDays: config.expiryWarningDays,
     taxRate: config.taxRate,
     taxInclusive: config.taxInclusive,
     cashRounding: config.cashRounding,
@@ -577,7 +581,7 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
     where: { shopkeeperId: till.shopkeeperId, id: { in: body.lines.map((l) => l.productId) } },
     select: {
       id: true, name: true, sku: true, barcode: true, unit: true,
-      price: true, discountPrice: true, costPrice: true, hasVariants: true,
+      price: true, discountPrice: true, costPrice: true, hasVariants: true, tracksBatches: true,
     },
   })
   const byId = new Map(products.map((p) => [p.id, p]))
@@ -593,13 +597,43 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
     : []
   const variantById = new Map(variants.map((v) => [v.id, v]))
 
+  // Every live batch of every product on this sale, soonest to expire
+  // first. One query rather than one per line, and the ORDER here IS the
+  // allocation policy: first-expired-first-out, with undated batches last
+  // because a batch that never goes off should be used after ones that do.
+  const batchedProductIds = products.filter((p) => p.tracksBatches).map((p) => p.id)
+  const batches = batchedProductIds.length
+    ? await db.productBatch.findMany({
+        where: { shopkeeperId: till.shopkeeperId, productId: { in: batchedProductIds }, isActive: true },
+        orderBy: [{ expiryDate: { sort: "asc", nulls: "last" } }, { receivedAt: "asc" }],
+        select: {
+          id: true, productId: true, variantId: true, batchNumber: true, expiryDate: true,
+          stockOnHand: true, currentStock: true, costPrice: true,
+        },
+      })
+    : []
+
   const allowFractional = till.traits.includes("MEASURED")
   const allowOverride = till.traits.includes("OPEN_PRICE")
+
+  /** One batch's share of a line, after FEFO allocation. */
+  type Allocation = { batchId: string; batchNumber: string | null; expiryDate: Date | null; quantity: Prisma.Decimal }
 
   type PricedLine = {
     productId: string
     variantId: string | null
     variantLabel: string | null
+    /**
+     * Which deliveries this line came out of, soonest-to-expire first.
+     * Empty for a product whose stock is not batched.
+     *
+     * A line CAN span several batches — nine boxes when the oldest delivery
+     * has four left — and that is normal rather than an edge case. The sale
+     * line records a single batch only when the whole line came from one;
+     * the stock movements carry the per-batch detail either way, and those
+     * are what a recall is traced through.
+     */
+    allocations: Allocation[]
     name: string
     sku: string
     barcode: string | null
@@ -614,6 +648,8 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
   }
 
   const priced: PricedLine[] = []
+  /** Shown on the receipt, like the negative-stock ones. */
+  const expiryWarnings: string[] = []
   let subtotal = D(0)
 
   for (const line of body.lines) {
@@ -674,10 +710,61 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
     }
     const totalPrice = gross.minus(lineDiscount)
 
+    // --- which deliveries this comes out of ----------------------------
+    const allocations: Allocation[] = []
+    if (product.tracksBatches) {
+      const now = new Date()
+      const candidates = batches.filter(
+        (b) => b.productId === product.id && (b.variantId ?? null) === (variant?.id ?? null),
+      )
+      if (candidates.length === 0) {
+        return { success: false, error: `${product.name} has no deliveries recorded. Receive stock before selling it.` }
+      }
+
+      let remaining = quantity
+      for (const b of candidates) {
+        if (remaining.lessThanOrEqualTo(0)) break
+        const available = b.stockOnHand ?? D(b.currentStock)
+        if (available.lessThanOrEqualTo(0)) continue
+
+        const expired = b.expiryDate !== null && b.expiryDate.getTime() < now.getTime()
+        if (expired && till.expiredStock === "BLOCK") continue
+
+        const take = available.lessThan(remaining) ? available : remaining
+        allocations.push({ batchId: b.id, batchNumber: b.batchNumber, expiryDate: b.expiryDate, quantity: take })
+        if (expired) {
+          expiryWarnings.push(
+            `${product.name}${variant ? " " + variant.label : ""}: sold from a batch that expired on ` +
+            b.expiryDate!.toLocaleDateString("en-KE") + ".",
+          )
+        }
+        // Spent within this sale, so a second line of the same product does
+        // not allocate the same units twice.
+        b.stockOnHand = available.minus(take)
+        b.currentStock = Math.max(0, Math.floor(Number(b.stockOnHand.toString())))
+        remaining = remaining.minus(take)
+      }
+
+      if (remaining.greaterThan(0)) {
+        // Under BLOCK, unexpired stock ran out. Naming the policy matters:
+        // the shopkeeper may be looking at boxes on the shelf and needs to
+        // know the till is refusing them on purpose.
+        const blocked = till.expiredStock === "BLOCK" &&
+          candidates.some((b) => b.expiryDate !== null && b.expiryDate.getTime() < now.getTime())
+        return {
+          success: false,
+          error: blocked
+            ? `${product.name} only has expired stock left, and this till is set to refuse it. Change it in POS Settings, or write the stock off.`
+            : `${product.name}: only ${quantity.minus(remaining).toString()} available across all deliveries.`,
+        }
+      }
+    }
+
     priced.push({
       productId: product.id,
       variantId: variant?.id ?? null,
       variantLabel: variant?.label ?? null,
+      allocations,
       name: product.name,
       // The variant's own code where it has one: that is what was scanned
       // and what the shopkeeper will look for on the receipt.
@@ -781,6 +868,12 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
                 // is: a receipt must stay readable after a size is
                 // discontinued and the row is gone.
                 variantLabel: l.variantLabel,
+                // Only when the WHOLE line came from one delivery. A line
+                // split across two batches has no single answer, and the
+                // stock movements carry the detail in that case.
+                batchId: l.allocations.length === 1 ? l.allocations[0].batchId : null,
+                batchNumber: l.allocations.length === 1 ? l.allocations[0].batchNumber : null,
+                batchExpiry: l.allocations.length === 1 ? l.allocations[0].expiryDate : null,
                 name: l.name,
                 sku: l.sku,
                 barcode: l.barcode,
@@ -810,33 +903,49 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
         // same keys and the ledger refuses them individually too.
         for (let i = 0; i < priced.length; i++) {
           const l = priced[i]
-          const moved = await recordStockMovement(tx as never, {
-            shopkeeperId: till.shopkeeperId,
-            productId: l.productId,
-            variantId: l.variantId,
-            kind: "SALE",
-            quantity: l.quantity.negated(),
-            unit: l.unit,
-            unitCost: l.costAtSale,
-            posSaleId: sale.id,
-            actorUserId: till.userId,
-            idempotencyKey: `${body.idempotencyKey}:L${i}`,
-            deviceId: body.deviceId?.trim() || null,
-            occurredAt,
-          }, till.negativeStock)
 
-          if (!moved.ok) {
-            // BLOCK, or a product that vanished mid-transaction. Throwing
-            // rolls back the sale entirely — a receipt the shop cannot
-            // account for is worse than a refused sale.
-            throw new PosSaleError(
-              moved.code === "INSUFFICIENT_STOCK"
-                ? `${l.name}: ${moved.message}`
-                : `${l.name} could not be taken out of stock. Nothing was recorded.`,
-            )
-          }
-          if (moved.balance.lessThan(0)) {
-            stockWarnings.push(`${l.name} is now ${moved.balance.toString()} ${l.unit} — below zero.`)
+          // A batched line becomes ONE MOVEMENT PER DELIVERY it came out
+          // of. That is what makes a recall answerable: "which sales touched
+          // batch X" is a query on these rows, and a single movement against
+          // the product would not be able to answer it.
+          //
+          // The idempotency key gains the allocation index, so a replayed
+          // sale replays each piece to its own key and the ledger refuses
+          // them individually too.
+          const pieces = l.allocations.length > 0
+            ? l.allocations.map((a, j) => ({ batchId: a.batchId, quantity: a.quantity, suffix: `L${i}B${j}` }))
+            : [{ batchId: null as string | null, quantity: l.quantity, suffix: `L${i}` }]
+
+          for (const piece of pieces) {
+            const moved = await recordStockMovement(tx as never, {
+              shopkeeperId: till.shopkeeperId,
+              productId: l.productId,
+              variantId: l.variantId,
+              batchId: piece.batchId,
+              kind: "SALE",
+              quantity: piece.quantity.negated(),
+              unit: l.unit,
+              unitCost: l.costAtSale,
+              posSaleId: sale.id,
+              actorUserId: till.userId,
+              idempotencyKey: `${body.idempotencyKey}:${piece.suffix}`,
+              deviceId: body.deviceId?.trim() || null,
+              occurredAt,
+            }, till.negativeStock)
+
+            if (!moved.ok) {
+              // BLOCK, or a product that vanished mid-transaction. Throwing
+              // rolls back the sale entirely — a receipt the shop cannot
+              // account for is worse than a refused sale.
+              throw new PosSaleError(
+                moved.code === "INSUFFICIENT_STOCK"
+                  ? `${l.name}: ${moved.message}`
+                  : `${l.name} could not be taken out of stock. Nothing was recorded.`,
+              )
+            }
+            if (moved.balance.lessThan(0)) {
+              stockWarnings.push(`${l.name} is now ${moved.balance.toString()} ${l.unit} — below zero.`)
+            }
           }
         }
 
@@ -855,7 +964,7 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
 
       return {
         success: true,
-        data: buildReceipt(till, result, result.items, result.payments, false, stockWarnings),
+        data: buildReceipt(till, result, result.items, result.payments, false, [...expiryWarnings, ...stockWarnings]),
       }
     } catch (e) {
       if (e instanceof PosSaleError) return { success: false, error: e.message }
@@ -973,30 +1082,43 @@ export async function voidPosSale(input: unknown): Promise<TillActionResult> {
           voidedByUserId: till.userId,
         },
       })
-      for (let i = 0; i < sale.items.length; i++) {
-        const item = sale.items[i]
-        if (!item.productId) continue  // the product is gone; nothing to restock
+      // Reverse the MOVEMENTS, not the lines.
+      //
+      // A line filled from two deliveries — nine boxes when the oldest had
+      // four left — has to go back to both, in the amounts it took from
+      // each. The movements are the only record of that split, so reading
+      // them is the only way to undo it correctly. Reversing the line
+      // instead would put all nine onto whichever batch the line happened
+      // to name, and silently move four boxes between deliveries.
+      const sold = await tx.stockMovement.findMany({
+        where: { shopkeeperId: till.shopkeeperId, posSaleId: sale.id, kind: "SALE" },
+        select: { id: true, productId: true, variantId: true, batchId: true, quantity: true, unit: true },
+        orderBy: { createdAt: "asc" },
+      })
+
+      for (const m of sold) {
         const back = await recordStockMovement(tx as never, {
           shopkeeperId: till.shopkeeperId,
-          productId: item.productId,
-          // Back onto the size it came off, not onto the product. Restocking
-          // a generic shirt after selling a medium is how a size count goes
-          // wrong in a way nobody notices for weeks.
-          variantId: item.variantId,
+          productId: m.productId,
+          // Back onto the size and the delivery it came off, not onto the
+          // product. Restocking a generic shirt after selling a medium is
+          // how a count goes wrong in a way nobody notices for weeks.
+          variantId: m.variantId,
+          batchId: m.batchId,
           kind: "SALE_REVERSAL",
-          quantity: D(item.quantity),
-          unit: item.unit,
+          quantity: D(m.quantity).negated(),
+          unit: m.unit,
           reason: `Sale ${sale.saleNumber} voided: ${parsed.data.reason}`,
           posSaleId: sale.id,
           actorUserId: till.userId,
-          // Derived from the sale id rather than the original key, so voiding
-          // is itself replay-safe and cannot restock twice.
-          idempotencyKey: `void:${sale.id}:L${i}`,
+          // Derived from the MOVEMENT id, so voiding is replay-safe per
+          // piece and cannot restock any of them twice.
+          idempotencyKey: `void:${m.id}`,
           occurredAt: new Date(),
         }, "ALLOW")
         // A reversal adds stock, so no policy can refuse it; a failure here
         // means something structural and must roll the void back.
-        if (!back.ok) throw new PosSaleError(`${item.name} could not be returned to stock. The sale was not voided.`)
+        if (!back.ok) throw new PosSaleError(`Sale ${sale.saleNumber} could not be returned to stock. Nothing was changed.`)
       }
     }, { timeout: 30000, maxWait: 10000 })
   } catch (e) {
