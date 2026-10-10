@@ -35,6 +35,8 @@ function LoginContent() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [otpDestination, setOtpDestination] = useState("")
+  /** True when the text could not be sent and the code went to email instead. */
+  const [otpFellBackToEmail, setOtpFellBackToEmail] = useState(false)
   const [otpDigits, setOtpDigits] = useState<string[]>(Array(OTP_LENGTH).fill(""))
   const [resendCooldown, setResendCooldown] = useState(0)
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([])
@@ -75,6 +77,24 @@ function LoginContent() {
   const identifier = loginMethod === "email" ? email : phone
   const isEmailValid = loginMethod === "email" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 
+  /**
+   * Where to go once they are in.
+   *
+   * A shop's own till address sends people here with ?next=/provider/till so
+   * they land at the register rather than the dashboard.
+   *
+   * Only a path on this site is honoured. Anything else — an absolute URL, a
+   * protocol-relative "//evil.example" — is dropped, because a login page
+   * that will forward you anywhere after authenticating is a phishing tool
+   * wearing our name.
+   */
+  const safeNext = (() => {
+    const raw = searchParams.get("next")
+    if (!raw) return null
+    if (!raw.startsWith("/") || raw.startsWith("//")) return null
+    return raw
+  })()
+
   const completeSignIn = async () => {
     setIsLoading(true)
     const result = await login(identifier, password)
@@ -84,7 +104,7 @@ function LoginContent() {
       setStep("credentials")
       return
     }
-    router.push(ROLE_HOME_PATH[result.role])
+    router.push(safeNext ?? ROLE_HOME_PATH[result.role])
   }
 
   const handleSubmitCredentials = async (e: React.FormEvent) => {
@@ -99,6 +119,7 @@ function LoginContent() {
       return
     }
     setOtpDestination(result.destination)
+    setOtpFellBackToEmail(result.fellBackToEmail)
     setOtpDigits(Array(OTP_LENGTH).fill(""))
     setResendCooldown(RESEND_COOLDOWN_SECONDS)
     setStep("otp")
@@ -163,6 +184,8 @@ function LoginContent() {
     const result = await requestLoginOtp(identifier, password)
     setIsLoading(false)
     if (!result.success) { setError(result.error); return }
+    setOtpDestination(result.destination)
+    setOtpFellBackToEmail(result.fellBackToEmail)
     setOtpDigits(Array(OTP_LENGTH).fill(""))
     setResendCooldown(RESEND_COOLDOWN_SECONDS)
     otpInputRefs.current[0]?.focus()
@@ -389,8 +412,20 @@ function LoginContent() {
               <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-5">
                 <ShieldCheck className="w-7 h-7 text-primary" />
               </div>
-              <h2 className="text-2xl font-bold text-foreground mb-1">{t("authPage.otp.verifyPhoneTitle")}</h2>
+              <h2 className="text-2xl font-bold text-foreground mb-1">
+                {t((otpFellBackToEmail || otpDestination.includes("@")) ? "authPage.otp.verifyEmailTitle" : "authPage.otp.verifyPhoneTitle")}
+              </h2>
               <p className="text-sm text-muted-foreground mb-6">{t("authPage.otp.codeSentTo", { destination: otpDestination })}</p>
+              {/* The code went somewhere other than the number they signed in
+                  with. Saying nothing would look like it never arrived. */}
+              {otpFellBackToEmail && (
+                <div className="mb-6 rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-900/20 px-3 py-2.5 text-left">
+                  <p className="text-xs text-amber-800 dark:text-amber-300 leading-snug">
+                    We could not send a text message just now, so the code went to the email on
+                    your account instead.
+                  </p>
+                </div>
+              )}
 
               {error && (
                 <div className="mb-4 p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm">{error}</div>

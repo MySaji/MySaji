@@ -482,7 +482,13 @@ export default function TillPage() {
 
   const doOpenShift = async () => {
     setBusy(true); setError("")
-    const r = await openTillShift({ openingFloat: Number(shiftOpening || 0) })
+    const r = await openTillShift({
+      openingFloat: Number(shiftOpening || 0),
+      // Who opened it and from where, so a shift that ends short can be
+      // traced to a person and a counter rather than to the account.
+      ...(cashier?.name ? { cashierName: cashier.name } : {}),
+      ...(deviceSecret ? { deviceSecret } : {}),
+    })
     setBusy(false)
     if (!r.success) { setError(r.error); return }
     setShiftOpening(""); setShowShift(false); void reload()

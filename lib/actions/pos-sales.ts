@@ -440,7 +440,39 @@ export type TillActionResult<T = undefined> =
 const openShiftSchema = z.object({
   openingFloat: z.number().min(0).max(10_000_000),
   cashierName: z.string().trim().max(80).optional(),
+  /** Which counter is opening it. Same contract as a sale's. */
+  deviceSecret: z.string().trim().max(200).optional(),
 })
+
+/**
+ * Which counter a request came from, by the device's own secret.
+ *
+ * Returns the row id to stamp on whatever is being written, or a refusal
+ * where the shop has stopped that device. A secret that matches nothing
+ * resolves to null: the till still works, it just cannot say where it is.
+ */
+async function resolveDevice(
+  shopkeeperId: string,
+  secret: string | undefined,
+): Promise<{ ok: true; deviceId: string | null } | { ok: false; error: string }> {
+  if (!secret) return { ok: true, deviceId: null }
+  const hash = createHash("sha256").update(secret).digest("hex")
+  const device = await db.posDevice.findUnique({
+    where: { tokenHash: hash },
+    select: { id: true, name: true, shopkeeperId: true, revokedAt: true },
+  })
+  if (!device || device.shopkeeperId !== shopkeeperId) return { ok: true, deviceId: null }
+  if (device.revokedAt) {
+    return {
+      ok: false,
+      error: device.name + " has been stopped from selling. Turn it back on under Settings \u2192 Devices, or use another till.",
+    }
+  }
+  // Last heard from. Deliberately not awaited inside a transaction: a slow
+  // write here must not widen the window on the stock rows.
+  void db.posDevice.update({ where: { id: device.id }, data: { lastSeenAt: new Date() } }).catch(() => {})
+  return { ok: true, deviceId: device.id }
+}
 
 export async function openTillShift(input: unknown): Promise<TillActionResult> {
   const till = await requireTill()
@@ -454,12 +486,18 @@ export async function openTillShift(input: unknown): Promise<TillActionResult> {
   })
   if (existing) return { success: false, error: "A shift is already open. Close it before starting another." }
 
+  // Which counter opened it. A shift that ends short is the first thing a
+  // shopkeeper asks about, and "which till was this" is half the answer.
+  const device = await resolveDevice(till.shopkeeperId, parsed.data.deviceSecret)
+  if (!device.ok) return { success: false, error: device.error }
+
   await db.tillSession.create({
     data: {
       shopkeeperId: till.shopkeeperId,
       cashierUserId: till.userId,
       cashierName: parsed.data.cashierName?.trim() || till.userName,
       openingFloat: D(parsed.data.openingFloat),
+      deviceId: device.deviceId,
     },
   })
   return { success: true } as TillActionResult
@@ -1081,26 +1119,9 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
   // turned away rather than have its sale half-recorded. A secret that
   // matches nothing is ignored: the shop still gets its sale, and the
   // devices page will show the counter next time it checks in.
-  let deviceId: string | null = null
-  if (body.deviceSecret) {
-    const hash = createHash("sha256").update(body.deviceSecret).digest("hex")
-    const device = await db.posDevice.findUnique({
-      where: { tokenHash: hash },
-      select: { id: true, name: true, shopkeeperId: true, revokedAt: true },
-    })
-    if (device && device.shopkeeperId === till.shopkeeperId) {
-      if (device.revokedAt) {
-        return {
-          success: false,
-          error: device.name + " has been stopped from selling. Turn it back on under Settings \u2192 Devices, or use another till.",
-        }
-      }
-      deviceId = device.id
-      // Last heard from. Deliberately not inside the sale transaction: a
-      // slow write here must not widen the window on the stock rows.
-      void db.posDevice.update({ where: { id: device.id }, data: { lastSeenAt: new Date() } }).catch(() => {})
-    }
-  }
+  const device = await resolveDevice(till.shopkeeperId, body.deviceSecret)
+  if (!device.ok) return { success: false, error: device.error }
+  const deviceId = device.deviceId
 
   // --- who served -----------------------------------------------------
   //

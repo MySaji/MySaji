@@ -40,10 +40,22 @@ function maskDestination(value: string): string {
   return `${value.slice(0, 7)}${"*".repeat(Math.max(value.length - 10, 3))}${value.slice(-3)}`
 }
 
-async function issueAndSendCode(identifierKey: string, destination: string): Promise<{ sent: true } | { sent: false; error: string }> {
-  await db.verificationToken.deleteMany({ where: { identifier: identifierKey } })
+/**
+ * Where a code actually went.
+ *
+ * `channel` is what the code was sent over and `destination` is where, which
+ * are NOT always what was asked for: a phone send that the provider refuses
+ * falls back to email where one is available. The screen that asks for the
+ * code has to verify against the destination that was really used, so this
+ * has to come back rather than be assumed.
+ */
+type SendOutcome =
+  | { sent: true; channel: "email" | "sms"; destination: string; fellBackToEmail: boolean }
+  | { sent: false; error: string }
 
-  if (looksLikeEmail(destination)) {
+async function sendEmailCode(identifierKey: string, destination: string): Promise<{ sent: true } | { sent: false; error: string }> {
+  await db.verificationToken.deleteMany({ where: { identifier: identifierKey } })
+  {
     // Self-generated code + real SMTP delivery — unchanged; Infobip's 2FA
     // product only covers the SMS/phone channel.
     let code = generateCode()
@@ -67,18 +79,61 @@ async function issueAndSendCode(identifierKey: string, destination: string): Pro
       `,
     })
     const result = await sendEmail({ to: destination, subject: "Your SAJI verification code", html })
-    if (!result.sent) return { sent: false, error: "Email service is not configured. Could not send a code." }
+    if (!result.sent) return { sent: false, error: "We could not send the code by email just now. Please try again shortly." }
     return { sent: true }
+  }
+}
+
+/**
+ * Send a code, preferring the channel asked for.
+ *
+ * `fallbackEmail` is the address the same form already collected. It is used
+ * ONLY when the SMS provider will not send for us — no credit, bad key, an
+ * outage. That is our problem, not the applicant's, and dead-ending someone
+ * on it when we are holding a working email address is the wrong answer: a
+ * shopkeeper who cannot finish signing up does not file a bug, they leave.
+ *
+ * A number that is simply wrong does NOT fall back. Silently emailing a code
+ * to someone who mistyped their phone number would hide the mistake and
+ * leave a wrong number on the account forever.
+ */
+async function issueAndSendCode(
+  identifierKey: string,
+  destination: string,
+  fallbackEmail?: string,
+): Promise<SendOutcome> {
+  if (looksLikeEmail(destination)) {
+    const r = await sendEmailCode(identifierKey, destination)
+    return r.sent
+      ? { sent: true, channel: "email", destination, fellBackToEmail: false }
+      : { sent: false, error: r.error }
   }
 
   // Phone destinations: Infobip's 2FA API generates, stores, and verifies
   // the PIN itself — this app only ever learns the opaque pinId, stored
   // here as the "token" under the same identifier scheme every other
   // channel uses, never the PIN value.
+  await db.verificationToken.deleteMany({ where: { identifier: identifierKey } })
   const result = await sendInfobipPin(destination)
-  if (!result.sent) return { sent: false, error: result.error }
-  await db.verificationToken.create({ data: { identifier: identifierKey, token: result.pinId, expires: new Date(Date.now() + 15 * 60 * 1000) } })
-  return { sent: true }
+  if (result.sent) {
+    await db.verificationToken.create({ data: { identifier: identifierKey, token: result.pinId, expires: new Date(Date.now() + 15 * 60 * 1000) } })
+    return { sent: true, channel: "sms", destination, fellBackToEmail: false }
+  }
+
+  const canFallBack =
+    (result.reason === "unavailable" || result.reason === "unconfigured") &&
+    Boolean(fallbackEmail && looksLikeEmail(fallbackEmail))
+  if (!canFallBack) return { sent: false, error: result.error }
+
+  const email = fallbackEmail!.trim().toLowerCase()
+  // Keyed to the EMAIL, because that is what the code was sent to and what
+  // the verify step will have to check against.
+  const emailKey = identifierKey.replace(destination, email)
+  const viaEmail = await sendEmailCode(emailKey, email)
+  if (!viaEmail.sent) {
+    return { sent: false, error: "We could not reach you by text or by email just now. Please try again shortly." }
+  }
+  return { sent: true, channel: "email", destination: email, fellBackToEmail: true }
 }
 
 async function checkCode(identifierKey: string, code: string, destination: string, rateLimitBucket: string): Promise<{ valid: true } | { valid: false; error: string }> {
@@ -107,7 +162,9 @@ async function checkCode(identifierKey: string, code: string, destination: strin
 // session. The client still calls the real signIn("credentials", ...) as
 // the final step once verifyLoginOtp() below succeeds.
 
-export type RequestLoginOtpResult = { success: true; destination: string } | { success: false; error: string }
+export type RequestLoginOtpResult =
+  | { success: true; destination: string; fellBackToEmail: boolean }
+  | { success: false; error: string }
 
 export async function requestLoginOtp(identifier: string, password: string): Promise<RequestLoginOtpResult> {
   if (!identifier || !password) return { success: false, error: "Please fill in all fields." }
@@ -138,10 +195,17 @@ export async function requestLoginOtp(identifier: string, password: string): Pro
     return { success: false, error: `Too many codes requested. Please try again in ${Math.ceil(sendLimit.retryAfterSeconds / 60)} minute(s).` }
   }
 
-  const result = await issueAndSendCode(`login-otp:${destination}`, destination)
+  // Signing in by phone on an account that has an email: if the text cannot
+  // be sent, the code goes to that email rather than locking the owner out
+  // of their own shop over our SMS bill.
+  const result = await issueAndSendCode(`login-otp:${destination}`, destination, user.email ?? undefined)
   if (!result.sent) return { success: false, error: result.error }
 
-  return { success: true, destination: maskDestination(destination) }
+  return {
+    success: true,
+    destination: maskDestination(result.destination),
+    fellBackToEmail: result.fellBackToEmail,
+  }
 }
 
 export type VerifyLoginOtpResult = { success: true } | { success: false; error: string }
@@ -150,10 +214,22 @@ export async function verifyLoginOtp(identifier: string, code: string): Promise<
   const destination = canonicalIdentifier(identifier)
   if (!destination) return { success: false, error: "Invalid verification code." }
 
-  const result = await checkCode(`login-otp:${destination}`, code, destination, `otp-verify:${destination}`)
+  // The code may have gone to the account's email instead, so the phone key
+  // is tried first and the email key second. Checking only the phone key
+  // would refuse a code we ourselves chose to email.
+  let result = await checkCode(`login-otp:${destination}`, code, destination, `otp-verify:${destination}`)
+  let usedKey = `login-otp:${destination}`
+  if (!result.valid && !looksLikeEmail(destination)) {
+    const user = await db.user.findFirst({ where: { phone: destination }, select: { email: true } })
+    if (user?.email) {
+      const emailKey = `login-otp:${user.email.toLowerCase()}`
+      const viaEmail = await checkCode(emailKey, code, user.email.toLowerCase(), `otp-verify:${destination}`)
+      if (viaEmail.valid) { result = viaEmail; usedKey = emailKey }
+    }
+  }
   if (!result.valid) return { success: false, error: result.error }
 
-  await db.verificationToken.deleteMany({ where: { identifier: `login-otp:${destination}` } })
+  await db.verificationToken.deleteMany({ where: { identifier: usedKey } })
   return { success: true }
 }
 
@@ -163,9 +239,23 @@ export async function verifyLoginOtp(identifier: string, code: string): Promise<
 // short-lived proof token that registerUser() (lib/actions/auth.ts) must
 // be given — the client can't skip straight to account creation without it.
 
-export type SendSignupOtpResult = { success: true } | { success: false; error: string }
+export type SendSignupOtpResult =
+  | {
+      success: true
+      /** Where the code really went — may not be what was asked for. */
+      destination: string
+      channel: "email" | "sms"
+      /** True when a text could not be sent and the email was used instead. */
+      fellBackToEmail: boolean
+    }
+  | { success: false; error: string }
 
-export async function sendSignupOtp(rawIdentifier: string): Promise<SendSignupOtpResult> {
+/**
+ * @param rawIdentifier the phone or email the applicant chose to verify with
+ * @param fallbackEmail the address the same form collected, used only if the
+ *   SMS provider refuses to send for us
+ */
+export async function sendSignupOtp(rawIdentifier: string, fallbackEmail?: string): Promise<SendSignupOtpResult> {
   const destination = canonicalIdentifier(rawIdentifier)
   if (!destination) return { success: false, error: "Please enter a valid email or phone number." }
 
@@ -177,13 +267,34 @@ export async function sendSignupOtp(rawIdentifier: string): Promise<SendSignupOt
     return { success: false, error: `Too many codes requested. Please try again in ${Math.ceil(sendLimit.retryAfterSeconds / 60)} minute(s).` }
   }
 
-  const result = await issueAndSendCode(`signup-otp:${destination}`, destination)
+  // A signup form always collects both, so an SMS outage never has to end
+  // the signup. The address is checked for an existing account first: a
+  // fallback that emailed a code to someone already registered would be a
+  // way to probe which addresses exist.
+  let usableFallback: string | undefined
+  if (fallbackEmail && looksLikeEmail(fallbackEmail) && !looksLikeEmail(destination)) {
+    const email = fallbackEmail.trim().toLowerCase()
+    const taken = await db.user.findFirst({ where: { email }, select: { id: true } })
+    if (!taken) usableFallback = email
+  }
+
+  const result = await issueAndSendCode(`signup-otp:${destination}`, destination, usableFallback)
   if (!result.sent) return { success: false, error: result.error }
-  return { success: true }
+  return {
+    success: true,
+    destination: result.destination,
+    channel: result.channel,
+    fellBackToEmail: result.fellBackToEmail,
+  }
 }
 
 export type VerifySignupOtpResult = { success: true; proof: string } | { success: false; error: string }
 
+/**
+ * @param rawIdentifier where the code was actually SENT, which the caller is
+ *   told by sendSignupOtp. Passing the originally-chosen phone number after
+ *   a fallback to email would refuse a code we emailed ourselves.
+ */
 export async function verifySignupOtp(rawIdentifier: string, code: string): Promise<VerifySignupOtpResult> {
   const destination = canonicalIdentifier(rawIdentifier)
   if (!destination) return { success: false, error: "Invalid verification code." }

@@ -146,6 +146,7 @@ const en = {
 
   // Phone/email OTP (login 2FA + signup verification)
   "authPage.otp.verifyPhoneTitle": "Verify Your Phone",
+  "authPage.otp.verifyEmailTitle": "Verify Your Email",
   "authPage.otp.codeSentTo": "Enter the 6-digit code sent to {{destination}}",
   "authPage.otp.verifyAndContinue": "Verify & Continue",
   "authPage.otp.resendIn": "Resend code in 00:{{seconds}}",
@@ -350,6 +351,7 @@ const sw: Record<keyof typeof en, string> = {
   "authPage.forgotPassword.codeLength": "Msimbo wa uthibitisho lazima uwe na tarakimu 6",
 
   "authPage.otp.verifyPhoneTitle": "Thibitisha Simu Yako",
+  "authPage.otp.verifyEmailTitle": "Thibitisha Barua Pepe Yako",
   "authPage.otp.codeSentTo": "Ingiza msimbo wa tarakimu 6 uliotumwa kwa {{destination}}",
   "authPage.otp.verifyAndContinue": "Thibitisha & Endelea",
   "authPage.otp.resendIn": "Tuma tena msimbo baada ya 00:{{seconds}}",
@@ -548,6 +550,7 @@ const fr: Record<keyof typeof en, string> = {
   "authPage.forgotPassword.codeLength": "Le code de vérification doit contenir 6 chiffres",
 
   "authPage.otp.verifyPhoneTitle": "Vérifiez Votre Téléphone",
+  "authPage.otp.verifyEmailTitle": "Vérifiez Votre E-mail",
   "authPage.otp.codeSentTo": "Saisissez le code à 6 chiffres envoyé à {{destination}}",
   "authPage.otp.verifyAndContinue": "Vérifier & Continuer",
   "authPage.otp.resendIn": "Renvoyer le code dans 00:{{seconds}}",

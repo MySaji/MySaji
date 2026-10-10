@@ -119,6 +119,17 @@ export default function SignupPage() {
 
   const primaryIdentifier = signupMethod === "phone" ? formData.phone : formData.email
 
+  /**
+   * Where the code was actually sent, which is not always what was asked for.
+   *
+   * If a text cannot be sent — our SMS account, never the applicant — the
+   * server falls back to the email this same form already collected and says
+   * so here. The verify call must then use THIS, not the phone number, or we
+   * would refuse a code we emailed ourselves.
+   */
+  const [otpSentTo, setOtpSentTo] = useState("")
+  const [otpFellBackToEmail, setOtpFellBackToEmail] = useState(false)
+
   const handleSelectRole = (role: UserRole) => {
     handleChange("role", role)
     // Saji Pro says up front what it does and whether it's one person or a
@@ -215,9 +226,11 @@ export default function SignupPage() {
     setError("")
     if (!validateDetails()) return
     setIsLoading(true)
-    const result = await sendSignupOtp(primaryIdentifier)
+    const result = await sendSignupOtp(primaryIdentifier, formData.email)
     setIsLoading(false)
     if (!result.success) { setError(result.error); return }
+    setOtpSentTo(result.destination)
+    setOtpFellBackToEmail(result.fellBackToEmail)
     setOtpDigits(Array(OTP_LENGTH).fill(""))
     setResendCooldown(RESEND_COOLDOWN_SECONDS)
     setStep("otp")
@@ -239,7 +252,7 @@ export default function SignupPage() {
     if (code.length !== OTP_LENGTH) { setError(t("authPage.login.enterFullCode")); return }
     setError("")
     setIsLoading(true)
-    const result = await verifySignupOtp(primaryIdentifier, code)
+    const result = await verifySignupOtp(otpSentTo || primaryIdentifier, code)
     setIsLoading(false)
     if (!result.success) { setError(result.error); return }
     setVerificationProof(result.proof)
@@ -277,9 +290,11 @@ export default function SignupPage() {
     if (resendCooldown > 0) return
     setError("")
     setIsLoading(true)
-    const result = await sendSignupOtp(primaryIdentifier)
+    const result = await sendSignupOtp(primaryIdentifier, formData.email)
     setIsLoading(false)
     if (!result.success) { setError(result.error); return }
+    setOtpSentTo(result.destination)
+    setOtpFellBackToEmail(result.fellBackToEmail)
     setOtpDigits(Array(OTP_LENGTH).fill(""))
     setResendCooldown(RESEND_COOLDOWN_SECONDS)
     otpInputRefs.current[0]?.focus()
@@ -795,8 +810,23 @@ export default function SignupPage() {
               <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-5">
                 <ShieldCheck className="w-7 h-7 text-primary" />
               </div>
-              <h2 className="text-2xl font-bold text-foreground mb-1">{t("authPage.otp.verifyPhoneTitle")}</h2>
-              <p className="text-sm text-muted-foreground mb-6">{t("authPage.otp.codeSentTo", { destination: primaryIdentifier })}</p>
+              <h2 className="text-2xl font-bold text-foreground mb-1">
+                {t((otpSentTo || primaryIdentifier).includes("@") ? "authPage.otp.verifyEmailTitle" : "authPage.otp.verifyPhoneTitle")}
+              </h2>
+              <p className="text-sm text-muted-foreground mb-6">
+                {t("authPage.otp.codeSentTo", { destination: otpSentTo || primaryIdentifier })}
+              </p>
+              {/* Said plainly, because the code arrived somewhere other than
+                  where they asked for it and silence would just look broken. */}
+              {otpFellBackToEmail && (
+                <div className="mb-6 rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-900/20 px-3 py-2.5 text-left">
+                  <p className="text-xs text-amber-800 dark:text-amber-300 leading-snug">
+                    We could not send a text message just now, so the code went to your email
+                    instead. Nothing is wrong with your number &mdash; check your inbox, and the
+                    spam folder if it is not there.
+                  </p>
+                </div>
+              )}
 
               <div className="flex gap-2 sm:gap-3 mb-5 justify-between">
                 {otpDigits.map((digit, i) => (

@@ -299,7 +299,15 @@ export default function TillReportsPage() {
 
       {/* ---- shifts ----------------------------------------------------------- */}
       <Card className="p-4 rounded-2xl">
-        <h2 className="text-sm font-bold text-gray-900 dark:text-white">Recent shifts</h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-sm font-bold text-gray-900 dark:text-white">Recent shifts</h2>
+          <Link
+            href="/provider/till/shifts"
+            className="h-9 inline-flex items-center px-2 -mr-2 rounded-lg text-[11px] font-semibold text-primary active:scale-95"
+          >
+            All shifts
+          </Link>
+        </div>
         {shifts.length === 0 ? (
           <p className="mt-1.5 text-[11px] text-gray-500 dark:text-gray-400 leading-snug">
             No shifts recorded. Opening one before you start logs the cash you began with, so the

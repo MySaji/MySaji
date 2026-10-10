@@ -185,6 +185,8 @@ export type ShiftRow = {
   variance: number | null
   note: string | null
   saleCount: number
+  /** Which counter it was opened on, where the device said so. */
+  deviceName: string | null
 }
 
 /**
@@ -207,9 +209,22 @@ export async function getShiftHistory(input: unknown): Promise<ShiftRow[]> {
     select: {
       id: true, cashierName: true, openedAt: true, closedAt: true,
       openingFloat: true, expectedCash: true, countedCash: true, variance: true, note: true,
+      deviceId: true,
       _count: { select: { sales: true } },
     },
   })
+
+  // One lookup for the whole page rather than a join per row. deviceId is a
+  // plain column, not a relation, because a shift outlives the device it was
+  // opened on and must not be deleted with it.
+  const deviceIds = [...new Set(shifts.map((x) => x.deviceId).filter(Boolean))] as string[]
+  const devices = deviceIds.length
+    ? await db.posDevice.findMany({
+        where: { id: { in: deviceIds }, shopkeeperId: tenant.shopkeeperId },
+        select: { id: true, name: true },
+      })
+    : []
+  const deviceName = new Map(devices.map((d) => [d.id, d.name]))
 
   return shifts.map((s) => ({
     id: s.id,
@@ -222,6 +237,63 @@ export async function getShiftHistory(input: unknown): Promise<ShiftRow[]> {
     variance: s.variance == null ? null : n(s.variance),
     note: s.note,
     saleCount: s._count.sales,
+    deviceName: s.deviceId ? deviceName.get(s.deviceId) ?? null : null,
+  }))
+}
+
+export type ShiftSaleRow = {
+  id: string
+  /** Receipt number. A string: it is printed, not counted with. */
+  saleNumber: string
+  occurredAt: string
+  total: number
+  paymentMethod: string
+  status: string
+  cashierName: string | null
+  itemCount: number
+}
+
+/**
+ * The sales that made up one shift.
+ *
+ * Exists because "you are 400 short" is not an answer a cashier can do
+ * anything with. The next question is always "short on what", and the only
+ * way to answer it is the list of what went through while the drawer was
+ * open — including the voids, which are the usual explanation.
+ */
+export async function getShiftSales(input: unknown): Promise<ShiftSaleRow[]> {
+  const tenant = await requireReportTenant()
+  if (!tenant) return []
+  const parsed = z.object({ shiftId: z.string().trim().min(1) }).safeParse(input)
+  if (!parsed.success) return []
+
+  // Scoped by shopkeeperId as well as id: a shift id from another shop must
+  // return nothing rather than that shop's takings.
+  const shift = await db.tillSession.findFirst({
+    where: { id: parsed.data.shiftId, shopkeeperId: tenant.shopkeeperId },
+    select: { id: true },
+  })
+  if (!shift) return []
+
+  const sales = await db.posSale.findMany({
+    where: { tillSessionId: shift.id, shopkeeperId: tenant.shopkeeperId },
+    orderBy: { occurredAt: "asc" },
+    select: {
+      id: true, saleNumber: true, occurredAt: true, total: true,
+      paymentMethod: true, status: true, cashierName: true,
+      _count: { select: { items: true } },
+    },
+  })
+
+  return sales.map((x) => ({
+    id: x.id,
+    saleNumber: x.saleNumber,
+    occurredAt: x.occurredAt.toISOString(),
+    total: n(x.total),
+    paymentMethod: String(x.paymentMethod),
+    status: String(x.status),
+    cashierName: x.cashierName,
+    itemCount: x._count.items,
   }))
 }
 

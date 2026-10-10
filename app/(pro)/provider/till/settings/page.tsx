@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import {
   ArrowLeft, Calculator, Check, Clock, Loader2, Search, Store,
-  AlertTriangle, Save, Users, ChevronRight, Monitor,
+  AlertTriangle, Save, Users, ChevronRight, Monitor, MonitorDown,
 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -373,6 +373,21 @@ export default function PosSettingsPage() {
             <span className="block text-sm font-bold text-gray-900 dark:text-white">Who works the till</span>
             <span className="block text-xs text-gray-500 dark:text-gray-400 leading-snug mt-0.5">
               Give each person a PIN and their name goes on the sales they ring up.
+            </span>
+          </span>
+          <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0" />
+        </Card>
+      </Link>
+
+      <Link href="/provider/till/get" className="block active:scale-[0.99] transition-transform">
+        <Card className="p-4 rounded-2xl flex items-center gap-3">
+          <span className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+            <MonitorDown className="w-4 h-4" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-bold text-gray-900 dark:text-white">Get your till</span>
+            <span className="block text-xs text-gray-500 dark:text-gray-400 leading-snug mt-0.5">
+              Install it on the counter machine, or send the address to the phone that will be the till.
             </span>
           </span>
           <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0" />
