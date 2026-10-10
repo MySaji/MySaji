@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import {
   ArrowLeft, Calculator, Check, Clock, Loader2, Search, Store,
-  AlertTriangle, Save,
+  AlertTriangle, Save, Users, ChevronRight, Monitor,
 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -122,7 +122,7 @@ export default function PosSettingsPage() {
       <div className="flex items-center gap-2">
         <Link
           href="/provider/till"
-          className="text-sm text-gray-500 hover:text-gray-900 dark:hover:text-white flex items-center gap-1 active:scale-95 transition-transform"
+          className="text-sm text-gray-500 hover:text-gray-900 dark:hover:text-white inline-flex items-center gap-1 h-9 -ml-1 px-1 rounded-lg active:scale-95 transition-transform"
         >
           <ArrowLeft className="w-4 h-4" /> Till
         </Link>
@@ -360,6 +360,39 @@ export default function PosSettingsPage() {
           </div>
         )}
       </Card>
+
+      {/* --- who works the till ---------------------------------------------
+          Its own page: a list that grows, a form, and two settings that only
+          make sense next to that list. */}
+      <Link href="/provider/till/people" className="block active:scale-[0.99] transition-transform">
+        <Card className="p-4 rounded-2xl flex items-center gap-3">
+          <span className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+            <Users className="w-4 h-4" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-bold text-gray-900 dark:text-white">Who works the till</span>
+            <span className="block text-xs text-gray-500 dark:text-gray-400 leading-snug mt-0.5">
+              Give each person a PIN and their name goes on the sales they ring up.
+            </span>
+          </span>
+          <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0" />
+        </Card>
+      </Link>
+
+      <Link href="/provider/till/devices" className="block active:scale-[0.99] transition-transform">
+        <Card className="p-4 rounded-2xl flex items-center gap-3">
+          <span className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+            <Monitor className="w-4 h-4" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-bold text-gray-900 dark:text-white">Devices</span>
+            <span className="block text-xs text-gray-500 dark:text-gray-400 leading-snug mt-0.5">
+              Which phones and computers have your till open, and when each was last heard from.
+            </span>
+          </span>
+          <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0" />
+        </Card>
+      </Link>
 
       {/* --- 3. When stock runs out ----------------------------------------- */}
       <Card className="p-4 rounded-2xl">

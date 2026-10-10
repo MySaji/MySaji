@@ -6,6 +6,7 @@ import {
   Calculator, Loader2, Search, Plus, Minus, Trash2, X, ArrowRight, ArrowLeft,
   SlidersHorizontal, Package, AlertTriangle, Clock, Banknote, Smartphone,
   CreditCard, Landmark, HandCoins, ShoppingCart, CloudOff, RefreshCw, Check, FileLock, Hammer,
+  User, ShieldCheck, LogOut, Delete,
 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -14,6 +15,9 @@ import {
   getTillState, findTillProducts, recordPosSale, openTillShift, closeTillShift, voidPosSale,
   type TillState, type TillProduct, type TillVariant, type Receipt, type ShiftCloseSummary,
 } from "@/lib/actions/pos-sales"
+import { getCashierMode, signInCashier } from "@/lib/actions/pos-cashiers"
+import { registerTillDevice } from "@/lib/actions/pos-devices"
+import { getDeviceSecret, guessDeviceName, guessPlatform } from "@/lib/pos-device"
 import { TillReceipt } from "@/components/pos/till-receipt"
 import { TillInstall } from "@/components/pos/till-install"
 import { usePosOffline } from "@/lib/hooks/usePosOffline"
@@ -141,6 +145,35 @@ export default function TillPage() {
   const [asDeposit, setAsDeposit] = useState(false)
   const [dueDate, setDueDate] = useState("")
 
+  /**
+   * Who is at the counter.
+   *
+   * Null means nobody has signed in, which is the normal state for a shop
+   * run by one person: the server then records the sale under the account
+   * holder's name. A shop that has added cashiers is asked, because the
+   * whole point of adding them was to know which one served.
+   */
+  const [cashier, setCashier] = useState<{ id: string; name: string; role: string } | null>(null)
+  const [mode, setMode] = useState<{
+    anyCashiers: boolean; voidNeedsManager: boolean; requirePinPerSale: boolean; ownerName: string
+  } | null>(null)
+  const [pin, setPin] = useState("")
+  const [pinError, setPinError] = useState("")
+  const [pinBusy, setPinBusy] = useState(false)
+
+  /**
+   * This counter, as the shop knows it.
+   *
+   * The secret is read once and sent with every sale. Null where storage is
+   * blocked, and the till sells anyway — a sale that cannot say which
+   * counter it came from is a smaller problem than a shop that cannot sell.
+   */
+  const [deviceSecret, setDeviceSecret] = useState<string | null>(null)
+  const [deviceRevoked, setDeviceRevoked] = useState<{ name: string } | null>(null)
+
+  /** Open while a void is being asked for: the reason, and a manager's PIN where one is needed. */
+  const [voidAsk, setVoidAsk] = useState<{ reason: string; pin: string } | null>(null)
+
   const [shiftOpening, setShiftOpening] = useState("")
   const [shiftCounted, setShiftCounted] = useState("")
   const [shiftNote, setShiftNote] = useState("")
@@ -148,6 +181,26 @@ export default function TillPage() {
   const [closeSummary, setCloseSummary] = useState<ShiftCloseSummary | null>(null)
 
   const reload = useCallback(() => getTillState().then(setState), [])
+
+  // Say hello, so the shop can see which counters are open and which have
+  // gone quiet. A failure here is ignored: the till does not need the
+  // server's permission to know which device it is.
+  useEffect(() => {
+    const secret = getDeviceSecret()
+    if (!secret) return
+    setDeviceSecret(secret)
+    registerTillDevice({ secret, name: guessDeviceName(), platform: guessPlatform() })
+      .then((r) => { if (r.success && r.revoked) setDeviceRevoked({ name: r.name }) })
+      .catch(() => {})
+  }, [])
+
+  // Who may work this till. Deliberately NOT part of getTillState: a till
+  // that cannot reach the server must still sell, so a failure here leaves
+  // mode null and no sign-in is asked for. A PIN says who served; it is not
+  // a lock, and treating it as one would shut a shop.
+  useEffect(() => {
+    getCashierMode().then((m) => { if (m) setMode(m) }).catch(() => {})
+  }, [])
 
   useEffect(() => {
     Promise.all([
@@ -323,6 +376,10 @@ export default function TillPage() {
     setBuyer({ name: "", idNumber: "", phone: "", prescriberName: "", prescriptionRef: "" })
     setAsDeposit(false); setDueDate("")
     setIdempotencyKey(newKey())
+    // A counter several people share: whoever serves the next customer signs
+    // in for it. Without this the first person to touch the till owns the
+    // whole day's sales, which is the opposite of what the setting is for.
+    if (mode?.requirePinPerSale) setCashier(null)
     setView("sell")
     searchRef.current?.focus()
   }
@@ -363,6 +420,12 @@ export default function TillPage() {
         },
       } : {}),
       ...(customerName.trim() ? { customerName: customerName.trim() } : {}),
+      // Who rang it up. Left off where nobody signed in, and the server
+      // falls back to the account holder rather than refusing.
+      ...(cashier?.id ? { cashierId: cashier.id } : {}),
+      // Which counter. Goes into the offline queue with the rest of the
+      // sale, so a sale that syncs tomorrow still says where it came from.
+      ...(deviceSecret ? { deviceSecret } : {}),
     }
 
     const r = await offline.submitSale(payload, { total, itemCount: cart.length })
@@ -388,14 +451,31 @@ export default function TillPage() {
     setIdempotencyKey(newKey())
   }
 
+  const doSignIn = async (entered: string) => {
+    setPinBusy(true); setPinError("")
+    const r = await signInCashier({ pin: entered })
+    setPinBusy(false)
+    setPin("")
+    if (!r.success) { setPinError(r.error); return }
+    setCashier({ id: r.cashierId, name: r.name, role: r.role })
+    searchRef.current?.focus()
+  }
+
+  const doSignOut = () => { setCashier(null); setPin(""); setPinError(""); clearSale() }
+
   const doVoid = async () => {
     if (!receipt) return
-    const reason = window.prompt("Why is this sale being voided?")
-    if (!reason || reason.trim().length < 3) return
-    setBusy(true)
-    const r = await voidPosSale({ saleId: receipt.saleId, reason: reason.trim() })
+    if (!voidAsk) { setVoidAsk({ reason: "", pin: "" }); return }
+    if (voidAsk.reason.trim().length < 3) return
+    setBusy(true); setError("")
+    const r = await voidPosSale({
+      saleId: receipt.saleId,
+      reason: voidAsk.reason.trim(),
+      ...(voidAsk.pin ? { managerPin: voidAsk.pin } : {}),
+    })
     setBusy(false)
     if (!r.success) { setError(r.error); return }
+    setVoidAsk(null)
     void reload()
     clearSale()
   }
@@ -448,9 +528,54 @@ export default function TillPage() {
 
   if (view === "receipt" && receipt) {
     return (
-      <div className="p-4">
+      <div className="p-4 space-y-3">
         {error && <ErrorNote>{error}</ErrorNote>}
-        <TillReceipt receipt={receipt} onNewSale={clearSale} onVoid={busy ? undefined : doVoid} />
+        {voidAsk && (
+          <div className="mx-auto w-full max-w-sm rounded-2xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/15 p-3 space-y-2.5">
+            <p className="text-xs font-bold text-red-900 dark:text-red-300">Void this sale</p>
+            <p className="text-[11px] text-red-800/80 dark:text-red-400/80 leading-snug">
+              The stock goes back on the shelf and the money comes off the day&apos;s takings. The
+              sale is kept, marked voided &mdash; it is not erased.
+            </p>
+            <Input
+              value={voidAsk.reason}
+              onChange={(e) => setVoidAsk({ ...voidAsk, reason: e.target.value })}
+              placeholder="Why? e.g. rung up twice"
+              className="h-11 rounded-xl text-sm bg-white dark:bg-gray-900"
+            />
+            {mode?.voidNeedsManager && (
+              <div>
+                <label className="text-[11px] font-semibold text-red-900 dark:text-red-300">
+                  A manager has to approve this
+                </label>
+                <Input
+                  value={voidAsk.pin}
+                  onChange={(e) => setVoidAsk({ ...voidAsk, pin: e.target.value.replace(/\D/g, "").slice(0, 6) })}
+                  inputMode="numeric"
+                  autoComplete="off"
+                  placeholder="Manager PIN"
+                  className="mt-1 h-11 rounded-xl text-sm tracking-[0.4em] font-mono bg-white dark:bg-gray-900"
+                />
+              </div>
+            )}
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setVoidAsk(null); setError("") }}
+                className="h-11 px-4 rounded-xl border border-red-200 dark:border-red-900 text-xs font-semibold text-red-700 dark:text-red-300 active:scale-95"
+              >
+                Keep it
+              </button>
+              <button
+                onClick={doVoid}
+                disabled={busy || voidAsk.reason.trim().length < 3 || (!!mode?.voidNeedsManager && voidAsk.pin.length < 4)}
+                className="flex-1 h-11 rounded-xl bg-red-600 text-white text-xs font-semibold active:scale-95 disabled:opacity-50"
+              >
+                {busy ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "Void the sale"}
+              </button>
+            </div>
+          </div>
+        )}
+        <TillReceipt receipt={receipt} onNewSale={clearSale} onVoid={busy || voidAsk ? undefined : doVoid} />
       </div>
     )
   }
@@ -496,6 +621,113 @@ export default function TillPage() {
         >
           Next sale
         </button>
+      </div>
+    )
+  }
+
+  // ---- a device the shop has stopped --------------------------------------
+  //
+  // Said here rather than at the moment of payment. Finding out that this
+  // phone is barred when a customer is standing at the counter with their
+  // money out is the wrong time to find out.
+  if (deviceRevoked) {
+    return (
+      <div className="p-4 pb-28 lg:pb-4 mx-auto w-full max-w-sm">
+        <div className="rounded-2xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/15 p-4 text-center">
+          <div className="mx-auto w-10 h-10 rounded-full bg-red-600 text-white flex items-center justify-center">
+            <AlertTriangle className="w-5 h-5" />
+          </div>
+          <p className="mt-2 text-sm font-bold text-red-900 dark:text-red-300">
+            {deviceRevoked.name} has been stopped
+          </p>
+          <p className="mt-1.5 text-xs text-red-800 dark:text-red-400 leading-relaxed">
+            This device cannot ring up sales. If that was not meant to happen, turn it back on
+            under Settings &rarr; Devices, from any till.
+          </p>
+        </div>
+        <Link href="/provider/till/devices">
+          <Button className="mt-3 w-full h-12 rounded-xl">Devices</Button>
+        </Link>
+      </div>
+    )
+  }
+
+  // ---- who is serving ----------------------------------------------------
+  //
+  // Only asked where the shop has actually added people. The way past it
+  // without a PIN is shown rather than hidden: the owner is already signed
+  // in as the shop and may not have given themselves a PIN, and a till that
+  // locks its owner out over a four-digit label is a broken till.
+  if (mode?.anyCashiers && !cashier) {
+    return (
+      <div className="p-4 pb-28 lg:pb-4 mx-auto w-full max-w-sm">
+        <div className="text-center">
+          <span className="mx-auto w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+            <User className="w-6 h-6" />
+          </span>
+          <h1 className="mt-3 text-lg font-bold text-gray-900 dark:text-white">Who is serving?</h1>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+            Enter your PIN so your name goes on the sales you ring up.
+          </p>
+        </div>
+
+        <p className="mt-4 h-12 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-center text-2xl tracking-[0.5em] font-mono text-gray-900 dark:text-white tabular-nums">
+          {pin.replace(/./g, "\u2022") || <span className="text-sm tracking-normal font-sans text-gray-400">PIN</span>}
+        </p>
+        {pinError && <p className="mt-2 text-center text-xs text-red-600 dark:text-red-400">{pinError}</p>}
+
+        {/* A keypad, not a text field: this is used standing up, one-handed,
+            on a phone whose own keyboard would cover half the screen. */}
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((d) => (
+            <button
+              key={d}
+              onClick={() => { setPinError(""); setPin((v) => (v.length < 6 ? v + d : v)) }}
+              className="h-14 rounded-xl border border-gray-200 dark:border-gray-700 text-xl font-semibold text-gray-900 dark:text-white active:scale-95 active:bg-gray-100 dark:active:bg-gray-800"
+            >
+              {d}
+            </button>
+          ))}
+          <button
+            onClick={() => { setPinError(""); setPin("") }}
+            aria-label="Clear"
+            className="h-14 rounded-xl border border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-500 active:scale-95"
+          >
+            Clear
+          </button>
+          <button
+            onClick={() => { setPinError(""); setPin((v) => (v.length < 6 ? v + "0" : v)) }}
+            className="h-14 rounded-xl border border-gray-200 dark:border-gray-700 text-xl font-semibold text-gray-900 dark:text-white active:scale-95 active:bg-gray-100 dark:active:bg-gray-800"
+          >
+            0
+          </button>
+          <button
+            onClick={() => { setPinError(""); setPin((v) => v.slice(0, -1)) }}
+            aria-label="Delete last digit"
+            className="h-14 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-500 active:scale-95"
+          >
+            <Delete className="w-5 h-5" />
+          </button>
+        </div>
+
+        <button
+          onClick={() => void doSignIn(pin)}
+          disabled={pinBusy || pin.length < 4}
+          className="mt-3 w-full h-12 rounded-xl bg-primary text-primary-foreground font-semibold text-sm active:scale-[0.98] disabled:opacity-50"
+        >
+          {pinBusy ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "Start serving"}
+        </button>
+
+        <button
+          onClick={() => setCashier({ id: "", name: mode.ownerName, role: "owner" })}
+          className="mt-2 w-full h-11 rounded-xl text-xs font-semibold text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 active:scale-[0.98]"
+        >
+          Continue as {mode.ownerName}
+        </button>
+        <p className="mt-1.5 text-center text-[11px] text-gray-400 dark:text-gray-500 leading-snug">
+          Sales then go under your own name. You can give yourself a PIN under
+          Settings &rarr; Who works the till.
+        </p>
       </div>
     )
   }
@@ -566,6 +798,19 @@ export default function TillPage() {
             <Clock className="w-3.5 h-3.5" />
             {state.shift ? "Shift open" : "No shift"}
           </button>
+          {/* Who the till thinks is serving. Shown rather than assumed: a
+              cashier who walked away without signing out is the commonest way
+              sales end up under the wrong name. */}
+          {mode?.anyCashiers && cashier && (
+            <button
+              onClick={doSignOut}
+              className="h-9 px-2.5 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 active:scale-95 transition-transform max-w-[130px]"
+            >
+              {cashier.role === "manager" ? <ShieldCheck className="w-3.5 h-3.5 flex-shrink-0" /> : <User className="w-3.5 h-3.5 flex-shrink-0" />}
+              <span className="truncate">{cashier.name}</span>
+              <LogOut className="w-3 h-3 flex-shrink-0 opacity-60" />
+            </button>
+          )}
           <Link href="/provider/till/settings" className="flex-shrink-0">
             <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 active:scale-95 transition-transform">
               <SlidersHorizontal className="w-4 h-4" />

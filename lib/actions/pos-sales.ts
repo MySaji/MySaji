@@ -6,6 +6,8 @@ import { auth } from "@/auth"
 import { db } from "@/lib/db"
 import { recordStockMovement } from "@/lib/pos-ledger"
 import { parsePosConfig, type NegativeStockPolicy, type ExpiredStockPolicy } from "@/lib/pos-config"
+import bcrypt from "bcryptjs"
+import { createHash } from "crypto"
 import { effectiveTraits } from "@/lib/pos-profiles"
 import type { PosTrait } from "@/lib/pos-traits"
 
@@ -48,6 +50,7 @@ type TillTenant = {
   taxRate: number
   taxInclusive: boolean
   cashRounding: number
+  managerPinToVoid: boolean
   receiptHeader: string
   receiptFooter: string | null
   taxPin: string | null
@@ -81,6 +84,7 @@ async function requireTill(): Promise<TillTenant | null> {
     taxRate: config.taxRate,
     taxInclusive: config.taxInclusive,
     cashRounding: config.cashRounding,
+    managerPinToVoid: config.managerPinToVoid,
     receiptHeader: config.receiptHeader?.trim() || shop.shopName,
     receiptFooter: config.receiptFooter?.trim() || null,
     taxPin: config.taxPin?.trim() || null,
@@ -611,7 +615,23 @@ const saleSchema = z.object({
   }).optional(),
   customerName: z.string().trim().max(120).optional(),
   customerPhone: z.string().trim().max(30).optional(),
-  deviceId: z.string().trim().max(60).optional(),
+  /**
+   * Which counter this came from.
+   *
+   * The device's own secret, not its row id: the server looks the device up
+   * by the hash, so a device that has been revoked cannot go on selling by
+   * quoting an id it already knows. A sale that names no device is still
+   * taken — that is a till whose storage was cleared, not an intruder.
+   */
+  deviceSecret: z.string().trim().max(200).optional(),
+  /**
+   * Who is at the counter, from the till's PIN sign-in.
+   *
+   * Verified against this shop's own cashiers rather than trusted: the id
+   * comes from a browser, and a sale attributed to the wrong person is
+   * worse than one attributed to nobody.
+   */
+  cashierId: z.string().trim().max(60).optional(),
   /** When it happened at the counter. An offline till sends its own time. */
   occurredAt: z.string().datetime().optional(),
 })
@@ -1055,6 +1075,48 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
 
   const paymentMethod = body.payments.length > 1 ? "SPLIT" : body.payments[0].method
 
+  // --- which counter ---------------------------------------------------
+  //
+  // Resolved before anything is written, because a revoked device must be
+  // turned away rather than have its sale half-recorded. A secret that
+  // matches nothing is ignored: the shop still gets its sale, and the
+  // devices page will show the counter next time it checks in.
+  let deviceId: string | null = null
+  if (body.deviceSecret) {
+    const hash = createHash("sha256").update(body.deviceSecret).digest("hex")
+    const device = await db.posDevice.findUnique({
+      where: { tokenHash: hash },
+      select: { id: true, name: true, shopkeeperId: true, revokedAt: true },
+    })
+    if (device && device.shopkeeperId === till.shopkeeperId) {
+      if (device.revokedAt) {
+        return {
+          success: false,
+          error: device.name + " has been stopped from selling. Turn it back on under Settings \u2192 Devices, or use another till.",
+        }
+      }
+      deviceId = device.id
+      // Last heard from. Deliberately not inside the sale transaction: a
+      // slow write here must not widen the window on the stock rows.
+      void db.posDevice.update({ where: { id: device.id }, data: { lastSeenAt: new Date() } }).catch(() => {})
+    }
+  }
+
+  // --- who served -----------------------------------------------------
+  //
+  // Falls back to the account holder, which is correct for the one-person
+  // duka that has never added a cashier. An id that does not belong to this
+  // shop is ignored rather than refused: the sale is real and the customer
+  // is waiting, and "served by the owner" is a better record than no sale.
+  let cashierName = till.userName
+  if (body.cashierId) {
+    const c = await db.posCashier.findFirst({
+      where: { id: body.cashierId, shopkeeperId: till.shopkeeperId, isActive: true },
+      select: { name: true },
+    })
+    if (c) cashierName = c.name
+  }
+
   const openShift = await db.tillSession.findFirst({
     where: { shopkeeperId: till.shopkeeperId, closedAt: null },
     orderBy: { openedAt: "desc" },
@@ -1083,7 +1145,7 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
             saleNumber: nextNumber,
             tillSessionId: openShift?.id ?? null,
             cashierUserId: till.userId,
-            cashierName: till.userName,
+            cashierName,
             subtotal,
             // The rounding comes off as a discount rather than being hidden
             // inside the total, so the receipt still adds up line by line
@@ -1101,7 +1163,7 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
             customerName: body.customerName?.trim() || null,
             customerPhone: body.customerPhone?.trim() || null,
             idempotencyKey: body.idempotencyKey,
-            deviceId: body.deviceId?.trim() || null,
+            deviceId,
             occurredAt,
             syncedAt: new Date(),
             items: {
@@ -1181,7 +1243,7 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
               posSaleId: sale.id,
               actorUserId: till.userId,
               idempotencyKey: `${body.idempotencyKey}:${piece.suffix}`,
-              deviceId: body.deviceId?.trim() || null,
+              deviceId,
               occurredAt,
             }, till.negativeStock)
 
@@ -1257,7 +1319,9 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
                 prescriberName: buyer.prescriberName?.trim() || null,
                 prescriptionRef: buyer.prescriptionRef?.trim() || null,
                 recordedByUserId: till.userId,
-                recordedByName: till.userName,
+                // The person at the counter, not the account holder. On a
+                // controlled register that distinction is the point.
+                recordedByName: cashierName,
                 occurredAt,
               },
             })
@@ -1363,6 +1427,8 @@ function buildReceipt(
 const voidSchema = z.object({
   saleId: z.string().trim().min(1),
   reason: z.string().trim().min(3).max(300),
+  /** Required when the shop has managerPinToVoid on and has managers. */
+  managerPin: z.string().trim().max(10).optional(),
 })
 
 /**
@@ -1385,6 +1451,30 @@ export async function voidPosSale(input: unknown): Promise<TillActionResult> {
   })
   if (!sale) return { success: false, error: "That sale was not found." }
   if (sale.status !== "COMPLETED") return { success: false, error: "That sale is not completed, so there is nothing to void." }
+
+  // --- a manager's say-so, where the shop asks for it -------------------
+  //
+  // Voiding is the one till action that removes money from the day's
+  // takings, so it is the one a shop most often wants a second person on.
+  // Enforced only where managers actually EXIST: a setting that is on by
+  // default must not lock a one-person duka out of correcting its own
+  // mistake.
+  if (till.managerPinToVoid) {
+    const managers = await db.posCashier.findMany({
+      where: { shopkeeperId: till.shopkeeperId, isActive: true, role: "manager" },
+      select: { name: true, pinHash: true },
+    })
+    if (managers.length > 0) {
+      if (!parsed.data.managerPin) {
+        return { success: false, error: "A manager has to approve a void. Ask one to enter their PIN." }
+      }
+      let approved = false
+      for (const m of managers) {
+        if (await bcrypt.compare(parsed.data.managerPin, m.pinHash)) { approved = true; break }
+      }
+      if (!approved) return { success: false, error: "That is not a manager PIN for this till." }
+    }
+  }
 
   try {
     await db.$transaction(async (tx) => {
