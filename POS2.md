@@ -1042,3 +1042,37 @@ plainly in the UI rather than left to be discovered.
 
 `18/18`, including the fractional conversion, the trait gating it, and
 both halves clearing together.
+
+### FITMENT — **live**
+
+7 shop types: car spares, phone accessories, hardware, plumbing,
+electrical, building, electronics.
+
+**Free text, not a compatibility database.** A real vehicle/model table
+is a product in its own right, needs maintaining per manufacturer, and
+would be wrong within a year. What a spares shop actually needs is to
+type "Probox" and see what fits — which is a search over what the
+shopkeeper themselves wrote down.
+
+So a product carries a list of what it fits, and the till searches it
+alongside name and SKU. The point is the parts whose names say nothing:
+an "Oil Filter C-110" comes up for "Toyota Probox" because somebody
+recorded that it fits one.
+
+The offline catalogue searches the same list the same way. A part that
+comes up online and not offline is the kind of difference discovered at
+a counter with a queue waiting.
+
+Entries are de-duplicated case-insensitively but stored as typed —
+"Toyota Probox" reads better on a shelf label than "toyota probox", while
+two spellings differing only in case are the same tag.
+
+**A bug the test found:** the per-entry validation was
+`z.string().trim().min(1)`, which rejected the whole request if any entry
+was blank — so a trailing comma in "Probox, Succeed," refused the save,
+while the cleaning code three lines below was written to drop blanks. The
+validation contradicted its own intent. Relaxed so the cleaning actually
+runs.
+
+`16/16`, including that a tagged part is found by a vehicle its name
+never mentions, and that clearing the list removes it from that search.

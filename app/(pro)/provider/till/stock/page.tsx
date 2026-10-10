@@ -5,7 +5,7 @@ import Link from "next/link"
 import {
   ArrowLeft, Loader2, Search, Package, AlertTriangle, Plus,
   ClipboardCheck, Trash2, X, History, Check, Boxes, Calculator, Shapes, RotateCcw, CalendarClock,
-  ShieldAlert,
+  ShieldAlert, Puzzle,
 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input"
 import {
   getStockView, getProductMovements, receiveStock, recordWastage, recordStockCount,
   saveProductVariant, setVariantActive, receiveBatch, writeOffBatch, setProductAgeRestricted,
-  setProductBulkUnit,
+  setProductBulkUnit, setProductFitment,
   type StockView, type StockRow, type MovementRow,
 } from "@/lib/actions/pos-stock"
 
@@ -82,6 +82,9 @@ export default function StockPage() {
   /** Whether the quantity in the receive sheet is in bulk units. */
   const [receiveInBulk, setReceiveInBulk] = useState(false)
   const [bulkDraft, setBulkDraft] = useState({ unit: "", per: "" })
+  /** Comma-separated while editing; split on save. One field is easier to
+   *  type on a phone than a tag widget, and this list is usually short. */
+  const [fitsDraft, setFitsDraft] = useState("")
   const [newBatch, setNewBatch] = useState({ batchNumber: "", expiryDate: "", quantity: "", unitCost: "", variantId: "" })
   const [saved, setSaved] = useState("")
 
@@ -107,6 +110,7 @@ export default function StockPage() {
     setNewBatch({ batchNumber: "", expiryDate: "", quantity: "", unitCost: "", variantId: row.variants.length === 1 ? row.variants[0].id : "" })
     setReceiveInBulk(false)
     setBulkDraft({ unit: row.bulkUnit ?? "", per: row.unitsPerBulk == null ? "" : String(row.unitsPerBulk) })
+    setFitsDraft(row.fitsWith.join(", "))
     // Preselect where there is no choice to make.
     setTargetVariant(row.variants.length === 1 ? row.variants[0].id : null)
     if (mode === "history") {
@@ -202,6 +206,18 @@ export default function StockPage() {
     setBulkDraft({ unit: "", per: "" })
     await refreshSheet(row.productId)
     flash("Bulk unit cleared")
+  }
+
+  const saveFitment = async (row: StockRow) => {
+    setBusy(true); setError("")
+    const r = await setProductFitment({
+      productId: row.productId,
+      fitsWith: fitsDraft.split(",").map((x) => x.trim()).filter(Boolean),
+    })
+    setBusy(false)
+    if (!r.success) { setError(r.error); return }
+    await refreshSheet(row.productId)
+    flash("Saved what it fits")
   }
 
   const flash = (msg: string) => { setSaved(msg); setTimeout(() => setSaved(""), 2500) }
@@ -406,6 +422,19 @@ export default function StockPage() {
                       <span className="font-semibold">{v.label}</span> {qty(v.onHand)}
                     </span>
                   ))}
+                </div>
+              )}
+
+              {s.tracksFitment && r.fitsWith.length > 0 && (
+                <div className="mt-1.5 flex flex-wrap gap-1">
+                  {r.fitsWith.slice(0, 6).map((f) => (
+                    <span key={f} className="inline-flex items-center gap-1 h-6 px-1.5 rounded-md text-[10px] bg-sky-50 dark:bg-sky-900/20 text-sky-700 dark:text-sky-400">
+                      <Puzzle className="w-2.5 h-2.5" /> {f}
+                    </span>
+                  ))}
+                  {r.fitsWith.length > 6 && (
+                    <span className="text-[10px] text-gray-400 self-center">+{r.fitsWith.length - 6} more</span>
+                  )}
                 </div>
               )}
 
@@ -648,6 +677,29 @@ export default function StockPage() {
                           </button>
                         </div>
                       ))}
+                    </div>
+                  )}
+
+                  {s.tracksFitment && (
+                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-3 space-y-2">
+                      <p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">What does it fit?</p>
+                      <p className="text-[10px] text-gray-500 leading-snug">
+                        Separate with commas. Whatever you write here is searchable at the till,
+                        so a customer asking for a Probox part finds it by typing Probox.
+                      </p>
+                      <Input
+                        value={fitsDraft}
+                        onChange={(e) => setFitsDraft(e.target.value)}
+                        placeholder="Toyota Probox, Toyota Succeed, 2NZ engine"
+                        className="h-10 rounded-xl text-xs"
+                      />
+                      <Button
+                        onClick={() => void saveFitment(sheet.row)}
+                        disabled={busy}
+                        className="h-9 rounded-lg text-[11px] w-full"
+                      >
+                        {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : "Save"}
+                      </Button>
                     </div>
                   )}
 

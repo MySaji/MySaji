@@ -1639,6 +1639,14 @@ model Product {
   /// What this arrives in, where that differs from what it is sold in: a
   /// bale, a carton, a 50kg bag. Null for anything bought and sold the
   /// same way, which is most products.
+  /// What this part fits: "Toyota Probox", "iPhone 13", "15mm copper".
+  ///
+  /// Free text, and a LIST rather than a structured vehicle/model table.
+  /// A real compatibility database is a product in its own right, needs
+  /// maintaining per manufacturer, and would be wrong within a year. What a
+  /// spares shop actually needs is to type "Probox" and see what fits —
+  /// which is a search over what the shopkeeper themselves wrote down.
+  fitsWith      String[]
   bulkUnit      String?
   /// How many selling units come out of one bulk unit. 50 pieces to a
   /// bale, 100 screws to a box.

@@ -81,6 +81,8 @@ export type StockRow = {
   tracksBatches: boolean
   /** Needs an age check at the till, where the shop has the trait on. */
   ageRestricted: boolean
+  /** What this part fits. */
+  fitsWith: string[]
   /** What it arrives in, where that differs from what it sells in. */
   bulkUnit: string | null
   /** Selling units per bulk unit. */
@@ -103,6 +105,8 @@ export type StockSummary = {
   checksAge: boolean
   /** Whether this shop buys in bulk and sells in pieces. */
   breaksBulk: boolean
+  /** Whether this shop records what its parts fit. */
+  tracksFitment: boolean
   /**
    * Whether this shop is on the marketplace at all. The "sellable on Saji"
    * line is meaningless — worse, misleading — for a counter-only shop, which
@@ -138,7 +142,7 @@ export async function getStockView(): Promise<StockView> {
       where: { shopkeeperId: tenant.shopkeeperId },
       select: {
         id: true, name: true, sku: true, barcode: true, unit: true, price: true, costPrice: true,
-        tracksBatches: true, ageRestricted: true, bulkUnit: true, unitsPerBulk: true,
+        tracksBatches: true, ageRestricted: true, bulkUnit: true, unitsPerBulk: true, fitsWith: true,
         inventory: { select: { currentStock: true, stockOnHand: true, lowStockThreshold: true } },
       },
       orderBy: { name: "asc" },
@@ -237,6 +241,7 @@ export async function getStockView(): Promise<StockView> {
       })),
       tracksBatches: p.tracksBatches,
       ageRestricted: p.ageRestricted,
+      fitsWith: p.fitsWith,
       bulkUnit: p.bulkUnit,
       unitsPerBulk: p.unitsPerBulk == null ? null : Number(p.unitsPerBulk),
       batches: (batchesByProduct.get(p.id) ?? []).map((b) => {
@@ -265,6 +270,7 @@ export async function getStockView(): Promise<StockView> {
       canRecordWastage: tenant.traits.includes("WASTAGE"),
       checksAge: tenant.traits.includes("AGE_RESTRICTED"),
       breaksBulk: tenant.traits.includes("BULK_BREAK"),
+      tracksFitment: tenant.traits.includes("FITMENT"),
       listedOnMarketplace: tenant.listedOnMarketplace,
       expiredBatches: rows.reduce((n, r) => n + r.batches.filter((b) => b.expired && b.onHand > 0).length, 0),
       expiringSoonBatches: rows.reduce((n, r) => n + r.batches.filter((b) => b.expiringSoon && b.onHand > 0).length, 0),
@@ -1027,5 +1033,57 @@ export async function setProductBulkUnit(input: unknown): Promise<StockActionRes
       ? { bulkUnit: null, unitsPerBulk: null }
       : { bulkUnit: d.bulkUnit!.trim(), unitsPerBulk: d.unitsPerBulk },
   })
+  return { success: true, balance: 0 }
+}
+
+
+const fitmentSchema = z.object({
+  productId: z.string().trim().min(1),
+  /**
+   * The whole list, replaced. Simpler than add/remove, and the UI edits it
+   * as one comma-separated field anyway.
+   *
+   * Blanks are ALLOWED through validation and dropped below, rather than
+   * rejected here. The field is split on commas, so "Probox, Succeed,"
+   * with a trailing comma produces an empty entry — and refusing the whole
+   * save over a trailing comma is the kind of thing that makes a
+   * shopkeeper stop using a feature.
+   */
+  fitsWith: z.array(z.string().max(60)).max(50),
+})
+
+/**
+ * Record what a part fits.
+ *
+ * Entries are trimmed, de-duplicated case-insensitively and kept in the
+ * order given. Case is preserved as typed — "Toyota Probox" reads better
+ * than "toyota probox" on a shelf label — but two spellings that differ
+ * only in case are the same tag, or the list fills with near-duplicates
+ * nobody can search.
+ */
+export async function setProductFitment(input: unknown): Promise<StockActionResult> {
+  const tenant = await requireStockTenant()
+  if (!tenant) return { success: false, error: "There is no till on this account." }
+  const parsed = fitmentSchema.safeParse(input)
+  if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
+
+  const product = await db.product.findFirst({
+    where: { id: parsed.data.productId, shopkeeperId: tenant.shopkeeperId },
+    select: { id: true },
+  })
+  if (!product) return { success: false, error: "That product no longer exists." }
+
+  const seen = new Set<string>()
+  const cleaned: string[] = []
+  for (const raw of parsed.data.fitsWith) {
+    const value = raw.trim()
+    if (!value) continue
+    const key = value.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    cleaned.push(value)
+  }
+
+  await db.product.update({ where: { id: product.id }, data: { fitsWith: cleaned } })
   return { success: true, balance: 0 }
 }

@@ -119,6 +119,8 @@ export type TillProduct = {
   categoryName: string | null
   /** May only be sold to someone old enough. */
   ageRestricted: boolean
+  /** What this part fits, where the shop records that. */
+  fitsWith: string[]
   /**
    * Sizes, colours or packs. Empty for a product that sells as itself.
    *
@@ -282,7 +284,7 @@ export async function findTillProducts(input: unknown): Promise<TillProduct[]> {
 
   const select = {
     id: true, name: true, sku: true, barcode: true, unit: true,
-    price: true, discountPrice: true, hasVariants: true, ageRestricted: true,
+    price: true, discountPrice: true, hasVariants: true, ageRestricted: true, fitsWith: true,
     category: { select: { name: true } },
     inventory: { select: { currentStock: true, stockOnHand: true } },
     variants: {
@@ -326,6 +328,12 @@ export async function findTillProducts(input: unknown): Promise<TillProduct[]> {
           OR: [
             { name: { contains: query, mode: "insensitive" } },
             { sku: { contains: query, mode: "insensitive" } },
+            // What it fits. A spares shop types "Probox" and wants every
+            // part for one, not the parts with Probox in their name.
+            // `has` is exact per entry, so this finds a product tagged
+            // "Toyota Probox" only on that exact string — hence the
+            // contains fallback below it.
+            { fitsWith: { hasSome: [query] } },
           ],
         },
         select,
@@ -360,6 +368,7 @@ export async function findTillProducts(input: unknown): Promise<TillProduct[]> {
       : 0,
     categoryName: p.category?.name ?? null,
     ageRestricted: p.ageRestricted,
+    fitsWith: p.fitsWith,
     variants: p.variants.map((v) => ({
       id: v.id,
       label: v.label,

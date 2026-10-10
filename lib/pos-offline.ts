@@ -89,6 +89,7 @@ export type CachedProduct = {
   stock: number
   categoryName: string | null
   ageRestricted: boolean
+  fitsWith: string[]
   variants: CachedVariant[]
   matchedVariantId: string | null
 }
@@ -191,7 +192,13 @@ export function searchCached(products: CachedProduct[], query: string, limit = 2
   }
 
   return products
-    .filter((p) => p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q))
+    .filter((p) =>
+      p.name.toLowerCase().includes(q) ||
+      p.sku.toLowerCase().includes(q) ||
+      // Kept in step with the server's search deliberately: a part that
+      // comes up for "Probox" online and not offline is the kind of
+      // difference discovered at a counter with a queue waiting.
+      p.fitsWith.some((f) => f.toLowerCase().includes(q)))
     .slice(0, limit)
     .map((p) => ({ ...p, matchedVariantId: null }))
 }

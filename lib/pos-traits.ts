@@ -110,7 +110,7 @@ export const POS_TRAIT_META: Record<PosTrait, PosTraitMeta> = {
     question: "Does this part fit that machine?",
     effect: "Products carry what they fit, and the till can search by vehicle or model",
     icon: "Puzzle",
-    stage: "planned",
+    stage: "live",
   },
   MADE_TO_ORDER: {
     label: "Deposits and later delivery",
