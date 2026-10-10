@@ -83,6 +83,10 @@ export type StockRow = {
   ageRestricted: boolean
   /** What this part fits. */
   fitsWith: string[]
+  /** Whether units of this product are tracked individually. */
+  tracksSerials: boolean
+  /** Unsold units on the register, for comparison with the stock figure. */
+  serialsInStock: number
   /** What it arrives in, where that differs from what it sells in. */
   bulkUnit: string | null
   /** Selling units per bulk unit. */
@@ -107,6 +111,17 @@ export type StockSummary = {
   breaksBulk: boolean
   /** Whether this shop records what its parts fit. */
   tracksFitment: boolean
+  /** Whether this shop tracks units individually. */
+  tracksSerials: boolean
+  /**
+   * Products whose unsold-serial count does not match their stock figure.
+   *
+   * A serial register sits BESIDE the stock figure rather than holding it
+   * (see ProductSerial in the schema), so the two can in principle
+   * disagree — and a register nobody checks is a register that is quietly
+   * wrong when a warranty claim arrives.
+   */
+  serialDrift: number
   /**
    * Whether this shop is on the marketplace at all. The "sellable on Saji"
    * line is meaningless — worse, misleading — for a counter-only shop, which
@@ -143,6 +158,7 @@ export async function getStockView(): Promise<StockView> {
       select: {
         id: true, name: true, sku: true, barcode: true, unit: true, price: true, costPrice: true,
         tracksBatches: true, ageRestricted: true, bulkUnit: true, unitsPerBulk: true, fitsWith: true,
+        tracksSerials: true,
         inventory: { select: { currentStock: true, stockOnHand: true, lowStockThreshold: true } },
       },
       orderBy: { name: "asc" },
@@ -186,6 +202,14 @@ export async function getStockView(): Promise<StockView> {
     list.push(b)
     batchesByProduct.set(b.productId, list)
   }
+  // One grouped count rather than a query per product.
+  const serialCounts = await db.productSerial.groupBy({
+    by: ["productId"],
+    where: { shopkeeperId: tenant.shopkeeperId, status: "IN_STOCK" },
+    _count: true,
+  })
+  const serialsByProduct = new Map(serialCounts.map((c) => [c.productId, c._count]))
+
   const nowMs = Date.now()
   const dayMs = 24 * 60 * 60 * 1000
 
@@ -242,6 +266,8 @@ export async function getStockView(): Promise<StockView> {
       tracksBatches: p.tracksBatches,
       ageRestricted: p.ageRestricted,
       fitsWith: p.fitsWith,
+      tracksSerials: p.tracksSerials,
+      serialsInStock: serialsByProduct.get(p.id) ?? 0,
       bulkUnit: p.bulkUnit,
       unitsPerBulk: p.unitsPerBulk == null ? null : Number(p.unitsPerBulk),
       batches: (batchesByProduct.get(p.id) ?? []).map((b) => {
@@ -271,6 +297,8 @@ export async function getStockView(): Promise<StockView> {
       checksAge: tenant.traits.includes("AGE_RESTRICTED"),
       breaksBulk: tenant.traits.includes("BULK_BREAK"),
       tracksFitment: tenant.traits.includes("FITMENT"),
+      tracksSerials: tenant.traits.includes("SERIALISED"),
+      serialDrift: rows.filter((r) => r.tracksSerials && r.serialsInStock !== r.sellableUnits).length,
       listedOnMarketplace: tenant.listedOnMarketplace,
       expiredBatches: rows.reduce((n, r) => n + r.batches.filter((b) => b.expired && b.onHand > 0).length, 0),
       expiringSoonBatches: rows.reduce((n, r) => n + r.batches.filter((b) => b.expiringSoon && b.onHand > 0).length, 0),
@@ -1086,4 +1114,251 @@ export async function setProductFitment(input: unknown): Promise<StockActionResu
 
   await db.product.update({ where: { id: product.id }, data: { fitsWith: cleaned } })
   return { success: true, balance: 0 }
+}
+
+
+// ---------------------------------------------------------------------------
+// Serial numbers
+// ---------------------------------------------------------------------------
+
+export type SerialRow = {
+  id: string
+  serial: string
+  status: string
+  variantId: string | null
+  variantLabel: string | null
+  costPrice: number | null
+  note: string | null
+  receivedAt: string
+  soldAt: string | null
+}
+
+export async function getProductSerials(input: unknown): Promise<SerialRow[]> {
+  const tenant = await requireStockTenant()
+  if (!tenant) return []
+  const parsed = z.object({
+    productId: z.string().trim().min(1),
+    status: z.enum(["IN_STOCK", "SOLD", "RETURNED", "WRITTEN_OFF"]).optional(),
+  }).safeParse(input)
+  if (!parsed.success) return []
+
+  const rows = await db.productSerial.findMany({
+    where: {
+      shopkeeperId: tenant.shopkeeperId,
+      productId: parsed.data.productId,
+      ...(parsed.data.status ? { status: parsed.data.status } : {}),
+    },
+    // Unsold first, then most recent: what is on the shelf is what a
+    // cashier is usually looking for.
+    orderBy: [{ status: "asc" }, { receivedAt: "desc" }],
+    include: { variant: { select: { label: true } } },
+    take: 500,
+  })
+
+  return rows.map((r) => ({
+    id: r.id,
+    serial: r.serial,
+    status: r.status,
+    variantId: r.variantId,
+    variantLabel: r.variant?.label ?? null,
+    costPrice: r.costPrice == null ? null : Number(r.costPrice),
+    note: r.note,
+    receivedAt: r.receivedAt.toISOString(),
+    soldAt: r.soldAt?.toISOString() ?? null,
+  }))
+}
+
+const receiveSerialsSchema = z.object({
+  productId: z.string().trim().min(1),
+  variantId: z.string().trim().min(1).optional(),
+  /** One per unit. Blanks are dropped rather than refusing the batch. */
+  serials: z.array(z.string().max(80)).min(1).max(500),
+  unitCost: z.number().min(0).max(100_000_000).optional(),
+  note: z.string().trim().max(200).optional(),
+})
+
+export type ReceiveSerialsResult =
+  | { success: true; added: number; skipped: string[]; balance: number }
+  | { success: false; error: string }
+
+/**
+ * Record units arriving, by their serial numbers.
+ *
+ * The count of serials IS the quantity — there is no separate number to
+ * type, because a phone shop entering "10" and then nine IMEIs has
+ * created a discrepancy the register exists to prevent.
+ *
+ * Duplicates already on the register are skipped and REPORTED rather than
+ * failing the whole delivery: scanning twenty IMEIs and having the lot
+ * refused because one was already entered is how a shop gives up on
+ * serial tracking.
+ */
+export async function receiveSerials(input: unknown): Promise<ReceiveSerialsResult> {
+  const tenant = await requireStockTenant()
+  if (!tenant) return { success: false, error: "There is no till on this account." }
+  if (!tenant.traits.includes("SERIALISED")) {
+    return { success: false, error: 'Turn on "Track each item individually" in POS Settings first.' }
+  }
+  const parsed = receiveSerialsSchema.safeParse(input)
+  if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
+  const d = parsed.data
+
+  const seen = new Set<string>()
+  const wanted: string[] = []
+  for (const raw of d.serials) {
+    const value = raw.trim()
+    if (!value) continue
+    const key = value.toLowerCase()
+    if (seen.has(key)) continue   // the same number twice in one paste
+    seen.add(key)
+    wanted.push(value)
+  }
+  if (wanted.length === 0) return { success: false, error: "Enter at least one serial or IMEI." }
+
+  const product = await db.product.findFirst({
+    where: { id: d.productId, shopkeeperId: tenant.shopkeeperId },
+    select: { id: true, hasVariants: true, tracksSerials: true },
+  })
+  if (!product) return { success: false, error: "That product no longer exists." }
+  if (product.hasVariants && !d.variantId) {
+    return { success: false, error: "This product is sold in sizes or options — say which one these are." }
+  }
+
+  const existing = await db.productSerial.findMany({
+    where: { shopkeeperId: tenant.shopkeeperId, serial: { in: wanted } },
+    select: { serial: true },
+  })
+  const taken = new Set(existing.map((e) => e.serial.toLowerCase()))
+  const fresh = wanted.filter((w) => !taken.has(w.toLowerCase()))
+  const skipped = wanted.filter((w) => taken.has(w.toLowerCase()))
+
+  if (fresh.length === 0) {
+    return { success: false, error: "Every one of those is already on the register." }
+  }
+
+  try {
+    const result = await db.$transaction(async (tx) => {
+      await tx.productSerial.createMany({
+        data: fresh.map((serial) => ({
+          productId: product.id,
+          variantId: d.variantId ?? null,
+          shopkeeperId: tenant.shopkeeperId,
+          serial,
+          costPrice: d.unitCost ?? null,
+          note: d.note?.trim() || null,
+        })),
+      })
+      if (!product.tracksSerials) {
+        await tx.product.update({ where: { id: product.id }, data: { tracksSerials: true } })
+      }
+      // The stock figure moves through the ledger like everything else; the
+      // register is beside it, not instead of it.
+      const moved = await recordStockMovement(tx as never, {
+        shopkeeperId: tenant.shopkeeperId,
+        productId: product.id,
+        variantId: d.variantId ?? null,
+        kind: "PURCHASE",
+        quantity: String(fresh.length),
+        unitCost: d.unitCost == null ? null : String(d.unitCost),
+        reason: fresh.length + (fresh.length === 1 ? " unit received by serial" : " units received by serial"),
+        actorUserId: tenant.userId,
+      }, tenant.negativeStock)
+      if (!moved.ok) throw new Error(moved.message)
+      return { added: fresh.length, balance: Number(moved.balance.toString()) }
+    }, { timeout: 30000, maxWait: 10000 })
+
+    return { success: true, added: result.added, skipped, balance: result.balance }
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : "Those could not be recorded." }
+  }
+}
+
+/** Take a unit off the register — lost, damaged, returned to supplier. */
+export async function writeOffSerial(input: unknown): Promise<StockActionResult> {
+  const tenant = await requireStockTenant()
+  if (!tenant) return { success: false, error: "There is no till on this account." }
+  const parsed = z.object({
+    serialId: z.string().trim().min(1),
+    reason: z.string().trim().min(3).max(300),
+  }).safeParse(input)
+  if (!parsed.success) return { success: false, error: "Say why this unit is being written off." }
+
+  const unit = await db.productSerial.findFirst({
+    where: { id: parsed.data.serialId, shopkeeperId: tenant.shopkeeperId },
+    select: { id: true, productId: true, variantId: true, serial: true, status: true },
+  })
+  if (!unit) return { success: false, error: "That unit is not on your register." }
+  if (unit.status !== "IN_STOCK") {
+    return { success: false, error: "That unit is not in stock, so there is nothing to write off." }
+  }
+
+  try {
+    const result = await db.$transaction(async (tx) => {
+      await tx.productSerial.update({
+        where: { id: unit.id },
+        data: { status: "WRITTEN_OFF", note: parsed.data.reason },
+      })
+      const moved = await recordStockMovement(tx as never, {
+        shopkeeperId: tenant.shopkeeperId,
+        productId: unit.productId,
+        variantId: unit.variantId,
+        kind: "WASTAGE",
+        quantity: "-1",
+        reason: unit.serial + ": " + parsed.data.reason,
+        actorUserId: tenant.userId,
+      }, "ALLOW")
+      if (!moved.ok) throw new Error(moved.message)
+      return Number(moved.balance.toString())
+    }, { timeout: 30000, maxWait: 10000 })
+    return { success: true, balance: result }
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : "That unit could not be written off." }
+  }
+}
+
+/**
+ * Find which sale a serial went out on.
+ *
+ * The question a warranty claim asks, and the only reason most shops would
+ * keep a register at all.
+ */
+export async function lookupSerial(input: unknown): Promise<{
+  serial: string; status: string; productName: string; variantLabel: string | null
+  soldAt: string | null; saleNumber: string | null; customerName: string | null
+} | null> {
+  const tenant = await requireStockTenant()
+  if (!tenant) return null
+  const parsed = z.object({ serial: z.string().trim().min(1).max(80) }).safeParse(input)
+  if (!parsed.success) return null
+
+  const unit = await db.productSerial.findFirst({
+    where: { shopkeeperId: tenant.shopkeeperId, serial: parsed.data.serial },
+    include: { product: { select: { name: true } }, variant: { select: { label: true } } },
+  })
+  if (!unit) return null
+
+  let saleNumber: string | null = null
+  let customerName: string | null = null
+  if (unit.posSaleItemId) {
+    const item = await db.posSaleItem.findUnique({
+      where: { id: unit.posSaleItemId },
+      select: { sale: { select: { saleNumber: true, customerName: true, shopkeeperId: true } } },
+    })
+    // Scoped again: a sale item id reached through a serial must still
+    // belong to this shop.
+    if (item?.sale && item.sale.shopkeeperId === tenant.shopkeeperId) {
+      saleNumber = item.sale.saleNumber
+      customerName = item.sale.customerName
+    }
+  }
+
+  return {
+    serial: unit.serial,
+    status: unit.status,
+    productName: unit.product.name,
+    variantLabel: unit.variant?.label ?? null,
+    soldAt: unit.soldAt?.toISOString() ?? null,
+    saleNumber,
+    customerName,
+  }
 }

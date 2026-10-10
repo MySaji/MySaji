@@ -90,6 +90,7 @@ export type CachedProduct = {
   categoryName: string | null
   ageRestricted: boolean
   fitsWith: string[]
+  tracksSerials: boolean
   variants: CachedVariant[]
   matchedVariantId: string | null
 }

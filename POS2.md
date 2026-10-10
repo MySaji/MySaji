@@ -1076,3 +1076,58 @@ runs.
 
 `16/16`, including that a tagged part is found by a vehicle its name
 never mentions, and that clearing the list removes it from that search.
+
+### SERIALISED — **live**
+
+4 shop types: phones, electronics, jewellery, car spares.
+
+**Serials do not hold stock, and that is the design.** Batches and sizes
+hold stock because they answer *how many*; a serial answers *which one*,
+and there is only ever one of it. Making serials a third ledger holder
+would mean a stock figure per unit — always 1 or 0 — and a third level of
+roll-up for nothing.
+
+So the register sits *beside* the stock figure. Receiving serials adds
+stock through the ledger as normal; selling one marks it sold. The two
+can in principle disagree, which is why the stock page compares them and
+says so — the same treatment the ledger-versus-projection check gets.
+A register nobody checks is a register that is quietly wrong on the day a
+warranty claim arrives.
+
+**The serial count IS the quantity.** There is no separate number to
+type, on receipt or at the till. A phone shop entering "10" and then
+scanning nine IMEIs has created exactly the discrepancy the register
+exists to prevent, so there is only one source of truth and the quantity
+follows the scans.
+
+**A duplicate is skipped and reported, not fatal.** Scanning twenty
+IMEIs and having the lot refused because one was already entered is how
+a shop gives up on serial tracking.
+
+**Two tills cannot sell the same unit.** The claim is an `updateMany`
+with a `status: "IN_STOCK"` guard, so a second till that read the unit as
+available affects no rows, and the count check turns that into a refused
+sale rather than a double sale.
+
+**Voiding returns units as `RETURNED`, not `IN_STOCK`.** A phone that
+went out and came back is not the same as one that never left, and a
+shop looking at a scuffed box wants to know which it is.
+
+The same serial in a *different* shop is allowed — manufacturers reuse
+numbers — but one shop holding two of the same number is refused at
+entry.
+
+`39/39` server-side. In a real browser at 390px: the line asking for a
+serial instead of a stepper, payment blocked until the unit is named and
+the button saying which product, the scan listed, and a double-scan
+refused at the counter — all passing.
+
+The browser run did **not** complete its post-sale assertions: the wait
+for the receipt screen timed out on a dev server where each round trip
+takes tens of seconds, and its cleanup then hit a database blip. Those
+seven properties were checked directly against the database instead and
+all hold — the scanned unit marked SOLD, linked to the sale line and
+timestamped, the IMEI snapshotted on the receipt line, the other four
+units untouched, and stock down from 3 to 2. Worth recording as what it
+was: the UI path verified to the point of payment in a browser, the
+consequences verified at the database.

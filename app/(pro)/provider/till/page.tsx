@@ -50,6 +50,14 @@ function shShort(n: number): string {
 
 type CartLine = {
   product: TillProduct
+  /**
+   * One serial per unit, for a product tracked individually.
+   *
+   * On the LINE rather than the product, because the same model can be in
+   * the basket twice at different prices and the units have to stay with
+   * the line they belong to.
+   */
+  serials?: string[]
   /** The chosen size or option, for a product that has them. */
   variant: TillVariant | null
   /** A string throughout, so "1.3" mid-typing is not coerced to 1.3 and back. */
@@ -123,6 +131,9 @@ export default function TillPage() {
   /** Ticked by the cashier when the buyer's age has been checked. Reset
    *  with every sale — a confirmation must never carry over. */
   const [ageConfirmed, setAgeConfirmed] = useState(false)
+  /** The line whose units are being scanned, and the box being typed into. */
+  const [scanSerialsFor, setScanSerialsFor] = useState<string | null>(null)
+  const [serialDraft, setSerialDraft] = useState("")
 
   const [shiftOpening, setShiftOpening] = useState("")
   const [shiftCounted, setShiftCounted] = useState("")
@@ -190,10 +201,50 @@ export default function TillPage() {
   const shortBy = Math.max(0, total - paid)
 
   const itemCount = cart.length
+  /**
+   * Lines that still need their units scanned.
+   *
+   * Checked in the page as well as on the server, so a cashier finds out
+   * while the customer is at the counter rather than when payment is
+   * refused.
+   */
+  const unscanned = cart.filter(
+    (l) => l.product.tracksSerials && (l.serials?.length ?? 0) !== Math.floor(Number(l.quantity || 0)),
+  )
   /** Any restricted line in the basket, in a shop that checks. */
   const needsAgeCheck = (state?.checksAge ?? false) && cart.some((l) => l.product.ageRestricted)
 
   // ---- cart actions -------------------------------------------------------
+  const addSerial = (key: string, raw: string) => {
+    const value = raw.trim()
+    if (!value) return
+    setError("")
+    setCart((prev) => prev.map((l) => {
+      if (lineKey(l.product.id, l.variant?.id ?? null) !== key) return l
+      const have = l.serials ?? []
+      // Refused here as well as on the server: scanning the same box twice
+      // happens, and catching it at the moment of the scan is far clearer
+      // than having payment refused later.
+      if (have.some((x) => x.toLowerCase() === value.toLowerCase())) {
+        setError(value + " has already been scanned for this line.")
+        return l
+      }
+      // The quantity FOLLOWS the scans for a serialised line. Typing a
+      // number and then scanning a different count is the discrepancy the
+      // register exists to prevent, so there is only one source of truth.
+      return { ...l, serials: [...have, value], quantity: String(have.length + 1) }
+    }))
+    setSerialDraft("")
+  }
+
+  const removeSerial = (key: string, serial: string) => {
+    setCart((prev) => prev.map((l) => {
+      if (lineKey(l.product.id, l.variant?.id ?? null) !== key) return l
+      const next = (l.serials ?? []).filter((x) => x !== serial)
+      return { ...l, serials: next, quantity: next.length === 0 ? "" : String(next.length) }
+    }))
+  }
+
   const addProduct = (product: TillProduct, variant?: TillVariant | null) => {
     setError("")
 
@@ -256,6 +307,7 @@ export default function TillPage() {
     setCart([]); setSaleDiscount(""); setCustomerName(""); setPickVariantFor(null)
     setPayments([{ method: "CASH", amount: "", reference: "" }])
     setReceipt(null); setError(""); setCartOpen(false); setAgeConfirmed(false)
+    setScanSerialsFor(null); setSerialDraft("")
     setIdempotencyKey(newKey())
     setView("sell")
     searchRef.current?.focus()
@@ -274,6 +326,7 @@ export default function TillPage() {
           ...(l.variant ? { variantId: l.variant.id } : {}),
           quantity: String(Number(l.quantity)),
           ...(l.unitPriceOverride !== undefined ? { unitPriceOverride: l.unitPriceOverride } : {}),
+          ...(l.serials && l.serials.length > 0 ? { serials: l.serials } : {}),
           ...(l.lineDiscount ? { lineDiscount: l.lineDiscount } : {}),
         })),
       payments: payments
@@ -728,6 +781,36 @@ export default function TillPage() {
                         </button>
                       </div>
 
+                      {l.product.tracksSerials ? (
+                        <div className="mt-2">
+                          {(l.serials ?? []).length > 0 && (
+                            <div className="flex flex-wrap gap-1 mb-1.5">
+                              {(l.serials ?? []).map((sn) => (
+                                <button
+                                  key={sn}
+                                  onClick={() => removeSerial(key, sn)}
+                                  className="inline-flex items-center gap-1 h-7 px-2 rounded-md text-[10px] font-mono bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 active:scale-95"
+                                >
+                                  {sn}
+                                  <X className="w-2.5 h-2.5" />
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                          <button
+                            onClick={() => { setScanSerialsFor(key); setSerialDraft("") }}
+                            className={`w-full h-9 rounded-lg border text-[11px] font-semibold active:scale-[0.98] transition-all ${
+                              (l.serials?.length ?? 0) === 0
+                                ? "border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/15 text-amber-800 dark:text-amber-300"
+                                : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300"
+                            }`}
+                          >
+                            {(l.serials?.length ?? 0) === 0
+                              ? "Scan the serial or IMEI"
+                              : "Scan another (" + (l.serials?.length ?? 0) + " so far)"}
+                          </button>
+                        </div>
+                      ) : (
                       <div className="mt-2 flex items-center gap-1.5">
                         <button
                           onClick={() => bumpQuantity(key, -1)}
@@ -766,6 +849,7 @@ export default function TillPage() {
                           />
                         )}
                       </div>
+                      )}
                     </div>
                     )
                   })}
@@ -797,11 +881,20 @@ export default function TillPage() {
                     <span className="text-lg font-bold text-gray-900 dark:text-white tabular-nums">KSh {sh(total)}</span>
                   </div>
                   <Button
-                    onClick={() => { setView("pay"); setPayments([{ method: "CASH", amount: "", reference: "" }]); setError("") }}
-                    disabled={total <= 0}
+                    onClick={() => {
+                      if (unscanned.length > 0) {
+                        setError(unscanned[0].product.name + " is tracked individually — scan each unit before taking payment.")
+                        return
+                      }
+                      setView("pay"); setPayments([{ method: "CASH", amount: "", reference: "" }]); setError("")
+                    }}
+                    disabled={total <= 0 || unscanned.length > 0}
                     className="w-full h-12 rounded-xl font-semibold mt-1"
                   >
-                    Take payment <ArrowRight className="w-4 h-4 ml-1" />
+                    {unscanned.length > 0
+                      ? "Scan " + unscanned[0].product.name + " first"
+                      : "Take payment"}
+                    {unscanned.length === 0 && <ArrowRight className="w-4 h-4 ml-1" />}
                   </Button>
                   <button onClick={clearSale} className="w-full py-2.5 text-[11px] text-gray-400 underline">
                     Cancel this sale
@@ -884,6 +977,90 @@ export default function TillPage() {
           </div>
         </div>
       )}
+
+      {/* ---- scanning serials --------------------------------------------- */}
+      {scanSerialsFor && (() => {
+        const line = cart.find((l) => lineKey(l.product.id, l.variant?.id ?? null) === scanSerialsFor)
+        if (!line) return null
+        const have = line.serials ?? []
+        return (
+          <div className="fixed inset-0 z-50 flex items-end lg:items-center lg:justify-center bg-black/40">
+            <div className="w-full lg:max-w-md bg-white dark:bg-gray-900 rounded-t-2xl lg:rounded-2xl max-h-[88vh] overflow-y-auto">
+              <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-700 px-3 py-2.5 flex items-center gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-bold text-gray-900 dark:text-white truncate">{line.product.name}</p>
+                  <p className="text-[11px] text-gray-500">
+                    {have.length === 0 ? "Scan the unit you are handing over" : have.length + " scanned"}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setScanSerialsFor(null)}
+                  aria-label="Done scanning"
+                  className="w-9 h-9 rounded-lg flex items-center justify-center text-gray-400 active:scale-90 flex-shrink-0"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-3 space-y-3">
+                {error && <ErrorNote>{error}</ErrorNote>}
+
+                <Input
+                  value={serialDraft}
+                  onChange={(e) => setSerialDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    // A barcode scanner ends with Enter, so a cashier can
+                    // scan one box after another without touching anything.
+                    if (e.key === "Enter") addSerial(scanSerialsFor, serialDraft)
+                  }}
+                  placeholder="Scan or type the serial / IMEI"
+                  className="h-12 rounded-xl text-base font-mono"
+                  autoComplete="off"
+                  autoFocus
+                />
+                <Button
+                  onClick={() => addSerial(scanSerialsFor, serialDraft)}
+                  disabled={!serialDraft.trim()}
+                  className="w-full h-11 rounded-xl text-sm"
+                >
+                  Add this one
+                </Button>
+
+                {have.length > 0 && (
+                  <div className="space-y-1.5">
+                    {have.map((sn, i) => (
+                      <div key={sn} className="flex items-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 p-2.5">
+                        <span className="w-5 text-[10px] font-bold text-gray-300 dark:text-gray-600 tabular-nums">{i + 1}</span>
+                        <span className="min-w-0 flex-1 text-xs font-mono text-gray-900 dark:text-white truncate">{sn}</span>
+                        <button
+                          onClick={() => removeSerial(scanSerialsFor, sn)}
+                          aria-label={"Remove " + sn}
+                          className="-m-1 w-9 h-9 rounded-lg flex items-center justify-center text-gray-300 hover:text-red-500 active:scale-90 flex-shrink-0"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <p className="text-[10px] text-gray-400 leading-snug">
+                  The quantity on this line follows what you scan — one unit per serial. Whichever
+                  units you scan are the ones that leave the shelf, and the receipt records them.
+                </p>
+
+                <Button
+                  onClick={() => setScanSerialsFor(null)}
+                  variant="outline"
+                  className="w-full h-11 rounded-xl text-sm"
+                >
+                  Done
+                </Button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* ---- payment sheet ------------------------------------------------ */}
       {view === "pay" && (

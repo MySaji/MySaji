@@ -82,7 +82,7 @@ export const POS_TRAIT_META: Record<PosTrait, PosTraitMeta> = {
     question: "Which physical unit was sold?",
     effect: "Every unit carries an IMEI or serial, captured at the point of sale",
     icon: "Fingerprint",
-    stage: "planned",
+    stage: "live",
   },
   BATCH_EXPIRY: {
     label: "Batches and expiry dates",

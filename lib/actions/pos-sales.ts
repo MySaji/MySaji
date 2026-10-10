@@ -121,6 +121,8 @@ export type TillProduct = {
   ageRestricted: boolean
   /** What this part fits, where the shop records that. */
   fitsWith: string[]
+  /** Whether each unit of this product is tracked by serial or IMEI. */
+  tracksSerials: boolean
   /**
    * Sizes, colours or packs. Empty for a product that sells as itself.
    *
@@ -158,6 +160,8 @@ export type TillState = {
   canRecordWastage: boolean
   /** Whether the shop asks for an age check at all. */
   checksAge: boolean
+  /** Whether the shop tracks units by serial. */
+  tracksSerials: boolean
   negativeStock: NegativeStockPolicy
   taxRate: number
   taxInclusive: boolean
@@ -241,6 +245,7 @@ export async function getTillState(): Promise<TillState | null> {
     canOverridePrice: till.traits.includes("OPEN_PRICE"),
     canRecordWastage: till.traits.includes("WASTAGE"),
     checksAge: till.traits.includes("AGE_RESTRICTED"),
+    tracksSerials: till.traits.includes("SERIALISED"),
     negativeStock: till.negativeStock,
     taxRate: till.taxRate,
     taxInclusive: till.taxInclusive,
@@ -284,7 +289,7 @@ export async function findTillProducts(input: unknown): Promise<TillProduct[]> {
 
   const select = {
     id: true, name: true, sku: true, barcode: true, unit: true,
-    price: true, discountPrice: true, hasVariants: true, ageRestricted: true, fitsWith: true,
+    price: true, discountPrice: true, hasVariants: true, ageRestricted: true, fitsWith: true, tracksSerials: true,
     category: { select: { name: true } },
     inventory: { select: { currentStock: true, stockOnHand: true } },
     variants: {
@@ -369,6 +374,7 @@ export async function findTillProducts(input: unknown): Promise<TillProduct[]> {
     categoryName: p.category?.name ?? null,
     ageRestricted: p.ageRestricted,
     fitsWith: p.fitsWith,
+    tracksSerials: p.tracksSerials,
     variants: p.variants.map((v) => ({
       id: v.id,
       label: v.label,
@@ -513,6 +519,14 @@ const saleSchema = z.object({
     unitPriceOverride: z.number().min(0).max(100_000_000).optional(),
     lineDiscount: z.number().min(0).max(100_000_000).optional(),
     notes: z.string().trim().max(200).optional(),
+    /**
+     * Which physical units are leaving, for a product tracked individually.
+     *
+     * Required for such a product, and the count must equal the quantity:
+     * selling "2" while naming one IMEI is exactly the discrepancy the
+     * register exists to prevent.
+     */
+    serials: z.array(z.string().max(80)).max(200).optional(),
   })).min(1).max(200),
   payments: z.array(z.object({
     method: z.enum(PAYMENT_METHODS),
@@ -604,7 +618,7 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
     select: {
       id: true, name: true, sku: true, barcode: true, unit: true,
       price: true, discountPrice: true, costPrice: true, hasVariants: true, tracksBatches: true,
-      ageRestricted: true,
+      ageRestricted: true, tracksSerials: true,
     },
   })
   const byId = new Map(products.map((p) => [p.id, p]))
@@ -657,6 +671,9 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
      * are what a recall is traced through.
      */
     allocations: Allocation[]
+    /** The units leaving, resolved to register rows. Empty when not tracked. */
+    serialIds: string[]
+    serialNumbers: string[]
     name: string
     sku: string
     barcode: string | null
@@ -783,11 +800,60 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
       }
     }
 
+    // --- which physical units are leaving -------------------------------
+    const serialIds: string[] = []
+    const serialNumbers: string[] = []
+    if (product.tracksSerials) {
+      const given = (line.serials ?? []).map((x) => x.trim()).filter(Boolean)
+      if (!quantity.isInteger()) {
+        return { success: false, error: `${product.name} is tracked by serial, so it can only be sold in whole units.` }
+      }
+      const want = Number(quantity.toString())
+      if (given.length !== want) {
+        return {
+          success: false,
+          error: given.length === 0
+            ? `${product.name} is tracked individually — scan the serial or IMEI of each unit.`
+            : `${product.name}: ${want} being sold but ${given.length} ${given.length === 1 ? "serial" : "serials"} named.`,
+        }
+      }
+
+      const units = await db.productSerial.findMany({
+        // Scoped to the shop AND the product: a serial from another product
+        // must not be sellable against this line.
+        where: { shopkeeperId: till.shopkeeperId, productId: product.id, serial: { in: given } },
+        select: { id: true, serial: true, status: true, variantId: true },
+      })
+      const byNumber = new Map(units.map((u) => [u.serial.toLowerCase(), u]))
+
+      for (const g of given) {
+        const unit = byNumber.get(g.toLowerCase())
+        if (!unit) return { success: false, error: `${g} is not on the register for ${product.name}.` }
+        if (unit.status !== "IN_STOCK") {
+          return {
+            success: false,
+            error: unit.status === "SOLD"
+              ? `${g} has already been sold.`
+              : `${g} is not in stock (${unit.status.toLowerCase().replace("_", " ")}).`,
+          }
+        }
+        if ((unit.variantId ?? null) !== (variant?.id ?? null)) {
+          return { success: false, error: `${g} is not that option of ${product.name}.` }
+        }
+        serialIds.push(unit.id)
+        serialNumbers.push(unit.serial)
+      }
+    } else if ((line.serials ?? []).length > 0) {
+      return { success: false, error: `${product.name} is not tracked by serial.` }
+    }
+
     priced.push({
       productId: product.id,
       variantId: variant?.id ?? null,
       variantLabel: variant?.label ?? null,
       allocations,
+      serialIds,
+      serialNumbers,
       name: product.name,
       // The variant's own code where it has one: that is what was scanned
       // and what the shopkeeper will look for on the receipt.
@@ -945,6 +1011,7 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
                 totalPrice: l.totalPrice,
                 costAtSale: l.costAtSale,
                 priceOverridden: l.priceOverridden,
+                serials: l.serialNumbers,
                 notes: l.notes,
               })),
             },
@@ -1007,6 +1074,29 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
             if (moved.balance.lessThan(0)) {
               stockWarnings.push(`${l.name} is now ${moved.balance.toString()} ${l.unit} — below zero.`)
             }
+          }
+        }
+
+        // Mark the units sold, inside the same transaction as the sale.
+        //
+        // updateMany with a status guard rather than a plain update: two
+        // tills selling the same IMEI in the same instant would both have
+        // read it as IN_STOCK, and the guard makes the second write affect
+        // nothing so the count below catches it.
+        for (let i = 0; i < priced.length; i++) {
+          const l = priced[i]
+          if (l.serialIds.length === 0) continue
+          const item = sale.items.find(
+            (it) => it.productId === l.productId && (it.variantId ?? null) === (l.variantId ?? null),
+          )
+          const claimed = await tx.productSerial.updateMany({
+            where: { id: { in: l.serialIds }, shopkeeperId: till.shopkeeperId, status: "IN_STOCK" },
+            data: { status: "SOLD", soldAt: occurredAt, posSaleItemId: item?.id ?? null },
+          })
+          if (claimed.count !== l.serialIds.length) {
+            throw new PosSaleError(
+              `${l.name}: one of those units was sold on another till just now. Nothing was recorded.`,
+            )
           }
         }
 
@@ -1156,6 +1246,22 @@ export async function voidPosSale(input: unknown): Promise<TillActionResult> {
         select: { id: true, productId: true, variantId: true, batchId: true, quantity: true, unit: true },
         orderBy: { createdAt: "asc" },
       })
+
+      // Units go back on the register before the stock movements, so a
+      // failure in either rolls both back together.
+      const soldSerials = await tx.productSerial.findMany({
+        where: { shopkeeperId: till.shopkeeperId, posSaleItemId: { in: sale.items.map((i) => i.id) }, status: "SOLD" },
+        select: { id: true },
+      })
+      if (soldSerials.length > 0) {
+        await tx.productSerial.updateMany({
+          where: { id: { in: soldSerials.map((u) => u.id) } },
+          // RETURNED, not IN_STOCK: a unit that went out and came back is
+          // not the same as one that never left, and a shop looking at a
+          // phone with a scuffed box wants to know which it is.
+          data: { status: "RETURNED", soldAt: null },
+        })
+      }
 
       for (const m of sold) {
         const back = await recordStockMovement(tx as never, {

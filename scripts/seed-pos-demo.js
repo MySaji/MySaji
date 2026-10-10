@@ -42,6 +42,7 @@
  *   node scripts/seed-pos-demo.js                     # butchery
  *   node scripts/seed-pos-demo.js --profile CLOTHES     # exercises VARIANTS
  *   node scripts/seed-pos-demo.js --profile PHARMACY    # exercises BATCH_EXPIRY
+ *   node scripts/seed-pos-demo.js --profile PHONES      # exercises SERIALISED + FITMENT
  *   node scripts/seed-pos-demo.js --profile SUPERMARKET
  *   node scripts/seed-pos-demo.js --profile MITUMBA    # exercises OPEN_PRICE
  *   node scripts/seed-pos-demo.js --revert             # remove it again
@@ -192,6 +193,27 @@ const PROFILES = {
       { name: "Hot Water Bottle", price: 950, cost: 560, unit: "piece", stock: "7", barcode: null },
     ],
   },
+  PHONES: {
+    label: "Phones & accessories",
+    traits: ["VARIANTS", "SERIALISED", "FITMENT"],
+    unit: "piece",
+    shopName: "Luthuli Phone Centre",
+    // Handsets are tracked unit by unit; accessories are not. A phone shop
+    // is exactly where both shapes sit side by side on one counter.
+    products: [
+      { name: "Tecno Spark 10", price: 16500, cost: 13200, unit: "piece", stock: "0", barcode: null,
+        serials: ["350111222333001", "350111222333002", "350111222333003"] },
+      { name: "Samsung A05", price: 19800, cost: 15900, unit: "piece", stock: "0", barcode: null,
+        serials: ["350111222444001", "350111222444002"] },
+      { name: "USB-C Cable 1m", price: 400, cost: 180, unit: "piece", stock: "45", barcode: "6161104110019",
+        fitsWith: ["Tecno Spark 10", "Samsung A05", "USB-C"] },
+      { name: "Screen Protector", price: 250, cost: 90, unit: "piece", stock: "60", barcode: null,
+        fitsWith: ["Tecno Spark 10"] },
+      { name: "Charger 20W", price: 1200, cost: 700, unit: "piece", stock: "18", barcode: "6161104110026",
+        fitsWith: ["USB-C"] },
+      { name: "Earphones", price: 650, cost: 300, unit: "piece", stock: "24", barcode: null },
+    ],
+  },
   MITUMBA: {
     label: "Mitumba / second-hand",
     traits: ["VARIANTS", "BULK_BREAK", "OPEN_PRICE"],
@@ -283,6 +305,7 @@ async function revert() {
       // Before the products: deleting a product cascades its variants, but
       // doing it explicitly means the count below is a real check rather
       // than an assumption about the cascade.
+      serials: (await db.productSerial.deleteMany({ where: { shopkeeperId: shopId } })).count,
       batches: (await db.productBatch.deleteMany({ where: { shopkeeperId: shopId } })).count,
       variants: (await db.productVariant.deleteMany({ where: { shopkeeperId: shopId } })).count,
       inventory: (await db.inventory.deleteMany({ where: { productId: { in: productIds } } })).count,
@@ -382,6 +405,7 @@ async function seed() {
         costPrice: p.cost,
         unit: p.unit,
         isActive: true,
+        fitsWith: p.fitsWith || [],
         // A POS-only shop is not listed, so publishing is meaningless here.
         // Left null deliberately: null means "never went live", which is
         // exactly right for a product that only ever sells across a counter.
@@ -389,6 +413,33 @@ async function seed() {
       },
       select: { id: true },
     })
+
+    // Units tracked individually. The serial count IS the stock, which is
+    // the invariant the register exists to hold.
+    if (p.serials && p.serials.length > 0) {
+      await db.product.update({ where: { id: product.id }, data: { tracksSerials: true } })
+      for (const serial of p.serials) {
+        await db.productSerial.create({
+          data: { productId: product.id, shopkeeperId: shop.id, serial, costPrice: p.cost },
+        })
+      }
+      const n = p.serials.length
+      await db.inventory.upsert({
+        where: { productId: product.id },
+        update: { stockOnHand: String(n), currentStock: n },
+        create: { productId: product.id, stockOnHand: String(n), currentStock: n, lowStockThreshold: 5, reorderLevel: 10 },
+      })
+      await db.stockMovement.create({
+        data: {
+          shopkeeperId: shop.id, productId: product.id, kind: "OPENING_BALANCE",
+          quantity: String(n), unit: p.unit, unitCost: p.cost, balanceAfter: String(n),
+          reason: "Opening stock, seeded for the demo",
+          idempotencyKey: "seed:opening:" + product.id, occurredAt: new Date(),
+        },
+      })
+      made++
+      continue
+    }
 
     // Deliveries, where this product is tracked by them. Each batch carries
     // its own opening stock as a real ledger row, and the product figure is

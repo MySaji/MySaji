@@ -5,7 +5,7 @@ import Link from "next/link"
 import {
   ArrowLeft, Loader2, Search, Package, AlertTriangle, Plus,
   ClipboardCheck, Trash2, X, History, Check, Boxes, Calculator, Shapes, RotateCcw, CalendarClock,
-  ShieldAlert, Puzzle,
+  ShieldAlert, Puzzle, Fingerprint,
 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -13,7 +13,8 @@ import { Input } from "@/components/ui/input"
 import {
   getStockView, getProductMovements, receiveStock, recordWastage, recordStockCount,
   saveProductVariant, setVariantActive, receiveBatch, writeOffBatch, setProductAgeRestricted,
-  setProductBulkUnit, setProductFitment,
+  setProductBulkUnit, setProductFitment, getProductSerials, receiveSerials, writeOffSerial,
+  type SerialRow,
   type StockView, type StockRow, type MovementRow,
 } from "@/lib/actions/pos-stock"
 
@@ -59,6 +60,7 @@ type Sheet =
   | { mode: "receive" | "waste" | "count"; row: StockRow }
   | { mode: "options"; row: StockRow }
   | { mode: "batches"; row: StockRow }
+  | { mode: "serials"; row: StockRow }
   | null
 
 export default function StockPage() {
@@ -85,6 +87,9 @@ export default function StockPage() {
   /** Comma-separated while editing; split on save. One field is easier to
    *  type on a phone than a tag widget, and this list is usually short. */
   const [fitsDraft, setFitsDraft] = useState("")
+  const [serials, setSerials] = useState<SerialRow[] | null>(null)
+  /** One per line, so a shopkeeper can paste a column from a supplier note. */
+  const [serialDraft, setSerialDraft] = useState("")
   const [newBatch, setNewBatch] = useState({ batchNumber: "", expiryDate: "", quantity: "", unitCost: "", variantId: "" })
   const [saved, setSaved] = useState("")
 
@@ -113,6 +118,10 @@ export default function StockPage() {
     setFitsDraft(row.fitsWith.join(", "))
     // Preselect where there is no choice to make.
     setTargetVariant(row.variants.length === 1 ? row.variants[0].id : null)
+    if (mode === "serials") {
+      setSerials(null)
+      setSerials(await getProductSerials({ productId: row.productId }))
+    }
     if (mode === "history") {
       const m = await getProductMovements({ productId: row.productId })
       setMovements(m)
@@ -206,6 +215,38 @@ export default function StockPage() {
     setBulkDraft({ unit: "", per: "" })
     await refreshSheet(row.productId)
     flash("Bulk unit cleared")
+  }
+
+  const addSerials = async (row: StockRow) => {
+    const list = serialDraft.split(/[\n,]/).map((x) => x.trim()).filter(Boolean)
+    if (list.length === 0) { setError("Scan or paste at least one serial.") ; return }
+    setBusy(true); setError("")
+    const r = await receiveSerials({
+      productId: row.productId,
+      ...(row.variants.length === 1 ? { variantId: row.variants[0].id } : {}),
+      serials: list,
+    })
+    setBusy(false)
+    if (!r.success) { setError(r.error); return }
+    setSerialDraft("")
+    setSerials(await getProductSerials({ productId: row.productId }))
+    await reload()
+    flash(
+      r.added + (r.added === 1 ? " unit added" : " units added") +
+      (r.skipped.length > 0 ? ", " + r.skipped.length + " already on the register" : ""),
+    )
+  }
+
+  const discardSerial = async (row: StockRow, serialId: string) => {
+    const why = window.prompt("Why is this unit being written off? (lost, damaged, returned to supplier)")
+    if (!why || why.trim().length < 3) return
+    setBusy(true); setError("")
+    const r = await writeOffSerial({ serialId, reason: why.trim() })
+    setBusy(false)
+    if (!r.success) { setError(r.error); return }
+    setSerials(await getProductSerials({ productId: row.productId }))
+    await reload()
+    flash("Written off")
   }
 
   const saveFitment = async (row: StockRow) => {
@@ -305,6 +346,24 @@ export default function StockPage() {
               <p className="mt-0.5 text-[11px] text-gray-600 dark:text-gray-400 leading-snug">
                 The till sells the soonest-to-expire delivery first. Open Deliveries on a product
                 to write a batch off, which records the loss rather than letting it vanish.
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {s.serialDrift > 0 && (
+        <Card className="p-3 rounded-2xl border-amber-300 dark:border-amber-800 bg-amber-50/60 dark:bg-amber-900/10">
+          <div className="flex items-start gap-2">
+            <Fingerprint className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-xs font-semibold text-gray-900 dark:text-white">
+                {s.serialDrift} {s.serialDrift === 1 ? "product has" : "products have"} more or fewer
+                units on the register than the stock figure says
+              </p>
+              <p className="mt-0.5 text-[11px] text-gray-600 dark:text-gray-400 leading-snug">
+                The register sits beside the stock count rather than holding it, so the two can
+                drift. Open Units on a product to see which are on the shelf.
               </p>
             </div>
           </div>
@@ -463,6 +522,11 @@ export default function StockPage() {
               )}
 
               <div className="mt-2 flex flex-wrap gap-1.5">
+                {s.tracksSerials && (
+                  <SmallButton onClick={() => void openSheet("serials", r)} icon={Fingerprint}>
+                    {r.tracksSerials ? "Units (" + r.serialsInStock + ")" : "Add units"}
+                  </SmallButton>
+                )}
                 <SmallButton onClick={() => openSheet("batches", r)} icon={CalendarClock}>
                   {r.batches.length > 0 ? "Deliveries (" + r.batches.length + ")" : "Add a delivery"}
                 </SmallButton>
@@ -531,7 +595,77 @@ export default function StockPage() {
                 </div>
               )}
 
-              {sheet.mode === "batches" ? (
+              {sheet.mode === "serials" ? (
+                <>
+                  <p className="text-[11px] text-gray-600 dark:text-gray-400 leading-snug">
+                    Each unit is recorded by its serial or IMEI. The count of serials IS the
+                    quantity — there is no separate number to type, because entering ten and
+                    scanning nine is exactly the discrepancy this is for.
+                  </p>
+
+                  <div className="rounded-xl border border-dashed border-gray-300 dark:border-gray-600 p-3 space-y-2">
+                    <p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">Units arriving</p>
+                    <textarea
+                      value={serialDraft}
+                      onChange={(e) => setSerialDraft(e.target.value)}
+                      rows={4}
+                      placeholder={"One per line, or separated by commas.\n350123456789001\n350123456789002"}
+                      className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-xs font-mono text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40 resize-none"
+                    />
+                    <p className="text-[10px] text-gray-400 leading-snug">
+                      Any already on the register are skipped and reported, rather than refusing
+                      the whole delivery over one duplicate.
+                    </p>
+                    <Button
+                      onClick={() => void addSerials(sheet.row)}
+                      disabled={busy || !serialDraft.trim()}
+                      className="w-full h-10 rounded-xl text-xs"
+                    >
+                      {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Add to the register"}
+                    </Button>
+                  </div>
+
+                  {serials === null ? (
+                    <div className="py-6 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-gray-400" /></div>
+                  ) : serials.length === 0 ? (
+                    <p className="py-4 text-center text-xs text-gray-500">Nothing on the register yet.</p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {serials.map((u) => (
+                        <div
+                          key={u.id}
+                          className={
+                            u.status === "IN_STOCK"
+                              ? "flex items-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 p-2.5"
+                              : "flex items-center gap-2 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/40 p-2.5"
+                          }
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-mono text-gray-900 dark:text-white truncate">{u.serial}</p>
+                            <p className="text-[10px] text-gray-400">
+                              {u.status === "IN_STOCK" ? "on the shelf"
+                                : u.status === "SOLD" ? "sold" + (u.soldAt ? " " + new Date(u.soldAt).toLocaleDateString("en-KE", { day: "numeric", month: "short" }) : "")
+                                : u.status === "RETURNED" ? "returned by a customer"
+                                : "written off"}
+                              {u.variantLabel && " · " + u.variantLabel}
+                              {u.note && " · " + u.note}
+                            </p>
+                          </div>
+                          {u.status === "IN_STOCK" && (
+                            <button
+                              onClick={() => void discardSerial(sheet.row, u.id)}
+                              disabled={busy}
+                              className="h-8 px-2.5 rounded-lg border border-gray-200 dark:border-gray-700 text-[11px] text-gray-500 active:scale-95 inline-flex items-center gap-1 flex-shrink-0"
+                            >
+                              <Trash2 className="w-3 h-3" /> Write off
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : sheet.mode === "batches" ? (
                 <>
                   <p className="text-[11px] text-gray-600 dark:text-gray-400 leading-snug">
                     Each delivery keeps its own stock and expiry date. The till always sells the
