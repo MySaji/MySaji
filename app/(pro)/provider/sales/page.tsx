@@ -6,10 +6,10 @@ import {
   ArrowLeft, Check, Clock, Loader2, MessageCircle, Package, Receipt,
   TrendingUp, XCircle,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { getMyOfferSales, type MyOfferSales } from "@/lib/actions/provider-products"
-import { acceptJob, declineJob, completeJob } from "@/lib/actions/provider-jobs"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { Button } from "@/frontend/components/ui/button"
+import { getMyOfferSales, type MyOfferSales } from "@/backend/actions/provider-products"
+import { acceptJob, declineJob, completeJob } from "@/backend/actions/provider-jobs"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 const STATUS_STYLE: Record<string, { label: string; className: string }> = {
   PENDING: { label: "New order", className: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },

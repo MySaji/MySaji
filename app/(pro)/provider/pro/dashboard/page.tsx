@@ -7,12 +7,12 @@ import {
   Eye, MessageSquare, Calendar, Wallet, ShieldAlert, X, Plus, Package, MapPin, FileText, Upload, Rocket,
   ChevronRight, TrendingUp, Star, Loader2, ClipboardCheck, UploadCloud, Sparkles,
 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
 import { AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
-import { getProDashboardOverview, type ProDashboardOverview } from "@/lib/actions/provider-pro-dashboard"
-import { getMySubscriptionStatus, type ProviderSubscriptionStatus } from "@/lib/actions/provider-subscription"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { getProDashboardOverview, type ProDashboardOverview } from "@/backend/actions/provider-pro-dashboard"
+import { getMySubscriptionStatus, type ProviderSubscriptionStatus } from "@/backend/actions/provider-subscription"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 const OFFER_STATUS_STYLE: Record<string, { label: string; className: string }> = {
   LIVE: { label: "LIVE", className: "bg-emerald-500 text-white" },

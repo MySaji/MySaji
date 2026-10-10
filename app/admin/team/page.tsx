@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react"
 import { Plus, Trash2, Shield, Briefcase, UserCheck, Copy, Mail, Loader2, Pencil } from "lucide-react"
-import { registerTeamMember } from "@/lib/actions/auth"
+import { registerTeamMember } from "@/backend/actions/auth"
 import {
   getTeamMembers, toggleTeamMemberActive, updateTeamMemberOrgInfo,
   type AdminTeamMember, type AdminTeamRole,
-} from "@/lib/actions/admin-team"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+} from "@/backend/actions/admin-team"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 type NewlyCreatedMember = AdminTeamMember & { password: string; credentialsSent: boolean }
 

@@ -2,16 +2,16 @@
 
 import { useEffect, useState } from "react"
 import { Search, Plus, Edit, Trash2, Loader2, MapPin } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { Label } from "@/frontend/components/ui/label"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/frontend/components/ui/dialog"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 import {
   getCountiesForAdmin, createCounty, updateCounty, setCountyActive, deleteCounty,
   type CountyRow,
-} from "@/lib/actions/counties"
+} from "@/backend/actions/counties"
 
 export default function AdminCountiesPage() {
   const { t } = useLocalization()

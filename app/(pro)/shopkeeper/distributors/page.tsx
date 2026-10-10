@@ -4,10 +4,10 @@ import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Truck, Search, Loader2, Star, Warehouse, Package } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { browseDistributors, type BuyerDistributorSummary } from "@/lib/actions/wholesale-orders"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { Card } from "@/frontend/components/ui/card"
+import { Input } from "@/frontend/components/ui/input"
+import { browseDistributors, type BuyerDistributorSummary } from "@/backend/actions/wholesale-orders"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 export default function ShopkeeperDistributorsPage() {
   const { t } = useLocalization()

@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react"
 import { Siren, MapPin, Loader2, CheckCircle2 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { getActiveSafetyIncidentsForAdmin, resolveSafetyIncident, type SafetyIncidentItem } from "@/lib/actions/safety"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { getActiveSafetyIncidentsForAdmin, resolveSafetyIncident, type SafetyIncidentItem } from "@/backend/actions/safety"
 
 const STATUS_STYLE: Record<string, { label: string; className: string }> = {
   ACTIVE: { label: "Active", className: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" },

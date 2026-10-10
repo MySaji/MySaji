@@ -5,13 +5,13 @@ import Link from "next/link"
 import {
   ArrowLeft, AlertTriangle, Check, Loader2, Monitor, Smartphone, Tablet, Ban, RotateCcw, Pencil,
 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
 import {
   getTillDevices, registerTillDevice, renameTillDevice, setTillDeviceRevoked, type DeviceRow,
-} from "@/lib/actions/pos-devices"
-import { getDeviceSecret } from "@/lib/pos-device"
+} from "@/backend/actions/pos-devices"
+import { getDeviceSecret } from "@/frontend/lib/pos-device"
 
 /**
  * The counters that ring up sales.

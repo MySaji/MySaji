@@ -3,11 +3,11 @@
 import { ArrowLeft, Star, MessageSquare, Loader2, Flag } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { getMyReviews, replyToReview, disputeReview, type ProviderReviewItem } from "@/lib/actions/provider-credentials"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import type { TranslationKey } from "@/lib/i18n"
+import { Button } from "@/frontend/components/ui/button"
+import { Textarea } from "@/frontend/components/ui/textarea"
+import { getMyReviews, replyToReview, disputeReview, type ProviderReviewItem } from "@/backend/actions/provider-credentials"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import type { TranslationKey } from "@/backend/domain/i18n"
 
 const SUB_SCORES: { key: keyof Pick<ProviderReviewItem, "professionalism" | "communication" | "punctuality" | "qualityOfWork">; labelKey: TranslationKey }[] = [
   { key: "professionalism", labelKey: "provider.ratings.subProfessionalism" },

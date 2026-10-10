@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { getReceiptPdfBuffer } from "@/lib/actions/receipts"
+import { getReceiptPdfBuffer } from "@/backend/actions/receipts"
 
 /** Public download endpoint backing the /verify page's "Download PDF"
  * button — same no-login model as the rest of receipt verification (see

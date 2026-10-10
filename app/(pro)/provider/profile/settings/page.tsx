@@ -3,17 +3,17 @@
 import { ArrowLeft, Lock, Eye, Shield, Trash2, Download, Bell, LogOut, ChevronRight, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
-import { useAuthContext } from "@/lib/auth-context"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import type { Language } from "@/lib/i18n"
-import type { CurrencyCode } from "@/lib/currency"
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { useAuthContext } from "@/frontend/lib/auth-context"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import type { Language } from "@/backend/domain/i18n"
+import type { CurrencyCode } from "@/backend/domain/currency"
+import { Button } from "@/frontend/components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/frontend/components/ui/dialog"
 import {
   getNotificationPreferences, updateNotificationPreferences, changeMyPassword, deleteMyAccount,
   type NotificationPreferences,
-} from "@/lib/actions/provider-account"
-import { NotificationPreferencesCard } from "@/components/settings/notification-preferences-card"
+} from "@/backend/actions/provider-account"
+import { NotificationPreferencesCard } from "@/frontend/components/settings/notification-preferences-card"
 
 export default function SettingsPage() {
   const { t, language, setLanguage, currency, setCurrency, theme, setTheme } = useLocalization()

@@ -4,11 +4,11 @@ import type React from "react"
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { useAuthContext } from "@/lib/auth-context"
-import { AdminSidebar } from "@/components/admin-sidebar"
-import { AdminHeader } from "@/components/admin-header"
-import { AdminMobileNav } from "@/components/admin-mobile-nav"
-import { LoadingScreen } from "@/components/loading-screen"
+import { useAuthContext } from "@/frontend/lib/auth-context"
+import { AdminSidebar } from "@/frontend/components/admin-sidebar"
+import { AdminHeader } from "@/frontend/components/admin-header"
+import { AdminMobileNav } from "@/frontend/components/admin-mobile-nav"
+import { LoadingScreen } from "@/frontend/components/loading-screen"
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, user } = useAuthContext()

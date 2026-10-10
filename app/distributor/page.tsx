@@ -6,12 +6,12 @@ import {
   Plus, Eye, Clock, AlertCircle,
   CheckCircle2, ArrowUpRight, ArrowDownRight, TrendingUp, Loader2,
 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
 import Link from "next/link"
-import { getDistributorDashboard } from "@/lib/actions/distributor-dashboard"
-import { withTimeout, DASHBOARD_FETCH_TIMEOUT_MS } from "@/lib/swr-utils"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { getDistributorDashboard } from "@/backend/actions/distributor-dashboard"
+import { withTimeout, DASHBOARD_FETCH_TIMEOUT_MS } from "@/frontend/lib/swr-utils"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 const STATUS_COLOR: Record<string, string> = {
   PENDING: "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400",

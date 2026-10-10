@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { Button } from "@/frontend/components/ui/button"
+import { Card } from "@/frontend/components/ui/card"
+import { Input } from "@/frontend/components/ui/input"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/frontend/components/ui/dialog"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/frontend/components/ui/tabs"
 import {
   ArrowLeft, Search, Star, MapPin, CheckCircle, Calendar, Briefcase, Video,
   Filter, X, Phone, MessageCircle, Award, Store, Clock,
@@ -15,12 +15,12 @@ import {
 } from "lucide-react"
 import NextImage from "next/image"
 import Link from "next/link"
-import { getSpecialists, getSpecialistDetail, type SpecialistCard, type SpecialistDetail } from "@/lib/actions/specialists"
-import { getMyLocationOrigin } from "@/lib/actions/geo"
-import { RadiusFilter, type RadiusSelection } from "@/components/geo/radius-filter"
-import { getServiceCategories, type HomeServiceCategory } from "@/lib/actions/home"
-import { toggleWishlist } from "@/lib/actions/wishlist"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { getSpecialists, getSpecialistDetail, type SpecialistCard, type SpecialistDetail } from "@/backend/actions/specialists"
+import { getMyLocationOrigin } from "@/backend/actions/geo"
+import { RadiusFilter, type RadiusSelection } from "@/frontend/components/geo/radius-filter"
+import { getServiceCategories, type HomeServiceCategory } from "@/backend/actions/home"
+import { toggleWishlist } from "@/backend/actions/wishlist"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 const BADGE_STYLE: Record<string, string> = {
   Verified: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",

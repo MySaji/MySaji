@@ -4,8 +4,8 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { ArrowLeft, Search, Loader2, ShieldCheck, ShieldAlert, Download, ScanLine } from "lucide-react"
-import { BrandLogo } from "@/components/brand-logo"
-import { getReceiptByNumber, type PublicReceiptView } from "@/lib/actions/receipts"
+import { BrandLogo } from "@/frontend/components/brand-logo"
+import { getReceiptByNumber, type PublicReceiptView } from "@/backend/actions/receipts"
 
 const TYPE_LABEL: Record<string, string> = {
   PAYMENT: "Payment Receipt",

@@ -6,12 +6,12 @@ import {
   ArrowLeft, Loader2, Calculator, Hammer, AlertTriangle, Check, Banknote,
   Smartphone, CreditCard, Landmark, HandCoins,
 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { getOpenDeposits, settleDeposit, type OpenDeposit } from "@/lib/actions/pos-sales"
-import { TillReceipt } from "@/components/pos/till-receipt"
-import type { Receipt } from "@/lib/actions/pos-sales"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { getOpenDeposits, settleDeposit, type OpenDeposit } from "@/backend/actions/pos-sales"
+import { TillReceipt } from "@/frontend/components/pos/till-receipt"
+import type { Receipt } from "@/backend/actions/pos-sales"
 
 /**
  * Orders taken and not yet handed over.

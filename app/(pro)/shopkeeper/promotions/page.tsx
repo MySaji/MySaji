@@ -5,17 +5,17 @@ import {
   Tag, Plus, Search, Calendar, Percent, DollarSign, Trash2,
   Copy, CheckCircle2, Clock, XCircle, Users, Loader2, Gift
 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { Textarea } from "@/frontend/components/ui/textarea"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/frontend/components/ui/dialog"
 import {
   getMyPromotions, createMyPromotion, deleteMyPromotion, togglePromotionPause,
   type ShopkeeperPromotion, type ShopkeeperPromotionType,
-} from "@/lib/actions/shopkeeper-promotions"
-import { getProductCategoryOptions, type ShopkeeperProductCategoryOption } from "@/lib/actions/shopkeeper-products"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+} from "@/backend/actions/shopkeeper-promotions"
+import { getProductCategoryOptions, type ShopkeeperProductCategoryOption } from "@/backend/actions/shopkeeper-products"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 const TYPE_ICON: Record<ShopkeeperPromotionType, typeof Percent> = {
   percentage: Percent,

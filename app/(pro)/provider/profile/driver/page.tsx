@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react"
 import { Truck, Loader2, CheckCircle2 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { getMyDriverProfile, registerAsDriver, setDriverAvailability, type DriverProfileData } from "@/lib/actions/driver-profile"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { getMyDriverProfile, registerAsDriver, setDriverAvailability, type DriverProfileData } from "@/backend/actions/driver-profile"
 
 export default function DriverProfilePage() {
   const [profile, setProfile] = useState<DriverProfileData>(null)

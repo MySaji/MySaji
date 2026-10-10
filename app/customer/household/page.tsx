@@ -3,15 +3,15 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { ArrowLeft, Home, Loader2, UserPlus, Trash2, Briefcase } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { Button } from "@/frontend/components/ui/button"
+import { Card } from "@/frontend/components/ui/card"
+import { Input } from "@/frontend/components/ui/input"
+import { Dialog, DialogContent } from "@/frontend/components/ui/dialog"
 import {
   getMyHousehold, createHousehold, inviteHouseholdMember, removeHouseholdMember, updateHouseholdMemberRole,
   getHouseholdJobs, type MyHousehold, type HouseholdRole, type HouseholdJobItem,
-} from "@/lib/actions/household"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+} from "@/backend/actions/household"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 const ROLE_LABEL: Record<HouseholdRole, string> = { OWNER: "Owner", MEMBER: "Member", PROPERTY_MANAGER: "Property Manager", PAYMENT_APPROVER: "Payment Approver" }
 

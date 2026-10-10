@@ -5,20 +5,20 @@ import {
   Bell, Lock, User, Shield, Eye, EyeOff, Globe,
   ChevronRight, Save, AlertCircle, CheckCircle2, Mail, Phone, MapPin, Loader2,
 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/frontend/components/ui/dialog"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/frontend/components/ui/tabs"
 import {
   getMyDistributorAccount, updateMyDistributorAccount, changeMyDistributorPassword,
   getDistributorNotificationPreferences, updateDistributorNotificationPreferences,
   type DistributorAccountData, type DistributorNotificationPreferences,
-} from "@/lib/actions/distributor-account"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import type { Language } from "@/lib/i18n"
-import type { CurrencyCode } from "@/lib/currency"
-import { NotificationPreferencesCard } from "@/components/settings/notification-preferences-card"
+} from "@/backend/actions/distributor-account"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import type { Language } from "@/backend/domain/i18n"
+import type { CurrencyCode } from "@/backend/domain/currency"
+import { NotificationPreferencesCard } from "@/frontend/components/settings/notification-preferences-card"
 
 export default function DistributorSettingsPage() {
   const { t, language, setLanguage, currency, setCurrency } = useLocalization()

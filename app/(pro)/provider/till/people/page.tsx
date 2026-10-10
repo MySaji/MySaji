@@ -5,13 +5,13 @@ import Link from "next/link"
 import {
   ArrowLeft, AlertTriangle, Check, Loader2, Plus, ShieldCheck, User, UserCheck, UserMinus, X,
 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
 import {
   getCashiers, saveCashier, setCashierActive, type CashierRow,
-} from "@/lib/actions/pos-cashiers"
-import { getMyPosSetup, updatePosConfig, type PosSetup } from "@/lib/actions/pos"
+} from "@/backend/actions/pos-cashiers"
+import { getMyPosSetup, updatePosConfig, type PosSetup } from "@/backend/actions/pos"
 
 /**
  * Who works the till.

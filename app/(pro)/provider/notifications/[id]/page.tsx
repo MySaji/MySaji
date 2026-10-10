@@ -2,9 +2,9 @@
 
 import { useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
-import { useAuthContext } from "@/lib/auth-context"
-import { LoadingScreen } from "@/components/loading-screen"
-import { NotificationDetail } from "@/components/notifications/notification-detail"
+import { useAuthContext } from "@/frontend/lib/auth-context"
+import { LoadingScreen } from "@/frontend/components/loading-screen"
+import { NotificationDetail } from "@/frontend/components/notifications/notification-detail"
 
 export default function ProviderNotificationDetailPage() {
   const { isAuthenticated, isLoading, user } = useAuthContext()

@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { ArrowLeft, Loader2, Copy, Check, X } from "lucide-react"
-import { getMyProviderBusinessInfo, getMyStaff, inviteStaffMember, revokeStaffInvite, type MyStaffResult, type StaffInviteListItem } from "@/lib/actions/provider-business"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import type { TranslationKey } from "@/lib/i18n"
+import { getMyProviderBusinessInfo, getMyStaff, inviteStaffMember, revokeStaffInvite, type MyStaffResult, type StaffInviteListItem } from "@/backend/actions/provider-business"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import type { TranslationKey } from "@/backend/domain/i18n"
 
 const INVITE_STATUS_KEY: Record<StaffInviteListItem["status"], TranslationKey> = {
   PENDING: "provider.business.staff.statusPending",

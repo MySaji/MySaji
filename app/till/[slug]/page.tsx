@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import type { Metadata } from "next"
-import { auth } from "@/auth"
-import { db } from "@/lib/db"
-import { getPublicTillShop } from "@/lib/actions/pos-install"
+import { auth } from "@/backend/auth"
+import { db } from "@/backend/db"
+import { getPublicTillShop } from "@/backend/actions/pos-install"
 
 /**
  * A shop's own front door to its till.

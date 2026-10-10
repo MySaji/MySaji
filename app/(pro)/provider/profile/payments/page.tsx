@@ -3,16 +3,16 @@
 import { ArrowLeft, CreditCard, Plus, Trash2, Edit2, Check, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/frontend/components/ui/dialog"
 import {
   getWalletSummary, addPaymentMethod, removePaymentMethod, setDefaultPaymentMethod, updatePaymentMethod,
   type WalletPaymentMethod,
-} from "@/lib/actions/wallet"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import { useGatedAction } from "@/lib/hooks/useGatedAction"
-import type { TranslationKey } from "@/lib/i18n"
+} from "@/backend/actions/wallet"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import { useGatedAction } from "@/frontend/lib/hooks/useGatedAction"
+import type { TranslationKey } from "@/backend/domain/i18n"
 
 const TYPE_LABEL_KEY: Record<string, TranslationKey> = {
   mpesa: "payment.mpesa", airtel: "provider.payments.typeAirtelMoney", card: "provider.payments.typeCard",

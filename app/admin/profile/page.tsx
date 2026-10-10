@@ -2,15 +2,15 @@
 
 import { useEffect, useState } from "react"
 import { User, Lock, Palette, Bell, Eye, EyeOff, Save, CheckCircle2, Loader2 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 import {
   getAdminAccount, updateAdminProfile, changeAdminPassword,
   getAdminNotificationPreferences, updateAdminNotificationPreferences,
   type AdminAccountData, type AdminNotificationPreferences,
-} from "@/lib/actions/admin-account"
-import { NotificationPreferencesCard } from "@/components/settings/notification-preferences-card"
+} from "@/backend/actions/admin-account"
+import { NotificationPreferencesCard } from "@/frontend/components/settings/notification-preferences-card"
 
 export default function AdminProfilePage() {
   const { t, theme, setTheme } = useLocalization()

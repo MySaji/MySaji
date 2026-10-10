@@ -7,16 +7,16 @@ import {
   Play, ImageIcon, Video, ArrowUpRight,
   Pin, Archive, Loader2, Camera
 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/frontend/components/ui/dialog"
 import NextImage from "next/image"
-import { getMyPosts, togglePinPost, toggleArchivePost, type ProviderPost } from "@/lib/actions/provider-content"
-import { createPost, deletePost } from "@/lib/actions/community"
-import { createProviderStory } from "@/lib/actions/provider-stories"
-import { compressImageToDataUrl } from "@/lib/compress-image"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { getMyPosts, togglePinPost, toggleArchivePost, type ProviderPost } from "@/backend/actions/provider-content"
+import { createPost, deletePost } from "@/backend/actions/community"
+import { createProviderStory } from "@/backend/actions/provider-stories"
+import { compressImageToDataUrl } from "@/frontend/lib/compress-image"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 export default function ProviderContentPage() {
   const { t } = useLocalization()

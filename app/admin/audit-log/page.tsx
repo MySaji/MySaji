@@ -1,12 +1,12 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/frontend/components/ui/dialog"
 import { Search, Download, User, Shield, CreditCard, Settings, AlertTriangle, CheckCircle2, XCircle, Eye, Clock, Globe, Monitor, Filter, Loader2 } from "lucide-react"
-import { getAuditLogs, getAuditLogSummary, type AdminAuditLogEntry } from "@/lib/actions/admin-audit-log"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { getAuditLogs, getAuditLogSummary, type AdminAuditLogEntry } from "@/backend/actions/admin-audit-log"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 export default function AdminAuditLogPage() {
   const { t } = useLocalization()

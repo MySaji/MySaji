@@ -7,16 +7,16 @@ import {
   ClipboardCheck, Trash2, X, History, Check, Boxes, Calculator, Shapes, RotateCcw, CalendarClock,
   ShieldAlert, Puzzle, Fingerprint,
 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
 import {
   getStockView, getProductMovements, receiveStock, recordWastage, recordStockCount,
   saveProductVariant, setVariantActive, receiveBatch, writeOffBatch, setProductAgeRestricted,
   setProductBulkUnit, setProductFitment, getProductSerials, receiveSerials, writeOffSerial,
   type SerialRow,
   type StockView, type StockRow, type MovementRow,
-} from "@/lib/actions/pos-stock"
+} from "@/backend/actions/pos-stock"
 
 /**
  * Stock on hand, and the history behind every figure.

@@ -1,6 +1,6 @@
 "use client"
 
-import { NotificationsList } from "@/components/notifications/notifications-list"
+import { NotificationsList } from "@/frontend/components/notifications/notifications-list"
 
 // Auth/role gating already happens in app/admin/layout.tsx (redirects before
 // this page's children ever render) — a second copy of the same check here

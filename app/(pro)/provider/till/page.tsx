@@ -8,20 +8,20 @@ import {
   CreditCard, Landmark, HandCoins, ShoppingCart, CloudOff, RefreshCw, Check, FileLock, Hammer,
   User, ShieldCheck, LogOut, Delete,
 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
 import {
   getTillState, findTillProducts, recordPosSale, openTillShift, closeTillShift, voidPosSale,
   type TillState, type TillProduct, type TillVariant, type Receipt, type ShiftCloseSummary,
-} from "@/lib/actions/pos-sales"
-import { getCashierMode, signInCashier } from "@/lib/actions/pos-cashiers"
-import { registerTillDevice } from "@/lib/actions/pos-devices"
-import { getDeviceSecret, guessDeviceName, guessPlatform } from "@/lib/pos-device"
-import { TillReceipt } from "@/components/pos/till-receipt"
-import { TillInstall } from "@/components/pos/till-install"
-import { usePosOffline } from "@/lib/hooks/usePosOffline"
-import { searchCached } from "@/lib/pos-offline"
+} from "@/backend/actions/pos-sales"
+import { getCashierMode, signInCashier } from "@/backend/actions/pos-cashiers"
+import { registerTillDevice } from "@/backend/actions/pos-devices"
+import { getDeviceSecret, guessDeviceName, guessPlatform } from "@/frontend/lib/pos-device"
+import { TillReceipt } from "@/frontend/components/pos/till-receipt"
+import { TillInstall } from "@/frontend/components/pos/till-install"
+import { usePosOffline } from "@/frontend/lib/hooks/usePosOffline"
+import { searchCached } from "@/frontend/lib/pos-offline"
 
 /**
  * The register.

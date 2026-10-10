@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import { getJobById, type JobDetail } from "@/lib/actions/jobs"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import { getJobById, type JobDetail } from "@/backend/actions/jobs"
+import { Button } from "@/frontend/components/ui/button"
+import { Card } from "@/frontend/components/ui/card"
 import { Check, Clock, MapPin, DollarSign, MessageCircle, Phone, Loader2 } from "lucide-react"
 
 export default function BookingConfirmationContent() {

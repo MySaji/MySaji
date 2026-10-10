@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react"
 import { Award, Upload, Check, Clock, X, Plus, Shield, Star, AlertCircle, Loader2 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
-import { getMyCertifications, addMyCertification, removeMyCertification, type ProviderCertification } from "@/lib/actions/provider-credentials"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import type { TranslationKey } from "@/lib/i18n"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { Dialog, DialogContent } from "@/frontend/components/ui/dialog"
+import { getMyCertifications, addMyCertification, removeMyCertification, type ProviderCertification } from "@/backend/actions/provider-credentials"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import type { TranslationKey } from "@/backend/domain/i18n"
 
 const statusConfig: Record<string, { color: string; labelKey: TranslationKey; icon: typeof Check }> = {
   approved: { color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400", labelKey: "provider.certifications.statusVerified", icon: Check },

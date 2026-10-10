@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Loader2, ShieldAlert } from "lucide-react"
-import { BrandLogo } from "@/components/brand-logo"
-import { useAuthContext } from "@/lib/auth-context"
-import { getStaffInviteByToken, acceptStaffInvite } from "@/lib/actions/provider-business"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { BrandLogo } from "@/frontend/components/brand-logo"
+import { useAuthContext } from "@/frontend/lib/auth-context"
+import { getStaffInviteByToken, acceptStaffInvite } from "@/backend/actions/provider-business"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 export default function StaffInviteAcceptPage() {
   const params = useParams<{ token: string }>()

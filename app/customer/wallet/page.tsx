@@ -2,9 +2,9 @@
 
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useAuthContext } from "@/lib/auth-context"
-import { LoadingScreen } from "@/components/loading-screen"
-import { CustomerWalletPage } from "@/components/pages/customer-wallet-page"
+import { useAuthContext } from "@/frontend/lib/auth-context"
+import { LoadingScreen } from "@/frontend/components/loading-screen"
+import { CustomerWalletPage } from "@/frontend/components/pages/customer-wallet-page"
 
 export default function WalletPage() {
   const { isAuthenticated, isLoading, user } = useAuthContext()

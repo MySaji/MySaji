@@ -3,11 +3,11 @@
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { Crown, Loader2, CheckCircle2, XCircle, Sparkles, Wrench, ShieldCheck, TrendingUp, Wallet } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { getMySubscriptionStatus, checkProSubscriptionPaymentStatus, getMyWalletBalance, type ProviderSubscriptionStatus } from "@/lib/actions/provider-subscription"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { getMySubscriptionStatus, checkProSubscriptionPaymentStatus, getMyWalletBalance, type ProviderSubscriptionStatus } from "@/backend/actions/provider-subscription"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 type PurchaseState = "idle" | "awaiting-provider" | "success" | "failed"
 

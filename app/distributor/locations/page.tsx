@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { Label } from "@/frontend/components/ui/label"
+import { Checkbox } from "@/frontend/components/ui/checkbox"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/frontend/components/ui/select"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/frontend/components/ui/dialog"
 import {
   Warehouse, Store, Building2, Boxes, Plus, ArrowRightLeft, MapPin, Phone,
   Star, Loader2, Pencil, Trash2, Power, Package,
@@ -17,8 +17,8 @@ import {
   getMyLocations, createLocation, updateLocation, toggleLocationActive, deleteLocation,
   getMyDistributorProductOptions, transferStock, getStockTransferHistory,
   type DistributorLocationRow, type TransferProductOption, type StockTransferRow,
-} from "@/lib/actions/distributor-locations"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+} from "@/backend/actions/distributor-locations"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 type LocationType = "WAREHOUSE" | "RETAIL_STORE" | "WHOLESALER" | "DISTRIBUTOR"
 

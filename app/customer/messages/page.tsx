@@ -2,9 +2,9 @@
 
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useAuthContext } from "@/lib/auth-context"
-import { LoadingScreen } from "@/components/loading-screen"
-import { ClassicChat } from "@/components/messages/classic-chat"
+import { useAuthContext } from "@/frontend/lib/auth-context"
+import { LoadingScreen } from "@/frontend/components/loading-screen"
+import { ClassicChat } from "@/frontend/components/messages/classic-chat"
 
 export default function MessagesPage() {
   const { isAuthenticated, isLoading, user } = useAuthContext()

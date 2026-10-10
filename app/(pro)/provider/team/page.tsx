@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Users, Loader2, Building2, CheckCircle2 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { getMyProviderBusinessInfo, completeBusinessOnboarding, type ProviderBusinessInfo } from "@/lib/actions/provider-business"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { getMyProviderBusinessInfo, completeBusinessOnboarding, type ProviderBusinessInfo } from "@/backend/actions/provider-business"
 
 /** The "Team" nav entry Saji Pro solo providers get (see provider-sidebar.tsx —
  * hidden for free-tier solo, always available to Business owners via the

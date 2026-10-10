@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react"
 import { Award, CheckCircle2, XCircle, Loader2, FileText } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { getPendingCertifications, reviewCertification, type PendingCertification } from "@/lib/actions/admin-certifications"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { getPendingCertifications, reviewCertification, type PendingCertification } from "@/backend/actions/admin-certifications"
 
 export default function AdminCertificationsPage() {
   const [items, setItems] = useState<PendingCertification[]>([])

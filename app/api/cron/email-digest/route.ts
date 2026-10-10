@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { runWeeklyEmailDigest } from "@/lib/actions/email-digest"
+import { runWeeklyEmailDigest } from "@/backend/actions/email-digest"
 
 /** Triggered by Vercel Cron (see vercel.json) once a week. Vercel attaches
  * `Authorization: Bearer <CRON_SECRET>` automatically when CRON_SECRET is

@@ -1,18 +1,18 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { Textarea } from "@/frontend/components/ui/textarea"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/frontend/components/ui/dialog"
 import { Search, RefreshCw, Loader2, ScaleIcon, Landmark, Plus } from "lucide-react"
 import {
   getSecretaryReconciliation, getSecretaryReconciliationSummary, recomputeWalletBalance,
   getBankReconciliations, createBankReconciliation, resolveReconciliationDiscrepancy,
   type SecretaryReconciliationRow, type SecretaryReconciliationSummary, type BankReconciliation,
-} from "@/lib/actions/secretary-reconciliation"
+} from "@/backend/actions/secretary-reconciliation"
 
 export default function SecretaryReconciliation() {
   const { t, formatMoney } = useLocalization()

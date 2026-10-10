@@ -4,13 +4,13 @@ import { useEffect, useMemo, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Image from "next/image"
 import { ArrowLeft, Truck, Star, Loader2, Package, MapPin, ShoppingCart, CheckCircle2 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { getDistributorProductsForBuyer, placeWholesaleOrder, type BuyerDistributorDetail } from "@/lib/actions/wholesale-orders"
-import { getMyProducts, type ShopkeeperProduct } from "@/lib/actions/shopkeeper-products"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/frontend/components/ui/select"
+import { getDistributorProductsForBuyer, placeWholesaleOrder, type BuyerDistributorDetail } from "@/backend/actions/wholesale-orders"
+import { getMyProducts, type ShopkeeperProduct } from "@/backend/actions/shopkeeper-products"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 type OrderLine = { quantity: number; restockProductId: string }
 
@@ -82,7 +82,7 @@ export default function ShopkeeperDistributorDetailPage() {
     })
     setIsPlacing(false)
     if (!result.success) { setPlaceError(result.error); return }
-    const order = await import("@/lib/actions/wholesale-orders").then((m) => m.getMyWholesaleOrders())
+    const order = await import("@/backend/actions/wholesale-orders").then((m) => m.getMyWholesaleOrders())
     setPlacedOrderNumber(order.find((o) => o.id === result.orderId)?.orderNumber ?? "placed")
     setOrderLines({})
     setNotes("")

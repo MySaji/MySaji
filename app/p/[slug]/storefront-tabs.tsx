@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { BadgeCheck, ChevronLeft, ChevronRight, GraduationCap, Play, Star, Trophy, X } from "lucide-react"
-import { OfferCard, OfferCardGrid } from "@/components/offers/offer-card"
-import type { StorefrontData, StorefrontOffer } from "@/lib/actions/storefront"
-import { offerHref } from "@/lib/offer-constants"
+import { OfferCard, OfferCardGrid } from "@/frontend/components/offers/offer-card"
+import type { StorefrontData, StorefrontOffer } from "@/backend/actions/storefront"
+import { offerHref } from "@/backend/domain/offer-constants"
 
 /**
  * Storefront tabs. Only tabs with content are rendered, so a translator with

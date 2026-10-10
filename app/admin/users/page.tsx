@@ -2,17 +2,17 @@
 
 import { useEffect, useState } from "react"
 import { Search, Download, Trash2, Eye, CheckCircle2, AlertCircle, TrendingUp, Mail, Phone, Edit, Loader2, Ban } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/frontend/components/ui/dialog"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 import {
   getAdminUsers, toggleSuspendUser, softDeleteUser, editUser,
   type AdminUserRow, type AdminUserStatus,
-} from "@/lib/actions/admin-users"
+} from "@/backend/actions/admin-users"
 
 const STATUS_COLOR: Record<AdminUserStatus, string> = {
   active: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400",

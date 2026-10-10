@@ -1,14 +1,14 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
 import { Search, Download, CheckCheck, Loader2, FileText } from "lucide-react"
 import {
   getSecretaryInvoices, getSecretaryInvoiceStats, secretaryMarkInvoicePaid,
   type SecretaryInvoice, type SecretaryInvoiceStats,
-} from "@/lib/actions/secretary-invoicing"
+} from "@/backend/actions/secretary-invoicing"
 
 export default function SecretaryInvoicing() {
   const { t, formatMoney } = useLocalization()

@@ -1,13 +1,13 @@
 "use client"
 
 import { useEffect, useState, useCallback, useMemo } from "react"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
 import { Download, ArrowUpRight, Loader2 } from "lucide-react"
 import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts"
-import { getSecretaryAnalytics, getSecretaryRevenueTrend, type SecretaryAnalytics, type SecretaryRevenueTrend } from "@/lib/actions/secretary-analytics"
-import { getYearOptions, MONTH_OPTIONS } from "@/lib/revenue-period-options"
+import { getSecretaryAnalytics, getSecretaryRevenueTrend, type SecretaryAnalytics, type SecretaryRevenueTrend } from "@/backend/actions/secretary-analytics"
+import { getYearOptions, MONTH_OPTIONS } from "@/backend/domain/revenue-period-options"
 
 const COLORS = ["#2563eb", "#0891b2", "#6366f1", "#a3a3a3", "#f59e0b"]
 const CURRENT_YEAR = new Date().getFullYear()

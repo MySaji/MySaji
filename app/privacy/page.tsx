@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
-import { getPublicLegalContent, getPublicSiteSettings } from "@/lib/actions/admin-settings"
-import { renderLegalContent } from "@/components/legal-content"
+import { getPublicLegalContent, getPublicSiteSettings } from "@/backend/actions/admin-settings"
+import { renderLegalContent } from "@/frontend/components/legal-content"
 
 export default async function PrivacyPage() {
   const [{ privacyContent, updatedAt }, contact] = await Promise.all([

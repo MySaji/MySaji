@@ -1,10 +1,10 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card } from "@/components/ui/card"
+import { Card } from "@/frontend/components/ui/card"
 import { Trophy, Medal, Loader2 } from "lucide-react"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import { getAgentLeaderboard, type AgentLeaderboardRow } from "@/lib/actions/agent-leaderboard"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import { getAgentLeaderboard, type AgentLeaderboardRow } from "@/backend/actions/agent-leaderboard"
 
 export default function AgentLeaderboardPage() {
   const { t, tn } = useLocalization()

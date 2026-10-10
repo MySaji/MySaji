@@ -3,18 +3,18 @@
 import { useEffect, useRef, useState } from "react"
 import { format } from "date-fns"
 import { Upload, Trash2, Edit2, ImageIcon, Loader2, Check, X, CalendarIcon } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Calendar } from "@/components/ui/calendar"
-import { Card } from "@/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { Label } from "@/frontend/components/ui/label"
+import { Switch } from "@/frontend/components/ui/switch"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/frontend/components/ui/select"
+import { Popover, PopoverContent, PopoverTrigger } from "@/frontend/components/ui/popover"
+import { Calendar } from "@/frontend/components/ui/calendar"
+import { Card } from "@/frontend/components/ui/card"
 import {
   getBannersForAdmin, createBanner, updateBanner, deleteBanner, type AdminBanner,
-} from "@/lib/actions/banners"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+} from "@/backend/actions/banners"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 export default function AdminBannersPage() {
   const { t } = useLocalization()

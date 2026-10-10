@@ -2,17 +2,17 @@
 
 import { useEffect, useState } from "react"
 import { FileText, Loader2, MapPin, Plus, CheckCircle2 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { Textarea } from "@/frontend/components/ui/textarea"
+import { Dialog, DialogContent } from "@/frontend/components/ui/dialog"
 import {
   getMyServiceRequestsAsProvider, getContractDetail, submitContractQuote, addContractMilestone, markMilestoneComplete,
   type ContractListItem, type ContractDetail,
-} from "@/lib/actions/service-contracts"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import { useGatedAction } from "@/lib/hooks/useGatedAction"
+} from "@/backend/actions/service-contracts"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import { useGatedAction } from "@/frontend/lib/hooks/useGatedAction"
 
 const STATUS_STYLE: Record<string, { label: string; className: string }> = {
   REQUESTED: { label: "Needs Quote", className: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },

@@ -1,10 +1,10 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card } from "@/components/ui/card"
+import { Card } from "@/frontend/components/ui/card"
 import { Loader2 } from "lucide-react"
-import { getAgentPerformance, type SubAdminPerformanceData } from "@/lib/actions/sub-admin-performance"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { getAgentPerformance, type SubAdminPerformanceData } from "@/backend/actions/sub-admin-performance"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 export default function PerformancePage() {
   const { t } = useLocalization()

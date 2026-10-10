@@ -2,12 +2,12 @@
 
 import useSWR from "swr"
 import { CreditCard, TrendingUp, Clock, CheckCircle, Download, BarChart3, Loader2 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { getSecretaryDashboard } from "@/lib/actions/secretary-dashboard"
-import { withTimeout, DASHBOARD_FETCH_TIMEOUT_MS } from "@/lib/swr-utils"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/frontend/components/ui/tabs"
+import { getSecretaryDashboard } from "@/backend/actions/secretary-dashboard"
+import { withTimeout, DASHBOARD_FETCH_TIMEOUT_MS } from "@/frontend/lib/swr-utils"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 export default function SecretaryDashboard() {
   const { t, tn, formatMoney } = useLocalization()

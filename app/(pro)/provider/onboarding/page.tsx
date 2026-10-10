@@ -3,11 +3,11 @@
 import { useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { HardHat, Building2, ArrowRight, Loader2, Upload, Globe, MapPin, Shuffle } from "lucide-react"
-import { completeBusinessOnboarding } from "@/lib/actions/provider-business"
-import { submitBusinessPermitDocument } from "@/lib/actions/kyc"
-import { updateMyProfessionalProfile } from "@/lib/actions/provider-professional-profile"
-import { inviteStaffMember } from "@/lib/actions/provider-business"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { completeBusinessOnboarding } from "@/backend/actions/provider-business"
+import { submitBusinessPermitDocument } from "@/backend/actions/kyc"
+import { updateMyProfessionalProfile } from "@/backend/actions/provider-professional-profile"
+import { inviteStaffMember } from "@/backend/actions/provider-business"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 type OnboardingStep = "choice" | "professional" | "business-details" | "business-permit" | "invite-staff"
 

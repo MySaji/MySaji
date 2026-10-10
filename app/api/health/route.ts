@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { db } from "@/lib/db"
+import { db } from "@/backend/db"
 
 /** Point any uptime monitor (UptimeRobot, Better Uptime, Pingdom, a cron
  * job, ...) at this URL. Confirms the app server is up AND can actually

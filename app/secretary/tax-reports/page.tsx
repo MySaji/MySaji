@@ -1,16 +1,16 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/frontend/components/ui/dialog"
 import { Download, Loader2, TrendingUp, FileSpreadsheet, Plus, CheckCircle2 } from "lucide-react"
 import {
   getSecretaryRevenueReport, getTaxReports, createTaxReport, markTaxReportFiled,
   type RevenuePeriod, type RevenueReport, type SecretaryTaxReport,
-} from "@/lib/actions/secretary-reports"
+} from "@/backend/actions/secretary-reports"
 
 const CURRENT_YEAR = new Date().getFullYear()
 const YEAR_OPTIONS = [CURRENT_YEAR, CURRENT_YEAR - 1, CURRENT_YEAR - 2]

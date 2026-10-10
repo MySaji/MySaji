@@ -4,35 +4,35 @@ import type React from "react"
 import { useEffect, useRef, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { Search, Filter, Calendar, MapPin, Clock, CheckCircle2, AlertTriangle, ChevronRight, Star, Phone, MessageSquare, Navigation, MoreVertical, X, Check, Loader2, Radio, PlayCircle } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Dialog as DialogComponent, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { Textarea } from "@/frontend/components/ui/textarea"
+import { Dialog as DialogComponent, DialogContent, DialogHeader, DialogTitle } from "@/frontend/components/ui/dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/frontend/components/ui/dropdown-menu"
 import {
   getProviderJobs, getProviderJobStats, acceptJob, declineJob, startJob, completeJob, fileProviderDispute,
   updateJobProviderLocation, reportNoShow,
   type ProviderJobItem, type ProviderJobStats,
-} from "@/lib/actions/provider-jobs"
-import { getJobExpenses, addJobExpense, type JobExpenseItem } from "@/lib/actions/job-expenses"
+} from "@/backend/actions/provider-jobs"
+import { getJobExpenses, addJobExpense, type JobExpenseItem } from "@/backend/actions/job-expenses"
 import { Receipt, Upload } from "lucide-react"
-import { StaticLocationMap } from "@/components/maps/static-location-map"
-import { ProviderOnlineToggle } from "@/components/provider-online-toggle"
-import { JobTimeline } from "@/components/job-timeline"
-import { ChangeOrdersPanel } from "@/components/change-orders-panel"
-import { QrHandshakeProvider } from "@/components/qr-handshake-provider"
-import { WarrantyPanel } from "@/components/warranty-panel"
-import { SafetySosButton } from "@/components/safety-sos-button"
-import { IdentityVerificationPanel } from "@/components/identity-verification-panel"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import { useGatedAction } from "@/lib/hooks/useGatedAction"
-import type { TranslationKey } from "@/lib/i18n"
+import { StaticLocationMap } from "@/frontend/components/maps/static-location-map"
+import { ProviderOnlineToggle } from "@/frontend/components/provider-online-toggle"
+import { JobTimeline } from "@/frontend/components/job-timeline"
+import { ChangeOrdersPanel } from "@/frontend/components/change-orders-panel"
+import { QrHandshakeProvider } from "@/frontend/components/qr-handshake-provider"
+import { WarrantyPanel } from "@/frontend/components/warranty-panel"
+import { SafetySosButton } from "@/frontend/components/safety-sos-button"
+import { IdentityVerificationPanel } from "@/frontend/components/identity-verification-panel"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import { useGatedAction } from "@/frontend/lib/hooks/useGatedAction"
+import type { TranslationKey } from "@/backend/domain/i18n"
 
 const LOCATION_SHARE_MIN_INTERVAL_MS = 15000
 const MAX_RECEIPT_PHOTO_BYTES = 1_500_000

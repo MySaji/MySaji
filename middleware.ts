@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
-import { auth } from "@/auth"
-import { isMaintenanceModeActive } from "@/lib/actions/admin-settings"
+import { auth } from "@/backend/auth"
+import { isMaintenanceModeActive } from "@/backend/actions/admin-settings"
 
 // Paths that must keep working even while maintenance mode is on: the login
 // page itself (so an admin can sign in to turn it back off), NextAuth's own

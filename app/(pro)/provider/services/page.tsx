@@ -2,16 +2,16 @@
 
 import { useEffect, useState } from "react"
 import { Plus, Search, Edit2, Trash2, Clock, Star, Eye, EyeOff, Tag, Layers, Loader2 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { Textarea } from "@/frontend/components/ui/textarea"
+import { Dialog, DialogContent } from "@/frontend/components/ui/dialog"
 import {
   getMyServices, getServiceCategoryOptions, createMyService, updateMyService, toggleMyServiceActive, deleteMyService,
   type ProviderServiceItem, type ServiceCategoryOption,
-} from "@/lib/actions/provider-services"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+} from "@/backend/actions/provider-services"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 export default function ServicesCatalogPage() {
   const { t, tn, formatMoney } = useLocalization()

@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { ArrowLeft, RefreshCw, Loader2, CheckCircle2, Calendar } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Card } from "@/frontend/components/ui/card"
 import {
   getMyRecurringMaintenance, markMaintenanceServiced, deactivateRecurringMaintenance, type RecurringMaintenanceItem,
-} from "@/lib/actions/recurring-maintenance"
+} from "@/backend/actions/recurring-maintenance"
 
 export default function RecurringMaintenancePage() {
   const [items, setItems] = useState<RecurringMaintenanceItem[]>([])

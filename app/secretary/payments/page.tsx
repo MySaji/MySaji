@@ -1,16 +1,16 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
 import { Eye, X, Search, Download, Send, CheckCheck, Ban, Loader2, Zap } from "lucide-react"
 import {
   getSecretaryWithdrawals, getSecretaryPaymentStats,
   markWithdrawalProcessing, completeWithdrawal, rejectWithdrawal,
   getPendingBankTopups, confirmBankTopup, rejectBankTopup,
   type SecretaryWithdrawal, type SecretaryPaymentStats, type PendingBankTopup,
-} from "@/lib/actions/secretary-payments"
+} from "@/backend/actions/secretary-payments"
 
 export default function SecretaryPayments() {
   const { t, formatMoney } = useLocalization()

@@ -3,21 +3,21 @@
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Image from "next/image"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { Textarea } from "@/frontend/components/ui/textarea"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/frontend/components/ui/dialog"
 import {
   ArrowLeft, Users, ImagePlus, X, Heart, MessageCircle, Loader2, Trash2, Send, Shield, LogOut,
 } from "lucide-react"
-import { formatRelativeTime } from "@/lib/format"
+import { formatRelativeTime } from "@/backend/domain/format"
 import {
   getGroupDetail, getGroupMembers, getGroupPosts, createGroupPost, toggleGroupPostLike,
   getGroupPostComments, addGroupPostComment, deleteGroupPost, deleteGroup, toggleJoinGroup,
   type GroupDetail, type GroupMemberItem, type GroupPostItem, type GroupCommentItem,
-} from "@/lib/actions/community"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+} from "@/backend/actions/community"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 export default function GroupDetailPage() {
   const { t, tn } = useLocalization()

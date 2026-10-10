@@ -5,10 +5,10 @@ import Link from "next/link"
 import {
   ArrowLeft, Clock, Loader2, ChevronDown, ChevronRight, Monitor, User, AlertTriangle, Check,
 } from "lucide-react"
-import { Card } from "@/components/ui/card"
+import { Card } from "@/frontend/components/ui/card"
 import {
   getShiftHistory, getShiftSales, type ShiftRow, type ShiftSaleRow,
-} from "@/lib/actions/pos-reports"
+} from "@/backend/actions/pos-reports"
 
 /**
  * Every shift, and what was in the drawer at the end of it.

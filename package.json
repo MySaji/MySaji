@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "next build",
-    "postbuild": "node scripts/prepare-standalone.js",
+    "postbuild": "node backend/scripts/prepare-standalone.js",
     "dev": "next dev",
     "lint": "eslint .",
     "start": "next start",
@@ -102,5 +102,8 @@
     "tailwindcss": "^4.1.9",
     "tw-animate-css": "1.3.3",
     "typescript": "^5"
+  },
+  "prisma": {
+    "schema": "backend/prisma/schema.prisma"
   }
 }

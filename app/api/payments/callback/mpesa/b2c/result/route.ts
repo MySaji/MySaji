@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { handleB2CResultCallback } from "@/lib/actions/secretary-payments"
+import { handleB2CResultCallback } from "@/backend/actions/secretary-payments"
 
 export async function POST(req: Request) {
   const { searchParams } = new URL(req.url)

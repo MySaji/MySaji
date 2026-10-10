@@ -2,16 +2,16 @@
 
 import { useEffect, useState } from "react"
 import { Search, Eye, CheckCircle, X as XIcon, Loader2 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { KycDocumentViewer, type KycDocumentItem } from "@/components/kyc/kyc-document-viewer"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Textarea } from "@/frontend/components/ui/textarea"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/frontend/components/ui/dialog"
+import { KycDocumentViewer, type KycDocumentItem } from "@/frontend/components/kyc/kyc-document-viewer"
 import {
   getSubAdminVerifications, approveSubAdminVerification, rejectSubAdminVerification,
   type SubAdminVerification,
-} from "@/lib/actions/sub-admin-verifications"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+} from "@/backend/actions/sub-admin-verifications"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 export default function SubAdminVerificationsPage() {
   const { t } = useLocalization()

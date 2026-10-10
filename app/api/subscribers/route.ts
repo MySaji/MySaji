@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
-import { sendEmail } from '@/lib/email'
-import { wrapEmailLayout, emailButton, siteOrigin } from '@/lib/email-templates'
+import { db } from '@/backend/db'
+import { sendEmail } from '@/backend/services/email'
+import { wrapEmailLayout, emailButton, siteOrigin } from '@/backend/services/email-templates'
 
 function buildWelcomeEmailHtml(unsubscribeToken: string): string {
   const origin = siteOrigin()

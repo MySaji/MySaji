@@ -9,12 +9,12 @@ import {
   ImageIcon, Star, BarChart3, Megaphone, Wallet, ShieldCheck, TrendingUp, Calendar,
   MessageCircle, ShieldAlert,
 } from "lucide-react"
-import { getBusinessOverview, type BusinessOverview, getBusinessShopStatus, setupBusinessShop, type BusinessShopStatus } from "@/lib/actions/provider-business"
-import { getProviderWalletSummary, type ProviderWalletSummary } from "@/lib/actions/provider-wallet"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
+import { getBusinessOverview, type BusinessOverview, getBusinessShopStatus, setupBusinessShop, type BusinessShopStatus } from "@/backend/actions/provider-business"
+import { getProviderWalletSummary, type ProviderWalletSummary } from "@/backend/actions/provider-wallet"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import { Button } from "@/frontend/components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/frontend/components/ui/dialog"
+import { Input } from "@/frontend/components/ui/input"
 
 function greetingKey(): "provider.business.hub.greetingMorning" | "provider.business.hub.greetingAfternoon" | "provider.business.hub.greetingEvening" {
   const hour = new Date().getHours()

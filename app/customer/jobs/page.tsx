@@ -2,9 +2,9 @@
 
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useAuthContext } from "@/lib/auth-context"
-import { LoadingScreen } from "@/components/loading-screen"
-import { CustomerJobsPage } from "@/components/pages/customer-jobs-page"
+import { useAuthContext } from "@/frontend/lib/auth-context"
+import { LoadingScreen } from "@/frontend/components/loading-screen"
+import { CustomerJobsPage } from "@/frontend/components/pages/customer-jobs-page"
 
 export default function JobsPage() {
   const { isAuthenticated, isLoading, user } = useAuthContext()

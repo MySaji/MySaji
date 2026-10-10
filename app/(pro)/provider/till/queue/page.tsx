@@ -5,8 +5,8 @@ import { useState } from "react"
 import {
   ArrowLeft, CloudOff, RefreshCw, AlertTriangle, Check, Trash2, Loader2, Info,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { usePosOffline } from "@/lib/hooks/usePosOffline"
+import { Button } from "@/frontend/components/ui/button"
+import { usePosOffline } from "@/frontend/lib/hooks/usePosOffline"
 
 /**
  * Sales this device is holding, and the ones the server refused.

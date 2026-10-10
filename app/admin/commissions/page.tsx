@@ -1,16 +1,16 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/frontend/components/ui/dialog"
 import { Percent, Save, History, TrendingUp, TrendingDown, Users, DollarSign, Plus, Trash2, Pencil, Eye, AlertTriangle, Loader2 } from "lucide-react"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 import {
   getCommissionTiers, createCommissionTier, updateCommissionTier, toggleCommissionTierStatus, deleteCommissionTier,
   getCommissionChangeHistory, getEstimatedCommissionRevenue,
   type AdminCommissionTier, type CommissionChangeEvent,
-} from "@/lib/actions/admin-commissions"
+} from "@/backend/actions/admin-commissions"
 
 export default function AdminCommissionsPage() {
   const { t, tn, formatMoney } = useLocalization()

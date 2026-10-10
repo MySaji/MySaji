@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react"
 import { DollarSign, Users, Briefcase, Star, Clock, ArrowUpRight, ArrowDownRight, BarChart3, PieChart as PieChartIcon, Loader2, CheckCircle2 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { getProviderAnalytics, type AnalyticsPeriod, type ProviderAnalytics } from "@/lib/actions/provider-analytics"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { Card } from "@/frontend/components/ui/card"
+import { getProviderAnalytics, type AnalyticsPeriod, type ProviderAnalytics } from "@/backend/actions/provider-analytics"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 export default function AnalyticsPage() {
   const { t, formatMoney } = useLocalization()

@@ -2,18 +2,18 @@
 
 import { useState, useEffect } from 'react'
 import { Mail, Send, Trash2, Download, Search, Loader2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card } from '@/components/ui/card'
+import { Button } from '@/frontend/components/ui/button'
+import { Input } from '@/frontend/components/ui/input'
+import { Card } from '@/frontend/components/ui/card'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from '@/components/ui/dialog'
-import { getSubscribers, deleteSubscriber, type AdminSubscriber } from '@/lib/actions/admin-subscribers'
-import { useLocalization } from '@/lib/hooks/useLocalization'
+} from '@/frontend/components/ui/dialog'
+import { getSubscribers, deleteSubscriber, type AdminSubscriber } from '@/backend/actions/admin-subscribers'
+import { useLocalization } from '@/frontend/lib/hooks/useLocalization'
 
 export default function SubscribersPage() {
   const { t } = useLocalization()

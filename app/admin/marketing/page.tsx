@@ -1,17 +1,17 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/frontend/components/ui/tabs"
 import { Gift, Award, Tag, Ban, Trash2, PauseCircle, Loader2 } from "lucide-react"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 import {
   getReferralOverview, voidReferral,
   getEndorsements, deleteEndorsement,
   getPlatformPromotions, forcePausePromotion,
   type AdminReferralSummary, type AdminEndorsement, type AdminPromotion,
-} from "@/lib/actions/admin-marketing"
+} from "@/backend/actions/admin-marketing"
 
 export default function AdminMarketingPage() {
   const { t, formatMoney } = useLocalization()

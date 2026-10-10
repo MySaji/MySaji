@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react"
 import { MapPin, Clock, Phone, MessageSquare, Navigation, PlayCircle, CheckCircle2, Check, Loader2 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { getProviderJobs, acceptJob, declineJob, startJob, completeJob, type ProviderJobItem } from "@/lib/actions/provider-jobs"
-import { ProviderOnlineToggle } from "@/components/provider-online-toggle"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { getProviderJobs, acceptJob, declineJob, startJob, completeJob, type ProviderJobItem } from "@/backend/actions/provider-jobs"
+import { ProviderOnlineToggle } from "@/frontend/components/provider-online-toggle"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 const ACTIVE_STATUSES = ["PENDING", "ACCEPTED", "IN_PROGRESS"]
 

@@ -7,20 +7,20 @@ import {
   Store, ChevronRight, ChevronLeft, Upload, MapPin,
   FileText, Camera, CheckCircle2, Clock, AlertCircle
 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { Label } from "@/frontend/components/ui/label"
+import { Textarea } from "@/frontend/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/frontend/components/ui/select"
 import Link from "next/link"
 import Image from "next/image"
-import { completeShopkeeperOnboarding } from "@/lib/actions/shopkeeper"
-import { getActiveCounties } from "@/lib/actions/counties"
-import { AddressAutocompleteInput, type PlaceResult } from "@/components/maps/address-autocomplete-input"
-import { KycPhotoUpload } from "@/components/kyc/kyc-photo-upload"
-import { SelfieCapture } from "@/components/kyc/selfie-capture"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { completeShopkeeperOnboarding } from "@/backend/actions/shopkeeper"
+import { getActiveCounties } from "@/backend/actions/counties"
+import { AddressAutocompleteInput, type PlaceResult } from "@/frontend/components/maps/address-autocomplete-input"
+import { KycPhotoUpload } from "@/frontend/components/kyc/kyc-photo-upload"
+import { SelfieCapture } from "@/frontend/components/kyc/selfie-capture"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 export default function ShopkeeperRegistrationPage() {
   const { t } = useLocalization()

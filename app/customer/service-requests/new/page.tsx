@@ -3,12 +3,12 @@
 import { useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { ArrowLeft, Loader2, FileText } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { createServiceRequest } from "@/lib/actions/service-contracts"
-import { useGatedAction } from "@/lib/hooks/useGatedAction"
+import { Button } from "@/frontend/components/ui/button"
+import { Card } from "@/frontend/components/ui/card"
+import { Input } from "@/frontend/components/ui/input"
+import { Textarea } from "@/frontend/components/ui/textarea"
+import { createServiceRequest } from "@/backend/actions/service-contracts"
+import { useGatedAction } from "@/frontend/lib/hooks/useGatedAction"
 
 export default function NewServiceRequestPage() {
   const { handleGateFailure } = useGatedAction()

@@ -3,13 +3,13 @@
 import { ArrowLeft, Upload, Trash2, Edit2, Eye, Check, Loader2, Video, X } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/frontend/components/ui/dialog"
 import {
   getMyShopPortfolio, addMyShopPortfolioItem, updateMyShopPortfolioItem, removeMyShopPortfolioItem, type ShopPortfolioItemData,
-} from "@/lib/actions/shopkeeper-credentials"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+} from "@/backend/actions/shopkeeper-credentials"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 export default function ShopShowcasePage() {
   const { t } = useLocalization()

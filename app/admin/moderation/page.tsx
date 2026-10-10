@@ -1,15 +1,15 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
 import { Shield, Trash2, CheckCircle2, AlertTriangle, Flag, Search, MessageSquare, FileText, Loader2, X } from "lucide-react"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 import {
   getContentReports, approveReportedContent, removeReportedContent,
   getFlaggedAccounts, decideFlaggedAccount, getAccountViolations,
   type AdminContentReport, type FlaggedAccount, type AccountViolationDetail,
-} from "@/lib/actions/admin-moderation"
+} from "@/backend/actions/admin-moderation"
 
 export default function AdminModerationPage() {
   const { t, tn } = useLocalization()

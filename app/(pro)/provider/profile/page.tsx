@@ -21,9 +21,9 @@ import {
   type LucideIcon,
 } from "lucide-react"
 import Link from "next/link"
-import { useAuthContext } from "@/lib/auth-context"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import { getMyProviderBusinessInfo, type ProviderBusinessInfo } from "@/lib/actions/provider-business"
+import { useAuthContext } from "@/frontend/lib/auth-context"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import { getMyProviderBusinessInfo, type ProviderBusinessInfo } from "@/backend/actions/provider-business"
 
 export default function ProviderProfilePage() {
   const { t } = useLocalization()

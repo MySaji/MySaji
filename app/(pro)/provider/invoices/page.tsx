@@ -2,17 +2,17 @@
 
 import { useEffect, useState } from "react"
 import { FileText, Send, Plus, Search, Eye, X, Printer, CheckCircle2, Ban, Loader2 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { Dialog, DialogContent } from "@/frontend/components/ui/dialog"
 import {
   getProviderInvoices, getProviderInvoiceStats, getBillingClientOptions,
   createProviderInvoice, sendProviderInvoice, markProviderInvoicePaid, cancelProviderInvoice,
   type ProviderInvoice, type ProviderInvoiceStats, type BillingClientOption,
-} from "@/lib/actions/provider-billing"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import type { TranslationKey } from "@/lib/i18n"
+} from "@/backend/actions/provider-billing"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import type { TranslationKey } from "@/backend/domain/i18n"
 
 const statusColors: Record<string, string> = {
   paid: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",

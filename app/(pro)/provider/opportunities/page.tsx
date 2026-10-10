@@ -2,17 +2,17 @@
 
 import { useEffect, useState } from "react"
 import { Radar, Loader2, Plus, MapPin, Clock, MessageSquare } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { Textarea } from "@/frontend/components/ui/textarea"
+import { Dialog, DialogContent } from "@/frontend/components/ui/dialog"
 import {
   getOpenOpportunities, getMyOpportunities, postOpportunity, respondToOpportunity, getOpportunityResponses, closeOpportunity,
   type OpportunityItem, type OpportunityResponseItem,
-} from "@/lib/actions/opportunities"
-import { getOfferCategoryOptions, type OfferCategoryOption } from "@/lib/actions/offers"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+} from "@/backend/actions/opportunities"
+import { getOfferCategoryOptions, type OfferCategoryOption } from "@/backend/actions/offers"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 export default function ProviderOpportunitiesPage() {
   const { formatMoney } = useLocalization()

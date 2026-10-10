@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { ArrowLeft, Loader2, FileText, Award, Building2 } from "lucide-react"
-import { getBusinessDocuments, type BusinessDocumentsResult } from "@/lib/actions/provider-business"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { getBusinessDocuments, type BusinessDocumentsResult } from "@/backend/actions/provider-business"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 const KYC_STATUS_STYLE: Record<string, string> = {
   APPROVED: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400",

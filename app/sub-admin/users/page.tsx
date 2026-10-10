@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react"
 import { Search, Eye, AlertCircle, Loader2 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { getSubAdminUsers, toggleSuspendUser, type SubAdminUserRow } from "@/lib/actions/sub-admin-users"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/frontend/components/ui/dialog"
+import { getSubAdminUsers, toggleSuspendUser, type SubAdminUserRow } from "@/backend/actions/sub-admin-users"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 export default function SubAdminUsersPage() {
   const { t } = useLocalization()

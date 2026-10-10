@@ -1,12 +1,12 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
 import { Download, TrendingUp, Users, Briefcase, ShieldCheck, Loader2 } from "lucide-react"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from "recharts"
-import { getSubAdminAnalytics, type SubAdminAnalyticsData } from "@/lib/actions/sub-admin-analytics"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { getSubAdminAnalytics, type SubAdminAnalyticsData } from "@/backend/actions/sub-admin-analytics"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 export default function SubAdminAnalyticsPage() {
   const { t } = useLocalization()

@@ -1,14 +1,14 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import { useGatedAction } from "@/lib/hooks/useGatedAction"
-import { getDistributorWalletSummary, type DistributorWalletSummary } from "@/lib/actions/distributor-wallet"
-import { requestWithdrawal, addPaymentMethod } from "@/lib/actions/wallet"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import { useGatedAction } from "@/frontend/lib/hooks/useGatedAction"
+import { getDistributorWalletSummary, type DistributorWalletSummary } from "@/backend/actions/distributor-wallet"
+import { requestWithdrawal, addPaymentMethod } from "@/backend/actions/wallet"
+import { Button } from "@/frontend/components/ui/button"
+import { Card } from "@/frontend/components/ui/card"
+import { Input } from "@/frontend/components/ui/input"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/frontend/components/ui/dialog"
 import {
   Plus, Eye, EyeOff, CreditCard, TrendingUp, Minus, Download, ArrowUpRight, ArrowDownLeft, Wallet, Clock, Loader2,
 } from "lucide-react"

@@ -1,16 +1,16 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { Textarea } from "@/frontend/components/ui/textarea"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/frontend/components/ui/dialog"
 import Image from "next/image"
 import { MapPin, MessageSquare, Loader2, CheckCircle2, ClipboardList, ImageIcon } from "lucide-react"
-import { getOpenRequestsBoard, respondToRequest, getRequestPhotos, type BoardRequestItem } from "@/lib/actions/requests"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import { useGatedAction } from "@/lib/hooks/useGatedAction"
+import { getOpenRequestsBoard, respondToRequest, getRequestPhotos, type BoardRequestItem } from "@/backend/actions/requests"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import { useGatedAction } from "@/frontend/lib/hooks/useGatedAction"
 
 export default function ProviderRequestsPage() {
   const { handleGateFailure } = useGatedAction()

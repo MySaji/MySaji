@@ -8,33 +8,33 @@ import {
   ArrowLeft, Loader2, Plus, X, Mic, MicOff, Sparkles, Star, ShieldCheck,
   FileText, Upload, CheckCircle2, AlertTriangle,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Card } from "@/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { Textarea } from "@/frontend/components/ui/textarea"
+import { Checkbox } from "@/frontend/components/ui/checkbox"
+import { Card } from "@/frontend/components/ui/card"
 import {
   saveOfferStep, getOfferDraft, extractOfferFromDescription, checkOfferLicenseRequirement,
   getOfferCategoryOptions, getOfferAttributeFields, publishOffer,
   suggestOfferCopy, getOfferPriceBand, getOfferDemandSignal, getOfferImageGuidance,
   type OfferCategoryOption, type OfferDraftDetail, type OfferLicenseCheck,
-} from "@/lib/actions/offers"
-import type { PriceBand, DemandSignal } from "@/lib/ai/offer-enhancement"
-import { compressImageToDataUrl } from "@/lib/compress-image"
-import type { ImageGuidance } from "@/lib/offer-image-guidance"
-import { CategoryPicker } from "@/components/offers/category-picker"
-import { getMyCertifications, getMySkills, type ProviderCertification } from "@/lib/actions/provider-credentials"
-import { getProviderAvailability } from "@/lib/actions/provider-availability"
+} from "@/backend/actions/offers"
+import type { PriceBand, DemandSignal } from "@/backend/services/ai/offer-enhancement"
+import { compressImageToDataUrl } from "@/frontend/lib/compress-image"
+import type { ImageGuidance } from "@/backend/domain/offer-image-guidance"
+import { CategoryPicker } from "@/frontend/components/offers/category-picker"
+import { getMyCertifications, getMySkills, type ProviderCertification } from "@/backend/actions/provider-credentials"
+import { getProviderAvailability } from "@/backend/actions/provider-availability"
 import {
   OFFER_ACTION_LABEL, OFFER_PRICING_LABEL, OFFER_PRICING_MODELS, PRICELESS_PRICING_MODELS,
   OFFER_AVAILABILITY_LABEL, OFFER_AVAILABILITY_STATUSES, OFFER_FULFILMENT_LABEL, OFFER_FULFILMENT_METHODS,
   type OfferActionType, type OfferPricingModel, type OfferAvailabilityStatus, type OfferFulfilmentMethod, type OfferDocument,
-} from "@/lib/offer-constants"
-import type { OfferAttributeFieldDef } from "@/lib/offer-attribute-schema"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import { useProCapabilities } from "@/lib/hooks/useProCapabilities"
-import { suggestedOfferActionTypes } from "@/lib/pro-modules"
-import { useGatedAction } from "@/lib/hooks/useGatedAction"
+} from "@/backend/domain/offer-constants"
+import type { OfferAttributeFieldDef } from "@/backend/domain/offer-attribute-schema"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import { useProCapabilities } from "@/frontend/lib/hooks/useProCapabilities"
+import { suggestedOfferActionTypes } from "@/backend/domain/pro-modules"
+import { useGatedAction } from "@/frontend/lib/hooks/useGatedAction"
 
 const TOTAL_STEPS = 10
 const STEP_TITLES = [

@@ -2,22 +2,22 @@
 
 import { useEffect, useState } from "react"
 import { Search, Plus, Edit, Trash2, Loader2, ListTree, ArrowUp, ArrowDown } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { Label } from "@/frontend/components/ui/label"
+import { Checkbox } from "@/frontend/components/ui/checkbox"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/frontend/components/ui/select"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/frontend/components/ui/dialog"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 import {
   getCategoriesForAdmin, createCategory, updateCategory, setCategoryActive, deleteCategory,
   type CategoryRow,
-} from "@/lib/actions/categories"
+} from "@/backend/actions/categories"
 import {
   getCategoryAttributesForAdmin, createCategoryAttribute, deleteCategoryAttribute, reorderCategoryAttribute,
   type AdminCategoryAttribute, type CategoryAttributeFieldType,
-} from "@/lib/actions/admin-category-attributes"
+} from "@/backend/actions/admin-category-attributes"
 
 const EMPTY_FORM = { name: "", type: "SERVICE" as "SERVICE" | "PRODUCT", tier: "", parentId: "", isEmergencyEligible: false, requiresLicense: false, licenseName: "" }
 const FIELD_TYPES: CategoryAttributeFieldType[] = ["TEXT", "TEXTAREA", "NUMBER", "TAGS", "SELECT"]

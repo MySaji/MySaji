@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 import { Wrench, Mail } from "lucide-react"
-import { isMaintenanceModeActive, getPublicSiteSettings } from "@/lib/actions/admin-settings"
+import { isMaintenanceModeActive, getPublicSiteSettings } from "@/backend/actions/admin-settings"
 
 export default async function MaintenancePage() {
   const [active, { logoUrl, supportEmail }] = await Promise.all([

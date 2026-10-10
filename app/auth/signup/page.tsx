@@ -4,33 +4,33 @@ import type React from "react"
 import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { useAuthContext } from "@/lib/auth-context"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { useAuthContext } from "@/frontend/lib/auth-context"
 import {
   Mail, Lock, User, ArrowRight, Eye, EyeOff, Apple, ArrowLeft, Sparkles, Shield, Clock, Phone,
   HardHat, Store, Building2, Loader2, ShieldCheck, CheckCircle2, Circle, Check,
   Wrench, Package, Laptop, GraduationCap, Briefcase, Users, Crown,
   Calculator, Lock as LockIcon, Search,
 } from "lucide-react"
-import { Checkbox } from "@/components/ui/checkbox"
-import type { UserRole } from "@/lib/types"
-import { ROLE_HOME_PATH } from "@/lib/role-map"
-import { registerUser } from "@/lib/actions/auth"
-import { sendSignupOtp, verifySignupOtp } from "@/lib/actions/otp"
-import { useOtpAutofill } from "@/lib/hooks/useOtpAutofill"
-import { BrandLogo } from "@/components/brand-logo"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import type { TranslationKey } from "@/lib/i18n"
-import { AuthMobileHeader } from "@/components/auth/auth-mobile-header"
-import { AuthHeroIllustration } from "@/components/auth/auth-hero-illustration"
+import { Checkbox } from "@/frontend/components/ui/checkbox"
+import type { UserRole } from "@/backend/domain/types"
+import { ROLE_HOME_PATH } from "@/backend/services/role-map"
+import { registerUser } from "@/backend/actions/auth"
+import { sendSignupOtp, verifySignupOtp } from "@/backend/actions/otp"
+import { useOtpAutofill } from "@/frontend/lib/hooks/useOtpAutofill"
+import { BrandLogo } from "@/frontend/components/brand-logo"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import type { TranslationKey } from "@/backend/domain/i18n"
+import { AuthMobileHeader } from "@/frontend/components/auth/auth-mobile-header"
+import { AuthHeroIllustration } from "@/frontend/components/auth/auth-hero-illustration"
 import {
   PRO_BUSINESS_TYPES, PRO_BUSINESS_TYPE_META, isTypeSelectable, hasPos,
   type ProBusinessType,
-} from "@/lib/pro-modules"
-import { POS_PROFILES, posProfilesByGroup, DEFAULT_POS_PROFILE_KEY } from "@/lib/pos-profiles"
-import { POS_TRAIT_META } from "@/lib/pos-traits"
-import { POS_PROFILE_ICON } from "@/components/pos/pos-profile-icons"
+} from "@/backend/domain/pro-modules"
+import { POS_PROFILES, posProfilesByGroup, DEFAULT_POS_PROFILE_KEY } from "@/backend/domain/pos-profiles"
+import { POS_TRAIT_META } from "@/backend/domain/pos-traits"
+import { POS_PROFILE_ICON } from "@/frontend/components/pos/pos-profile-icons"
 
 const OTP_LENGTH = 6
 const RESEND_COOLDOWN_SECONDS = 25

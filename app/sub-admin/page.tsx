@@ -2,13 +2,13 @@
 
 import useSWR from "swr"
 import { Users, Briefcase, CheckCircle, AlertCircle, ArrowRight, Loader2 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
 import { useRouter } from "next/navigation"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts"
-import { getSubAdminDashboard } from "@/lib/actions/sub-admin-dashboard"
-import { withTimeout, DASHBOARD_FETCH_TIMEOUT_MS } from "@/lib/swr-utils"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { getSubAdminDashboard } from "@/backend/actions/sub-admin-dashboard"
+import { withTimeout, DASHBOARD_FETCH_TIMEOUT_MS } from "@/frontend/lib/swr-utils"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 const ROLE_COLOR: Record<string, string> = {
   Customers: "#3b82f6", Providers: "#10b981", Shopkeepers: "#f59e0b", Agents: "#8b5cf6",

@@ -6,19 +6,19 @@ import {
   ArrowLeft, Calculator, Check, Clock, Loader2, Search, Store,
   AlertTriangle, Save, Users, ChevronRight, Monitor, MonitorDown,
 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
 import {
   getMyPosSetup, setPosProfile, setPosTraits, updatePosConfig, type PosSetup,
-} from "@/lib/actions/pos"
-import { POS_TRAITS, POS_TRAIT_META, POS_UNIT_LABEL, type PosTrait } from "@/lib/pos-traits"
-import { posProfilesByGroup } from "@/lib/pos-profiles"
+} from "@/backend/actions/pos"
+import { POS_TRAITS, POS_TRAIT_META, POS_UNIT_LABEL, type PosTrait } from "@/backend/domain/pos-traits"
+import { posProfilesByGroup } from "@/backend/domain/pos-profiles"
 import {
   NEGATIVE_STOCK_POLICIES, NEGATIVE_STOCK_POLICY_LABEL, type NegativeStockPolicy,
   EXPIRED_STOCK_POLICIES, EXPIRED_STOCK_POLICY_LABEL, type ExpiredStockPolicy,
-} from "@/lib/pos-config"
-import { POS_PROFILE_ICON, POS_TRAIT_ICON } from "@/components/pos/pos-profile-icons"
+} from "@/backend/domain/pos-config"
+import { POS_PROFILE_ICON, POS_TRAIT_ICON } from "@/frontend/components/pos/pos-profile-icons"
 
 /**
  * Where a shopkeeper changes what their till does.

@@ -1,16 +1,16 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
 import { Eye, Inbox, X, Search, Download, CheckCheck, XCircle, Loader2, Send, ArrowUpCircle } from "lucide-react"
-import { KycDocumentViewer, type KycDocumentItem } from "@/components/kyc/kyc-document-viewer"
+import { KycDocumentViewer, type KycDocumentItem } from "@/frontend/components/kyc/kyc-document-viewer"
 import {
   getAgentDisputes, getDisputeNotes, claimDispute, addDisputeNote, resolveDisputeAsAgent, closeDisputeAsAgent,
   escalateDisputeAsAgent,
   type AgentDispute, type AgentDisputeNote,
-} from "@/lib/actions/agent-disputes"
+} from "@/backend/actions/agent-disputes"
 
 export default function AgentDisputes() {
   const { t, formatMoney } = useLocalization()

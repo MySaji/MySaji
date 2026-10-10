@@ -1,14 +1,14 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
 import { CreditCard, DollarSign, Clock, CheckCircle, AlertCircle, XCircle, Download, Loader2 } from "lucide-react"
 import {
   getAgentWallet, getAgentWithdrawals, requestAgentWithdrawal,
   type AgentWalletSummary, type AgentWithdrawal,
-} from "@/lib/actions/agent-withdrawals"
+} from "@/backend/actions/agent-withdrawals"
 
 const STATUS_ICON: Record<string, typeof CheckCircle> = {
   COMPLETED: CheckCircle, PROCESSING: Clock, PENDING: AlertCircle, FAILED: XCircle, REJECTED: XCircle,

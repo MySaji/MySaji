@@ -3,13 +3,13 @@
 import { ArrowLeft, Upload, Trash2, Edit2, Eye, Check, Loader2, Video, X, ImageIcon } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/frontend/components/ui/dialog"
 import {
   getMyPortfolio, addMyPortfolioItem, updateMyPortfolioItem, removeMyPortfolioItem, type ProviderPortfolioItem,
-} from "@/lib/actions/provider-credentials"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+} from "@/backend/actions/provider-credentials"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 export default function ProofOfWorkPage() {
   const { t } = useLocalization()

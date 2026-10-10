@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react"
 import { Handshake, Loader2, MapPin, Send } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
-import { getOpenProcurementRequests, submitSupplierQuote, type OpenProcurementRequestItem } from "@/lib/actions/procurement"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { Dialog, DialogContent } from "@/frontend/components/ui/dialog"
+import { getOpenProcurementRequests, submitSupplierQuote, type OpenProcurementRequestItem } from "@/backend/actions/procurement"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 export default function DistributorProcurementPage() {
   const { formatMoney } = useLocalization()

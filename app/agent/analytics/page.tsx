@@ -1,17 +1,17 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
 import { Download, TrendingUp, Clock, Star, Loader2 } from "lucide-react"
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell
 } from "recharts"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import { getAgentStats, type AgentStatsData } from "@/lib/actions/agent-stats"
-import { getAgentAnalytics, type AgentAnalyticsData } from "@/lib/actions/agent-analytics"
-import { getAgentLeaderboard, type AgentLeaderboardRow } from "@/lib/actions/agent-leaderboard"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import { getAgentStats, type AgentStatsData } from "@/backend/actions/agent-stats"
+import { getAgentAnalytics, type AgentAnalyticsData } from "@/backend/actions/agent-analytics"
+import { getAgentLeaderboard, type AgentLeaderboardRow } from "@/backend/actions/agent-leaderboard"
 
 const COLORS = ["#3b82f6", "#f59e0b", "#10b981", "#ef4444", "#8b5cf6", "#0891b2"]
 

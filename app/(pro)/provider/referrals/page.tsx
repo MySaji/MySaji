@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react"
 import { Gift, Copy, Share2, Users, DollarSign, Check, Loader2 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { getReferralSummary, type ReferralSummary } from "@/lib/actions/referrals"
-import { formatRelativeTime } from "@/lib/format"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { getReferralSummary, type ReferralSummary } from "@/backend/actions/referrals"
+import { formatRelativeTime } from "@/backend/domain/format"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 const REFERRAL_REWARD_KES = 500
 

@@ -5,14 +5,14 @@ import {
   Search, Download, Eye, MoreVertical,
   DollarSign, Clock, CheckCircle, Briefcase, Loader2, XCircle
 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/frontend/components/ui/dialog"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 import {
   getAdminJobs, cancelJobAsAdmin,
   type AdminJob, type AdminJobStatus,
-} from "@/lib/actions/admin-jobs"
+} from "@/backend/actions/admin-jobs"
 
 const STATUS_COLOR: Record<AdminJobStatus, string> = {
   "Pending": "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400",

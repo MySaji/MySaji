@@ -6,12 +6,12 @@ import {
   ArrowRight, Loader2
 } from "lucide-react"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { getAdminDashboard, getAdminRevenue } from "@/lib/actions/admin-dashboard"
-import { withTimeout, DASHBOARD_FETCH_TIMEOUT_MS } from "@/lib/swr-utils"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import { getYearOptions, MONTH_OPTIONS } from "@/lib/revenue-period-options"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { getAdminDashboard, getAdminRevenue } from "@/backend/actions/admin-dashboard"
+import { withTimeout, DASHBOARD_FETCH_TIMEOUT_MS } from "@/frontend/lib/swr-utils"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import { getYearOptions, MONTH_OPTIONS } from "@/backend/domain/revenue-period-options"
 
 const PIE_COLORS = ["#10b981", "#f59e0b", "#ef4444"]
 

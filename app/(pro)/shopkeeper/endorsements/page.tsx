@@ -4,18 +4,18 @@ import { useEffect, useState } from "react"
 import {
   Award, Search, Star, MapPin, ThumbsUp, Calendar, Loader2, CheckCircle2
 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { Textarea } from "@/frontend/components/ui/textarea"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/frontend/components/ui/dialog"
 import Image from "next/image"
 import {
   getMyEndorsements, writeEndorsement,
   type ShopkeeperEndorsementsData,
-} from "@/lib/actions/shopkeeper-endorsements"
-import { getSpecialists, type SpecialistCard } from "@/lib/actions/specialists"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+} from "@/backend/actions/shopkeeper-endorsements"
+import { getSpecialists, type SpecialistCard } from "@/backend/actions/specialists"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 export default function ShopkeeperEndorsementsPage() {
   const { t } = useLocalization()

@@ -6,26 +6,26 @@ import {
   MessageCircle, MapPin, Calendar, MoreVertical, Eye, Printer,
   TrendingUp, DollarSign, Loader2, RotateCcw, Undo2, Check, X as XIcon,
 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { Textarea } from "@/frontend/components/ui/textarea"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/frontend/components/ui/dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { KycDocumentViewer, type KycDocumentItem } from "@/components/kyc/kyc-document-viewer"
+} from "@/frontend/components/ui/dropdown-menu"
+import { KycDocumentViewer, type KycDocumentItem } from "@/frontend/components/kyc/kyc-document-viewer"
 import Image from "next/image"
 import {
   getMyOrders, advanceOrderStatus, cancelMyOrder,
   getShopOrderDisputes, acceptShopReturnRequest, rejectShopReturnRequest,
   type ShopkeeperOrder, type ShopkeeperOrderStatus, type ShopOrderDispute,
-} from "@/lib/actions/shopkeeper-orders"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import { useGatedAction } from "@/lib/hooks/useGatedAction"
+} from "@/backend/actions/shopkeeper-orders"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import { useGatedAction } from "@/frontend/lib/hooks/useGatedAction"
 
 export default function ShopkeeperOrdersPage() {
   const { handleGateFailure } = useGatedAction()

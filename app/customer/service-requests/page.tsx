@@ -4,16 +4,16 @@ import { useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, Loader2, FileText, CheckCircle2, XCircle, MapPin, Star } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { Textarea } from "@/components/ui/textarea"
+import { Button } from "@/frontend/components/ui/button"
+import { Card } from "@/frontend/components/ui/card"
+import { Textarea } from "@/frontend/components/ui/textarea"
 import {
   getMyServiceRequestsAsCustomer, getContractDetail, respondToContractQuote, approveMilestone,
   type ContractListItem, type ContractDetail,
-} from "@/lib/actions/service-contracts"
-import { getContractTimeline, getJobTimeline, type JobTimelineEvent } from "@/lib/actions/job-events"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import { useGatedAction } from "@/lib/hooks/useGatedAction"
+} from "@/backend/actions/service-contracts"
+import { getContractTimeline, getJobTimeline, type JobTimelineEvent } from "@/backend/actions/job-events"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import { useGatedAction } from "@/frontend/lib/hooks/useGatedAction"
 
 const STATUS_STYLE: Record<string, { label: string; className: string }> = {
   REQUESTED: { label: "Awaiting Quote", className: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },

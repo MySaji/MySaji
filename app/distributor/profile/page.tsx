@@ -1,16 +1,16 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
 import {
   Edit, Star, Award, TrendingUp, MapPin, Phone, Mail, Award as AwardIcon,
   FileText, CheckCircle2, Loader2, Warehouse
 } from "lucide-react"
 import Image from "next/image"
-import { getMyDistributorAccount, updateMyDistributorAccount, type DistributorAccountData } from "@/lib/actions/distributor-account"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { getMyDistributorAccount, updateMyDistributorAccount, type DistributorAccountData } from "@/backend/actions/distributor-account"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 export default function DistributorProfilePage() {
   const { t } = useLocalization()

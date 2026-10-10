@@ -11,7 +11,7 @@ import {
   updateMyProfessionalProfile,
   type EducationEntry,
   type AwardEntry,
-} from "@/lib/actions/provider-professional-profile"
+} from "@/backend/actions/provider-professional-profile"
 
 type WorkPreference = "REMOTE" | "ONSITE" | "HYBRID"
 

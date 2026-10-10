@@ -1,19 +1,19 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
 import { Settings, Lock, Palette, Bell, Eye, EyeOff, Loader2, CheckCircle2 } from "lucide-react"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import type { Language } from "@/lib/i18n"
-import type { CurrencyCode } from "@/lib/currency"
-import { NotificationPreferencesCard } from "@/components/settings/notification-preferences-card"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import type { Language } from "@/backend/domain/i18n"
+import type { CurrencyCode } from "@/backend/domain/currency"
+import { NotificationPreferencesCard } from "@/frontend/components/settings/notification-preferences-card"
 import {
   getAgentAccount, updateAgentProfile, changeAgentPassword,
   getAgentNotificationPreferences, updateAgentNotificationPreferences,
   type AgentAccountData, type AgentNotificationPreferences,
-} from "@/lib/actions/agent-account"
+} from "@/backend/actions/agent-account"
 
 export default function AgentProfilePage() {
   const { t, theme, setTheme, language, setLanguage, currency, setCurrency } = useLocalization()

@@ -1,13 +1,13 @@
 "use client"
 
 import useSWR from "swr"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 import { AlertTriangle, Inbox, CheckCircle, TrendingUp, Download, Loader2 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { getAgentDashboard } from "@/lib/actions/agent-dashboard"
-import { withTimeout, DASHBOARD_FETCH_TIMEOUT_MS } from "@/lib/swr-utils"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/frontend/components/ui/tabs"
+import { getAgentDashboard } from "@/backend/actions/agent-dashboard"
+import { withTimeout, DASHBOARD_FETCH_TIMEOUT_MS } from "@/frontend/lib/swr-utils"
 
 export default function AgentDashboard() {
   const { t, formatMoney } = useLocalization()

@@ -1,16 +1,16 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
 import {
   Edit, Star, Award, TrendingUp, MapPin, Phone, Mail, Award as AwardIcon,
   FileText, CheckCircle2, Loader2
 } from "lucide-react"
 import Image from "next/image"
-import { getMyShopAccount, updateMyShopAccount, type ShopkeeperAccountData } from "@/lib/actions/shopkeeper-account"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { getMyShopAccount, updateMyShopAccount, type ShopkeeperAccountData } from "@/backend/actions/shopkeeper-account"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 export default function ShopkeeperProfilePage() {
   const { t, formatMoney } = useLocalization()

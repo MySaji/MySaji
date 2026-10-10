@@ -3,18 +3,18 @@
 import { useEffect, useRef, useState } from "react"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { ArrowLeft, Star, ShieldCheck, Loader2, CheckCircle2, XCircle, CalendarDays, MapPin, Package, MessageSquare, Send } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { requestOfferQuote } from "@/lib/actions/offers"
+import { Button } from "@/frontend/components/ui/button"
+import { Card } from "@/frontend/components/ui/card"
+import { Input } from "@/frontend/components/ui/input"
+import { Textarea } from "@/frontend/components/ui/textarea"
+import { requestOfferQuote } from "@/backend/actions/offers"
 import {
   getRentalOfferDetail, getRentalBookedRanges, createRentalBooking, getRentalBookingForPayment,
   checkRentalBookingPaymentStatus, type RentalOfferDetail, type RentalBookingForPayment,
-} from "@/lib/actions/rentals"
-import { capturePaypalOrder } from "@/lib/actions/payments"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import { useGatedAction } from "@/lib/hooks/useGatedAction"
+} from "@/backend/actions/rentals"
+import { capturePaypalOrder } from "@/backend/actions/payments"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import { useGatedAction } from "@/frontend/lib/hooks/useGatedAction"
 
 type View = "form" | "awaiting-provider" | "success" | "failed"
 

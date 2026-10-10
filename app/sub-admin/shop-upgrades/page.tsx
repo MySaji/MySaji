@@ -1,6 +1,6 @@
 "use client"
 
-import { ShopUpgradeRequestsList } from "@/components/shop-upgrades/shop-upgrade-requests-list"
+import { ShopUpgradeRequestsList } from "@/frontend/components/shop-upgrades/shop-upgrade-requests-list"
 
 export default function SubAdminShopUpgradesPage() {
   return <ShopUpgradeRequestsList />

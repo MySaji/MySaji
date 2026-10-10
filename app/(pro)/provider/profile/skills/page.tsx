@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react"
 import { ArrowLeft, Save, Award, MapPin, Loader2 } from "lucide-react"
 import Link from "next/link"
-import { getMySkills, updateMySkills } from "@/lib/actions/provider-credentials"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { getMySkills, updateMySkills } from "@/backend/actions/provider-credentials"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 export default function SkillsPage() {
   const { t } = useLocalization()

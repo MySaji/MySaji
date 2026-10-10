@@ -5,8 +5,8 @@ import Link from "next/link"
 import { ArrowLeft, Loader2, Plus, Pencil, Trash2, Building2, X } from "lucide-react"
 import {
   getMyBranches, addBranch, updateBranch, removeBranch, type BusinessBranchItem,
-} from "@/lib/actions/provider-business"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+} from "@/backend/actions/provider-business"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 type FormState = { id: string | null; name: string; address: string; phone: string; isActive: boolean }
 const EMPTY_FORM: FormState = { id: null, name: "", address: "", phone: "", isActive: true }

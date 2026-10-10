@@ -1,7 +1,7 @@
 "use client"
 
 import { useParams } from "next/navigation"
-import { NotificationDetail } from "@/components/notifications/notification-detail"
+import { NotificationDetail } from "@/frontend/components/notifications/notification-detail"
 
 // Auth/role gating already happens in app/admin/layout.tsx (redirects before
 // this page's children ever render) — a second copy of the same check here

@@ -2,17 +2,17 @@
 
 import { useEffect, useState } from "react"
 import { Handshake, Loader2, Plus, MapPin, CheckCircle2, Truck } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
-import { Checkbox } from "@/components/ui/checkbox"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { Textarea } from "@/frontend/components/ui/textarea"
+import { Dialog, DialogContent } from "@/frontend/components/ui/dialog"
+import { Checkbox } from "@/frontend/components/ui/checkbox"
 import {
   getMyProcurementRequests, createProcurementRequest, getSupplierQuotesForRequest, selectSupplierQuote,
   confirmDelivery, getMyPurchaseRecords, type ProcurementRequestItem, type SupplierQuoteItem, type PurchaseRecordItem,
-} from "@/lib/actions/procurement"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+} from "@/backend/actions/procurement"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 const STATUS_STYLE: Record<string, { label: string; className: string }> = {
   QUOTES_OPEN: { label: "Awaiting Quotes", className: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },

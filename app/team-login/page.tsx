@@ -3,13 +3,13 @@
 import type React from "react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { useAuthContext } from "@/lib/auth-context"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { useAuthContext } from "@/frontend/lib/auth-context"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
 import { Mail, Lock, AlertCircle, Eye, EyeOff, Shield, Users, KeyRound } from "lucide-react"
-import { ROLE_HOME_PATH } from "@/lib/role-map"
-import type { UserRole } from "@/lib/types"
-import { BrandLogo } from "@/components/brand-logo"
+import { ROLE_HOME_PATH } from "@/backend/services/role-map"
+import type { UserRole } from "@/backend/domain/types"
+import { BrandLogo } from "@/frontend/components/brand-logo"
 
 const TEAM_ROLES: UserRole[] = ["sub-admin", "secretary", "agent"]
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { ClassicChat } from "@/components/messages/classic-chat"
+import { ClassicChat } from "@/frontend/components/messages/classic-chat"
 
 export default function ShopkeeperMessagesPage() {
   return <ClassicChat />

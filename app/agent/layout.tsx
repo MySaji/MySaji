@@ -3,10 +3,10 @@
 import type React from "react"
 import { useEffect, useRef, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
-import { useAuthContext } from "@/lib/auth-context"
-import { LoadingScreen } from "@/components/loading-screen"
-import { submitKycDocument } from "@/lib/actions/kyc"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { useAuthContext } from "@/frontend/lib/auth-context"
+import { LoadingScreen } from "@/frontend/components/loading-screen"
+import { submitKycDocument } from "@/backend/actions/kyc"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 import Link from "next/link"
 import {
   LayoutDashboard,
@@ -32,9 +32,9 @@ import {
   Bot,
   Layers,
 } from "lucide-react"
-import { useNotificationBell } from "@/lib/hooks/useNotificationBell"
-import { formatRelativeTime } from "@/lib/format"
-import { useSidebarCollapsed } from "@/lib/hooks/useSidebarCollapsed"
+import { useNotificationBell } from "@/frontend/lib/hooks/useNotificationBell"
+import { formatRelativeTime } from "@/backend/domain/format"
+import { useSidebarCollapsed } from "@/frontend/lib/hooks/useSidebarCollapsed"
 
 export default function AgentLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, user, logout } = useAuthContext()

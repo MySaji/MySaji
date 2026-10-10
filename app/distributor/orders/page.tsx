@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Card } from "@/components/ui/card"
+import { Card } from "@/frontend/components/ui/card"
 import { Package, Clock, CheckCircle2, AlertCircle, Loader2, ShoppingCart } from "lucide-react"
-import { getIncomingWholesaleOrders, type IncomingWholesaleOrder } from "@/lib/actions/wholesale-orders"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { getIncomingWholesaleOrders, type IncomingWholesaleOrder } from "@/backend/actions/wholesale-orders"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 const STATUS_COLOR: Record<string, string> = {
   PENDING: "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400",

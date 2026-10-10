@@ -2,17 +2,17 @@
 
 import { useEffect, useState } from "react"
 import { Search, Download, Eye, AlertTriangle, DollarSign, MessageSquare, Clock, Loader2 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { KycDocumentViewer, type KycDocumentItem } from "@/components/kyc/kyc-document-viewer"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { Textarea } from "@/frontend/components/ui/textarea"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/frontend/components/ui/dialog"
+import { KycDocumentViewer, type KycDocumentItem } from "@/frontend/components/kyc/kyc-document-viewer"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 import {
   getDisputes, resolveDispute, closeDispute,
   type AdminDispute, type AdminDisputeStatus,
-} from "@/lib/actions/admin-disputes"
+} from "@/backend/actions/admin-disputes"
 
 export default function DisputesPage() {
   const { t, formatMoney } = useLocalization()

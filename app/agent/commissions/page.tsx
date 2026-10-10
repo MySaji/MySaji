@@ -1,11 +1,11 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
 import { TrendingUp, Award, Download, DollarSign, Loader2 } from "lucide-react"
-import { getAgentCommissions, type AgentCommissionsData } from "@/lib/actions/agent-commissions"
+import { getAgentCommissions, type AgentCommissionsData } from "@/backend/actions/agent-commissions"
 
 export default function AgentCommissionsPage() {
   const { t, tn, formatMoney } = useLocalization()

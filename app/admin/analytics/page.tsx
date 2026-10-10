@@ -1,11 +1,11 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card } from "@/components/ui/card"
+import { Card } from "@/frontend/components/ui/card"
 import { TrendingUp, BarChart3, ArrowUpRight, ArrowDownRight, Users, CreditCard, Shield, AlertTriangle, Loader2 } from "lucide-react"
 import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts"
-import { getAdminAnalytics, type AdminAnalyticsData } from "@/lib/actions/admin-analytics"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { getAdminAnalytics, type AdminAnalyticsData } from "@/backend/actions/admin-analytics"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 const COLORS = ["#2563eb", "#0891b2", "#10b981", "#f59e0b", "#6366f1"]
 const METRIC_ICON = [Users, CreditCard, Shield, AlertTriangle]

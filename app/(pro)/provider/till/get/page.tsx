@@ -6,10 +6,10 @@ import {
   ArrowLeft, AlertTriangle, Check, Copy, Loader2, MonitorDown, Pencil, Share,
   Plus, Smartphone, Printer,
 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { getTillAddress, setTillSlug, type TillAddress } from "@/lib/actions/pos-install"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { getTillAddress, setTillSlug, type TillAddress } from "@/backend/actions/pos-install"
 
 /**
  * Getting the till onto the machine at the counter.

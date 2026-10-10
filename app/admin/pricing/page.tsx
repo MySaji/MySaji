@@ -2,16 +2,16 @@
 
 import { useEffect, useState } from "react"
 import { Search, Download, Edit, Trash2, DollarSign, TrendingUp, Loader2, Check, X } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Textarea } from "@/frontend/components/ui/textarea"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/frontend/components/ui/dialog"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 import {
   getAdminServices, updateServiceBasePrice, deleteAdminService, toggleServiceActive,
   approveService, rejectService,
   type AdminServiceRow,
-} from "@/lib/actions/admin-pricing"
+} from "@/backend/actions/admin-pricing"
 
 const APPROVAL_BADGE: Record<AdminServiceRow["approvalStatus"], string> = {
   Pending: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400",

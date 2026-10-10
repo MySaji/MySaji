@@ -7,12 +7,12 @@ import { useRouter, useSearchParams } from "next/navigation"
 import {
   ArrowLeft, MapPin, Search, Star, ShieldCheck, Store, Loader2, Radio, RefreshCw, Megaphone,
 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { useGeofence } from "@/lib/hooks/useGeofence"
-import { describeTerms, matchScore } from "@/lib/match-description"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { useGeofence } from "@/frontend/lib/hooks/useGeofence"
+import { describeTerms, matchScore } from "@/backend/domain/match-description"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 /**
  * The radius this screen works in. Fixed rather than adjustable on purpose:

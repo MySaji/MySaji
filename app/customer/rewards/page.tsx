@@ -2,9 +2,9 @@
 
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useAuthContext } from "@/lib/auth-context"
-import { LoadingScreen } from "@/components/loading-screen"
-import { CustomerRewardsPage } from "@/components/pages/customer-rewards-page"
+import { useAuthContext } from "@/frontend/lib/auth-context"
+import { LoadingScreen } from "@/frontend/components/loading-screen"
+import { CustomerRewardsPage } from "@/frontend/components/pages/customer-rewards-page"
 
 export default function RewardsPage() {
   const { isAuthenticated, isLoading, user } = useAuthContext()

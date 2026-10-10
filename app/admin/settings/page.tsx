@@ -1,21 +1,21 @@
 "use client"
 import { useEffect, useRef, useState } from "react"
 import { Save, CheckCircle2, Loader2, Upload, X, ImageIcon, AlertTriangle } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { Label } from "@/frontend/components/ui/label"
+import { Textarea } from "@/frontend/components/ui/textarea"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/frontend/components/ui/tabs"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 import {
   getPlatformPreferences, updatePlatformPreferences, type PlatformPreferences,
   getBrandingSettings, updateBrandingSettings, type BrandingSettings,
   getContactSettings, updateContactSettings, type ContactSettings,
   getLegalContent, updateLegalContent, type LegalContent,
-} from "@/lib/actions/admin-settings"
-import { getExchangeRatesForAdmin, updateExchangeRates } from "@/lib/actions/exchange-rates"
-import type { ExchangeRateRow } from "@/lib/currency"
+} from "@/backend/actions/admin-settings"
+import { getExchangeRatesForAdmin, updateExchangeRates } from "@/backend/actions/exchange-rates"
+import type { ExchangeRateRow } from "@/backend/domain/currency"
 
 const MAX_LOGO_BYTES = 1_500_000
 

@@ -6,19 +6,19 @@ import { useEffect, useState } from "react"
 import {
   Search, Plus, Edit, Trash2, Eye, Package, Upload, Loader2, Warehouse,
 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/frontend/components/ui/dialog"
 import Image from "next/image"
 import {
   getMyDistributorProducts, getDistributorProductCategoryOptions, getMyLocationOptions,
   createDistributorProduct, updateDistributorProduct, toggleDistributorProductActive, deleteDistributorProduct,
   adjustLocationStock,
   type DistributorProductRow, type DistributorProductCategoryOption, type DistributorLocationOption,
-} from "@/lib/actions/distributor-products"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import { useGatedAction } from "@/lib/hooks/useGatedAction"
+} from "@/backend/actions/distributor-products"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import { useGatedAction } from "@/frontend/lib/hooks/useGatedAction"
 
 type ProductFormState = {
   name: string

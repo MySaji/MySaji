@@ -4,11 +4,11 @@ import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { Loader2, ShieldAlert, Home, CheckCircle2 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { BrandLogo } from "@/components/brand-logo"
-import { useAuthContext } from "@/lib/auth-context"
-import { getHouseholdInviteByToken, acceptHouseholdInvite, type HouseholdRole } from "@/lib/actions/household"
+import { Button } from "@/frontend/components/ui/button"
+import { Card } from "@/frontend/components/ui/card"
+import { BrandLogo } from "@/frontend/components/brand-logo"
+import { useAuthContext } from "@/frontend/lib/auth-context"
+import { getHouseholdInviteByToken, acceptHouseholdInvite, type HouseholdRole } from "@/backend/actions/household"
 
 const ROLE_LABEL: Record<HouseholdRole, string> = { OWNER: "Owner", MEMBER: "Member", PROPERTY_MANAGER: "Property Manager", PAYMENT_APPROVER: "Payment Approver" }
 

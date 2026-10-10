@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
+import { Button } from "@/frontend/components/ui/button"
 import { Truck, RotateCcw, ShieldCheck, Lock, BadgePercent, Heart, Star, ChevronRight, Store as StoreIcon } from "lucide-react"
-import { getActiveBanners, type PublicBanner } from "@/lib/actions/banners"
-import { ProductMarketplace } from "@/components/customer/product-marketplace"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { getActiveBanners, type PublicBanner } from "@/backend/actions/banners"
+import { ProductMarketplace } from "@/frontend/components/customer/product-marketplace"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 const TOP_TRUST_ITEMS = [
   { icon: Truck, key: "customer.marketplace.trustFastDelivery" as const },

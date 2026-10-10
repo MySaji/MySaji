@@ -1,15 +1,15 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
 import { Megaphone, Plus, Send, Users, Clock, Eye, Trash2, Edit3, Loader2 } from "lucide-react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/frontend/components/ui/dialog"
 import {
   getAnnouncements, createAnnouncement, sendAnnouncement, deleteAnnouncement,
   type AdminAnnouncement,
-} from "@/lib/actions/admin-announcements"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+} from "@/backend/actions/admin-announcements"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 export default function AdminAnnouncementsPage() {
   const { t, tn } = useLocalization()

@@ -2,9 +2,9 @@
 
 import { Suspense, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useAuthContext } from "@/lib/auth-context"
-import { LoadingScreen } from "@/components/loading-screen"
-import { CustomerSearchPage } from "@/components/pages/customer-search-page"
+import { useAuthContext } from "@/frontend/lib/auth-context"
+import { LoadingScreen } from "@/frontend/components/loading-screen"
+import { CustomerSearchPage } from "@/frontend/components/pages/customer-search-page"
 
 export default function SearchPage() {
   const { isLoading, user } = useAuthContext()

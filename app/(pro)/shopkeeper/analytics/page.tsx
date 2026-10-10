@@ -1,16 +1,16 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card } from "@/components/ui/card"
+import { Card } from "@/frontend/components/ui/card"
 import { BarChart3, TrendingUp, TrendingDown, Users, DollarSign, Calendar, Download, FileText, ShoppingCart, Loader2 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Button } from "@/frontend/components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/frontend/components/ui/dialog"
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts"
-import { getShopkeeperAnalytics, type ShopkeeperAnalytics, type ShopkeeperAnalyticsRange } from "@/lib/actions/shopkeeper-analytics"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { getShopkeeperAnalytics, type ShopkeeperAnalytics, type ShopkeeperAnalyticsRange } from "@/backend/actions/shopkeeper-analytics"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 const CATEGORY_COLORS = ["#d97706", "#2563eb", "#059669", "#7c3aed", "#dc2626", "#0891b2"]
 

@@ -5,22 +5,22 @@ import {
   Bell, Lock, User, Shield, Eye, EyeOff,
   ChevronRight, Save, AlertCircle, CheckCircle2, Mail, Phone, MapPin, Loader2, Clock, PlaneTakeoff, LocateFixed
 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { Textarea } from "@/frontend/components/ui/textarea"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/frontend/components/ui/dialog"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/frontend/components/ui/tabs"
 import {
   getMyShopAccount, updateMyShopAccount, changeMyShopPassword,
   getShopNotificationPreferences, updateShopNotificationPreferences, setShopVacationMode,
   type ShopkeeperAccountData, type ShopNotificationPreferences,
-} from "@/lib/actions/shopkeeper-account"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import type { Language } from "@/lib/i18n"
-import type { CurrencyCode } from "@/lib/currency"
-import { NotificationPreferencesCard } from "@/components/settings/notification-preferences-card"
-import { AddressAutocompleteInput, type PlaceResult } from "@/components/maps/address-autocomplete-input"
+} from "@/backend/actions/shopkeeper-account"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import type { Language } from "@/backend/domain/i18n"
+import type { CurrencyCode } from "@/backend/domain/currency"
+import { NotificationPreferencesCard } from "@/frontend/components/settings/notification-preferences-card"
+import { AddressAutocompleteInput, type PlaceResult } from "@/frontend/components/maps/address-autocomplete-input"
 
 export default function ShopkeeperSettingsPage() {
   const { t, language, setLanguage, currency, setCurrency } = useLocalization()

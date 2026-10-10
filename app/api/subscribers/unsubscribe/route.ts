@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { db } from "@/lib/db"
+import { db } from "@/backend/db"
 
 // Simple one-click GET unsubscribe (opened directly from an email link, no
 // JS/cookies available) — the token is an unguessable per-subscriber value,

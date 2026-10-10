@@ -7,19 +7,19 @@ import {
   Search, Plus, Edit, Trash2, Eye, Package,
   TrendingUp, Grid, List, Upload, Loader2, FileSpreadsheet, Download, AlertCircle, CheckCircle2
 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/frontend/components/ui/dialog"
 import Image from "next/image"
 import {
   getMyProducts, getProductCategoryOptions, createMyProduct, updateMyProduct, toggleMyProductActive, deleteMyProduct,
   bulkImportProducts, type ShopkeeperProduct, type ShopkeeperProductCategoryOption, type BulkImportResult,
-} from "@/lib/actions/shopkeeper-products"
-import { parseCsv } from "@/lib/csv"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import { useGatedAction } from "@/lib/hooks/useGatedAction"
-import { useVerificationPrompt } from "@/lib/verification-prompt-context"
+} from "@/backend/actions/shopkeeper-products"
+import { parseCsv } from "@/backend/domain/csv"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import { useGatedAction } from "@/frontend/lib/hooks/useGatedAction"
+import { useVerificationPrompt } from "@/frontend/lib/verification-prompt-context"
 
 type ProductFormState = {
   name: string

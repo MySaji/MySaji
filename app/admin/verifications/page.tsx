@@ -2,16 +2,16 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { Search, Download, Eye, CheckCircle, Clock, UserCheck, AlertCircle, Loader2 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { KycDocumentViewer, type KycDocumentItem } from "@/components/kyc/kyc-document-viewer"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Textarea } from "@/frontend/components/ui/textarea"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/frontend/components/ui/dialog"
+import { KycDocumentViewer, type KycDocumentItem } from "@/frontend/components/kyc/kyc-document-viewer"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 import {
   getVerifications, approveVerification, rejectVerification,
   type AdminVerification,
-} from "@/lib/actions/admin-verifications"
+} from "@/backend/actions/admin-verifications"
 
 const getStatusColor = (status: string) => {
   switch (status) {

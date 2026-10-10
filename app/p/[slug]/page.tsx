@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation"
 import type { Metadata } from "next"
-import { getStorefront } from "@/lib/actions/storefront"
+import { getStorefront } from "@/backend/actions/storefront"
 import StorefrontTabs from "./storefront-tabs"
 import { BadgeCheck, Globe, MapPin, Shuffle, Star, Clock, FileText } from "lucide-react"
 

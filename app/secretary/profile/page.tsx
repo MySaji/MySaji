@@ -1,17 +1,17 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
 import { Settings, Lock, Palette, Bell, Eye, EyeOff, Loader2, CheckCircle2 } from "lucide-react"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import { NotificationPreferencesCard } from "@/components/settings/notification-preferences-card"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import { NotificationPreferencesCard } from "@/frontend/components/settings/notification-preferences-card"
 import {
   getSecretaryAccount, updateSecretaryProfile, changeSecretaryPassword,
   getSecretaryNotificationPreferences, updateSecretaryNotificationPreferences,
   type SecretaryAccountData, type SecretaryNotificationPreferences,
-} from "@/lib/actions/secretary-account"
+} from "@/backend/actions/secretary-account"
 
 export default function SecretaryProfilePage() {
   const { t, theme, setTheme } = useLocalization()

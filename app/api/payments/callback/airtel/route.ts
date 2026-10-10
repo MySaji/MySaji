@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { handleAirtelCallback } from "@/lib/actions/payments"
+import { handleAirtelCallback } from "@/backend/actions/payments"
 
 export async function POST(req: Request) {
   const payload = await req.json().catch(() => null)

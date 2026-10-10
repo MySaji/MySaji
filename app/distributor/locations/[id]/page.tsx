@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
 import { ArrowLeft, MapPin, Phone, Star, Loader2, Package, AlertTriangle } from "lucide-react"
-import { getLocationDetail, type DistributorLocationDetail } from "@/lib/actions/distributor-locations"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { getLocationDetail, type DistributorLocationDetail } from "@/backend/actions/distributor-locations"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 const TYPE_LABEL_KEY: Record<string, "distributor.locations.typeWarehouse" | "distributor.locations.typeRetailStore" | "distributor.locations.typeWholesaler" | "distributor.locations.typeDistributor"> = {
   WAREHOUSE: "distributor.locations.typeWarehouse",

@@ -9,19 +9,19 @@ import {
   Plus, Store, Clock, Users, ChevronRight, MapPin, Loader2, Star, BadgeCheck,
   Wallet, Eye, MessageSquare, CheckCircle2, TrendingUp, Package, ClipboardList,
 } from "lucide-react"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import { useProviderWorkspace } from "@/lib/hooks/useProviderWorkspace"
-import { useProCapabilities } from "@/lib/hooks/useProCapabilities"
-import { getProDashboardOverview } from "@/lib/actions/provider-pro-dashboard"
-import { resolveShopHoursForToday, shopHoursRows, isShopCurrentlyOpen } from "@/lib/format"
-import { getProviderDashboardData } from "@/lib/actions/provider-dashboard"
-import { getOpenOpportunities, type OpportunityItem } from "@/lib/actions/opportunities"
-import { getMyProducts, getMyProductOrders } from "@/lib/actions/provider-products"
-import { getProviderAvailability, getMyOnlineStatus, setOnlineStatus, type WeeklySchedule } from "@/lib/actions/provider-availability"
-import { getMySubscriptionStatus } from "@/lib/actions/provider-subscription"
-import { getProviderClients } from "@/lib/actions/provider-clients"
-import { withTimeout, DASHBOARD_FETCH_TIMEOUT_MS } from "@/lib/swr-utils"
-import type { TranslationKey } from "@/lib/i18n"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import { useProviderWorkspace } from "@/frontend/lib/hooks/useProviderWorkspace"
+import { useProCapabilities } from "@/frontend/lib/hooks/useProCapabilities"
+import { getProDashboardOverview } from "@/backend/actions/provider-pro-dashboard"
+import { resolveShopHoursForToday, shopHoursRows, isShopCurrentlyOpen } from "@/backend/domain/format"
+import { getProviderDashboardData } from "@/backend/actions/provider-dashboard"
+import { getOpenOpportunities, type OpportunityItem } from "@/backend/actions/opportunities"
+import { getMyProducts, getMyProductOrders } from "@/backend/actions/provider-products"
+import { getProviderAvailability, getMyOnlineStatus, setOnlineStatus, type WeeklySchedule } from "@/backend/actions/provider-availability"
+import { getMySubscriptionStatus } from "@/backend/actions/provider-subscription"
+import { getProviderClients } from "@/backend/actions/provider-clients"
+import { withTimeout, DASHBOARD_FETCH_TIMEOUT_MS } from "@/frontend/lib/swr-utils"
+import type { TranslationKey } from "@/backend/domain/i18n"
 
 type Translate = (key: TranslationKey, params?: Record<string, string | number>) => string
 

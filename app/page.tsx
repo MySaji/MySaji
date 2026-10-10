@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation"
-import { auth } from "@/auth"
-import { Footer } from "@/components/footer"
-import { LandingPage } from "@/components/pages/landing-page"
-import { ROLE_HOME_PATH } from "@/lib/role-map"
+import { auth } from "@/backend/auth"
+import { Footer } from "@/frontend/components/footer"
+import { LandingPage } from "@/frontend/components/pages/landing-page"
+import { ROLE_HOME_PATH } from "@/backend/services/role-map"
 
 /**
  * The public landing page, and the router for anyone already signed in.

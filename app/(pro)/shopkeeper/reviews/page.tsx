@@ -5,17 +5,17 @@ import {
   Star, Search, MessageSquare,
   Clock, CheckCircle2, TrendingUp, Loader2
 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { Textarea } from "@/frontend/components/ui/textarea"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/frontend/components/ui/dialog"
 import Image from "next/image"
 import {
   getMyReviews, replyToReview,
   type ShopkeeperReview, type ShopkeeperReviewsData,
-} from "@/lib/actions/shopkeeper-reviews"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+} from "@/backend/actions/shopkeeper-reviews"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 export default function ShopkeeperReviewsPage() {
   const { t, tn } = useLocalization()

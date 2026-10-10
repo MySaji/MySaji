@@ -2,15 +2,15 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
 import { Loader2, CheckCircle2 } from "lucide-react"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 import {
   getSubAdminAccount, updateSubAdminProfile,
   type SubAdminAccountData,
-} from "@/lib/actions/sub-admin-account"
+} from "@/backend/actions/sub-admin-account"
 
 export default function SubAdminProfilePage() {
   const { t } = useLocalization()

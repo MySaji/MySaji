@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react"
 import { Search, Phone, MessageCircle, Star, MapPin, Calendar, DollarSign, ChevronRight, Users, Heart, RefreshCw, Loader2, Ban, ShieldCheck } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { getProviderClients, toggleFavoriteClient, blockClient, unblockClient, type ProviderClient } from "@/lib/actions/provider-clients"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { getProviderClients, toggleFavoriteClient, blockClient, unblockClient, type ProviderClient } from "@/backend/actions/provider-clients"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 export default function ClientsPage() {
   const { t, tn, formatMoney } = useLocalization()

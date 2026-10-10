@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react"
 import { Search, MessageCircle, Calendar, DollarSign, ChevronRight, Users, RefreshCw, Loader2, Ban, ShieldCheck } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { getShopCustomers, blockShopCustomer, unblockShopCustomer, type ShopCustomer } from "@/lib/actions/shopkeeper-customers"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { Textarea } from "@/frontend/components/ui/textarea"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/frontend/components/ui/dialog"
+import { getShopCustomers, blockShopCustomer, unblockShopCustomer, type ShopCustomer } from "@/backend/actions/shopkeeper-customers"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 export default function ShopkeeperCustomersPage() {
   const { t, tn, formatMoney } = useLocalization()

@@ -7,15 +7,15 @@ import {
   Wrench, Store, Package, Laptop, GraduationCap, Briefcase, Layers,
   Calculator, Lock,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Button } from "@/frontend/components/ui/button"
 import {
   getMyProCapabilities, requestProCapability, cancelProCapabilityRequest,
   type MyProCapabilities,
-} from "@/lib/actions/pro-capabilities"
+} from "@/backend/actions/pro-capabilities"
 import {
   PRO_BUSINESS_TYPES, PRO_BUSINESS_TYPE_META, PRO_MODULE_BY_KEY,
   DEFAULT_MODULES_BY_TYPE, isTypeSelectable, type ProBusinessType,
-} from "@/lib/pro-modules"
+} from "@/backend/domain/pro-modules"
 
 const TYPE_ICON: Record<string, typeof Wrench> = {
   Wrench, Store, Package, Laptop, GraduationCap, Briefcase, Calculator,

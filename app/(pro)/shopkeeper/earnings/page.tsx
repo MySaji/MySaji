@@ -1,10 +1,10 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/frontend/components/ui/dialog"
 import {
   TrendingUp, Wallet, Calendar, ArrowUpRight, AlertCircle, Plus,
   CheckCircle2, Smartphone, Building2, Globe, ChevronRight, X, ArrowLeft, Clock, Loader2
@@ -12,11 +12,11 @@ import {
 import {
   getShopkeeperEarningsSummary, requestShopkeeperWithdrawal,
   type ShopkeeperEarningsSummary,
-} from "@/lib/actions/shopkeeper-earnings"
-import { useWalletTopupReturn } from "@/lib/hooks/useWalletTopupReturn"
-import { useGatedAction } from "@/lib/hooks/useGatedAction"
-import { WalletTopupMethods } from "@/components/payment/wallet-topup-methods"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+} from "@/backend/actions/shopkeeper-earnings"
+import { useWalletTopupReturn } from "@/frontend/lib/hooks/useWalletTopupReturn"
+import { useGatedAction } from "@/frontend/lib/hooks/useGatedAction"
+import { WalletTopupMethods } from "@/frontend/components/payment/wallet-topup-methods"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 export default function ShopkeeperEarningsPage() {
   const { handleGateFailure } = useGatedAction()

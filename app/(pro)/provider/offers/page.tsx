@@ -2,17 +2,17 @@
 
 import { useEffect, useState } from "react"
 import { Plus, Search, Edit2, Trash2, Eye, EyeOff, Tag, Rocket, Loader2, Crown, BarChart3, FileEdit } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
 import Link from "next/link"
 import {
   getMyOffers, publishOffer, unpublishOffer, deleteOffer, getMyOfferDrafts,
   type ProviderOfferItem, type OfferDraftSummary,
-} from "@/lib/actions/offers"
-import { OFFER_ACTION_LABEL } from "@/lib/offer-constants"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import { useGatedAction } from "@/lib/hooks/useGatedAction"
+} from "@/backend/actions/offers"
+import { OFFER_ACTION_LABEL } from "@/backend/domain/offer-constants"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import { useGatedAction } from "@/frontend/lib/hooks/useGatedAction"
 
 const STATUS_STYLE: Record<ProviderOfferItem["status"], { label: string; className: string }> = {
   DRAFT: { label: "Draft", className: "bg-muted text-muted-foreground" },

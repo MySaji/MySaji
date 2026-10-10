@@ -6,15 +6,15 @@ import {
   ChevronRight, Clock, CheckCircle2, AlertCircle, Download, Filter,
   Eye, EyeOff, AlertTriangle, CreditCard, Send, Loader2
 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { getProviderWalletSummary, requestProviderWithdrawal, type ProviderWalletSummary } from "@/lib/actions/provider-wallet"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import { useGatedAction } from "@/lib/hooks/useGatedAction"
-import type { TranslationKey } from "@/lib/i18n"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/frontend/components/ui/dialog"
+import { Input } from "@/frontend/components/ui/input"
+import { Label } from "@/frontend/components/ui/label"
+import { getProviderWalletSummary, requestProviderWithdrawal, type ProviderWalletSummary } from "@/backend/actions/provider-wallet"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import { useGatedAction } from "@/frontend/lib/hooks/useGatedAction"
+import type { TranslationKey } from "@/backend/domain/i18n"
 
 export default function ProviderWalletPage() {
   const { handleGateFailure } = useGatedAction()

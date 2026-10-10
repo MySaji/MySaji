@@ -1,10 +1,10 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card } from "@/components/ui/card"
+import { Card } from "@/frontend/components/ui/card"
 import { BarChart3, TrendingUp, Clock, Users, Loader2 } from "lucide-react"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import { getAgentStats, type AgentStatsData } from "@/lib/actions/agent-stats"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import { getAgentStats, type AgentStatsData } from "@/backend/actions/agent-stats"
 
 export default function AgentStatsPage() {
   const { t } = useLocalization()

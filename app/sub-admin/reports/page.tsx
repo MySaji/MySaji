@@ -1,13 +1,13 @@
 "use client"
 
 import { useState } from "react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
 import { FileText, Download, Loader2 } from "lucide-react"
 import {
   getUserActivityReport, getVerificationSummaryReport, getDisputeResolutionReport,
-} from "@/lib/actions/sub-admin-reports"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+} from "@/backend/actions/sub-admin-reports"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 function downloadCsv(filename: string, rows: (string | number)[][]) {
   const csv = rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n")

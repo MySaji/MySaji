@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { ChatbotWidget } from "@/components/chatbot-widget"
+import { ChatbotWidget } from "@/frontend/components/chatbot-widget"
 
 /** Direct-link fallback for the chat (e.g. a bookmarked/shared URL) — the
  * floating chat button elsewhere in the app no longer navigates here, it

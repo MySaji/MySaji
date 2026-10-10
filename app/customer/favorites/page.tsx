@@ -2,9 +2,9 @@
 
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useAuthContext } from "@/lib/auth-context"
-import { LoadingScreen } from "@/components/loading-screen"
-import { CustomerFavoritesPage } from "@/components/pages/customer-favorites-page"
+import { useAuthContext } from "@/frontend/lib/auth-context"
+import { LoadingScreen } from "@/frontend/components/loading-screen"
+import { CustomerFavoritesPage } from "@/frontend/components/pages/customer-favorites-page"
 
 export default function FavoritesPage() {
   const { isAuthenticated, isLoading, user } = useAuthContext()

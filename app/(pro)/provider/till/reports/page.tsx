@@ -6,16 +6,16 @@ import {
   ArrowLeft, Loader2, Calculator, TrendingUp, Banknote, Smartphone, CreditCard,
   Landmark, HandCoins, Clock, AlertTriangle, Info, FileLock,
 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
 import {
   getTillReport, getShiftHistory, getControlledRegister,
   type TillReport, type ShiftRow, type RegisterEntry,
-} from "@/lib/actions/pos-reports"
+} from "@/backend/actions/pos-reports"
 import {
   REPORT_RANGES, REPORT_RANGE_LABEL as RANGE_LABEL, reportRangeStart as rangeStart,
   type ReportRange,
-} from "@/lib/pos-reporting"
+} from "@/backend/domain/pos-reporting"
 
 /**
  * What the till took.

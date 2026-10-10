@@ -1,18 +1,18 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
 import { Bell, Shield, Moon, Loader2, CheckCircle2, CheckCircle, Globe } from "lucide-react"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import type { Language } from "@/lib/i18n"
-import type { CurrencyCode } from "@/lib/currency"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import type { Language } from "@/backend/domain/i18n"
+import type { CurrencyCode } from "@/backend/domain/currency"
 import {
   getSubAdminNotificationPreferences, updateSubAdminNotificationPreferences,
   changeSubAdminPassword,
   type SubAdminNotificationPreferences,
-} from "@/lib/actions/sub-admin-account"
-import { NotificationPreferencesCard } from "@/components/settings/notification-preferences-card"
+} from "@/backend/actions/sub-admin-account"
+import { NotificationPreferencesCard } from "@/frontend/components/settings/notification-preferences-card"
 
 export default function SubAdminSettingsPage() {
   const { t, theme, setTheme, language, setLanguage, currency, setCurrency } = useLocalization()

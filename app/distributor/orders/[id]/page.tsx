@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
 import { ArrowLeft, Loader2, CheckCircle2, Clock, Package, AlertCircle, Truck } from "lucide-react"
-import { getIncomingWholesaleOrders, advanceWholesaleOrderStatus, type IncomingWholesaleOrder } from "@/lib/actions/wholesale-orders"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import { useGatedAction } from "@/lib/hooks/useGatedAction"
+import { getIncomingWholesaleOrders, advanceWholesaleOrderStatus, type IncomingWholesaleOrder } from "@/backend/actions/wholesale-orders"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import { useGatedAction } from "@/frontend/lib/hooks/useGatedAction"
 
 const STATUS_COLOR: Record<string, string> = {
   PENDING: "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400",

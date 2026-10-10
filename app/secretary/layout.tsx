@@ -3,8 +3,8 @@
 import type React from "react"
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { useAuthContext } from "@/lib/auth-context"
-import { LoadingScreen } from "@/components/loading-screen"
+import { useAuthContext } from "@/frontend/lib/auth-context"
+import { LoadingScreen } from "@/frontend/components/loading-screen"
 import {
   LayoutDashboard, CreditCard, User, LogOut, Menu, X, FileText,
   BarChart3, MessageCircle, RefreshCcw, FileSpreadsheet, Bell, Search,
@@ -12,10 +12,10 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useNotificationBell } from "@/lib/hooks/useNotificationBell"
-import { formatRelativeTime } from "@/lib/format"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import { useSidebarCollapsed } from "@/lib/hooks/useSidebarCollapsed"
+import { useNotificationBell } from "@/frontend/lib/hooks/useNotificationBell"
+import { formatRelativeTime } from "@/backend/domain/format"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import { useSidebarCollapsed } from "@/frontend/lib/hooks/useSidebarCollapsed"
 
 export default function SecretaryLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, user, logout } = useAuthContext()

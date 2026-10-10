@@ -2,12 +2,12 @@
 
 import { useRef, useState } from "react"
 import useSWR from "swr"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
-import { Textarea } from "@/components/ui/textarea"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Button } from "@/frontend/components/ui/button"
+import { Card } from "@/frontend/components/ui/card"
+import { Input } from "@/frontend/components/ui/input"
+import { Dialog, DialogContent } from "@/frontend/components/ui/dialog"
+import { Textarea } from "@/frontend/components/ui/textarea"
+import { Popover, PopoverContent, PopoverTrigger } from "@/frontend/components/ui/popover"
 import {
   Search, Heart, MessageCircle, Share2, Bookmark, MoreHorizontal,
   ImageIcon, Video, Users, TrendingUp, X, Send, MapPin, CheckCircle,
@@ -15,16 +15,16 @@ import {
 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
-import { formatRelativeTime } from "@/lib/format"
+import { formatRelativeTime } from "@/backend/domain/format"
 import {
   getPosts, getFollowingIds, getGroups, getTrendingTopics, getSuggestedUsers,
   toggleLike, toggleSave, toggleFollow, toggleJoinGroup,
   createPost, createGroup, deletePost, getComments, addComment, reportPost, reportComment,
   type PostItem, type GroupItem, type TrendingTopic, type SuggestedUser, type CommentItem,
-} from "@/lib/actions/community"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import { getActiveProviderStories } from "@/lib/actions/provider-stories"
-import { ProviderStoryRing } from "@/components/provider-story-ring"
+} from "@/backend/actions/community"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import { getActiveProviderStories } from "@/backend/actions/provider-stories"
+import { ProviderStoryRing } from "@/frontend/components/provider-story-ring"
 
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {

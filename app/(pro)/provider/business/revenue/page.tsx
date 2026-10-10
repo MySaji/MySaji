@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { ArrowLeft, Loader2, TrendingUp } from "lucide-react"
-import { getCompanyRevenue, type CompanyRevenueResult } from "@/lib/actions/provider-business"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { getCompanyRevenue, type CompanyRevenueResult } from "@/backend/actions/provider-business"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 export default function CompanyRevenuePage() {
   const { t, formatMoney } = useLocalization()

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
-import { db } from '@/lib/db'
-import { sendEmail } from '@/lib/email'
-import { wrapEmailLayout, emailButton, siteOrigin } from '@/lib/email-templates'
-import { logAdminAction } from '@/lib/actions/admin-dashboard'
+import { auth } from '@/backend/auth'
+import { db } from '@/backend/db'
+import { sendEmail } from '@/backend/services/email'
+import { wrapEmailLayout, emailButton, siteOrigin } from '@/backend/services/email-templates'
+import { logAdminAction } from '@/backend/actions/admin-dashboard'
 
 // Renders the admin's free-text content into the shared branded shell —
 // each line becomes a paragraph, except a line that's just a bare URL,

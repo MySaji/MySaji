@@ -7,10 +7,10 @@ import Link from "next/link"
 import {
   getMyAccount, updateMyAccount, getMyLinkedShop, searchShops, linkMyShop, unlinkMyShop,
   type LinkedShop, type ShopSearchResult,
-} from "@/lib/actions/provider-account"
-import { getMyProviderBusinessInfo, completeBusinessOnboarding, type ProviderBusinessInfo } from "@/lib/actions/provider-business"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import { AddressAutocompleteInput, type PlaceResult } from "@/components/maps/address-autocomplete-input"
+} from "@/backend/actions/provider-account"
+import { getMyProviderBusinessInfo, completeBusinessOnboarding, type ProviderBusinessInfo } from "@/backend/actions/provider-business"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import { AddressAutocompleteInput, type PlaceResult } from "@/frontend/components/maps/address-autocomplete-input"
 
 export default function MyAccountPage() {
   const { t } = useLocalization()

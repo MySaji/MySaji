@@ -1,14 +1,14 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
 import { MessageCircle, ImageIcon, Video, Archive, ArchiveRestore, Trash2, Search, Users, Loader2 } from "lucide-react"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 import {
   getCommunityPosts, toggleArchiveCommunityPost, deleteCommunityPost,
   type AdminCommunityPost,
-} from "@/lib/actions/admin-community"
+} from "@/backend/actions/admin-community"
 
 export default function AdminCommunityPage() {
   const { t } = useLocalization()

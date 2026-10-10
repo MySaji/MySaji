@@ -1,14 +1,14 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
 import { Search, Download, Eye, Edit, Power, Plus, X, Copy, Loader2 } from "lucide-react"
 import {
   getAgents, createAgent, editAgent, toggleAgentActive,
   type SubAdminAgent,
-} from "@/lib/actions/sub-admin-agents"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+} from "@/backend/actions/sub-admin-agents"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 type ModalMode = "add" | "edit" | "view"
 

@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from "react"
 import { Search, Download, Eye, TrendingUp, Clock, CreditCard, Wallet, Loader2 } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/frontend/components/ui/dialog"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 import {
   getAdminPayments, recheckPaymentStatus,
   type AdminPayment, type AdminPaymentStatus,
-} from "@/lib/actions/admin-payments"
+} from "@/backend/actions/admin-payments"
 
 const STATUS_COLOR: Record<AdminPaymentStatus, string> = {
   Completed: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400",

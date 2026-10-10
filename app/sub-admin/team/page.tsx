@@ -1,11 +1,11 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { Card } from "@/frontend/components/ui/card"
+import { Button } from "@/frontend/components/ui/button"
 import { Edit, Eye, X, Loader2 } from "lucide-react"
-import { getTeamHierarchy, updateTeamMemberRole, type SubAdminTeamMember } from "@/lib/actions/sub-admin-team"
-import { useLocalization } from "@/lib/hooks/useLocalization"
+import { getTeamHierarchy, updateTeamMemberRole, type SubAdminTeamMember } from "@/backend/actions/sub-admin-team"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 export default function TeamManagementPage() {
   const { t } = useLocalization()

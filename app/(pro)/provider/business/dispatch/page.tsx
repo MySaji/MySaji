@@ -6,10 +6,10 @@ import { ArrowLeft, Loader2, Users, MapPinned, History } from "lucide-react"
 import {
   getBusinessDashboard, setAutoAssignEnabled, setAllowStaffRequestResponses, reassignJob, getCompanyCompletedJobs,
   type BusinessDashboardResult, type BusinessJobRequest, type BusinessTechnician, type CompanyCompletedJobItem,
-} from "@/lib/actions/provider-business"
-import { TechnicianRosterMap } from "@/components/maps/technician-roster-map"
-import { useLocalization } from "@/lib/hooks/useLocalization"
-import type { TranslationKey } from "@/lib/i18n"
+} from "@/backend/actions/provider-business"
+import { TechnicianRosterMap } from "@/frontend/components/maps/technician-roster-map"
+import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+import type { TranslationKey } from "@/backend/domain/i18n"
 
 type TFunc = (key: TranslationKey, params?: Record<string, string | number>) => string
 
