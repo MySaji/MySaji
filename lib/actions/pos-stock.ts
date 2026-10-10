@@ -81,6 +81,10 @@ export type StockRow = {
   tracksBatches: boolean
   /** Needs an age check at the till, where the shop has the trait on. */
   ageRestricted: boolean
+  /** What it arrives in, where that differs from what it sells in. */
+  bulkUnit: string | null
+  /** Selling units per bulk unit. */
+  unitsPerBulk: number | null
   /** Live deliveries, soonest to expire first — the order the till uses. */
   batches: { id: string; batchNumber: string | null; expiryDate: string | null; variantId: string | null; onHand: number; expired: boolean; expiringSoon: boolean }[]
 }
@@ -97,6 +101,8 @@ export type StockSummary = {
   canRecordWastage: boolean
   /** Whether this shop asks for an age check at the till. */
   checksAge: boolean
+  /** Whether this shop buys in bulk and sells in pieces. */
+  breaksBulk: boolean
   /**
    * Whether this shop is on the marketplace at all. The "sellable on Saji"
    * line is meaningless — worse, misleading — for a counter-only shop, which
@@ -132,7 +138,7 @@ export async function getStockView(): Promise<StockView> {
       where: { shopkeeperId: tenant.shopkeeperId },
       select: {
         id: true, name: true, sku: true, barcode: true, unit: true, price: true, costPrice: true,
-        tracksBatches: true, ageRestricted: true,
+        tracksBatches: true, ageRestricted: true, bulkUnit: true, unitsPerBulk: true,
         inventory: { select: { currentStock: true, stockOnHand: true, lowStockThreshold: true } },
       },
       orderBy: { name: "asc" },
@@ -231,6 +237,8 @@ export async function getStockView(): Promise<StockView> {
       })),
       tracksBatches: p.tracksBatches,
       ageRestricted: p.ageRestricted,
+      bulkUnit: p.bulkUnit,
+      unitsPerBulk: p.unitsPerBulk == null ? null : Number(p.unitsPerBulk),
       batches: (batchesByProduct.get(p.id) ?? []).map((b) => {
         const left = b.expiryDate ? Math.floor((b.expiryDate.getTime() - nowMs) / dayMs) : null
         return {
@@ -256,6 +264,7 @@ export async function getStockView(): Promise<StockView> {
       drifted,
       canRecordWastage: tenant.traits.includes("WASTAGE"),
       checksAge: tenant.traits.includes("AGE_RESTRICTED"),
+      breaksBulk: tenant.traits.includes("BULK_BREAK"),
       listedOnMarketplace: tenant.listedOnMarketplace,
       expiredBatches: rows.reduce((n, r) => n + r.batches.filter((b) => b.expired && b.onHand > 0).length, 0),
       expiringSoonBatches: rows.reduce((n, r) => n + r.batches.filter((b) => b.expiringSoon && b.onHand > 0).length, 0),
@@ -323,6 +332,15 @@ const adjustSchema = z.object({
   variantId: z.string().trim().min(1).optional(),
   /** Which delivery. The ledger refuses a batched product without it. */
   batchId: z.string().trim().min(1).optional(),
+  /**
+   * The quantity above is in BULK units, not selling units.
+   *
+   * A flag rather than two quantity fields, so a shopkeeper typing "10"
+   * into one box cannot have it read as 10 bales when they meant 10
+   * pieces. The server does the multiplication, and records both figures
+   * in the movement's reason so the arithmetic is on the record.
+   */
+  inBulk: z.boolean().optional(),
   /** A positive magnitude. The action decides the direction. */
   quantity: z.string().trim().regex(/^\d+(\.\d{1,3})?$/, "Enter a valid quantity"),
   reason: z.string().trim().max(300).optional(),
@@ -337,14 +355,45 @@ export async function receiveStock(input: unknown): Promise<StockActionResult> {
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
   if (Number(parsed.data.quantity) <= 0) return { success: false, error: "Enter how much arrived." }
 
+  // --- bulk, converted to selling units -------------------------------
+  //
+  // Stock is ALWAYS held in the selling unit. A bale is how it arrived,
+  // not a second kind of stock: tracking unopened bales as their own pool
+  // would mean two figures per product and a "break one open" step before
+  // anything could be sold, which is more ceremony than a mitumba stall
+  // will do. What is kept instead is the arithmetic, written into the
+  // movement's reason, so "where did 500 pieces come from" has an answer.
+  let quantity = parsed.data.quantity
+  let bulkNote: string | null = null
+
+  if (parsed.data.inBulk) {
+    if (!tenant.traits.includes("BULK_BREAK")) {
+      return { success: false, error: 'Turn on "Buy in bulk, sell in pieces" in POS Settings first.' }
+    }
+    const product = await db.product.findFirst({
+      where: { id: parsed.data.productId, shopkeeperId: tenant.shopkeeperId },
+      select: { bulkUnit: true, unitsPerBulk: true, unit: true },
+    })
+    if (!product) return { success: false, error: "That product no longer exists." }
+    if (product.unitsPerBulk == null || Number(product.unitsPerBulk) <= 0) {
+      return { success: false, error: "Set how many pieces come out of one bulk unit before receiving in bulk." }
+    }
+    const bulk = new Prisma.Decimal(parsed.data.quantity)
+    const per = new Prisma.Decimal(product.unitsPerBulk)
+    quantity = bulk.times(per).toString()
+    bulkNote = bulk.toString() + " " + (product.bulkUnit || "bulk") +
+      " x " + per.toString() + " = " + quantity + " " + product.unit
+  }
+
   return runMovement(tenant, {
     productId: parsed.data.productId,
     variantId: parsed.data.variantId ?? null,
     batchId: parsed.data.batchId ?? null,
     kind: "PURCHASE",
-    quantity: parsed.data.quantity,
+    quantity,
     unitCost: parsed.data.unitCost ?? null,
-    reason: parsed.data.reason ?? null,
+    // Both figures survive: what was ordered and what it became.
+    reason: [bulkNote, parsed.data.reason].filter(Boolean).join(" - ") || null,
   })
 }
 
@@ -936,5 +985,47 @@ export async function setProductAgeRestricted(input: unknown): Promise<StockActi
   await db.product.update({ where: { id: product.id }, data: { ageRestricted: parsed.data.ageRestricted } })
   // The balance is not what changed, but the result shape is shared; the
   // caller reloads the view rather than reading this.
+  return { success: true, balance: 0 }
+}
+
+
+const bulkSchema = z.object({
+  productId: z.string().trim().min(1),
+  /** Null clears it, so a product can stop being bought in bulk. */
+  bulkUnit: z.string().trim().max(30).nullable(),
+  unitsPerBulk: z.number().min(0).max(1_000_000).nullable(),
+})
+
+/**
+ * Say what this product arrives in, and how many it becomes.
+ *
+ * Both or neither: a bulk unit with no conversion cannot be used, and a
+ * conversion with no unit has nothing to label it. Clearing one clears
+ * both rather than leaving half a setting behind.
+ */
+export async function setProductBulkUnit(input: unknown): Promise<StockActionResult> {
+  const tenant = await requireStockTenant()
+  if (!tenant) return { success: false, error: "There is no till on this account." }
+  const parsed = bulkSchema.safeParse(input)
+  if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
+  const d = parsed.data
+
+  const clearing = !d.bulkUnit || d.unitsPerBulk == null || d.unitsPerBulk <= 0
+  if (!clearing && (!d.bulkUnit?.trim() || !d.unitsPerBulk)) {
+    return { success: false, error: "Give the bulk unit a name and say how many pieces are in one." }
+  }
+
+  const product = await db.product.findFirst({
+    where: { id: d.productId, shopkeeperId: tenant.shopkeeperId },
+    select: { id: true },
+  })
+  if (!product) return { success: false, error: "That product no longer exists." }
+
+  await db.product.update({
+    where: { id: product.id },
+    data: clearing
+      ? { bulkUnit: null, unitsPerBulk: null }
+      : { bulkUnit: d.bulkUnit!.trim(), unitsPerBulk: d.unitsPerBulk },
+  })
   return { success: true, balance: 0 }
 }

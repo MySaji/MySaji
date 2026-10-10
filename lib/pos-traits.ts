@@ -124,7 +124,7 @@ export const POS_TRAIT_META: Record<PosTrait, PosTraitMeta> = {
     question: "Bought as a bale, sold as pieces?",
     effect: "Stock arrives in one unit and is sold in another, with the conversion recorded",
     icon: "PackageOpen",
-    stage: "planned",
+    stage: "live",
   },
   WASTAGE: {
     label: "Record spoilage and loss",

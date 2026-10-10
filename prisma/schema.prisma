@@ -1636,6 +1636,17 @@ model Product {
   /// line or protect nothing. Off by default, so no existing product
   /// changes.
   ageRestricted Boolean  @default(false)
+  /// What this arrives in, where that differs from what it is sold in: a
+  /// bale, a carton, a 50kg bag. Null for anything bought and sold the
+  /// same way, which is most products.
+  bulkUnit      String?
+  /// How many selling units come out of one bulk unit. 50 pieces to a
+  /// bale, 100 screws to a box.
+  ///
+  /// Decimal rather than Int because the conversion is not always whole —
+  /// a 50kg bag broken into 2.5kg packets is 20, but a drum decanted into
+  /// 750ml bottles is not a round number of anything.
+  unitsPerBulk  Decimal? @db.Decimal(12, 3)
   /// True once this product's stock is kept per delivery. Set when the
   /// first batch is created, and once set the ledger REQUIRES a batch on
   /// every movement — a batched product's figure is the sum of its

@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input"
 import {
   getStockView, getProductMovements, receiveStock, recordWastage, recordStockCount,
   saveProductVariant, setVariantActive, receiveBatch, writeOffBatch, setProductAgeRestricted,
+  setProductBulkUnit,
   type StockView, type StockRow, type MovementRow,
 } from "@/lib/actions/pos-stock"
 
@@ -78,6 +79,9 @@ export default function StockPage() {
    */
   const [targetVariant, setTargetVariant] = useState<string | null>(null)
   const [newOption, setNewOption] = useState({ label: "", sku: "", barcode: "", price: "" })
+  /** Whether the quantity in the receive sheet is in bulk units. */
+  const [receiveInBulk, setReceiveInBulk] = useState(false)
+  const [bulkDraft, setBulkDraft] = useState({ unit: "", per: "" })
   const [newBatch, setNewBatch] = useState({ batchNumber: "", expiryDate: "", quantity: "", unitCost: "", variantId: "" })
   const [saved, setSaved] = useState("")
 
@@ -101,6 +105,8 @@ export default function StockPage() {
     setAmount(""); setReason(""); setError(""); setMovements(null)
     setNewOption({ label: "", sku: "", barcode: "", price: "" })
     setNewBatch({ batchNumber: "", expiryDate: "", quantity: "", unitCost: "", variantId: row.variants.length === 1 ? row.variants[0].id : "" })
+    setReceiveInBulk(false)
+    setBulkDraft({ unit: row.bulkUnit ?? "", per: row.unitsPerBulk == null ? "" : String(row.unitsPerBulk) })
     // Preselect where there is no choice to make.
     setTargetVariant(row.variants.length === 1 ? row.variants[0].id : null)
     if (mode === "history") {
@@ -178,6 +184,26 @@ export default function StockPage() {
     flash("Written off")
   }
 
+  const saveBulk = async (row: StockRow) => {
+    if (!bulkDraft.unit.trim() || !bulkDraft.per) { setError("Name the bulk unit and say how many are in one."); return }
+    setBusy(true); setError("")
+    const r = await setProductBulkUnit({ productId: row.productId, bulkUnit: bulkDraft.unit.trim(), unitsPerBulk: Number(bulkDraft.per) })
+    setBusy(false)
+    if (!r.success) { setError(r.error); return }
+    await refreshSheet(row.productId)
+    flash("Bulk unit saved")
+  }
+
+  const clearBulk = async (row: StockRow) => {
+    setBusy(true); setError("")
+    const r = await setProductBulkUnit({ productId: row.productId, bulkUnit: null, unitsPerBulk: null })
+    setBusy(false)
+    if (!r.success) { setError(r.error); return }
+    setBulkDraft({ unit: "", per: "" })
+    await refreshSheet(row.productId)
+    flash("Bulk unit cleared")
+  }
+
   const flash = (msg: string) => { setSaved(msg); setTimeout(() => setSaved(""), 2500) }
 
   const submit = async () => {
@@ -190,7 +216,7 @@ export default function StockPage() {
     const variantId = targetVariant ?? undefined
     const base = { productId: sheet.row.productId, variantId, reason: reason.trim() || undefined }
     const r =
-      sheet.mode === "receive" ? await receiveStock({ ...base, quantity: amount })
+      sheet.mode === "receive" ? await receiveStock({ ...base, quantity: amount, ...(receiveInBulk ? { inBulk: true } : {}) })
       : sheet.mode === "waste" ? await recordWastage({ ...base, quantity: amount })
       : await recordStockCount({ productId: sheet.row.productId, variantId, counted: amount, reason: reason.trim() || undefined })
     setBusy(false)
@@ -625,6 +651,50 @@ export default function StockPage() {
                     </div>
                   )}
 
+                  {s.breaksBulk && (
+                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-3 space-y-2">
+                      <p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">Bought in bulk?</p>
+                      <p className="text-[10px] text-gray-500 leading-snug">
+                        Stock is always counted in what you sell. This only lets you type
+                        deliveries in the unit they arrive in, and records the sum.
+                      </p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Input
+                          value={bulkDraft.unit}
+                          onChange={(e) => setBulkDraft((b) => ({ ...b, unit: e.target.value }))}
+                          placeholder="Bale, carton, bag"
+                          className="h-10 rounded-xl text-xs"
+                        />
+                        <Input
+                          value={bulkDraft.per}
+                          onChange={(e) => setBulkDraft((b) => ({ ...b, per: e.target.value.replace(/[^0-9.]/g, "") }))}
+                          inputMode="decimal"
+                          placeholder={"How many " + (sheet.row.unit === "piece" ? "pieces" : sheet.row.unit)}
+                          className="h-10 rounded-xl text-xs tabular-nums"
+                        />
+                      </div>
+                      <div className="flex gap-1.5">
+                        <Button
+                          onClick={() => void saveBulk(sheet.row)}
+                          disabled={busy}
+                          className="h-9 rounded-lg text-[11px] flex-1"
+                        >
+                          {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : "Save"}
+                        </Button>
+                        {sheet.row.bulkUnit && (
+                          <Button
+                            variant="outline"
+                            onClick={() => void clearBulk(sheet.row)}
+                            disabled={busy}
+                            className="h-9 rounded-lg text-[11px]"
+                          >
+                            Clear
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="rounded-xl border border-dashed border-gray-300 dark:border-gray-600 p-3 space-y-2">
                     <p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">Add an option</p>
                     <Input
@@ -733,9 +803,34 @@ export default function StockPage() {
                     </div>
                   )}
 
+                  {sheet.mode === "receive" && s.breaksBulk && sheet.row.bulkUnit && sheet.row.unitsPerBulk && (
+                    <div className="flex gap-1.5">
+                      {[false, true].map((bulk) => (
+                        <button
+                          key={String(bulk)}
+                          onClick={() => setReceiveInBulk(bulk)}
+                          aria-pressed={receiveInBulk === bulk}
+                          className={
+                            receiveInBulk === bulk
+                              ? "flex-1 h-10 rounded-xl border text-[11px] font-semibold active:scale-95 border-primary bg-primary/5 text-primary"
+                              : "flex-1 h-10 rounded-xl border text-[11px] font-semibold active:scale-95 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300"
+                          }
+                        >
+                          {bulk
+                            ? "In " + sheet.row.bulkUnit + "s (x" + sheet.row.unitsPerBulk + ")"
+                            : "In " + (sheet.row.unit === "piece" ? "pieces" : sheet.row.unit)}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
                   <div>
                     <label htmlFor="stock-amount" className="block text-[11px] font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      {sheet.mode === "receive" && `How much arrived, in ${sheet.row.unit}`}
+                      {sheet.mode === "receive" && (
+                        receiveInBulk && sheet.row.bulkUnit
+                          ? "How many " + sheet.row.bulkUnit + "s arrived"
+                          : "How much arrived, in " + sheet.row.unit
+                      )}
                       {sheet.mode === "waste" && `How much was lost, in ${sheet.row.unit}`}
                       {sheet.mode === "count" && `How much is actually on the shelf, in ${sheet.row.unit}`}
                     </label>
@@ -748,6 +843,12 @@ export default function StockPage() {
                       className="h-12 rounded-xl tabular-nums text-base"
                       autoFocus
                     />
+                    {sheet.mode === "receive" && receiveInBulk && amount && sheet.row.unitsPerBulk && (
+                      <p className="mt-1 text-[10px] text-gray-500 leading-snug tabular-nums">
+                        That is {qty(Number(amount) * sheet.row.unitsPerBulk)} {sheet.row.unit} going into stock.
+                        The arithmetic is kept on the record.
+                      </p>
+                    )}
                     {sheet.mode === "count" && (
                       <p className="mt-1 text-[10px] text-gray-500 leading-snug">
                         Records the difference rather than overwriting the figure, so the size of

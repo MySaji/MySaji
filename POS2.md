@@ -1010,3 +1010,35 @@ still adds up and a shopkeeper can see what rounding costs them.
 spurious confirmation on an ordinary sale, a shop without the trait not
 being blocked by a product flag, and paying one shilling under the
 rounded total being refused.
+
+### BULK_BREAK — **live**
+
+14 of the 35 shop types. Mitumba bales, cartons of screws, 90kg bags of
+maize.
+
+**Stock is always held in the SELLING unit.** A bale is how something
+arrived, not a second kind of stock. Tracking unopened bales as their
+own pool would mean two figures per product and a "break one open" step
+before anything could be sold — more ceremony than a Gikomba stall will
+do, and a second figure to go wrong.
+
+What is kept instead is **the arithmetic**. Receiving in bulk writes the
+conversion into the movement's reason — `3 bale x 50 = 150 piece` — so
+"where did 150 pieces come from" has an answer on the record rather than
+a number that appeared.
+
+A flag on the request, not a second quantity field: a shopkeeper typing
+"10" into one box must not have it read as ten bales when they meant ten
+pieces. The till shows which unit it is reading, and previews the
+result before the delivery is saved.
+
+The conversion is `Decimal`, not an integer — a 50kg bag into 2.5kg
+packets is 20, but a drum decanted into 750ml bottles is not a round
+number of anything. Setting it requires both halves, and clearing one
+clears both, so no product is left with a bulk unit and no conversion.
+
+**What this does not do:** track unopened bulk as separate stock. Said
+plainly in the UI rather than left to be discovered.
+
+`18/18`, including the fractional conversion, the trait gating it, and
+both halves clearing together.
