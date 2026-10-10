@@ -5,7 +5,7 @@ import Link from "next/link"
 import {
   Calculator, Loader2, Search, Plus, Minus, Trash2, X, ArrowRight, ArrowLeft,
   SlidersHorizontal, Package, AlertTriangle, Clock, Banknote, Smartphone,
-  CreditCard, Landmark, HandCoins, ShoppingCart, CloudOff, RefreshCw, Check,
+  CreditCard, Landmark, HandCoins, ShoppingCart, CloudOff, RefreshCw, Check, FileLock, Hammer,
 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -134,6 +134,12 @@ export default function TillPage() {
   /** The line whose units are being scanned, and the box being typed into. */
   const [scanSerialsFor, setScanSerialsFor] = useState<string | null>(null)
   const [serialDraft, setSerialDraft] = useState("")
+  /** Who controlled goods are going to. Cleared with every sale — a
+   *  register entry must never inherit the last customer's name. */
+  const [buyer, setBuyer] = useState({ name: "", idNumber: "", phone: "", prescriberName: "", prescriptionRef: "" })
+  /** Take this as a deposit rather than a full sale. */
+  const [asDeposit, setAsDeposit] = useState(false)
+  const [dueDate, setDueDate] = useState("")
 
   const [shiftOpening, setShiftOpening] = useState("")
   const [shiftCounted, setShiftCounted] = useState("")
@@ -213,6 +219,12 @@ export default function TillPage() {
   )
   /** Any restricted line in the basket, in a shop that checks. */
   const needsAgeCheck = (state?.checksAge ?? false) && cart.some((l) => l.product.ageRestricted)
+  /** Any controlled line in the basket, in a shop that keeps a register. */
+  const needsRegister = (state?.keepsRegister ?? false) && cart.some((l) => l.product.controlled)
+  /** Whether this basket could be taken as a deposit at all. */
+  const canDeposit = (state?.takesDeposits ?? false) && cart.some((l) => l.product.madeToOrder)
+  /** What is still owed, when taking it as a deposit. */
+  const depositBalance = asDeposit ? Math.max(0, total - paid) : 0
 
   // ---- cart actions -------------------------------------------------------
   const addSerial = (key: string, raw: string) => {
@@ -308,6 +320,8 @@ export default function TillPage() {
     setPayments([{ method: "CASH", amount: "", reference: "" }])
     setReceipt(null); setError(""); setCartOpen(false); setAgeConfirmed(false)
     setScanSerialsFor(null); setSerialDraft("")
+    setBuyer({ name: "", idNumber: "", phone: "", prescriberName: "", prescriptionRef: "" })
+    setAsDeposit(false); setDueDate("")
     setIdempotencyKey(newKey())
     setView("sell")
     searchRef.current?.focus()
@@ -338,6 +352,16 @@ export default function TillPage() {
         })),
       ...(discountNum > 0 ? { saleDiscount: discountNum } : {}),
       ...(needsAgeCheck ? { ageVerified: ageConfirmed } : {}),
+      ...(asDeposit && canDeposit ? { deposit: dueDate ? { dueDate: new Date(dueDate).toISOString() } : {} } : {}),
+      ...(needsRegister ? {
+        controlledBuyer: {
+          name: buyer.name.trim(),
+          ...(buyer.idNumber.trim() ? { idNumber: buyer.idNumber.trim() } : {}),
+          ...(buyer.phone.trim() ? { phone: buyer.phone.trim() } : {}),
+          ...(buyer.prescriberName.trim() ? { prescriberName: buyer.prescriberName.trim() } : {}),
+          ...(buyer.prescriptionRef.trim() ? { prescriptionRef: buyer.prescriptionRef.trim() } : {}),
+        },
+      } : {}),
       ...(customerName.trim() ? { customerName: customerName.trim() } : {}),
     }
 
@@ -482,7 +506,7 @@ export default function TillPage() {
       <div className="sticky top-0 z-20 border-b border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-900/95 backdrop-blur px-3 py-2">
         {/* Connection, stated before anything else. A cashier must never
             have to infer it from a sale failing. */}
-        {(offline.connection === "offline" || offline.pendingCount > 0 || offline.failedCount > 0) && (
+        {(offline.connection === "offline" || offline.pendingCount > 0 || offline.failedCount > 0 || (state?.openDeposits ?? 0) > 0) && (
           <div className="max-w-5xl mx-auto mb-2 flex flex-wrap items-center gap-1.5">
             {offline.connection === "offline" && (
               <span className="inline-flex items-center gap-1.5 h-7 px-2 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 text-[11px] font-semibold">
@@ -498,6 +522,14 @@ export default function TillPage() {
                 <RefreshCw className={`w-3 h-3 ${offline.syncing ? "animate-spin" : ""}`} />
                 {offline.pendingCount} waiting to send
               </button>
+            )}
+            {(state?.openDeposits ?? 0) > 0 && (
+              <Link
+                href="/provider/till/orders"
+                className="inline-flex items-center gap-1.5 h-7 px-2 rounded-lg bg-sky-100 dark:bg-sky-900/30 text-sky-800 dark:text-sky-300 text-[11px] font-semibold active:scale-95"
+              >
+                <Hammer className="w-3 h-3" /> {state.openDeposits} to deliver
+              </Link>
             )}
             {offline.failedCount > 0 && (
               <Link
@@ -1198,6 +1230,64 @@ export default function TillPage() {
                 </button>
               )}
 
+              {needsRegister && (
+                <div className="rounded-xl border border-sky-300 dark:border-sky-800 bg-sky-50 dark:bg-sky-900/15 p-3 space-y-2">
+                  <div className="flex items-start gap-2">
+                    <FileLock className="w-4 h-4 text-sky-700 dark:text-sky-400 mt-0.5 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-gray-900 dark:text-white">
+                        This goes in your controlled register
+                      </p>
+                      <p className="text-[11px] text-gray-600 dark:text-gray-400 leading-snug mt-0.5">
+                        Recorded against this sale with your name and the time. It cannot be
+                        edited afterwards.
+                      </p>
+                    </div>
+                  </div>
+                  <Input
+                    value={buyer.name}
+                    onChange={(e) => { setBuyer((b) => ({ ...b, name: e.target.value })); setError("") }}
+                    placeholder="Who is taking it (full name)"
+                    className="h-11 rounded-xl text-sm"
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input
+                      value={buyer.idNumber}
+                      onChange={(e) => setBuyer((b) => ({ ...b, idNumber: e.target.value }))}
+                      placeholder="ID number"
+                      className="h-10 rounded-xl text-xs"
+                    />
+                    <Input
+                      value={buyer.phone}
+                      onChange={(e) => setBuyer((b) => ({ ...b, phone: e.target.value }))}
+                      placeholder="Phone"
+                      className="h-10 rounded-xl text-xs"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input
+                      value={buyer.prescriberName}
+                      onChange={(e) => setBuyer((b) => ({ ...b, prescriberName: e.target.value }))}
+                      placeholder="Prescriber (if any)"
+                      className="h-10 rounded-xl text-xs"
+                    />
+                    <Input
+                      value={buyer.prescriptionRef}
+                      onChange={(e) => setBuyer((b) => ({ ...b, prescriptionRef: e.target.value }))}
+                      placeholder="Prescription no."
+                      className="h-10 rounded-xl text-xs"
+                    />
+                  </div>
+                  {/* Said plainly, because the opposite claim is the one a
+                      shopkeeper would otherwise assume. */}
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400 leading-snug">
+                    Saji keeps this record for you. It does not certify that your register meets
+                    the Pharmacy and Poisons Board or Veterinary Medicines Directorate rules —
+                    check what yours requires.
+                  </p>
+                </div>
+              )}
+
               {needsAgeCheck && (
                 <button
                   type="button"
@@ -1234,10 +1324,54 @@ export default function TillPage() {
                 className="h-10 rounded-xl text-xs"
               />
 
+              {canDeposit && (
+                <button
+                  type="button"
+                  role="checkbox"
+                  aria-checked={asDeposit}
+                  onClick={() => { setAsDeposit((v) => !v); setError("") }}
+                  className={`w-full flex items-start gap-2.5 p-3 rounded-xl border text-left active:scale-[0.99] transition-all ${
+                    asDeposit
+                      ? "border-primary bg-primary/5"
+                      : "border-gray-200 dark:border-gray-700"
+                  }`}
+                >
+                  <span className={`mt-0.5 w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 ${
+                    asDeposit ? "bg-primary text-primary-foreground" : "border border-gray-300 dark:border-gray-600"
+                  }`}>
+                    {asDeposit && <Check className="w-3 h-3" strokeWidth={3} />}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-xs font-semibold text-gray-900 dark:text-white">
+                      Take a deposit, deliver later
+                    </span>
+                    <span className="block text-[11px] text-gray-600 dark:text-gray-400 leading-snug mt-0.5">
+                      The order stays open with the balance owed against it. Nothing comes off
+                      your stock until you hand it over.
+                    </span>
+                  </span>
+                </button>
+              )}
+
+              {asDeposit && canDeposit && (
+                <Input
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  aria-label="When the customer should expect it"
+                  className="h-10 rounded-xl text-xs"
+                />
+              )}
+
               <div className="rounded-xl bg-gray-50 dark:bg-gray-800/60 p-3 space-y-1">
                 <Row label="Total" value={sh(total)} />
                 <Row label="Paid" value={sh(paid)} />
-                {shortBy > 0 ? (
+                {asDeposit && canDeposit && paid > 0 ? (
+                  <div className="flex items-center justify-between pt-1 border-t border-gray-200 dark:border-gray-700">
+                    <span className="text-xs font-bold text-primary">Balance owed</span>
+                    <span className="text-lg font-bold text-primary tabular-nums">{sh(depositBalance)}</span>
+                  </div>
+                ) : shortBy > 0 ? (
                   <div className="flex items-center justify-between pt-1 border-t border-gray-200 dark:border-gray-700">
                     <span className="text-xs font-bold text-amber-700 dark:text-amber-400">Short by</span>
                     <span className="text-base font-bold text-amber-700 dark:text-amber-400 tabular-nums">{sh(shortBy)}</span>
@@ -1257,12 +1391,16 @@ export default function TillPage() {
 
               <Button
                 onClick={takePayment}
-                disabled={busy || shortBy > 0 || cart.length === 0 || (needsAgeCheck && !ageConfirmed)}
+                disabled={busy || (shortBy > 0 && !(asDeposit && canDeposit && paid > 0)) || cart.length === 0 || (needsAgeCheck && !ageConfirmed)
+                  || (needsRegister && buyer.name.trim().length < 2)}
                 className="w-full h-14 rounded-xl text-base font-bold"
               >
                 {busy
                   ? <Loader2 className="w-5 h-5 animate-spin" />
+                  : asDeposit && canDeposit && paid > 0
+                    ? `Take ${shShort(paid)} as a deposit`
                   : shortBy > 0 ? `Short by ${shShort(shortBy)}`
+                  : needsRegister && buyer.name.trim().length < 2 ? "Record who it is going to"
                   : needsAgeCheck && !ageConfirmed ? "Confirm the age check first"
                   : "Record the sale"}
               </Button>

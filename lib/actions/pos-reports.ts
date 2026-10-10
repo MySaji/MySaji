@@ -64,9 +64,15 @@ export async function getTillReport(input: unknown): Promise<TillReport | null> 
 
   const [completed, voided] = await Promise.all([
     db.posSale.findMany({
-      where: { shopkeeperId: tenant.shopkeeperId, status: "COMPLETED", occurredAt: { gte: from } },
+      where: {
+        shopkeeperId: tenant.shopkeeperId,
+        // A deposit is money taken, so it belongs in the day's takings —
+        // but only the part actually handed over. See below.
+        status: { in: ["COMPLETED", "DEPOSIT"] },
+        occurredAt: { gte: from },
+      },
       select: {
-        id: true, total: true, occurredAt: true, cashierName: true, paymentMethod: true,
+        id: true, total: true, status: true, balanceDue: true, occurredAt: true, cashierName: true, paymentMethod: true,
         payments: { select: { method: true, amount: true } },
         items: { select: { name: true, unit: true, quantity: true, totalPrice: true, costAtSale: true } },
       },
@@ -95,7 +101,10 @@ export async function getTillReport(input: unknown): Promise<TillReport | null> 
   const byCashier = new Map<string, { amount: number; count: number }>()
 
   for (const sale of completed) {
-    const total = n(sale.total)
+    // What was actually TAKEN, not what the goods are worth. On a deposit
+    // those differ by the balance still owed, and counting the full price
+    // would report money the shop has not been given.
+    const total = sale.status === "DEPOSIT" ? n(sale.total) - n(sale.balanceDue) : n(sale.total)
     takings += total
 
     const day = sale.occurredAt.toISOString().slice(0, 10)
@@ -114,7 +123,10 @@ export async function getTillReport(input: unknown): Promise<TillReport | null> 
       byMethod.set(p.method, { amount: mRow.amount + amount, count: mRow.count + 1 })
     }
 
-    for (const item of sale.items) {
+    // A deposit's goods have not been handed over, so there is no cost of
+    // sale yet and no margin to report on them. Counting them would show a
+    // shop as having earned a margin on a sofa still being built.
+    for (const item of sale.status === "DEPOSIT" ? [] : sale.items) {
       const qty = n(item.quantity)
       const revenue = n(item.totalPrice)
       itemsSold += qty
@@ -210,5 +222,79 @@ export async function getShiftHistory(input: unknown): Promise<ShiftRow[]> {
     variance: s.variance == null ? null : n(s.variance),
     note: s.note,
     saleCount: s._count.sales,
+  }))
+}
+
+
+export type RegisterEntry = {
+  id: string
+  productName: string
+  variantLabel: string | null
+  batchNumber: string | null
+  serials: string[]
+  quantity: number
+  unit: string
+  buyerName: string
+  buyerIdNumber: string | null
+  buyerPhone: string | null
+  prescriberName: string | null
+  prescriptionRef: string | null
+  recordedByName: string | null
+  occurredAt: string
+  /** The sale it belongs to was later voided. */
+  voided: boolean
+}
+
+/**
+ * The controlled-substances register, newest first.
+ *
+ * A VOIDED sale's entry is kept and MARKED rather than removed. The entry
+ * records that goods were handed over and then returned, which is a
+ * different fact from the sale never having happened, and deleting it
+ * would leave a gap in a register whose whole value is having no gaps.
+ */
+export async function getControlledRegister(input: unknown): Promise<RegisterEntry[]> {
+  const tenant = await requireReportTenant()
+  if (!tenant) return []
+  const parsed = z.object({
+    from: z.string().datetime().optional(),
+    limit: z.number().int().min(1).max(1000).optional(),
+  }).safeParse(input ?? {})
+  const take = parsed.success ? parsed.data.limit ?? 200 : 200
+
+  const rows = await db.controlledSaleRecord.findMany({
+    where: {
+      shopkeeperId: tenant.shopkeeperId,
+      ...(parsed.success && parsed.data.from ? { occurredAt: { gte: new Date(parsed.data.from) } } : {}),
+    },
+    orderBy: { occurredAt: "desc" },
+    take,
+  })
+
+  const saleIds = [...new Set(rows.map((r) => r.posSaleId).filter(Boolean) as string[])]
+  const voided = saleIds.length
+    ? await db.posSale.findMany({
+        where: { id: { in: saleIds }, shopkeeperId: tenant.shopkeeperId, status: "VOIDED" },
+        select: { id: true },
+      })
+    : []
+  const voidedIds = new Set(voided.map((v) => v.id))
+
+  return rows.map((r) => ({
+    id: r.id,
+    productName: r.productName,
+    variantLabel: r.variantLabel,
+    batchNumber: r.batchNumber,
+    serials: r.serials,
+    quantity: Number(r.quantity.toString()),
+    unit: r.unit,
+    buyerName: r.buyerName,
+    buyerIdNumber: r.buyerIdNumber,
+    buyerPhone: r.buyerPhone,
+    prescriberName: r.prescriberName,
+    prescriptionRef: r.prescriptionRef,
+    recordedByName: r.recordedByName,
+    occurredAt: r.occurredAt.toISOString(),
+    voided: r.posSaleId ? voidedIds.has(r.posSaleId) : false,
   }))
 }

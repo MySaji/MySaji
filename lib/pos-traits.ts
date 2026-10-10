@@ -103,7 +103,7 @@ export const POS_TRAIT_META: Record<PosTrait, PosTraitMeta> = {
     question: "Must this sale be recorded to a register?",
     effect: "Captures buyer and prescriber details and writes an immutable register entry",
     icon: "FileLock",
-    stage: "planned",
+    stage: "live",
   },
   FITMENT: {
     label: "Compatibility lookup",
@@ -117,7 +117,7 @@ export const POS_TRAIT_META: Record<PosTrait, PosTraitMeta> = {
     question: "Deposit now, deliver later?",
     effect: "A sale can be part-paid and stay open until the goods are handed over",
     icon: "Hammer",
-    stage: "planned",
+    stage: "live",
   },
   BULK_BREAK: {
     label: "Buy in bulk, sell in pieces",

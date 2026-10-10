@@ -1131,3 +1131,67 @@ timestamped, the IMEI snapshotted on the receipt line, the other four
 units untouched, and stock down from 3 to 2. Worth recording as what it
 was: the UI path verified to the point of payment in a browser, the
 consequences verified at the database.
+
+### CONTROLLED and MADE_TO_ORDER — **live**. All eleven traits are now live.
+
+**The controlled register** is what a pharmacy or agrovet is asked to
+keep: a record that a named person took a particular quantity on a
+particular day, written at the moment of sale and never edited. Fields
+are snapshotted, not joined — a register read three years from now must
+not depend on a product row still existing under the same name, or on
+the staff member still working there.
+
+A **voided** sale's entry is kept and *marked* rather than removed. The
+entry records that goods were handed over and then returned, which is a
+different fact from the sale never happening, and deleting it would put
+a gap in a register whose entire value is having no gaps.
+
+What it is **not** is a compliance claim. The Pharmacy and Poisons Board
+and the Veterinary Medicines Directorate each set their own
+requirements, and those change. The UI says so where the register is
+written and again where it is read, rather than letting a shopkeeper
+assume otherwise.
+
+**Deposits: stock does not move until the goods are handed over.** A sofa
+that has not been built cannot come off a shelf. Taking it off at deposit
+time would show the shop holding one fewer than it does for however many
+weeks the build takes. The movement happens in `settleDeposit`, under an
+idempotency key derived from the sale, so a replayed settlement cannot
+take the stock twice.
+
+### A bug deposits introduced, and the fix
+
+Deposit money sits in the drawer. The shift reconciliation counted only
+`COMPLETED` sales, so every deposit taken that day would have shown as an
+unexplained surplus at close — and a cashier told they are 40,000/- over
+is a cashier who stops trusting the reconciliation.
+
+Fixed by counting `DEPOSIT` sales too, and by summing the **payment rows**
+rather than the sale totals. On a deposit the total is the full price and
+only part of it has been handed over. That change also made split sales
+exact: the old code attributed a split sale's whole total to whichever
+method was not cash.
+
+Reports follow the same rule — takings count what was *taken*, not what
+the goods are worth — and the margin ignores deposit lines entirely,
+because goods still being built have no cost of sale yet.
+
+`31/31` on the register and `42/42` on deposits, including the drawer
+balancing to the shilling with deposits in it.
+
+### Where the traits stand
+
+All eleven live, and **all 35 shop types fully served** — up from 6 when
+the till first shipped.
+
+That is the trait engine's whole claim, finally testable: thirty-five
+shop types, none of them with a line of code to themselves. A butchery
+and a pharmacy differ by which of eleven switches are on, and the
+difference between them is a row in `lib/pos-profiles.ts` rather than a
+branch anywhere in the till.
+
+What "fully served" means precisely: every trait a profile ships with has
+behaviour behind it, enforced on the server and reachable in the UI. It
+does not mean every shop of that kind needs nothing more — a supermarket
+chain wants purchase orders and multi-branch transfers that none of this
+touches.

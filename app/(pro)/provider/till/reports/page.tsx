@@ -4,12 +4,18 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import {
   ArrowLeft, Loader2, Calculator, TrendingUp, Banknote, Smartphone, CreditCard,
-  Landmark, HandCoins, Clock, AlertTriangle, Info,
+  Landmark, HandCoins, Clock, AlertTriangle, Info, FileLock,
 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { getTillReport, getShiftHistory, type TillReport, type ShiftRow } from "@/lib/actions/pos-reports"
-import { REPORT_RANGES, REPORT_RANGE_LABEL as RANGE_LABEL, type ReportRange } from "@/lib/pos-reporting"
+import {
+  getTillReport, getShiftHistory, getControlledRegister,
+  type TillReport, type ShiftRow, type RegisterEntry,
+} from "@/lib/actions/pos-reports"
+import {
+  REPORT_RANGES, REPORT_RANGE_LABEL as RANGE_LABEL, reportRangeStart as rangeStart,
+  type ReportRange,
+} from "@/lib/pos-reporting"
 
 /**
  * What the till took.
@@ -34,12 +40,19 @@ export default function TillReportsPage() {
   const [range, setRange] = useState<ReportRange>("today")
   const [report, setReport] = useState<TillReport | null>(null)
   const [shifts, setShifts] = useState<ShiftRow[]>([])
+  const [register, setRegister] = useState<RegisterEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [switching, setSwitching] = useState(false)
 
   useEffect(() => {
-    Promise.all([getTillReport({ range }), getShiftHistory({ limit: 10 })])
-      .then(([r, s]) => { setReport(r); setShifts(s) })
+    Promise.all([
+      getTillReport({ range }),
+      getShiftHistory({ limit: 10 }),
+      // Returns [] for a shop without the trait, so this costs nothing
+      // for the 33 shop types that keep no register.
+      getControlledRegister({ from: rangeStart(range).toISOString(), limit: 200 }),
+    ])
+      .then(([r, s, g]) => { setReport(r); setShifts(s); setRegister(g) })
       .finally(() => { setLoading(false); setSwitching(false) })
   }, [range])
 
@@ -219,6 +232,68 @@ export default function TillReportsPage() {
               </div>
             ))}
           </div>
+        </Card>
+      )}
+
+      {/* ---- the controlled register ---------------------------------------- */}
+      {register.length > 0 && (
+        <Card className="p-4 rounded-2xl">
+          <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
+            <FileLock className="w-4 h-4 text-gray-400" /> Controlled register
+          </h2>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
+            Every controlled item that left the counter {RANGE_LABEL[range].toLowerCase()}, as it
+            was recorded at the time. These entries cannot be edited.
+          </p>
+          <div className="mt-2.5 space-y-1.5">
+            {register.map((e) => (
+              <div
+                key={e.id}
+                className={
+                  e.voided
+                    ? "rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40 p-2.5"
+                    : "rounded-xl border border-gray-200 dark:border-gray-700 p-2.5"
+                }
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-gray-900 dark:text-white">
+                      {e.productName}
+                      {e.variantLabel && <span className="font-normal text-gray-500"> &middot; {e.variantLabel}</span>}
+                      {e.voided && (
+                        <span className="ml-1.5 text-[10px] font-semibold text-gray-500 uppercase">voided</span>
+                      )}
+                    </p>
+                    <p className="text-[11px] text-gray-600 dark:text-gray-400">
+                      {sh(e.quantity)} {e.unit === "piece" ? "" : e.unit} to <span className="font-medium">{e.buyerName}</span>
+                      {e.buyerIdNumber && " (ID " + e.buyerIdNumber + ")"}
+                    </p>
+                    {(e.prescriberName || e.prescriptionRef) && (
+                      <p className="text-[10px] text-gray-500">
+                        {e.prescriberName}{e.prescriberName && e.prescriptionRef ? " · " : ""}{e.prescriptionRef}
+                      </p>
+                    )}
+                    {e.batchNumber && <p className="text-[10px] text-gray-400">batch {e.batchNumber}</p>}
+                    {e.serials.length > 0 && <p className="text-[10px] text-gray-400 font-mono">{e.serials.join(", ")}</p>}
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-[10px] text-gray-400">
+                      {new Date(e.occurredAt).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}
+                    </p>
+                    <p className="text-[10px] text-gray-400">
+                      {new Date(e.occurredAt).toLocaleTimeString("en-KE", { hour: "2-digit", minute: "2-digit" })}
+                    </p>
+                    {e.recordedByName && <p className="text-[10px] text-gray-400">{e.recordedByName}</p>}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* The claim NOT made, stated where the register is read. */}
+          <p className="mt-2.5 text-[11px] text-gray-400 dark:text-gray-500 leading-snug">
+            Saji keeps this record for you. It does not certify that it meets what the Pharmacy
+            and Poisons Board or the Veterinary Medicines Directorate require of your shop.
+          </p>
         </Card>
       )}
 

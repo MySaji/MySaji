@@ -123,6 +123,10 @@ export type TillProduct = {
   fitsWith: string[]
   /** Whether each unit of this product is tracked by serial or IMEI. */
   tracksSerials: boolean
+  /** Must be written into the controlled register when sold. */
+  controlled: boolean
+  /** Ordered now, handed over later. */
+  madeToOrder: boolean
   /**
    * Sizes, colours or packs. Empty for a product that sells as itself.
    *
@@ -162,6 +166,12 @@ export type TillState = {
   checksAge: boolean
   /** Whether the shop tracks units by serial. */
   tracksSerials: boolean
+  /** Whether the shop keeps a controlled-substances register. */
+  keepsRegister: boolean
+  /** Whether the shop can take a deposit against a made-to-order item. */
+  takesDeposits: boolean
+  /** Orders taken and not yet handed over. */
+  openDeposits: number
   negativeStock: NegativeStockPolicy
   taxRate: number
   taxInclusive: boolean
@@ -217,15 +227,35 @@ export async function getTillState(): Promise<TillState | null> {
     // Computed rather than stored while the shift is open: a running figure
     // that is only correct at close time is a figure the cashier cannot
     // check against the drawer mid-shift, which is exactly when they want to.
+    // DEPOSIT sales count too, and that is not a detail.
+    //
+    // A deposit is money physically in the drawer against goods not yet
+    // handed over. Counting only COMPLETED sales would leave every deposit
+    // taken that day as an unexplained surplus at close, and a cashier
+    // being told they are 40,000/- over is a cashier who stops trusting
+    // the reconciliation.
+    //
+    // Summed from the PAYMENT rows rather than from the sale's total,
+    // because on a deposit the total is the full price and only part of it
+    // has been handed over. This is also more exact than the old
+    // approximation for a split sale, where the whole total used to be
+    // attributed to whichever method was not cash.
     const sales = await db.posSale.findMany({
-      where: { shopkeeperId: till.shopkeeperId, tillSessionId: shiftRow.id, status: "COMPLETED" },
-      select: { total: true, amountPaid: true, changeGiven: true, paymentMethod: true },
+      where: {
+        shopkeeperId: till.shopkeeperId,
+        tillSessionId: shiftRow.id,
+        status: { in: ["COMPLETED", "DEPOSIT"] },
+      },
+      select: { changeGiven: true, payments: { select: { method: true, amount: true } } },
     })
     let cash = D(0)
     let other = D(0)
     for (const s of sales) {
-      if (s.paymentMethod === "CASH") cash = cash.plus(s.amountPaid).minus(s.changeGiven)
-      else other = other.plus(s.total)
+      for (const p of s.payments) {
+        if (p.method === "CASH") cash = cash.plus(p.amount)
+        else other = other.plus(p.amount)
+      }
+      cash = cash.minus(s.changeGiven)
     }
     shift = {
       id: shiftRow.id,
@@ -246,6 +276,9 @@ export async function getTillState(): Promise<TillState | null> {
     canRecordWastage: till.traits.includes("WASTAGE"),
     checksAge: till.traits.includes("AGE_RESTRICTED"),
     tracksSerials: till.traits.includes("SERIALISED"),
+    keepsRegister: till.traits.includes("CONTROLLED"),
+    takesDeposits: till.traits.includes("MADE_TO_ORDER"),
+    openDeposits: await db.posSale.count({ where: { shopkeeperId: till.shopkeeperId, status: "DEPOSIT" } }),
     negativeStock: till.negativeStock,
     taxRate: till.taxRate,
     taxInclusive: till.taxInclusive,
@@ -289,7 +322,7 @@ export async function findTillProducts(input: unknown): Promise<TillProduct[]> {
 
   const select = {
     id: true, name: true, sku: true, barcode: true, unit: true,
-    price: true, discountPrice: true, hasVariants: true, ageRestricted: true, fitsWith: true, tracksSerials: true,
+    price: true, discountPrice: true, hasVariants: true, ageRestricted: true, fitsWith: true, tracksSerials: true, controlled: true, madeToOrder: true,
     category: { select: { name: true } },
     inventory: { select: { currentStock: true, stockOnHand: true } },
     variants: {
@@ -375,6 +408,8 @@ export async function findTillProducts(input: unknown): Promise<TillProduct[]> {
     ageRestricted: p.ageRestricted,
     fitsWith: p.fitsWith,
     tracksSerials: p.tracksSerials,
+    controlled: p.controlled,
+    madeToOrder: p.madeToOrder,
     variants: p.variants.map((v) => ({
       id: v.id,
       label: v.label,
@@ -453,16 +488,25 @@ export async function closeTillShift(input: unknown): Promise<TillActionResult<S
   })
   if (!shift) return { success: false, error: "No shift is open." }
 
+  // Same rule as getTillState: deposits are real money in the drawer, and
+  // the figures come from the payment rows rather than the sale totals.
   const sales = await db.posSale.findMany({
-    where: { shopkeeperId: till.shopkeeperId, tillSessionId: shift.id, status: "COMPLETED" },
-    select: { total: true, amountPaid: true, changeGiven: true, paymentMethod: true },
+    where: {
+      shopkeeperId: till.shopkeeperId,
+      tillSessionId: shift.id,
+      status: { in: ["COMPLETED", "DEPOSIT"] },
+    },
+    select: { changeGiven: true, payments: { select: { method: true, amount: true } } },
   })
 
   let cash = D(0)
   let other = D(0)
   for (const s of sales) {
-    if (s.paymentMethod === "CASH") cash = cash.plus(s.amountPaid).minus(s.changeGiven)
-    else other = other.plus(s.total)
+    for (const p of s.payments) {
+      if (p.method === "CASH") cash = cash.plus(p.amount)
+      else other = other.plus(p.amount)
+    }
+    cash = cash.minus(s.changeGiven)
   }
 
   const expected = D(shift.openingFloat).plus(cash)
@@ -541,6 +585,30 @@ const saleSchema = z.object({
    * age-checked.
    */
   ageVerified: z.boolean().optional(),
+  /**
+   * Who the controlled goods went to, and on whose authority.
+   *
+   * Required when any line is a controlled product and the shop has the
+   * trait on. A register entry with no name on it is not a register entry.
+   */
+  /**
+   * Take this as a deposit: part paid now, the rest when it is handed over.
+   *
+   * Only honoured when the shop has MADE_TO_ORDER on and at least one line
+   * is a made-to-order product. A shop without it that sends this gets an
+   * ordinary sale, not a silent half-payment.
+   */
+  deposit: z.object({
+    /** ISO date the customer is told to expect it. */
+    dueDate: z.string().trim().max(40).optional(),
+  }).optional(),
+  controlledBuyer: z.object({
+    name: z.string().trim().min(2).max(120),
+    idNumber: z.string().trim().max(40).optional(),
+    phone: z.string().trim().max(30).optional(),
+    prescriberName: z.string().trim().max(120).optional(),
+    prescriptionRef: z.string().trim().max(60).optional(),
+  }).optional(),
   customerName: z.string().trim().max(120).optional(),
   customerPhone: z.string().trim().max(30).optional(),
   deviceId: z.string().trim().max(60).optional(),
@@ -618,7 +686,7 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
     select: {
       id: true, name: true, sku: true, barcode: true, unit: true,
       price: true, discountPrice: true, costPrice: true, hasVariants: true, tracksBatches: true,
-      ageRestricted: true, tracksSerials: true,
+      ageRestricted: true, tracksSerials: true, controlled: true, madeToOrder: true,
     },
   })
   const byId = new Map(products.map((p) => [p.id, p]))
@@ -892,6 +960,23 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
   // recorded as unverified rather than carrying a confirmation nobody made.
   const ageVerified = restricted.length > 0 && body.ageVerified === true
 
+  // --- controlled goods need a named buyer ----------------------------
+  //
+  // Gated on the trait as well as the product flag, like the age check: a
+  // shop that has not switched it on is not stopped by a flag somebody
+  // once ticked on a product.
+  const controlledLines = body.lines
+    .map((l) => ({ line: l, product: byId.get(l.productId) }))
+    .filter((x) => x.product?.controlled)
+  const needsRegister = till.traits.includes("CONTROLLED") && controlledLines.length > 0
+
+  if (needsRegister && !body.controlledBuyer?.name) {
+    return {
+      success: false,
+      error: `${controlledLines[0].product!.name} must be written into your controlled register. Record who it is going to before taking payment.`,
+    }
+  }
+
   const saleDiscount = D(body.saleDiscount ?? 0)
   if (saleDiscount.greaterThan(subtotal)) {
     return { success: false, error: "The discount is more than the sale is worth." }
@@ -927,7 +1012,35 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
   const roundingAdjustment = rounded.minus(total)
 
   const amountPaid = body.payments.reduce((acc, p) => acc.plus(D(p.amount)), D(0))
-  if (amountPaid.lessThan(rounded)) {
+
+  // --- a deposit, where the goods do not exist yet ---------------------
+  //
+  // Allowed only on a basket that actually contains something made to
+  // order. Letting any basket be part-paid would turn the till into an
+  // informal credit book with no record of what is owed against what.
+  const madeToOrderLines = body.lines
+    .map((l) => byId.get(l.productId))
+    .filter((pr) => pr?.madeToOrder)
+  const isDeposit =
+    !!body.deposit &&
+    till.traits.includes("MADE_TO_ORDER") &&
+    madeToOrderLines.length > 0 &&
+    amountPaid.lessThan(rounded)
+
+  if (body.deposit && !isDeposit && amountPaid.lessThan(rounded)) {
+    return {
+      success: false,
+      error: madeToOrderLines.length === 0
+        ? "Nothing in this sale is made to order, so it cannot be part-paid."
+        : 'Turn on "Deposits and later delivery" in POS Settings to take a deposit.',
+    }
+  }
+
+  const balanceDue = isDeposit ? rounded.minus(amountPaid) : D(0)
+  if (isDeposit && amountPaid.lessThanOrEqualTo(0)) {
+    return { success: false, error: "A deposit of nothing is not a deposit. Take something now, or park the sale." }
+  }
+  if (!isDeposit && amountPaid.lessThan(rounded)) {
     return {
       success: false,
       error: `Short by ${rounded.minus(amountPaid).toFixed(2)}. Take the full amount or record the rest as credit.`,
@@ -936,7 +1049,9 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
   // Change is only ever cash. Overpaying by card is not change, it is a
   // mistake, and the till should not quietly hand shillings back for it.
   const hasCash = body.payments.some((p) => p.method === "CASH")
-  const changeGiven = hasCash ? amountPaid.minus(rounded) : D(0)
+  // No change on a deposit: every shilling handed over stays with the shop
+  // against the balance.
+  const changeGiven = isDeposit ? D(0) : hasCash ? amountPaid.minus(rounded) : D(0)
 
   const paymentMethod = body.payments.length > 1 ? "SPLIT" : body.payments[0].method
 
@@ -978,7 +1093,9 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
             total: rounded,
             amountPaid,
             changeGiven,
-            status: "COMPLETED",
+            status: isDeposit ? "DEPOSIT" : "COMPLETED",
+            balanceDue,
+            dueDate: isDeposit && body.deposit?.dueDate ? new Date(body.deposit.dueDate) : null,
             paymentMethod,
             ageVerified,
             customerName: body.customerName?.trim() || null,
@@ -1026,10 +1143,17 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
           include: { items: true, payments: true },
         })
 
+        // STOCK DOES NOT MOVE ON A DEPOSIT.
+        //
+        // A sofa that has not been built cannot come off a shelf, and
+        // taking it off would show a shop as holding one fewer than it
+        // does for however many weeks the order takes. The stock moves
+        // when the goods are handed over — see settleDeposit.
+        //
         // Stock, in the same transaction. A line's movement key is derived
         // from the sale's, so a replayed sale replays its movements to the
         // same keys and the ledger refuses them individually too.
-        for (let i = 0; i < priced.length; i++) {
+        for (let i = 0; i < priced.length && !isDeposit; i++) {
           const l = priced[i]
 
           // A batched line becomes ONE MOVEMENT PER DELIVERY it came out
@@ -1100,10 +1224,50 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
           }
         }
 
+        // The register, written in the same transaction as the sale.
+        //
+        // Everything is SNAPSHOTTED rather than joined: a register read
+        // three years from now must not depend on a product row still
+        // existing under the same name, or on the staff member still
+        // working here.
+        if (needsRegister && body.controlledBuyer) {
+          const buyer = body.controlledBuyer
+          for (const { line, product } of controlledLines) {
+            const pricedLine = priced.find(
+              (pl) => pl.productId === line.productId && (pl.variantId ?? null) === (line.variantId ?? null),
+            )
+            if (!pricedLine) continue
+            const item = sale.items.find(
+              (it) => it.productId === pricedLine.productId && (it.variantId ?? null) === (pricedLine.variantId ?? null),
+            )
+            await tx.controlledSaleRecord.create({
+              data: {
+                shopkeeperId: till.shopkeeperId,
+                posSaleItemId: item?.id ?? null,
+                posSaleId: sale.id,
+                productName: product!.name,
+                variantLabel: pricedLine.variantLabel,
+                batchNumber: pricedLine.allocations[0]?.batchNumber ?? null,
+                serials: pricedLine.serialNumbers,
+                quantity: pricedLine.quantity,
+                unit: pricedLine.unit,
+                buyerName: buyer.name,
+                buyerIdNumber: buyer.idNumber?.trim() || null,
+                buyerPhone: buyer.phone?.trim() || null,
+                prescriberName: buyer.prescriberName?.trim() || null,
+                prescriptionRef: buyer.prescriptionRef?.trim() || null,
+                recordedByUserId: till.userId,
+                recordedByName: till.userName,
+                occurredAt,
+              },
+            })
+          }
+        }
+
         // totalSold is a display counter on Product and is not stock. Kept in
         // step so the till's "best sellers" ordering reflects counter sales
         // too, which for a POS-only shop is the only sales it has.
-        for (const l of priced) {
+        for (const l of isDeposit ? [] : priced) {
           await tx.product.update({
             where: { id: l.productId },
             data: { totalSold: { increment: Math.max(1, Math.round(Number(l.quantity.toString()))) } },
@@ -1306,4 +1470,191 @@ export async function getPosReceipt(saleId: string): Promise<Receipt | null> {
   })
   if (!sale) return null
   return buildReceipt(till, sale, sale.items, sale.payments, false, [])
+}
+
+// ---------------------------------------------------------------------------
+// Deposits
+// ---------------------------------------------------------------------------
+
+export type OpenDeposit = {
+  saleId: string
+  saleNumber: string
+  customerName: string | null
+  customerPhone: string | null
+  total: number
+  paid: number
+  balanceDue: number
+  dueDate: string | null
+  occurredAt: string
+  overdue: boolean
+  lines: { name: string; variantLabel: string | null; quantity: string; unit: string }[]
+}
+
+/** Orders taken and not yet handed over, soonest due first. */
+export async function getOpenDeposits(): Promise<OpenDeposit[]> {
+  const till = await requireTill()
+  if (!till) return []
+
+  const rows = await db.posSale.findMany({
+    where: { shopkeeperId: till.shopkeeperId, status: "DEPOSIT" },
+    orderBy: [{ dueDate: { sort: "asc", nulls: "last" } }, { occurredAt: "asc" }],
+    include: { items: true },
+    take: 200,
+  })
+
+  const now = Date.now()
+  return rows.map((r) => ({
+    saleId: r.id,
+    saleNumber: r.saleNumber,
+    customerName: r.customerName,
+    customerPhone: r.customerPhone,
+    total: money(D(r.total)),
+    paid: money(D(r.amountPaid)),
+    balanceDue: money(D(r.balanceDue)),
+    dueDate: r.dueDate?.toISOString() ?? null,
+    occurredAt: r.occurredAt.toISOString(),
+    overdue: r.dueDate !== null && r.dueDate.getTime() < now,
+    lines: r.items.map((i) => ({
+      name: i.name,
+      variantLabel: i.variantLabel,
+      quantity: i.quantity.toString(),
+      unit: i.unit,
+    })),
+  }))
+}
+
+const settleSchema = z.object({
+  saleId: z.string().trim().min(1),
+  /** What is being paid now. May be less than the balance — part payments
+   *  on a long build are normal — in which case the order stays open. */
+  payments: z.array(z.object({
+    method: z.enum(PAYMENT_METHODS),
+    amount: z.number().min(0).max(100_000_000),
+    reference: z.string().trim().max(60).optional(),
+  })).min(1).max(5),
+  /** Hand the goods over now. Requires the balance to be fully settled. */
+  fulfil: z.boolean().optional(),
+})
+
+/**
+ * Take money against an open order, and hand it over.
+ *
+ * THIS IS WHERE THE STOCK MOVES. Nothing came off the shelf when the
+ * deposit was taken, because the goods did not exist yet; they leave when
+ * the customer does. Doing it any earlier would show a shop as holding one
+ * fewer sofa than it does for however many weeks the build takes.
+ */
+export async function settleDeposit(input: unknown): Promise<TillActionResult<Receipt>> {
+  const till = await requireTill()
+  if (!till) return { success: false, error: "There is no till on this account." }
+  const parsed = settleSchema.safeParse(input)
+  if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
+
+  const sale = await db.posSale.findFirst({
+    // Scoped to this shop: a sale id alone must never be enough.
+    where: { id: parsed.data.saleId, shopkeeperId: till.shopkeeperId },
+    include: { items: true, payments: true },
+  })
+  if (!sale) return { success: false, error: "That order was not found." }
+  if (sale.status !== "DEPOSIT") {
+    return { success: false, error: "That order is not waiting on a balance." }
+  }
+
+  const paying = parsed.data.payments.reduce((acc, p) => acc.plus(D(p.amount)), D(0))
+  if (paying.lessThanOrEqualTo(0)) return { success: false, error: "Enter what is being paid." }
+
+  const owed = D(sale.balanceDue)
+  const fulfil = parsed.data.fulfil === true
+  // Change only ever comes out of an overpayment on the FINAL settlement.
+  const hasCash = parsed.data.payments.some((p) => p.method === "CASH")
+  const overpaid = paying.minus(owed)
+  const changeGiven = hasCash && overpaid.greaterThan(0) ? overpaid : D(0)
+  const applied = paying.minus(changeGiven)
+  const remaining = owed.minus(applied)
+
+  if (fulfil && remaining.greaterThan(0)) {
+    return {
+      success: false,
+      error: `Still ${remaining.toFixed(2)} outstanding. Take the balance before handing the goods over, or record this as a part payment.`,
+    }
+  }
+
+  const occurredAt = new Date()
+  const stockWarnings: string[] = []
+
+  try {
+    const updated = await db.$transaction(async (tx) => {
+      for (const p of parsed.data.payments) {
+        await tx.posPayment.create({
+          data: {
+            saleId: sale.id,
+            method: p.method,
+            amount: D(p.amount),
+            reference: p.reference?.trim() || null,
+          },
+        })
+      }
+
+      // Handing over: the stock leaves now, through the ledger, exactly as
+      // an ordinary sale would have moved it at the counter.
+      if (fulfil) {
+        for (let i = 0; i < sale.items.length; i++) {
+          const item = sale.items[i]
+          if (!item.productId) continue
+          const moved = await recordStockMovement(tx as never, {
+            shopkeeperId: till.shopkeeperId,
+            productId: item.productId,
+            variantId: item.variantId,
+            batchId: item.batchId,
+            kind: "SALE",
+            quantity: D(item.quantity).negated(),
+            unit: item.unit,
+            unitCost: item.costAtSale,
+            posSaleId: sale.id,
+            actorUserId: till.userId,
+            // Derived from the SALE id, not a device key: this movement
+            // happens once, when the goods go, and replaying a settlement
+            // must not take the stock twice.
+            idempotencyKey: `fulfil:${sale.id}:L${i}`,
+            occurredAt,
+          }, till.negativeStock)
+
+          if (!moved.ok) {
+            throw new PosSaleError(
+              moved.code === "INSUFFICIENT_STOCK"
+                ? `${item.name}: ${moved.message}`
+                : `${item.name} could not be taken out of stock. Nothing was recorded.`,
+            )
+          }
+          if (moved.balance.lessThan(0)) {
+            stockWarnings.push(`${item.name} is now ${moved.balance.toString()} ${item.unit} — below zero.`)
+          }
+        }
+
+        for (const item of sale.items) {
+          if (!item.productId) continue
+          await tx.product.update({
+            where: { id: item.productId },
+            data: { totalSold: { increment: Math.max(1, Math.round(Number(item.quantity.toString()))) } },
+          })
+        }
+      }
+
+      return tx.posSale.update({
+        where: { id: sale.id },
+        data: {
+          amountPaid: { increment: Number(applied.toString()) },
+          changeGiven: { increment: Number(changeGiven.toString()) },
+          balanceDue: remaining.lessThan(0) ? 0 : remaining,
+          ...(fulfil ? { status: "COMPLETED" as const, fulfilledAt: occurredAt } : {}),
+        },
+        include: { items: true, payments: true },
+      })
+    }, { timeout: 30000, maxWait: 10000 })
+
+    return { success: true, data: buildReceipt(till, updated, updated.items, updated.payments, false, stockWarnings) }
+  } catch (e) {
+    if (e instanceof PosSaleError) return { success: false, error: e.message }
+    return { success: false, error: "That payment could not be saved. Nothing was changed — try again." }
+  }
 }

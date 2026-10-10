@@ -91,6 +91,8 @@ export type CachedProduct = {
   ageRestricted: boolean
   fitsWith: string[]
   tracksSerials: boolean
+  controlled: boolean
+  madeToOrder: boolean
   variants: CachedVariant[]
   matchedVariantId: string | null
 }

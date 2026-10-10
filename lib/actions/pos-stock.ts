@@ -85,6 +85,8 @@ export type StockRow = {
   fitsWith: string[]
   /** Whether units of this product are tracked individually. */
   tracksSerials: boolean
+  /** Must be written into the controlled register when sold. */
+  controlled: boolean
   /** Unsold units on the register, for comparison with the stock figure. */
   serialsInStock: number
   /** What it arrives in, where that differs from what it sells in. */
@@ -113,6 +115,8 @@ export type StockSummary = {
   tracksFitment: boolean
   /** Whether this shop tracks units individually. */
   tracksSerials: boolean
+  /** Whether this shop keeps a controlled-substances register. */
+  keepsRegister: boolean
   /**
    * Products whose unsold-serial count does not match their stock figure.
    *
@@ -158,7 +162,7 @@ export async function getStockView(): Promise<StockView> {
       select: {
         id: true, name: true, sku: true, barcode: true, unit: true, price: true, costPrice: true,
         tracksBatches: true, ageRestricted: true, bulkUnit: true, unitsPerBulk: true, fitsWith: true,
-        tracksSerials: true,
+        tracksSerials: true, controlled: true,
         inventory: { select: { currentStock: true, stockOnHand: true, lowStockThreshold: true } },
       },
       orderBy: { name: "asc" },
@@ -267,6 +271,7 @@ export async function getStockView(): Promise<StockView> {
       ageRestricted: p.ageRestricted,
       fitsWith: p.fitsWith,
       tracksSerials: p.tracksSerials,
+      controlled: p.controlled,
       serialsInStock: serialsByProduct.get(p.id) ?? 0,
       bulkUnit: p.bulkUnit,
       unitsPerBulk: p.unitsPerBulk == null ? null : Number(p.unitsPerBulk),
@@ -298,6 +303,7 @@ export async function getStockView(): Promise<StockView> {
       breaksBulk: tenant.traits.includes("BULK_BREAK"),
       tracksFitment: tenant.traits.includes("FITMENT"),
       tracksSerials: tenant.traits.includes("SERIALISED"),
+      keepsRegister: tenant.traits.includes("CONTROLLED"),
       serialDrift: rows.filter((r) => r.tracksSerials && r.serialsInStock !== r.sellableUnits).length,
       listedOnMarketplace: tenant.listedOnMarketplace,
       expiredBatches: rows.reduce((n, r) => n + r.batches.filter((b) => b.expired && b.onHand > 0).length, 0),
@@ -1361,4 +1367,25 @@ export async function lookupSerial(input: unknown): Promise<{
     saleNumber,
     customerName,
   }
+}
+
+
+/** Mark a product as needing a register entry when sold, or clear it. */
+export async function setProductControlled(input: unknown): Promise<StockActionResult> {
+  const tenant = await requireStockTenant()
+  if (!tenant) return { success: false, error: "There is no till on this account." }
+  const parsed = z.object({
+    productId: z.string().trim().min(1),
+    controlled: z.boolean(),
+  }).safeParse(input)
+  if (!parsed.success) return { success: false, error: "Invalid input" }
+
+  const product = await db.product.findFirst({
+    where: { id: parsed.data.productId, shopkeeperId: tenant.shopkeeperId },
+    select: { id: true },
+  })
+  if (!product) return { success: false, error: "That product no longer exists." }
+
+  await db.product.update({ where: { id: product.id }, data: { controlled: parsed.data.controlled } })
+  return { success: true, balance: 0 }
 }

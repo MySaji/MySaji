@@ -196,6 +196,7 @@ export const PRO_MODULES: ProModule[] = [
   // account holding POS + PRODUCTS, which is the point: one stock figure,
   // two places it can be sold from.
   { key: "till", label: "Till", href: "/provider/till", icon: "Calculator", group: "till", exact: true, description: "The register screen — ring up a sale at the counter" },
+  { key: "posOrders", label: "Orders to Deliver", href: "/provider/till/orders", icon: "Hammer", group: "till", description: "Part-paid orders waiting to be handed over" },
   { key: "posSettings", label: "POS Settings", href: "/provider/till/settings", icon: "SlidersHorizontal", group: "till", description: "Shop type, selling behaviours and stock policy" },
   { key: "posStock", label: "Stock", href: "/provider/till/stock", icon: "Boxes", group: "till", description: "Stock on hand, what moved it, receipts, counts and losses" },
   { key: "posReports", label: "Till Reports", href: "/provider/till/reports", icon: "BarChart3", group: "till", description: "Takings by day, by method, by cashier and by product, plus shift history" },
@@ -259,7 +260,7 @@ export const DEFAULT_MODULES_BY_TYPE: Record<ProBusinessType, string[]> = {
   POS: [
     // Only pages that exist. posShifts and posDevices join this list as they
     // are built; until then a POS account's nav contains no link that 404s.
-    "till", "posStock", "posReports", "posSettings",
+    "till", "posStock", "posOrders", "posReports", "posSettings",
     "shopProducts", "shopCustomers", "shopEarnings", "invoices", "clients",
     "proDashboard", "proPlan",
   ],

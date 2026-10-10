@@ -1144,6 +1144,7 @@ model ShopkeeperProfile {
   tillSessions               TillSession[]
   posDevices                 PosDevice[]
   posCashiers                PosCashier[]
+  controlledRecords          ControlledSaleRecord[]
 
   // Supports the bounding-box prefilter in lib/geo.ts: a radius search
   // narrows on these two columns in SQL before any exact haversine runs in
@@ -1666,6 +1667,12 @@ model Product {
   /// first serial is recorded. Once set, a sale of this product must name
   /// which units are leaving.
   tracksSerials Boolean  @default(false)
+  /// Must be written into the shop's controlled-substances register when
+  /// sold. Per product, like ageRestricted: a chemist sells plasters too.
+  controlled    Boolean  @default(false)
+  /// Ordered and paid for now, handed over later. A sofa, a set of
+  /// curtains, a lorry of sand.
+  madeToOrder   Boolean  @default(false)
   price         Decimal  @db.Decimal(12, 2)
   discountPrice Decimal? @db.Decimal(12, 2)
   images        String[]
@@ -4394,6 +4401,14 @@ enum PosSaleStatus {
   PARKED    // rung up and set aside, not yet paid
   VOIDED    // cancelled before the drawer closed
   REFUNDED
+  /// Part-paid and waiting on delivery or collection.
+  ///
+  /// A separate status from PARKED on purpose: a parked sale is one nobody
+  /// has paid for and that can simply be dropped, while this one has the
+  /// customer's money in the drawer and goods owed against it. Reports count
+  /// the DEPOSIT TAKEN on these, never the full price, because the rest has
+  /// not been earned yet.
+  DEPOSIT
 }
 
 enum PosPaymentMethod {
@@ -4454,6 +4469,14 @@ model PosSale {
   createdAt  DateTime  @default(now())
   /// When the server accepted it. Null while a sale exists only on a till.
   syncedAt   DateTime?
+
+  /// What is still owed on a DEPOSIT sale. Zero on every other kind.
+  balanceDue     Decimal   @default(0) @db.Decimal(14, 2)
+  /// When the customer expects it. Shown on the receipt, which is the only
+  /// thing most customers keep.
+  dueDate        DateTime?
+  /// When it was actually handed over, which closes the sale.
+  fulfilledAt    DateTime?
 
   voidedAt       DateTime?
   voidReason     String?
@@ -4819,4 +4842,69 @@ model ProductSerial {
   @@index([shopkeeperId, productId, status])
   @@index([posSaleItemId])
   @@map("product_serials")
+}
+
+/// One entry in a shop's controlled-substances register.
+///
+/// WHAT THIS IS, AND WHAT IT IS NOT
+///
+/// It is a record that a particular quantity of a particular product went
+/// to a particular named person on a particular date, written at the moment
+/// of sale and never edited afterwards. That is what a pharmacy or agrovet
+/// is asked to keep, and what an inspector asks to see.
+///
+/// It is NOT a claim of regulatory compliance. Kenya's Pharmacy and Poisons
+/// Board and the Veterinary Medicines Directorate each set their own
+/// requirements for what a register must contain, how long it is kept and
+/// who may sign it, and those requirements change. This holds the fields a
+/// shop told us to hold. Whether that satisfies a particular regulator is a
+/// question for that regulator, and the UI says so rather than implying
+/// otherwise.
+///
+/// Append-only by convention and by the absence of any update path: there is
+/// no action anywhere in this codebase that edits one of these rows. A
+/// correction is a VOIDED sale, which leaves both entries readable.
+model ControlledSaleRecord {
+  id           String @id @default(cuid())
+  shopkeeperId String
+  /// The sale line this entry is for. Nullable only so a voided sale whose
+  /// line was removed cannot orphan the register entry.
+  posSaleItemId String?
+  posSaleId     String?
+
+  /// Snapshotted, not joined. A register read three years from now must not
+  /// depend on a product row still existing under the same name.
+  productName  String
+  variantLabel String?
+  batchNumber  String?
+  serials      String[]
+  quantity     Decimal @db.Decimal(14, 3)
+  unit         String  @default("piece")
+
+  /// Who took it away.
+  buyerName     String
+  buyerIdNumber String?
+  buyerPhone    String?
+
+  /// Who authorised it, where a prescription was involved. Optional because
+  /// not every controlled product is prescription-only.
+  prescriberName String?
+  prescriptionRef String?
+
+  /// Who served, by name as well as id — the id is useless in an export
+  /// once the staff member has left.
+  recordedByUserId String?
+  recordedByName   String?
+
+  /// When it happened at the counter, not when the server heard. Same rule
+  /// as every other POS timestamp.
+  occurredAt DateTime
+  createdAt  DateTime @default(now())
+
+  shopkeeper ShopkeeperProfile @relation(fields: [shopkeeperId], references: [id], onDelete: Cascade)
+
+  @@index([shopkeeperId, occurredAt])
+  @@index([shopkeeperId, productName])
+  @@index([posSaleId])
+  @@map("controlled_sale_records")
 }
