@@ -594,6 +594,8 @@ model User {
   pushSubscriptions PushSubscription[]
 
   distributorStockTransfersInitiated StockTransfer[]
+  posBusiness                        PosBusiness?    @relation("PosBusinessOwner")
+  posStaffSeats                      PosStaff[]      @relation("PosStaffUser")
 
   @@index([role])
   @@index([kycStatus])
@@ -1183,6 +1185,7 @@ model ShopkeeperProfile {
   posDevices                 PosDevice[]
   posCashiers                PosCashier[]
   controlledRecords          ControlledSaleRecord[]
+  posStore                   PosStore?
 
   // Supports the bounding-box prefilter in lib/geo.ts: a radius search
   // narrows on these two columns in SQL before any exact haversine runs in
@@ -4658,6 +4661,186 @@ model TillSession {
 /// Exists so a stolen counter laptop can be revoked without changing the
 /// shopkeeper's password, and so an offline sale can be attributed to the
 /// device that took it.
+/// What a person may do in a POS business.
+///
+/// Five, because the document this was built against names five and each one
+/// is a real job in a Kenyan supermarket. They are NOT a hierarchy with a
+/// number attached: an accountant outranks nobody but sees the money, and a
+/// stock controller touches goods but must not be near the drawer. A single
+/// "level" field would force those two into an order that does not exist.
+enum PosStaffRole {
+  /// The account holder. Everything, including billing and deleting the business.
+  OWNER
+  /// Runs the shop day to day. Everything except business-level settings.
+  MANAGER
+  /// The till, and looking up stock to answer a customer. Nothing else.
+  CASHIER
+  /// Goods in and goods counted. Deliberately no access to takings.
+  STOCK_CONTROLLER
+  /// The money, read mostly. No till, because approving your own figures is
+  /// the oldest problem in bookkeeping.
+  ACCOUNTANT
+}
+
+/// A POS account, which is not a SAJI Pro portal.
+///
+/// WHY THIS EXISTS SEPARATELY FROM ShopkeeperProfile
+///
+/// A till was first built as one of the Saji Pro business types, which meant
+/// a shopkeeper got a marketplace portal they never asked for and a POS that
+/// borrowed its identity from it. A supermarket is its own product with its
+/// own staff, its own login and its own idea of who may do what, and this is
+/// the row that owns all of that.
+///
+/// A ShopkeeperProfile is still where a store's catalogue, stock and sales
+/// live, which is why every POS table keeps pointing at it. This sits ABOVE
+/// that: one business, its people, its settings, and in time its branches.
+model PosBusiness {
+  id          String @id @default(cuid())
+  ownerUserId String @unique
+
+  name     String
+  /// ISO country. Kenya unless someone deliberately changes it.
+  country  String @default("KE")
+  currency String @default("KES")
+  timezone String @default("Africa/Nairobi")
+
+  /// Collected when the business has them. Optional during onboarding on
+  /// purpose: a duka that has not registered yet still needs to sell today.
+  registrationNumber String?
+  taxPin             String?
+
+  /// Street address, kept as fields rather than one blob so a receipt and a
+  /// delivery note can be laid out properly.
+  county     String?
+  town       String?
+  street     String?
+  postalCode String?
+
+  /// Which preset built this business, and which VERSION of it. The version
+  /// matters: a profile gains modules over time, and a business configured
+  /// under version 1 must not silently acquire them.
+  profileKey     String @default("SUPERMARKET")
+  profileVersion Int    @default(1)
+
+  /// How far through the setup wizard they got, so leaving and coming back
+  /// does not start again. Null once setup is finished.
+  onboardingStep   String?
+  /// What they have entered so far, by step. Shape lives with the wizard.
+  onboardingData   Json?
+  setupCompletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner  User       @relation("PosBusinessOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  stores PosStore[]
+  staff  PosStaff[]
+
+  @@map("pos_businesses")
+}
+
+/// One shop floor.
+///
+/// Wraps the ShopkeeperProfile that actually holds the catalogue and stock,
+/// so every existing POS table keeps working unchanged while a business
+/// gains the ability to have more than one of them.
+model PosStore {
+  id           String   @id @default(cuid())
+  businessId   String
+  /// The shop whose catalogue, stock and sales this store is.
+  shopkeeperId String   @unique
+  name         String
+  /// Shown on this store's receipts where it differs from the business name.
+  branchLabel  String?
+  phone        String?
+  county       String?
+  town         String?
+  street       String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  business   PosBusiness       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  shopkeeper ShopkeeperProfile @relation(fields: [shopkeeperId], references: [id], onDelete: Cascade)
+  staff      PosStaff[]
+
+  @@index([businessId])
+  @@map("pos_stores")
+}
+
+/// A person who works in the business.
+///
+/// Deliberately NOT a User in the ordinary case. A shop assistant should be
+/// able to ring up a sale without a SAJI account, an email address or a
+/// password they will forget, and the owner should be able to revoke them
+/// the same afternoon they leave. `userId` links the row to a real account
+/// only where that person genuinely has one, which is the owner and, if the
+/// owner chooses, a manager who needs to sign in from home.
+///
+/// Supersedes PosCashier, which only knew about two roles and one shop.
+model PosStaff {
+  id         String  @id @default(cuid())
+  businessId String
+  /// Null means every store in the business. Set for staff tied to one shop.
+  storeId    String?
+  userId     String?
+
+  name    String
+  role    PosStaffRole @default(CASHIER)
+  /// Four to six digits, bcrypt hashed. Identifies who is at the counter; it
+  /// is not a password and is not treated as one.
+  pinHash String?
+  /// Set where this person can also sign in properly, away from the till.
+  email   String?
+  phone   String?
+
+  isActive   Boolean   @default(true)
+  lastSeenAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  business PosBusiness @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  store    PosStore?   @relation(fields: [storeId], references: [id], onDelete: SetNull)
+  user     User?       @relation("PosStaffUser", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([businessId])
+  @@index([storeId])
+  @@index([userId])
+  @@map("pos_staff")
+}
+
+/// Something a person did that someone may later need to account for.
+///
+/// The stock ledger already makes every movement of goods auditable. This is
+/// for everything else: a void, a price override, a permission change, a
+/// device revoked, a setting altered. Those leave no trace in stock and are
+/// exactly what gets asked about when money is missing.
+///
+/// Append only. There is no update path and no delete path, by design.
+model PosAuditEvent {
+  id           String   @id @default(cuid())
+  businessId   String
+  storeId      String?
+  /// The SAJI account that acted, where there was one.
+  actorUserId  String?
+  /// The staff member that acted, where the action came from the till.
+  actorStaffId String?
+  /// Free text, because the person reading this is a shopkeeper, not a
+  /// developer: "Wanjiku voided sale S-0042".
+  summary      String
+  /// A stable machine key for filtering: "sale.void", "staff.role_changed".
+  action       String
+  entityType   String?
+  entityId     String?
+  /// Whatever the action needs to be understood later.
+  detail       Json?
+  createdAt    DateTime @default(now())
+
+  @@index([businessId, createdAt])
+  @@index([businessId, action])
+  @@map("pos_audit_events")
+}
+
 model PosDevice {
   id           String @id @default(cuid())
   shopkeeperId String
