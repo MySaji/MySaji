@@ -73,6 +73,14 @@ export function TillInstall() {
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker
         .register("/provider/sw.js", { scope: "/provider/" })
+        .then(() => navigator.serviceWorker.ready)
+        .then((reg) => {
+          // Ask it to sweep now that the page has loaded. The worker sees no
+          // fetches on the load it was registered during, so without this a
+          // till installed and taken offline the same morning would have the
+          // page saved and none of the code that makes it a till.
+          reg.active?.postMessage("precache")
+        })
         .catch(() => {
           // Not fatal: the till works as a normal page, it just cannot be
           // installed. Nothing is shown about it, because a shopkeeper can

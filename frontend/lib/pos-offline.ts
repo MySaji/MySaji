@@ -17,12 +17,19 @@
  *      already local, sales queue, and the cashier keeps serving. This is
  *      the dominant failure in practice.
  *
- *   2. THE TILL IS STARTED COLD WITH NO CONNECTION.  Not handled. Loading
- *      the page still needs the network, because serving the application
- *      shell from a cache means eventually serving STALE CODE to a till —
- *      and stale code at a till prices things wrong. That needs versioned
- *      shell caching with a careful update path, and it is its own piece of
- *      work.
+ *   2. THE TILL IS STARTED COLD WITH NO CONNECTION.  Handled, as of the
+ *      shell cache in public/provider/sw.js, with one condition: the till
+ *      must have been opened at least once with a connection since it was
+ *      installed. A device that has never reached the server has nothing
+ *      saved to open, and says exactly that rather than pretending.
+ *
+ *      The stale code worry that held this back is answered by WHERE things
+ *      are cached, not by caching less. The service worker holds the shell
+ *      and the content hashed build assets, and nothing else; prices and
+ *      stock come from this store, which the till refreshes on every
+ *      successful load and labels as last known on screen. So a cached till
+ *      can be out of date about stock, which it says, and cannot be out of
+ *      date about its own code, because a changed build is a new URL.
  *
  * What is guaranteed in both cases is the thing that actually matters: a
  * sale that was rung up is never lost. It sits in this outbox until the
@@ -84,6 +91,15 @@ export type CachedProduct = {
   sku: string
   barcode: string | null
   unit: string
+  /**
+   * The product picture, kept as a URL rather than the bytes.
+   *
+   * Deliberate: caching images here would bloat the local store for every
+   * shop with a photographed catalogue, and a missing picture costs a
+   * cashier nothing. The name and the price are what must survive offline,
+   * and those are stored properly.
+   */
+  image: string | null
   price: number
   listPrice: number
   stock: number
@@ -167,6 +183,43 @@ export async function readCatalogue(): Promise<{ products: CachedProduct[]; upda
     const all = t.objectStore(STORE_CATALOGUE).getAll()
     const when = t.objectStore(STORE_META).get("catalogueUpdatedAt")
     t.oncomplete = () => resolve({ products: all.result ?? [], updatedAt: when.result ?? null })
+    t.onerror = () => reject(t.error)
+  })
+}
+
+/**
+ * Remember the till's own settings, not just its stock.
+ *
+ * WHY THIS IS NEEDED AT ALL
+ *
+ * Without it, a till opened with no connection cannot tell "this account has
+ * no till" from "I could not reach the server to ask", and it showed the
+ * first. A cashier arriving to a cold machine was told the shop had no till,
+ * which is both false and alarming.
+ *
+ * Only the shop's own settings are kept here: its name, tax and rounding
+ * rules, what it does when stock runs out. Takings and shift figures are
+ * deliberately NOT cached, because a stale number a cashier might act on is
+ * worse than no number, and the screen says so instead.
+ */
+export async function cacheTillState(state: unknown): Promise<void> {
+  const db = await open()
+  return new Promise((resolve, reject) => {
+    const t = db.transaction([STORE_META], "readwrite")
+    t.objectStore(STORE_META).put(state, "tillState")
+    t.objectStore(STORE_META).put(new Date().toISOString(), "tillStateUpdatedAt")
+    t.oncomplete = () => resolve()
+    t.onerror = () => reject(t.error)
+  })
+}
+
+export async function readTillState<T>(): Promise<{ state: T | null; updatedAt: string | null }> {
+  const db = await open()
+  return new Promise((resolve, reject) => {
+    const t = db.transaction([STORE_META], "readonly")
+    const got = t.objectStore(STORE_META).get("tillState")
+    const when = t.objectStore(STORE_META).get("tillStateUpdatedAt")
+    t.oncomplete = () => resolve({ state: (got.result as T) ?? null, updatedAt: when.result ?? null })
     t.onerror = () => reject(t.error)
   })
 }

@@ -6,7 +6,7 @@ import {
   Calculator, Loader2, Search, Plus, Minus, Trash2, X, ArrowRight, ArrowLeft,
   SlidersHorizontal, Package, AlertTriangle, Clock, Banknote, Smartphone,
   CreditCard, Landmark, HandCoins, ShoppingCart, CloudOff, RefreshCw, Check, FileLock, Hammer,
-  User, ShieldCheck, LogOut, Delete,
+  User, ShieldCheck, LogOut, Delete, Camera,
 } from "lucide-react"
 import { Card } from "@/frontend/components/ui/card"
 import { Button } from "@/frontend/components/ui/button"
@@ -17,11 +17,13 @@ import {
 } from "@/backend/actions/pos-sales"
 import { getCashierMode, signInCashier } from "@/backend/actions/pos-cashiers"
 import { registerTillDevice } from "@/backend/actions/pos-devices"
+import { getShopMpesa, promptCustomerPayment, checkPromptStatus } from "@/backend/actions/pos-mpesa"
 import { getDeviceSecret, guessDeviceName, guessPlatform } from "@/frontend/lib/pos-device"
 import { TillReceipt } from "@/frontend/components/pos/till-receipt"
 import { TillInstall } from "@/frontend/components/pos/till-install"
+import { BarcodeScanner } from "@/frontend/components/pos/barcode-scanner"
 import { usePosOffline } from "@/frontend/lib/hooks/usePosOffline"
-import { searchCached } from "@/frontend/lib/pos-offline"
+import { searchCached, cacheTillState, readTillState } from "@/frontend/lib/pos-offline"
 
 /**
  * The register.
@@ -102,6 +104,17 @@ function quickCash(total: number): number[] {
 
 export default function TillPage() {
   const [state, setState] = useState<TillState | null>(null)
+  /**
+   * True when the settings on screen came from this device, not the server.
+   *
+   * Kept separate from `state` so nothing has to guess. A till that cannot
+   * reach the server still knows what shop it is and how to price a sale,
+   * but it does NOT know today's takings, and the screen has to say which of
+   * those it is showing.
+   */
+  const [stateIsRemembered, setStateIsRemembered] = useState(false)
+  /** The server answered, and the answer was that this account has no till. */
+  const [noTillConfirmed, setNoTillConfirmed] = useState(false)
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState<"sell" | "pay" | "receipt">("sell")
 
@@ -171,6 +184,36 @@ export default function TillPage() {
   const [deviceSecret, setDeviceSecret] = useState<string | null>(null)
   const [deviceRevoked, setDeviceRevoked] = useState<{ name: string } | null>(null)
 
+  /**
+   * How this shop takes M-Pesa, if it has said.
+   *
+   * Null while loading or where the shop has set nothing up, in which case
+   * the payment screen behaves exactly as it did before: a box for a code
+   * the cashier reads off the customer's phone.
+   */
+  const [mpesa, setMpesa] = useState<Awaited<ReturnType<typeof getShopMpesa>>>(null)
+  /**
+   * A prompt in flight, per payment row.
+   *
+   * Keyed by row because a split sale can have more than one M-Pesa line,
+   * and a cashier who sent two prompts needs to see which one answered.
+   */
+  const [prompts, setPrompts] = useState<Record<number, {
+    checkoutId: string
+    phone: string
+    state: "sending" | "waiting" | "paid" | "failed"
+    message?: string
+  }>>({})
+  const [promptPhone, setPromptPhone] = useState("")
+
+  /**
+   * The camera scanner, for a counter with no scanner gun.
+   *
+   * A USB scanner just types into the search box and needs nothing. This is
+   * for a shopkeeper working off a phone, which is most of them.
+   */
+  const [scanning, setScanning] = useState(false)
+
   /** Open while a void is being asked for: the reason, and a manager's PIN where one is needed. */
   const [voidAsk, setVoidAsk] = useState<{ reason: string; pin: string } | null>(null)
 
@@ -194,6 +237,12 @@ export default function TillPage() {
       .catch(() => {})
   }, [])
 
+  // How this shop takes M-Pesa. Failing here leaves the payment screen as
+  // it was, which is a working screen, so nothing is said about it.
+  useEffect(() => {
+    getShopMpesa().then(setMpesa).catch(() => {})
+  }, [])
+
   // Who may work this till. Deliberately NOT part of getTillState: a till
   // that cannot reach the server must still sell, so a failure here leaves
   // mode null and no sign-in is asked for. A PIN says who served; it is not
@@ -204,11 +253,33 @@ export default function TillPage() {
 
   useEffect(() => {
     Promise.all([
-      getTillState().then(setState),
+      getTillState().then((s) => {
+        setState(s)
+        setStateIsRemembered(false)
+        // The server answered. Null here is a real answer, not a failure.
+        if (s === null) setNoTillConfirmed(true)
+        else void cacheTillState(s)
+        return s
+      }),
       findTillProducts({ query: "" }).then((p) => { setResults(p); return p }),
     ])
       .then(([, products]) => { void offline.saveCatalogue(products) })
-      .catch(() => { /* the offline effect below renders what is cached */ })
+      .catch(async () => {
+        // Unreachable. Fall back to what this device last knew, so the till
+        // opens and sells. Without this the page showed "No till on this
+        // account", which is a lie, and the worst possible thing to tell a
+        // cashier standing at a cold machine in the morning.
+        try {
+          const { state: remembered } = await readTillState<TillState>()
+          if (remembered) {
+            setState(remembered)
+            setStateIsRemembered(true)
+          }
+        } catch {
+          // No local copy either. The empty state below is then correct,
+          // because this device has genuinely never seen this till.
+        }
+      })
       .finally(() => setLoading(false))
     // offline.saveCatalogue is stable; this must run once, on mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -371,6 +442,7 @@ export default function TillPage() {
   const clearSale = () => {
     setCart([]); setSaleDiscount(""); setCustomerName(""); setPickVariantFor(null)
     setPayments([{ method: "CASH", amount: "", reference: "" }])
+    setPrompts({}); setPromptPhone("")
     setReceipt(null); setError(""); setCartOpen(false); setAgeConfirmed(false)
     setScanSerialsFor(null); setSerialDraft("")
     setBuyer({ name: "", idNumber: "", phone: "", prescriberName: "", prescriptionRef: "" })
@@ -402,10 +474,16 @@ export default function TillPage() {
         })),
       payments: payments
         .filter((p) => Number(p.amount || 0) > 0)
-        .map((p) => ({
+        .map((p, i) => ({
           method: p.method,
           amount: Number(p.amount),
           ...(p.reference.trim() ? { reference: p.reference.trim() } : {}),
+          // Only a prompt Safaricom said was paid. The server checks this
+          // again before it writes anything, so sending it is a claim, not
+          // a decision.
+          ...(prompts[i]?.state === "paid"
+            ? { stkCheckoutId: prompts[i].checkoutId, stkPhone: prompts[i].phone }
+            : {}),
         })),
       ...(discountNum > 0 ? { saleDiscount: discountNum } : {}),
       ...(needsAgeCheck ? { ageVerified: ageConfirmed } : {}),
@@ -449,6 +527,59 @@ export default function TillPage() {
     // this key. Rotating after a plain failure would turn the cashier's
     // retry into a second sale.
     setIdempotencyKey(newKey())
+  }
+
+  /**
+   * Push a PIN request to the customer's phone for one payment row.
+   *
+   * Polls afterwards, because Safaricom answers the push immediately and the
+   * customer answers it in their own time. The cashier watches the row, not
+   * a spinner over the whole screen: the rest of the sale stays usable, and
+   * a prompt that is ignored can simply be abandoned for cash.
+   */
+  const sendPrompt = async (idx: number) => {
+    const row = payments[idx]
+    const amount = Number(row?.amount || 0) || shortBy || total
+    if (amount <= 0) return
+
+    setPrompts((prev) => ({ ...prev, [idx]: { checkoutId: "", phone: promptPhone, state: "sending" } }))
+    const r = await promptCustomerPayment({ phone: promptPhone, amount })
+    if (!r.success) {
+      setPrompts((prev) => ({ ...prev, [idx]: { checkoutId: "", phone: promptPhone, state: "failed", message: r.error } }))
+      return
+    }
+
+    setPrompts((prev) => ({ ...prev, [idx]: { checkoutId: r.checkoutId, phone: r.phone, state: "waiting" } }))
+    // The amount is pinned to what was actually prompted for, so a cashier
+    // editing the box afterwards cannot leave a confirmed payment sitting
+    // against a different figure.
+    setPayments((prev) => prev.map((q, i) => (i === idx ? { ...q, amount: String(Math.floor(amount)) } : q)))
+
+    // Up to about two minutes, which is how long Safaricom keeps the request
+    // on the handset. Then it stops rather than polling forever.
+    for (let attempt = 0; attempt < 40; attempt++) {
+      await new Promise((res) => setTimeout(res, 3000))
+      let status: Awaited<ReturnType<typeof checkPromptStatus>>
+      try {
+        status = await checkPromptStatus({ checkoutId: r.checkoutId })
+      } catch {
+        continue
+      }
+      if (status.state === "paid") {
+        setPrompts((prev) => ({ ...prev, [idx]: { checkoutId: r.checkoutId, phone: r.phone, state: "paid" } }))
+        setPayments((prev) => prev.map((q, i) =>
+          i === idx ? { ...q, reference: status.receipt ?? q.reference } : q))
+        return
+      }
+      if (status.state === "failed") {
+        setPrompts((prev) => ({ ...prev, [idx]: { checkoutId: r.checkoutId, phone: r.phone, state: "failed", message: status.reason } }))
+        return
+      }
+    }
+    setPrompts((prev) => ({
+      ...prev,
+      [idx]: { checkoutId: r.checkoutId, phone: r.phone, state: "failed", message: "No answer from the phone. Ask them to try again, or take cash." },
+    }))
   }
 
   const doSignIn = async (entered: string) => {
@@ -508,6 +639,29 @@ export default function TillPage() {
     return (
       <div className="flex items-center justify-center py-24">
         <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+      </div>
+    )
+  }
+
+  // Never reached the server, and nothing remembered on this device. Say
+  // exactly that, rather than making a claim about the account.
+  if (!state && !noTillConfirmed) {
+    return (
+      <div className="p-4 max-w-2xl mx-auto">
+        <Card className="p-6 text-center rounded-2xl">
+          <CloudOff className="w-10 h-10 mx-auto text-amber-400" />
+          <h1 className="mt-3 text-lg font-bold text-gray-900 dark:text-white">
+            The till cannot open yet
+          </h1>
+          <p className="mt-1.5 text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+            There is no connection, and this device has not opened the till before, so there is
+            nothing saved on it to work from. Connect once and it will open without a connection
+            after that.
+          </p>
+          <Button onClick={() => window.location.reload()} className="mt-4 h-11 rounded-xl gap-1.5">
+            <RefreshCw className="w-4 h-4" /> Try again
+          </Button>
+        </Card>
       </div>
     )
   }
@@ -748,7 +902,15 @@ export default function TillPage() {
           <div className="max-w-5xl mx-auto mb-2 flex flex-wrap items-center gap-1.5">
             {offline.connection === "offline" && (
               <span className="inline-flex items-center gap-1.5 h-7 px-2 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 text-[11px] font-semibold">
-                <CloudOff className="w-3 h-3" /> No connection — sales are saved here
+                <CloudOff className="w-3 h-3" /> No connection. Sales are saved here
+              </span>
+            )}
+            {/* The settings came off this device, so the takings figure beside
+                them is whatever it was when the line last worked. Saying so is
+                the difference between a stale number and a wrong one. */}
+            {stateIsRemembered && (
+              <span className="inline-flex items-center gap-1.5 h-7 px-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-[11px] font-semibold">
+                Today&apos;s figures are not up to date
               </span>
             )}
             {offline.pendingCount > 0 && (
@@ -905,8 +1067,8 @@ export default function TillPage() {
       <div className="max-w-5xl mx-auto p-3 lg:grid lg:grid-cols-[1fr_360px] lg:gap-4 lg:items-start">
         {/* ---- catalogue -------------------------------------------------- */}
         <div>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+          <div className="relative flex gap-2">
+            <Search className="absolute left-3 top-6 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none z-10" />
             <Input
               ref={searchRef}
               value={query}
@@ -921,7 +1083,7 @@ export default function TillPage() {
                 }
               }}
               placeholder="Scan a barcode, or search by name"
-              className="h-12 pl-9 pr-9 rounded-xl text-base"
+              className="h-12 pl-9 pr-9 rounded-xl text-base flex-1"
               autoComplete="off"
               autoFocus
             />
@@ -929,12 +1091,35 @@ export default function TillPage() {
               <button
                 onClick={() => { setQuery(""); searchRef.current?.focus() }}
                 aria-label="Clear search"
-                className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 active:scale-90"
+                className="absolute right-[62px] top-6 -translate-y-1/2 w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 active:scale-90"
               >
                 <X className="w-4 h-4" />
               </button>
             )}
+            {/* Beside the box rather than inside it: at a counter this is
+                tapped with a thumb while the other hand holds the goods. */}
+            <button
+              onClick={() => setScanning(true)}
+              aria-label="Scan with the camera"
+              className="h-12 w-12 flex-shrink-0 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-500 active:scale-95"
+            >
+              <Camera className="w-5 h-5" />
+            </button>
           </div>
+
+          {scanning && (
+            <BarcodeScanner
+              label="barcode"
+              onClose={() => setScanning(false)}
+              onDetected={(code) => {
+                setScanning(false)
+                // Straight into the search box, which already knows how to
+                // match a barcode exactly and add a single result.
+                setQuery(code)
+                searchRef.current?.focus()
+              }}
+            />
+          )}
 
           {error && view === "sell" && <div className="mt-2"><ErrorNote>{error}</ErrorNote></div>}
 
@@ -977,6 +1162,28 @@ export default function TillPage() {
                       : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-primary/50"
                   }`}
                 >
+                  {/* The picture, where the shop has one.
+                      Small and square on purpose. The grid is read at arm's
+                      length by someone already holding the goods, so a photo
+                      is there to be matched in a glance; the name and the
+                      price still have to be the biggest things on the tile.
+                      A product with no picture simply has no box, rather than
+                      a grey placeholder, so a catalogue that was never
+                      photographed does not end up looking broken. */}
+                  {p.image && (
+                    <span className="float-right ml-2 mb-1 w-11 h-11 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 block">
+                      <img
+                        src={p.image}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        className="w-full h-full object-cover"
+                        /* Offline, or a dead link: drop the box rather than
+                           leave a broken-image icon on the counter screen. */
+                        onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = "none" }}
+                      />
+                    </span>
+                  )}
                   <p className="text-xs font-semibold text-gray-900 dark:text-white leading-tight line-clamp-2">{p.name}</p>
                   <p className="mt-1 text-sm font-bold text-gray-900 dark:text-white tabular-nums">
                     {shShort(p.price)}
@@ -1451,17 +1658,95 @@ export default function TillPage() {
                       />
                     )}
 
-                    {p.method === "MPESA" && (
-                      /* Said plainly. Nothing here talks to Safaricom: the
-                         cashier is reading a code off the customer's phone and
-                         recording it. Implying the till confirmed the payment
-                         would be a lie with money attached. */
-                      <p className="mt-1.5 flex items-start gap-1.5 text-[10px] text-gray-500 dark:text-gray-400 leading-snug">
-                        <AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" />
-                        This records the code you were given. It does not check with M-Pesa that
-                        the money arrived — confirm that on your own phone.
-                      </p>
-                    )}
+                    {p.method === "MPESA" && (() => {
+                      const prompt = prompts[idx]
+                      const canPrompt = mpesa && mpesa.promptEnabled && !mpesa.promptBlockedReason
+                      return (
+                        <div className="mt-2 space-y-2">
+                          {/* The number on the wall, with the amount already
+                              worked out. This is the part that helps every
+                              shop, prompts or not. */}
+                          {mpesa?.shortcode && (
+                            <div className="rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-900/15 p-2.5">
+                              <p className="text-[10px] uppercase tracking-wide text-emerald-800/70 dark:text-emerald-400/70">
+                                Tell the customer
+                              </p>
+                              <p className="mt-0.5 text-xs font-semibold text-emerald-900 dark:text-emerald-300 leading-snug">
+                                {mpesa.shortcodeType === "TILL" ? "Buy Goods till " : "Paybill "}
+                                <span className="font-mono text-sm">{mpesa.shortcode}</span>
+                                {mpesa.shortcodeType !== "TILL" && mpesa.accountRef && (
+                                  <>
+                                    , account <span className="font-mono text-sm">{mpesa.accountRef}</span>
+                                  </>
+                                )}
+                                , KSh <span className="font-mono text-sm">{sh(Number(p.amount || 0) || shortBy || total)}</span>
+                              </p>
+                            </div>
+                          )}
+
+                          {canPrompt && prompt?.state !== "paid" && (
+                            <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-2.5">
+                              <label className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                                Or send the prompt to their phone
+                              </label>
+                              <div className="mt-1 flex gap-2">
+                                <Input
+                                  value={promptPhone}
+                                  onChange={(e) => setPromptPhone(e.target.value.replace(/[^\d+]/g, "").slice(0, 13))}
+                                  inputMode="tel"
+                                  autoComplete="off"
+                                  placeholder="07xx xxx xxx"
+                                  className="h-11 rounded-xl text-sm tabular-nums"
+                                />
+                                <Button
+                                  onClick={() => void sendPrompt(idx)}
+                                  disabled={promptPhone.replace(/\D/g, "").length < 9 || prompt?.state === "sending" || prompt?.state === "waiting"}
+                                  className="h-11 rounded-xl text-xs whitespace-nowrap"
+                                >
+                                  {prompt?.state === "sending" || prompt?.state === "waiting"
+                                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                                    : prompt?.state === "failed" ? "Try again" : "Send"}
+                                </Button>
+                              </div>
+
+                              {prompt?.state === "waiting" && (
+                                <p className="mt-1.5 flex items-start gap-1.5 text-[11px] text-gray-600 dark:text-gray-300 leading-snug">
+                                  <Loader2 className="w-3 h-3 mt-0.5 flex-shrink-0 animate-spin" />
+                                  Sent. Ask them to check their phone and enter their M-Pesa PIN.
+                                </p>
+                              )}
+                              {prompt?.state === "failed" && (
+                                <p className="mt-1.5 flex items-start gap-1.5 text-[11px] text-red-700 dark:text-red-400 leading-snug">
+                                  <AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                                  {prompt.message}
+                                </p>
+                              )}
+                            </div>
+                          )}
+
+                          {prompt?.state === "paid" ? (
+                            /* The one case where the till genuinely knows.
+                               Safaricom answered against the request we sent,
+                               so this may say confirmed where nothing else in
+                               the till is allowed to. */
+                            <p className="flex items-start gap-1.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 leading-snug">
+                              <Check className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" strokeWidth={3} />
+                              Paid. Confirmed by Safaricom{p.reference ? " (" + p.reference + ")" : ""}.
+                            </p>
+                          ) : (
+                            /* Said plainly. Nothing here talks to Safaricom: the
+                               cashier is reading a code off the customer's phone and
+                               recording it. Implying the till confirmed the payment
+                               would be a lie with money attached. */
+                            <p className="flex items-start gap-1.5 text-[10px] text-gray-500 dark:text-gray-400 leading-snug">
+                              <AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                              A code you type in is recorded, not checked. Confirm it on your own
+                              phone before handing the goods over.
+                            </p>
+                          )}
+                        </div>
+                      )
+                    })()}
 
                     {p.method === "CREDIT" && (
                       <p className="mt-1.5 text-[10px] text-gray-500 dark:text-gray-400 leading-snug">

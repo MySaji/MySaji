@@ -1007,6 +1007,58 @@ export async function getExpiringStock(): Promise<{ expired: ExpiringRow[]; soon
  * supermarket sells both, so a shop-wide setting would either nag on every
  * line or protect nothing.
  */
+/**
+ * Give a product its barcode, usually by scanning the thing itself.
+ *
+ * The uniqueness rule is the whole point. A barcode exists so that one scan
+ * means one product; two products sharing one at the same shop turns every
+ * scan of it into a guess, and the cashier would never know which way it
+ * went. So a duplicate is refused and the clash is NAMED, because "that code
+ * is taken" is useless when you are holding a tin and do not know by what.
+ *
+ * Scoped to this shop. Two different dukas may legitimately key the same
+ * code to different things, and nothing here looks outside its own tenant.
+ */
+export async function setProductBarcode(input: unknown): Promise<StockActionResult & { clashWith?: string }> {
+  const tenant = await requireStockTenant()
+  if (!tenant) return { success: false, error: "There is no till on this account." }
+  const parsed = z.object({
+    productId: z.string().trim().min(1),
+    /** Empty clears it, which is how a mis-scan gets undone. */
+    barcode: z.string().trim().max(40),
+  }).safeParse(input)
+  if (!parsed.success) return { success: false, error: "Invalid input" }
+
+  const product = await db.product.findFirst({
+    where: { id: parsed.data.productId, shopkeeperId: tenant.shopkeeperId },
+    select: { id: true },
+  })
+  if (!product) return { success: false, error: "That product no longer exists." }
+
+  const code = parsed.data.barcode.trim()
+  if (code) {
+    const clash = await db.product.findFirst({
+      where: { shopkeeperId: tenant.shopkeeperId, barcode: code, NOT: { id: product.id } },
+      select: { name: true },
+    })
+    if (clash) {
+      return { success: false, error: "That barcode is already on " + clash.name + ".", clashWith: clash.name }
+    }
+    // A size can carry its own code too, and the same reasoning applies.
+    const variantClash = await db.productVariant.findFirst({
+      where: { shopkeeperId: tenant.shopkeeperId, barcode: code },
+      select: { label: true, product: { select: { name: true } } },
+    })
+    if (variantClash) {
+      const where = variantClash.product.name + " (" + variantClash.label + ")"
+      return { success: false, error: "That barcode is already on " + where + ".", clashWith: where }
+    }
+  }
+
+  await db.product.update({ where: { id: product.id }, data: { barcode: code || null } })
+  return { success: true, balance: 0 }
+}
+
 export async function setProductAgeRestricted(input: unknown): Promise<StockActionResult> {
   const tenant = await requireStockTenant()
   if (!tenant) return { success: false, error: "There is no till on this account." }

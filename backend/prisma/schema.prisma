@@ -1122,6 +1122,34 @@ model ShopkeeperProfile {
   /// Shape lives in lib/pos-config.ts.
   posConfig           Json?
   posActivatedAt      DateTime?
+  /// How this shop takes M-Pesa at the counter.
+  ///
+  /// Two independent things, deliberately:
+  ///
+  ///   mpesaShortcode     the paybill or till number, SHOWN to the customer
+  ///                      so they can pay by hand. Works for every shop with
+  ///                      no setup beyond typing it in.
+  ///   mpesaPromptEnabled whether the till may also send an STK prompt to
+  ///                      the customer's phone. That needs the shop's own
+  ///                      Daraja credentials, because the money has to land
+  ///                      in THEIR account, not ours.
+  ///
+  /// A shop with a shortcode and no credentials still gets the useful half.
+  mpesaShortcode      String?
+  /// "PAYBILL" or "TILL". A paybill needs an account number from the buyer;
+  /// a till number does not, and asking for one only confuses people.
+  mpesaShortcodeType  String?
+  /// The account number customers should quote. Paybill only.
+  mpesaAccountRef     String?
+  mpesaPromptEnabled  Boolean   @default(false)
+  /// Daraja credentials, AES-256-GCM at rest. Never returned to a client.
+  mpesaConsumerKey    String?
+  mpesaConsumerSecret String?
+  mpesaPasskey        String?
+  /// "sandbox" or "production". Separate from ours, because a shop may still
+  /// be testing while the platform is live.
+  mpesaEnv            String?
+
   /// The shop's own till address: /till/<tillSlug>.
   ///
   /// A counter device is set up once and then used by whoever is on shift,
@@ -1131,7 +1159,7 @@ model ShopkeeperProfile {
   ///
   /// Nullable because it is minted the first time the shop asks for its
   /// till, not at signup — a shop that never opens the till never needs one.
-  tillSlug            String?   @unique
+  tillSlug String? @unique
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -4576,6 +4604,16 @@ model PosPayment {
   /// An M-Pesa code, a card reference, or whatever the shopkeeper wrote down.
   reference String?
   createdAt DateTime         @default(now())
+
+  /// Set only when the till sent an STK prompt for this payment.
+  ///
+  /// `stkConfirmed` carries the distinction this app keeps making elsewhere:
+  /// a code a cashier typed in is RECORDED, while one Daraja returned
+  /// against a prompt we sent is CONFIRMED. The receipt is allowed to say
+  /// which, and the cashier is never told we checked when we did not.
+  stkCheckoutId String?
+  stkConfirmed  Boolean @default(false)
+  stkPhone      String?
 
   sale PosSale @relation(fields: [saleId], references: [id], onDelete: Cascade)
 

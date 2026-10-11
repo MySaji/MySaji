@@ -7,6 +7,8 @@ import {
   ClipboardCheck, Trash2, X, History, Check, Boxes, Calculator, Shapes, RotateCcw, CalendarClock,
   ShieldAlert, Puzzle, Fingerprint,
 } from "lucide-react"
+import { ScanButton } from "@/frontend/components/pos/barcode-scanner"
+import { setProductBarcode } from "@/backend/actions/pos-stock"
 import { Card } from "@/frontend/components/ui/card"
 import { Button } from "@/frontend/components/ui/button"
 import { Input } from "@/frontend/components/ui/input"
@@ -142,6 +144,29 @@ export default function StockPage() {
     setBusy(false)
     if (!r.success) { setError(r.error); return }
     await refreshSheet(row.productId)
+  }
+
+  /**
+   * Put a barcode on the product itself, by scanning the goods.
+   *
+   * The point of doing it here rather than on a product form is that this is
+   * where the shopkeeper already is when the delivery arrives: the box is
+   * open, the tin is in their hand, and the alternative is reading thirteen
+   * digits off it into a phone.
+   */
+  const scanProductBarcode = async (productId: string, code: string) => {
+    setBusy(true); setError("")
+    const r = await setProductBarcode({ productId, barcode: code })
+    setBusy(false)
+    if (!r.success) { setError(r.error); return }
+    const fresh = await getStockView()
+    setView(fresh)
+    setSheet((prev) => {
+      if (!prev) return prev
+      const again = fresh?.rows.find((x) => x.productId === productId)
+      return again ? { ...prev, row: again } : prev
+    })
+    flash(code ? "Barcode saved" : "Barcode removed")
   }
 
   const addOption = async (row: StockRow) => {
@@ -595,6 +620,41 @@ export default function StockPage() {
                 </div>
               )}
 
+              {/* The product's own code. Shown on every mode of this sheet
+                  because the shopkeeper opening it is holding the product. */}
+              <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-2.5">
+                <p className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">Barcode</p>
+                {sheet.row.barcode ? (
+                  <div className="mt-1 flex items-center gap-2">
+                    <p className="min-w-0 flex-1 text-xs font-mono text-gray-900 dark:text-white truncate tabular-nums">
+                      {sheet.row.barcode}
+                    </p>
+                    <ScanButton
+                      label="barcode"
+                      onScanned={(code) => void scanProductBarcode(sheet.row.productId, code)}
+                    />
+                    <button
+                      onClick={() => void scanProductBarcode(sheet.row.productId, "")}
+                      disabled={busy}
+                      aria-label="Remove this barcode"
+                      className="h-11 px-3 rounded-xl border border-gray-200 dark:border-gray-700 text-[11px] font-semibold text-gray-500 active:scale-95 disabled:opacity-50"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mt-1 flex items-center gap-2">
+                    <p className="min-w-0 flex-1 text-[11px] text-gray-500 dark:text-gray-400 leading-snug">
+                      None yet. Scan the product and the till will find it in one beep.
+                    </p>
+                    <ScanButton
+                      label="barcode"
+                      onScanned={(code) => void scanProductBarcode(sheet.row.productId, code)}
+                    />
+                  </div>
+                )}
+              </div>
+
               {sheet.mode === "serials" ? (
                 <>
                   <p className="text-[11px] text-gray-600 dark:text-gray-400 leading-snug">
@@ -889,13 +949,21 @@ export default function StockPage() {
                       placeholder="Name it - M, Red / 42, 500ml"
                       className="h-10 rounded-xl text-sm"
                     />
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="flex gap-2">
                       <Input
                         value={newOption.barcode}
                         onChange={(e) => setNewOption((o) => ({ ...o, barcode: e.target.value }))}
                         placeholder="Barcode (optional)"
-                        className="h-10 rounded-xl text-xs"
+                        className="h-11 rounded-xl text-xs flex-1"
                       />
+                      {/* Each size can carry its own code, which is the whole
+                          reason a scan can skip the size picker at the till. */}
+                      <ScanButton
+                        label="size barcode"
+                        onScanned={(code) => setNewOption((o) => ({ ...o, barcode: code }))}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
                       <Input
                         value={newOption.price}
                         onChange={(e) => setNewOption((o) => ({ ...o, price: e.target.value.replace(/[^0-9.]/g, "") }))}

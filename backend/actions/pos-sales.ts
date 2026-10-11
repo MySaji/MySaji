@@ -8,6 +8,7 @@ import { recordStockMovement } from "@/backend/services/pos-ledger"
 import { parsePosConfig, type NegativeStockPolicy, type ExpiredStockPolicy } from "@/backend/domain/pos-config"
 import bcrypt from "bcryptjs"
 import { createHash } from "crypto"
+import { checkPromptStatus } from "@/backend/actions/pos-mpesa"
 import { effectiveTraits } from "@/backend/domain/pos-profiles"
 import type { PosTrait } from "@/backend/domain/pos-traits"
 
@@ -114,6 +115,14 @@ export type TillProduct = {
   sku: string
   barcode: string | null
   unit: string
+  /**
+   * One picture, where the product has any.
+   *
+   * Only the first. The till is a grid read at arm's length by someone
+   * holding the goods, so a picture is there to be recognised in a glance,
+   * not browsed, and a gallery would cost space the name and price need.
+   */
+  image: string | null
   /** What the till should charge: the discount price if one is set. */
   price: number
   /** The undiscounted price, so the till can show what was knocked off. */
@@ -325,7 +334,7 @@ export async function findTillProducts(input: unknown): Promise<TillProduct[]> {
   const limit = parsed.data.limit ?? 20
 
   const select = {
-    id: true, name: true, sku: true, barcode: true, unit: true,
+    id: true, name: true, sku: true, barcode: true, unit: true, images: true,
     price: true, discountPrice: true, hasVariants: true, ageRestricted: true, fitsWith: true, tracksSerials: true, controlled: true, madeToOrder: true,
     category: { select: { name: true } },
     inventory: { select: { currentStock: true, stockOnHand: true } },
@@ -401,6 +410,7 @@ export async function findTillProducts(input: unknown): Promise<TillProduct[]> {
     sku: p.sku,
     barcode: p.barcode,
     unit: p.unit,
+    image: p.images?.[0] ?? null,
     price: money(D(p.discountPrice ?? p.price)),
     listPrice: money(D(p.price)),
     // stockOnHand null means the ledger has nothing for this product yet and
@@ -618,6 +628,16 @@ const saleSchema = z.object({
     method: z.enum(PAYMENT_METHODS),
     amount: z.number().min(0).max(100_000_000),
     reference: z.string().trim().max(60).optional(),
+    /**
+     * Set only where the till sent an STK prompt and Safaricom answered.
+     *
+     * Re-checked against Safaricom below rather than believed. The flag
+     * decides whether a receipt may say a payment was CONFIRMED rather than
+     * merely recorded, and a browser must not be able to assert that about
+     * money by sending a boolean.
+     */
+    stkCheckoutId: z.string().trim().max(80).optional(),
+    stkPhone: z.string().trim().max(16).optional(),
   })).min(1).max(5),
   saleDiscount: z.number().min(0).max(100_000_000).optional(),
   /**
@@ -1113,6 +1133,31 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
 
   const paymentMethod = body.payments.length > 1 ? "SPLIT" : body.payments[0].method
 
+  // --- was the prompt actually paid? ------------------------------------
+  //
+  // Asked of Safaricom, not of the browser. The till sends a checkout id
+  // that it believes succeeded; this is where that belief is checked, so a
+  // hand-written request cannot mark money as confirmed.
+  //
+  // Done BEFORE the transaction opens: it is a network call to Safaricom,
+  // and holding stock rows open across one would be the longest lock in the
+  // system.
+  //
+  // A check that fails to get an answer does NOT fail the sale. The goods
+  // are going out of the door either way, and the payment simply stays
+  // recorded rather than confirmed, which is what the till does for every
+  // other M-Pesa payment anyway.
+  const confirmedStk: boolean[] = []
+  for (const p of body.payments) {
+    if (!p.stkCheckoutId) { confirmedStk.push(false); continue }
+    try {
+      const status = await checkPromptStatus({ checkoutId: p.stkCheckoutId })
+      confirmedStk.push(status.state === "paid")
+    } catch {
+      confirmedStk.push(false)
+    }
+  }
+
   // --- which counter ---------------------------------------------------
   //
   // Resolved before anything is written, because a revoked device must be
@@ -1216,10 +1261,15 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
               })),
             },
             payments: {
-              create: body.payments.map((p) => ({
+              create: body.payments.map((p, i) => ({
                 method: p.method,
                 amount: D(p.amount),
                 reference: p.reference?.trim() || null,
+                stkCheckoutId: p.stkCheckoutId?.trim() || null,
+                stkPhone: p.stkPhone?.trim() || null,
+                // Verified above against Safaricom, never taken from the
+                // request.
+                stkConfirmed: confirmedStk[i] === true,
               })),
             },
           },
