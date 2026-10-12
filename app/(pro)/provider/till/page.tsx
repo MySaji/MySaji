@@ -24,6 +24,7 @@ import {
 } from "@/backend/actions/pos-customers"
 import { getCurrentStore } from "@/backend/actions/pos-stores"
 import { getTillBillingGate } from "@/backend/actions/pos-billing-shop"
+import { useScannerKeys } from "@/frontend/lib/hooks/useScannerKeys"
 import { getDeviceSecret, guessDeviceName, guessPlatform } from "@/frontend/lib/pos-device"
 import { TillReceipt } from "@/frontend/components/pos/till-receipt"
 import { TillInstall } from "@/frontend/components/pos/till-install"
@@ -492,6 +493,48 @@ export default function TillPage() {
       return next
     })
   }
+
+  /**
+   * A barcode from the counter scanner, wherever the cashier had tapped.
+   *
+   * The search box already handles a scan that lands in it. This is the rest
+   * of the time: after tapping a tile, a quantity, or anything else, focus is
+   * no longer in the box and the scanner's keystrokes would go nowhere. At a
+   * counter with a queue that is the worst failure there is, because nothing
+   * appears to happen and the cashier finds out when the total is wrong.
+   *
+   * An unambiguous scan is added straight to the sale. Anything else is put
+   * in the search box for the cashier to choose from, rather than guessed at.
+   */
+  const onScannerCode = async (code: string) => {
+    const trimmed = code.trim()
+    if (trimmed.length === 0) return
+    setError("")
+    try {
+      const found = await findTillProducts({ query: trimmed })
+      if (found.length === 1) {
+        addProduct(found[0])
+        setQuery("")
+        setResults(await findTillProducts({ query: "" }).catch(() => found))
+        return
+      }
+      // Nothing, or more than one. Shown rather than decided: adding the
+      // wrong tin is worse than asking.
+      setQuery(trimmed)
+      setResults(found)
+      searchRef.current?.focus()
+      if (found.length === 0) setError("Nothing in this shop has the barcode " + trimmed + ".")
+    } catch {
+      setQuery(trimmed)
+      searchRef.current?.focus()
+    }
+  }
+
+  // Only while actually selling. During payment the keyboard belongs to the
+  // amounts, and on the receipt screen there is nothing to add to.
+  useScannerKeys((code) => { void onScannerCode(code) }, {
+    enabled: view === "sell" && !scanning && !pickVariantFor,
+  })
 
   const setQuantity = (key: string, quantity: string) => {
     // Only digits and at most one dot, and only a dot at all where the shop
@@ -1240,12 +1283,18 @@ export default function TillPage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => {
-                // A barcode scanner ends its input with Enter. One result is
-                // an unambiguous scan, so add it and clear for the next item
-                // without the cashier touching anything.
-                if (e.key === "Enter" && results.length === 1) {
-                  addProduct(results[0])
-                  setQuery("")
+                // A barcode scanner ends its input with Enter.
+                //
+                // This used to add the item only when `results` already held
+                // exactly one, which read well and almost never fired: the
+                // search behind `results` is debounced, and a scanner sends
+                // thirteen digits and Enter faster than that debounce. So the
+                // Enter arrived while the list was still the whole shelf and
+                // the scan merely filtered the grid. It now does its own
+                // lookup, the same one a scan from anywhere else does.
+                if (e.key === "Enter") {
+                  e.preventDefault()
+                  void onScannerCode(query)
                 }
               }}
               placeholder="Scan a barcode, or search by name"
