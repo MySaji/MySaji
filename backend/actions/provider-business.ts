@@ -4,6 +4,7 @@ import { z } from "zod"
 import crypto from "crypto"
 import { auth } from "@/backend/auth"
 import { db } from "@/backend/db"
+import { primaryShopOf } from "@/backend/services/shopkeeper-scope"
 import { buildProviderSlug } from "@/backend/domain/provider-slug"
 import { hashPassword } from "@/backend/services/password"
 import { sendEmail } from "@/backend/services/email"
@@ -983,7 +984,7 @@ export async function getBusinessShopStatus(): Promise<BusinessShopStatus> {
   const business = await requireBusinessOwner()
   if (!business) return { isBusinessOwner: false }
 
-  const shop = await db.shopkeeperProfile.findUnique({ where: { userId: business.userId } })
+  const shop = await primaryShopOf(business.userId)
   if (!shop) return { isBusinessOwner: true, hasShop: false }
 
   const [productCount, lowStockRows, pendingOrderCount, activePromotionCount] = await Promise.all([
@@ -1020,7 +1021,7 @@ export async function setupBusinessShop(input: unknown): Promise<ProviderBusines
   const parsed = setupShopSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
 
-  const existing = await db.shopkeeperProfile.findUnique({ where: { userId: business.userId } })
+  const existing = await primaryShopOf(business.userId)
   if (existing) return { success: false, error: "A shop is already linked to this account." }
 
   await db.shopkeeperProfile.create({

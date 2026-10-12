@@ -4,6 +4,7 @@ import { z } from "zod"
 import crypto from "crypto"
 import { auth } from "@/backend/auth"
 import { db } from "@/backend/db"
+import { posShopIdFor } from "@/backend/services/pos-tenant"
 import { encryptAccountNumber, decryptAccountNumber, paymentEncryptionConfigured } from "@/backend/services/payment-method-crypto"
 
 /**
@@ -41,21 +42,45 @@ type ShopMpesa = {
   env: "sandbox" | "production"
   /** Whether Daraja credentials are stored. Never the credentials themselves. */
   hasCredentials: boolean
+  /** Running on the platform's sandbox app rather than the shop's own. */
+  usingDemoCreds: boolean
+  /** Whether this site can offer the demo at all. */
+  demoAvailable: boolean
   /** Why the prompt is unavailable, where it is. */
   promptBlockedReason: string | null
+}
+
+/**
+ * Whether the platform can lend its sandbox app for a test prompt.
+ *
+ * Sandbox only, and checked here rather than trusted from a setting: a
+ * misconfigured deployment must not be able to push a shop's customers at
+ * the platform's live shortcode.
+ */
+function platformDemoAvailable(): boolean {
+  const env = (process.env.MPESA_ENV || "sandbox").toLowerCase()
+  if (env === "production" || env === "live") return false
+  return Boolean(
+    process.env.MPESA_CONSUMER_KEY && process.env.MPESA_CONSUMER_SECRET &&
+    process.env.MPESA_PASSKEY && process.env.MPESA_SHORTCODE,
+  )
 }
 
 async function requireShop() {
   const session = await auth()
   if (!session?.user?.id) return null
   if (session.user.role !== "provider" && session.user.role !== "shopkeeper") return null
+  // The store this person is working in, which for a business with branches
+  // is not simply "the shop on their account". See services/pos-tenant.ts.
+  const shopId = await posShopIdFor(session.user.id)
+  if (!shopId) return null
   const shop = await db.shopkeeperProfile.findUnique({
-    where: { userId: session.user.id },
+    where: { id: shopId },
     select: {
       id: true, shopName: true, posEnabled: true,
       mpesaShortcode: true, mpesaShortcodeType: true, mpesaAccountRef: true,
       mpesaPromptEnabled: true, mpesaConsumerKey: true, mpesaConsumerSecret: true,
-      mpesaPasskey: true, mpesaEnv: true,
+      mpesaPasskey: true, mpesaEnv: true, mpesaUseDemoCreds: true,
     },
   })
   if (!shop || !shop.posEnabled) return null
@@ -63,11 +88,18 @@ async function requireShop() {
 }
 
 function describe(shop: NonNullable<Awaited<ReturnType<typeof requireShop>>>): ShopMpesa {
-  const hasCredentials = Boolean(shop.mpesaConsumerKey && shop.mpesaConsumerSecret && shop.mpesaPasskey)
+  const hasOwn = Boolean(shop.mpesaConsumerKey && shop.mpesaConsumerSecret && shop.mpesaPasskey)
+  const demoAvailable = platformDemoAvailable()
+  const usingDemo = Boolean(shop.mpesaUseDemoCreds) && demoAvailable
+  const hasCredentials = hasOwn || usingDemo
+
   let blocked: string | null = null
-  if (!shop.mpesaShortcode) blocked = "Add your paybill or till number first."
-  else if (!hasCredentials) blocked = "Add your Daraja API details to send prompts."
-  else if (!paymentEncryptionConfigured()) blocked = "Secure storage is not configured on this site."
+  if (!shop.mpesaShortcode && !usingDemo) blocked = "Add your paybill or till number first."
+  else if (!hasCredentials) {
+    blocked = demoAvailable
+      ? "Add your Daraja API details, or switch on test prompts to try it first."
+      : "Add your Daraja API details to send prompts."
+  } else if (hasOwn && !paymentEncryptionConfigured()) blocked = "Secure storage is not configured on this site."
   else if (!shop.mpesaPromptEnabled) blocked = "Prompts are switched off for this shop."
 
   return {
@@ -75,8 +107,10 @@ function describe(shop: NonNullable<Awaited<ReturnType<typeof requireShop>>>): S
     shortcodeType: (shop.mpesaShortcodeType as "PAYBILL" | "TILL" | null) ?? null,
     accountRef: shop.mpesaAccountRef,
     promptEnabled: shop.mpesaPromptEnabled,
-    env: shop.mpesaEnv === "production" ? "production" : "sandbox",
+    env: usingDemo ? "sandbox" : shop.mpesaEnv === "production" ? "production" : "sandbox",
     hasCredentials,
+    usingDemoCreds: usingDemo,
+    demoAvailable,
     promptBlockedReason: blocked,
   }
 }
@@ -95,6 +129,8 @@ const saveSchema = z.object({
   accountRef: z.string().trim().max(40).optional(),
   promptEnabled: z.boolean().optional(),
   env: z.enum(["sandbox", "production"]).optional(),
+  /** Borrow the platform's sandbox app to try a prompt. */
+  useDemoCreds: z.boolean().optional(),
   /** Blank means "leave what is stored alone", never "clear it". */
   consumerKey: z.string().trim().max(200).optional(),
   consumerSecret: z.string().trim().max(200).optional(),
@@ -117,6 +153,12 @@ export async function saveShopMpesa(input: unknown): Promise<SaveMpesaResult> {
   if (d.shortcodeType !== undefined) data.mpesaShortcodeType = d.shortcodeType
   if (d.accountRef !== undefined) data.mpesaAccountRef = d.accountRef || null
   if (d.env !== undefined) data.mpesaEnv = d.env
+  if (d.useDemoCreds !== undefined) {
+    if (d.useDemoCreds && !platformDemoAvailable()) {
+      return { success: false, error: "Test prompts are not available on this site." }
+    }
+    data.mpesaUseDemoCreds = d.useDemoCreds
+  }
 
   // Credentials are write only. A blank field leaves the stored value in
   // place, so re-saving the page does not wipe them, and nothing ever sends
@@ -140,13 +182,22 @@ export async function saveShopMpesa(input: unknown): Promise<SaveMpesaResult> {
     // Turning it on with nothing behind it would put a button on the till
     // that fails in front of a customer.
     if (d.promptEnabled) {
+      const willUseDemo = (d.useDemoCreds ?? shop.mpesaUseDemoCreds) && platformDemoAvailable()
       const willHaveCreds =
-        (d.consumerKey || shop.mpesaConsumerKey) &&
-        (d.consumerSecret || shop.mpesaConsumerSecret) &&
-        (d.passkey || shop.mpesaPasskey)
-      const willHaveShortcode = d.shortcode ?? shop.mpesaShortcode
+        willUseDemo ||
+        ((d.consumerKey || shop.mpesaConsumerKey) &&
+          (d.consumerSecret || shop.mpesaConsumerSecret) &&
+          (d.passkey || shop.mpesaPasskey))
+      const willHaveShortcode = (d.shortcode ?? shop.mpesaShortcode) || willUseDemo
       if (!willHaveShortcode) return { success: false, error: "Add your paybill or till number before switching prompts on." }
-      if (!willHaveCreds) return { success: false, error: "Add all three Daraja details before switching prompts on." }
+      if (!willHaveCreds) {
+        return {
+          success: false,
+          error: platformDemoAvailable()
+            ? "Add your Daraja details, or switch on test prompts to try it first."
+            : "Add all three Daraja details before switching prompts on.",
+        }
+      }
     }
     data.mpesaPromptEnabled = d.promptEnabled
   }
@@ -216,10 +267,25 @@ export async function promptCustomerPayment(input: unknown): Promise<PromptResul
   const phone = normalizePhone(parsed.data.phone)
   if (!phone) return { success: false, error: "That does not look like a Kenyan phone number." }
 
-  const key = decryptAccountNumber(shop.mpesaConsumerKey!)
-  const secret = decryptAccountNumber(shop.mpesaConsumerSecret!)
-  const passkey = decryptAccountNumber(shop.mpesaPasskey!)
-  if (!key || !secret || !passkey) {
+  // The shop's own app, or the platform's sandbox where they are still
+  // trying it out. Which one is in use decides the shortcode too, because
+  // an app may only push to a shortcode it is registered for.
+  let key: string | null
+  let secret: string | null
+  let passkey: string | null
+  let shortcode: string
+  if (cfg.usingDemoCreds) {
+    key = process.env.MPESA_CONSUMER_KEY ?? null
+    secret = process.env.MPESA_CONSUMER_SECRET ?? null
+    passkey = process.env.MPESA_PASSKEY ?? null
+    shortcode = process.env.MPESA_SHORTCODE ?? ""
+  } else {
+    key = decryptAccountNumber(shop.mpesaConsumerKey!)
+    secret = decryptAccountNumber(shop.mpesaConsumerSecret!)
+    passkey = decryptAccountNumber(shop.mpesaPasskey!)
+    shortcode = shop.mpesaShortcode!
+  }
+  if (!key || !secret || !passkey || !shortcode) {
     return { success: false, error: "Your saved API details could not be read. Enter them again." }
   }
 
@@ -232,7 +298,6 @@ export async function promptCustomerPayment(input: unknown): Promise<PromptResul
     .toISOString()
     .replace(/[-:TZ.]/g, "")
     .slice(0, 14)
-  const shortcode = shop.mpesaShortcode!
   const password = Buffer.from(shortcode + passkey + ts).toString("base64")
 
   // Whole shillings: Daraja rejects decimals, and rounding UP would charge
@@ -292,17 +357,24 @@ export async function checkPromptStatus(input: unknown): Promise<PromptStatus> {
   if (!parsed.success) return { state: "failed", reason: "Nothing to check." }
 
   const cfg = describe(shop)
-  const key = shop.mpesaConsumerKey ? decryptAccountNumber(shop.mpesaConsumerKey) : null
-  const secret = shop.mpesaConsumerSecret ? decryptAccountNumber(shop.mpesaConsumerSecret) : null
-  const passkey = shop.mpesaPasskey ? decryptAccountNumber(shop.mpesaPasskey) : null
-  if (!key || !secret || !passkey) return { state: "failed", reason: "API details unavailable." }
+  const key = cfg.usingDemoCreds
+    ? process.env.MPESA_CONSUMER_KEY ?? null
+    : shop.mpesaConsumerKey ? decryptAccountNumber(shop.mpesaConsumerKey) : null
+  const secret = cfg.usingDemoCreds
+    ? process.env.MPESA_CONSUMER_SECRET ?? null
+    : shop.mpesaConsumerSecret ? decryptAccountNumber(shop.mpesaConsumerSecret) : null
+  const passkey = cfg.usingDemoCreds
+    ? process.env.MPESA_PASSKEY ?? null
+    : shop.mpesaPasskey ? decryptAccountNumber(shop.mpesaPasskey) : null
+  const queryShortcode = cfg.usingDemoCreds ? process.env.MPESA_SHORTCODE ?? "" : shop.mpesaShortcode ?? ""
+  if (!key || !secret || !passkey || !queryShortcode) return { state: "failed", reason: "API details unavailable." }
 
   const base = darajaBase(cfg.env)
   const token = await darajaToken(base, key, secret)
   if (!token) return { state: "pending" }
 
   const ts = new Date().toISOString().replace(/[-:TZ.]/g, "").slice(0, 14)
-  const password = Buffer.from(shop.mpesaShortcode! + passkey + ts).toString("base64")
+  const password = Buffer.from(queryShortcode + passkey + ts).toString("base64")
 
   try {
     const res = await fetch(base + "/mpesa/stkpushquery/v1/query", {
@@ -310,7 +382,7 @@ export async function checkPromptStatus(input: unknown): Promise<PromptStatus> {
       headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
       cache: "no-store",
       body: JSON.stringify({
-        BusinessShortCode: shop.mpesaShortcode,
+        BusinessShortCode: queryShortcode,
         Password: password,
         Timestamp: ts,
         CheckoutRequestID: parsed.data.checkoutId,

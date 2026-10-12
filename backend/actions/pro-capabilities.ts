@@ -94,8 +94,11 @@ export async function getMyProCapabilities(): Promise<MyProCapabilities> {
     // Neither of these is about access — they exist purely so an account that
     // was already selling before business types existed keeps its selling
     // pages in the nav. See below.
-    db.shopkeeperProfile.findUnique({
+    db.shopkeeperProfile.findFirst({
       where: { userId: session.user.id },
+      // Their main shop, oldest first, which is what every account that
+      // predates branches already had. See services/shopkeeper-scope.ts.
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
       // listedOnMarketplace decides whether this shop is a storefront or
       // only a till. See the PRODUCTS force-add below.
       select: { id: true, listedOnMarketplace: true },
@@ -382,7 +385,7 @@ export async function reviewProCapabilityRequest(input: unknown): Promise<Review
 
   const row = await db.proCapability.findUnique({
     where: { id },
-    include: { user: { select: { id: true, name: true, providerProfile: { select: { id: true } }, shopkeeperProfile: { select: { id: true } } } } },
+    include: { user: { select: { id: true, name: true, providerProfile: { select: { id: true } }, shopkeeperProfiles: { select: { id: true }, take: 1 } } } },
   })
   if (!row) return { success: false, error: "Request not found." }
   if (row.status !== "PENDING") return { success: false, error: "This request has already been reviewed." }
@@ -411,7 +414,9 @@ export async function reviewProCapabilityRequest(input: unknown): Promise<Review
               data: { slug: buildProviderSlug(row.user.name, `${row.userId}@saji`, created.id) },
             })
           }
-          if (type === "PRODUCTS" && !row.user.shopkeeperProfile) {
+          // Only where they have no shop at all. An account that already
+          // sells products keeps the shop it has, branches and all.
+          if (type === "PRODUCTS" && row.user.shopkeeperProfiles.length === 0) {
             await tx.shopkeeperProfile.create({
               data: { userId: row.userId, shopName: `${row.user.name}'s Shop` },
             })

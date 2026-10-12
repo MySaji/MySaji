@@ -333,7 +333,14 @@ export async function getSpecialistDetail(providerId: string): Promise<Specialis
 
   const endorsements = await db.endorsement.findMany({
     where: { toUserId: provider.userId },
-    include: { fromUser: { include: { shopkeeperProfile: true } } },
+    // The endorser's main shop, for the name on the endorsement. Only the
+    // first: an account may own several branches now, and an endorsement is
+    // signed by a business rather than by one of its counters.
+    include: {
+      fromUser: {
+        include: { shopkeeperProfiles: { orderBy: [{ createdAt: "asc" }, { id: "asc" }], take: 1 } },
+      },
+    },
     orderBy: { createdAt: "desc" },
   })
 
@@ -374,7 +381,7 @@ export async function getSpecialistDetail(providerId: string): Promise<Specialis
     portfolio: provider.portfolio.map((item) => ({ id: item.id, title: item.title, description: item.description, imageUrl: item.imageUrl, videoUrl: item.videoUrl })),
     endorsements: endorsements.map((e) => ({
       id: e.id,
-      shopName: e.fromUser.shopkeeperProfile?.shopName ?? e.fromUser.name,
+      shopName: e.fromUser.shopkeeperProfiles[0]?.shopName ?? e.fromUser.name,
       ownerName: e.fromUser.name,
       message: e.message,
       avatar: e.fromUser.image,

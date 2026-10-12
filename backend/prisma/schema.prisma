@@ -485,7 +485,15 @@ model User {
 
   customerProfile         CustomerProfile?
   providerProfile         ProviderProfile?
-  shopkeeperProfile       ShopkeeperProfile?
+  /// Every shop this account owns.
+  ///
+  /// A list, not an optional one, since a shopkeeper may run more than one
+  /// branch. Deliberately RENAMED when it changed shape: keeping the old
+  /// singular name would have left every `if (user.shopkeeperProfile)` in
+  /// the codebase compiling and always true, because an empty array is
+  /// truthy. services/shopkeeper-scope.ts has the helper that answers
+  /// "their main shop".
+  shopkeeperProfiles      ShopkeeperProfile[]
   distributorProfile      DistributorProfile?
   teamProfile             TeamMemberProfile?
   // Deliberately NOT a switchable top-level `role` (that would mean
@@ -596,6 +604,7 @@ model User {
   distributorStockTransfersInitiated StockTransfer[]
   posBusiness                        PosBusiness?    @relation("PosBusinessOwner")
   posStaffSeats                      PosStaff[]      @relation("PosStaffUser")
+  posCustomerSeats                   PosCustomer[]   @relation("PosCustomerUser")
 
   @@index([role])
   @@index([kycStatus])
@@ -1036,7 +1045,21 @@ model BusinessBranch {
 /// Shopkeeper-specific extension of User (1:1)
 model ShopkeeperProfile {
   id                 String   @id @default(cuid())
-  userId             String   @unique
+  /// The account that owns this shop.
+  ///
+  /// NOT unique any more. That single constraint was the only thing standing
+  /// between this POS and a shopkeeper running two branches on one account:
+  /// a second branch needs its own stock, its own till sessions and its own
+  /// staff, which in this schema means its own ShopkeeperProfile, and the
+  /// constraint made that impossible.
+  ///
+  /// Relaxing a unique constraint cannot invalidate an existing row, so no
+  /// data had to move. What it does change is that "the shop belonging to
+  /// this user" stops being a single answer, so every caller asking that
+  /// question now goes through services/shopkeeper-scope.ts, which answers
+  /// it deterministically: the OLDEST profile is the primary one, which is
+  /// the same row those callers were already getting.
+  userId             String
   shopName           String
   shopDescription    String?
   shopCategory       String?
@@ -1151,6 +1174,19 @@ model ShopkeeperProfile {
   /// "sandbox" or "production". Separate from ours, because a shop may still
   /// be testing while the platform is live.
   mpesaEnv            String?
+  /// Borrow the PLATFORM's sandbox credentials to try the prompt flow.
+  ///
+  /// Exists because of a chicken and egg a duka owner cannot solve: a prompt
+  /// needs Daraja credentials, and nobody registers with Safaricom for an
+  /// app they have not seen work. With this on, the till sends a real STK
+  /// push through the platform's SANDBOX app so the whole flow can be
+  /// walked through end to end.
+  ///
+  /// It is refused outside sandbox, and every screen that offers it says
+  /// plainly that no money moves. Lending a shop the platform's LIVE
+  /// shortcode would settle their takings into our account, which is both
+  /// wrong and a thing a payments regulator has opinions about.
+  mpesaUseDemoCreds   Boolean   @default(false)
 
   /// The shop's own till address: /till/<tillSlug>.
   ///
@@ -1190,11 +1226,42 @@ model ShopkeeperProfile {
   posSuppliers               PosSupplier[]
   posPurchaseOrders          PosPurchaseOrder[]
   posGoodsReceipts           PosGoodsReceipt[]
+  posCustomers               PosCustomer[]
+  posExpenses                PosExpense[]
+  // ---- eTIMS, the KRA electronic tax invoice system --------------------
+  //
+  // Per shop, not per platform: the credentials identify a TAXPAYER, and
+  // SAJI is not the taxpayer. A shop that is not VAT registered leaves all
+  // of this off and nothing is ever sent on its behalf.
+  /// Whether sales from this shop are declared to KRA.
+  etimsEnabled      Boolean   @default(false)
+  /// The taxpayer's PIN, e.g. P051234567X. Not a secret: it is printed on
+  /// every invoice already.
+  etimsTin          String?
+  /// Which branch of the taxpayer this till is, KRA's own numbering. "00"
+  /// for a business with one place.
+  etimsBranchId     String?   @default("00")
+  /// The serial KRA issued for this control unit. One per till, and KRA
+  /// rejects a second device claiming the same one.
+  etimsDeviceSerial String?
+  /// The communication key handed back when the device was initialised.
+  /// Encrypted at rest, like every other credential here.
+  etimsCmcKey       String?
+  /// "sandbox" while testing against KRA's test environment, "production"
+  /// once live. Kept per shop because shops go live at different times.
+  etimsEnv          String    @default("sandbox")
+  /// When the device last completed initialisation with KRA.
+  etimsInitialisedAt DateTime?
+  /// What to declare a product as when it has no code of its own.
+  etimsDefaultTaxCode EtimsTaxCode @default(B)
+
+  posEtimsInvoices           PosEtimsInvoice[]
 
   // Supports the bounding-box prefilter in lib/geo.ts: a radius search
   // narrows on these two columns in SQL before any exact haversine runs in
   // JS, so "shops within 5 km" never fetches the whole table. Plain B-tree,
   // not a spatial index — PostGIS is not enabled on this database.
+  @@index([userId])
   @@index([latitude, longitude])
   @@map("shopkeeper_profiles")
 }
@@ -1718,6 +1785,12 @@ model Product {
   /// Ordered and paid for now, handed over later. A sofa, a set of
   /// curtains, a lorry of sand.
   madeToOrder   Boolean   @default(false)
+  /// How this line is declared for VAT. Null means the shop's default: a
+  /// duka that sells nothing exempt should not have to classify every item.
+  etimsTaxCode  EtimsTaxCode?
+  /// KRA's own classification code for the item, where the shop has looked
+  /// it up. Theirs, not ours, so it is a free string.
+  etimsItemCode String?
   price         Decimal   @db.Decimal(12, 2)
   discountPrice Decimal?  @db.Decimal(12, 2)
   images        String[]
@@ -4503,6 +4576,10 @@ model PosSale {
   customerName  String?
   customerPhone String?
   customerId    String?
+  /// The loyalty member this sale was rung up for, where one was named.
+  /// Distinct from customerId, which is a SAJI account and almost always
+  /// null at a counter.
+  posCustomerId String?
   /// Set when the cashier confirmed the buyer's age for a restricted line.
   ///
   /// Recorded rather than merely enforced: for a liquor licence the useful
@@ -4535,9 +4612,13 @@ model PosSale {
   shopkeeper  ShopkeeperProfile @relation(fields: [shopkeeperId], references: [id], onDelete: Cascade)
   tillSession TillSession?      @relation(fields: [tillSessionId], references: [id])
 
-  items    PosSaleItem[]
-  payments PosPayment[]
-  returns  PosReturn[]
+  items       PosSaleItem[]
+  /// What KRA was told about this sale. At most one invoice and one credit
+  /// note. See PosEtimsInvoice.
+  etimsInvoices PosEtimsInvoice[]
+  payments    PosPayment[]
+  returns     PosReturn[]
+  posCustomer PosCustomer?  @relation("PosSaleCustomer", fields: [posCustomerId], references: [id], onDelete: SetNull)
 
   @@unique([shopkeeperId, saleNumber])
   @@unique([shopkeeperId, idempotencyKey])
@@ -4709,6 +4790,17 @@ enum PosStaffRole {
 model PosBusiness {
   id          String @id @default(cuid())
   ownerUserId String @unique
+
+  /// Which store the owner is currently working in.
+  ///
+  /// On the business rather than per device, because the person who switches
+  /// branches is the owner and there is one of them. A cashier never reads
+  /// this: their seat says where they work. Null means the first store,
+  /// which is what every single-branch business is.
+  activeStoreId String?
+
+  /// What this business pays to use the till. See PosSubscription.
+  subscription PosSubscription?
 
   name     String
   /// ISO country. Kenya unless someone deliberately changes it.
@@ -5106,6 +5198,101 @@ model PosGoodsReceiptItem {
   @@map("pos_goods_receipt_items")
 }
 
+/// Somebody who shops here often enough to be worth knowing.
+///
+/// Separate from the SAJI `User` table on purpose. A supermarket customer
+/// signing up for points is not creating a marketplace account, has no
+/// password, and gives a phone number at a counter in about four seconds.
+/// Requiring an account would mean nobody joins.
+///
+/// `userId` links the row where that person DOES happen to hold a SAJI
+/// account, so their counter purchases and their online orders can be seen
+/// together later. Null for almost everyone.
+model PosCustomer {
+  id           String  @id @default(cuid())
+  shopkeeperId String
+  name         String
+  /// How they are found at the till. One per shop, because two customers
+  /// sharing a number makes every points balance a guess.
+  phone        String
+  email        String?
+  userId       String?
+
+  /// Points they hold now. A PROJECTION of the ledger below, kept here so a
+  /// busy till does not sum a thousand rows to print a receipt. The ledger
+  /// is the truth; this is recomputed from it, never adjusted blindly.
+  pointsBalance Int     @default(0)
+  /// Lifetime earned, which is what a shop means by "a good customer".
+  pointsEarned  Int     @default(0)
+  totalSpent    Decimal @default(0) @db.Decimal(14, 2)
+  visits        Int     @default(0)
+
+  isActive   Boolean   @default(true)
+  joinedAt   DateTime  @default(now())
+  lastSeenAt DateTime?
+  notes      String?
+
+  shopkeeper ShopkeeperProfile @relation(fields: [shopkeeperId], references: [id], onDelete: Cascade)
+  user       User?             @relation("PosCustomerUser", fields: [userId], references: [id], onDelete: SetNull)
+  entries    PosLoyaltyEntry[]
+  sales      PosSale[]         @relation("PosSaleCustomer")
+
+  @@unique([shopkeeperId, phone])
+  @@index([shopkeeperId])
+  @@index([shopkeeperId, name])
+  @@map("pos_customers")
+}
+
+enum PosLoyaltyKind {
+  /// Points given for a purchase.
+  EARN
+  /// Points spent against a later purchase.
+  REDEEM
+  /// Points taken back because the purchase that earned them was undone.
+  REVERSAL
+  /// The shopkeeper changed the balance by hand, with a reason.
+  ADJUSTMENT
+}
+
+/// Every movement of points, append only.
+///
+/// The same discipline as the stock ledger, for the same reason: a balance
+/// that can be edited is a balance a customer cannot argue with and a shop
+/// cannot audit. Corrections are new rows, never changes to old ones.
+///
+/// `points` is SIGNED. Earning is positive, redeeming and reversing are
+/// negative, so the balance is simply the sum and nothing has to remember
+/// which kinds subtract.
+model PosLoyaltyEntry {
+  id           String         @id @default(cuid())
+  shopkeeperId String
+  customerId   String
+  kind         PosLoyaltyKind
+  /// Positive to add, negative to take away.
+  points       Int
+  /// What the balance became, so a statement can be read without summing.
+  balanceAfter Int
+
+  /// The sale this came from, where there was one.
+  saleId    String?
+  /// What was spent to earn these, or what they were worth when spent.
+  amount    Decimal? @db.Decimal(14, 2)
+  reason    String?
+  actorName String?
+
+  /// Replaying a queued sale must not award points twice.
+  idempotencyKey String?
+
+  occurredAt DateTime @default(now())
+
+  customer PosCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([shopkeeperId, idempotencyKey])
+  @@index([customerId, occurredAt])
+  @@index([shopkeeperId, occurredAt])
+  @@map("pos_loyalty_entries")
+}
+
 model PosDevice {
   id           String @id @default(cuid())
   shopkeeperId String
@@ -5403,4 +5590,292 @@ model ControlledSaleRecord {
   @@index([shopkeeperId, productName])
   @@index([posSaleId])
   @@map("controlled_sale_records")
+}
+
+/// What a shop spends that is not stock.
+///
+/// Rent, salaries, the power bill, a boda to carry goods, the licence. A
+/// till that counts only sales tells a shopkeeper what came in and leaves
+/// them to guess the half that decides whether they are actually making
+/// anything. With these, the dashboard can say what was kept rather than
+/// only what was taken.
+///
+/// Stock is deliberately NOT recorded here. Goods bought for resale are
+/// already a purchase order and a stock movement, and recording them twice
+/// would double count them against the same month.
+enum PosExpenseCategory {
+  RENT
+  SALARIES
+  ELECTRICITY
+  WATER
+  TRANSPORT
+  AIRTIME_INTERNET
+  LICENCES
+  REPAIRS
+  PACKAGING
+  BANK_CHARGES
+  MARKETING
+  SECURITY
+  CLEANING
+  OTHER
+}
+
+model PosExpense {
+  id           String             @id @default(cuid())
+  shopkeeperId String
+  category     PosExpenseCategory
+  /// What it was for, in the shopkeeper's own words.
+  description  String
+  amount       Decimal            @db.Decimal(12, 2)
+  /// How it was settled, so the drawer and the M-Pesa statement can both be
+  /// reconciled against this.
+  paidWith     PosPaymentMethod   @default(CASH)
+  /// Who was paid, where it matters: a landlord, a supplier of services, a
+  /// member of staff.
+  payee        String?
+  /// The M-Pesa code, cheque number or receipt number.
+  reference    String?
+
+  /// Who recorded it, by name as well as id, because the id is useless in
+  /// an export once the person has left.
+  recordedByUserId  String?
+  recordedByStaffId String?
+  recordedByName    String?
+
+  /// Never deleted. An expense that has been in a month's figures and then
+  /// vanishes is how those figures stop being trusted, so a mistake is
+  /// cancelled with a reason and stays on the record.
+  voidedAt     DateTime?
+  voidReason   String?
+  voidedByName String?
+
+  /// The day the money went out, which is not always the day it was typed
+  /// in. Reports read this.
+  occurredAt DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  shopkeeper ShopkeeperProfile @relation(fields: [shopkeeperId], references: [id], onDelete: Cascade)
+
+  @@index([shopkeeperId, occurredAt])
+  @@index([shopkeeperId, category, occurredAt])
+  @@map("pos_expenses")
+}
+
+/// How a line is treated for VAT, in KRA's own letters.
+///
+/// A shop sells things in more than one category at once: a supermarket
+/// sells bread (zero rated) beside soap (standard rated), so this belongs to
+/// the PRODUCT and not to the shop. The shop sets a default for anything it
+/// has not classified.
+enum EtimsTaxCode {
+  /// Exempt: no VAT, and not part of taxable turnover.
+  A
+  /// Standard rated, currently 16%.
+  B
+  /// Zero rated: VAT applies at 0%, which is NOT the same as exempt.
+  C
+  /// Outside VAT altogether.
+  D
+  /// The reduced rate, currently 8%, for the goods it still covers.
+  E
+}
+
+/// What happened when a sale was sent to KRA.
+enum EtimsStatus {
+  /// Written down, not sent yet. Every invoice starts here, including when
+  /// the shop is offline, because the counter must never wait for KRA.
+  QUEUED
+  /// Sent, signed, and the signature is on this row.
+  SIGNED
+  /// KRA refused it. `lastError` says why, in their words.
+  REJECTED
+  /// Sending failed for a reason that may pass: a timeout, a 500, no
+  /// network. Retried.
+  FAILED
+  /// Deliberately not sent. A shop that is not VAT registered, or a sale
+  /// from before eTIMS was switched on.
+  SKIPPED
+}
+
+/// What KRA was told about one sale, and what they said back.
+///
+/// WHY THIS IS A TABLE AND NOT COLUMNS ON THE SALE
+///
+/// Because the answer arrives later, can fail, is retried, and a refund
+/// produces a SECOND document against the same sale. A sale therefore has
+/// zero, one or two of these, and each needs its own status and its own
+/// signature. Columns on PosSale could hold the first and would quietly lose
+/// the second.
+///
+/// WHY NOTHING HERE IS EVER DELETED
+///
+/// It is the record of what was declared. A row that disappears is a
+/// declaration that cannot be reconciled against KRA's own copy, which is
+/// precisely the thing an audit asks for.
+model PosEtimsInvoice {
+  id           String @id @default(cuid())
+  shopkeeperId String
+  posSaleId    String
+
+  /// INVOICE for a sale, CREDIT_NOTE for a void or refund against one.
+  kind   EtimsDocumentKind @default(INVOICE)
+  status EtimsStatus       @default(QUEUED)
+
+  /// The shop's own running number for the document, assigned when queued so
+  /// a receipt can print something even before KRA answers.
+  invoiceNumber String
+
+  /// What was sent, kept verbatim. The payload is what KRA signed; rebuilding
+  /// it later from the sale would not necessarily reproduce it, since prices
+  /// and tax codes change.
+  payload Json?
+
+  // ---- what KRA returns, and what a compliant receipt must show ----------
+  /// Their receipt number for this invoice.
+  receiptNumber String?
+  /// The signature printed on the receipt and encoded in the QR code.
+  receiptSignature String?
+  /// The control unit's own internal data string, printed beside it.
+  internalData String?
+  /// The control unit's timestamp, which is the legal time of the invoice
+  /// and is not necessarily the time of the sale.
+  sdcDateTime DateTime?
+  /// Where a customer goes to check the invoice is real.
+  verificationUrl String?
+
+  /// How many times sending has been tried, and what went wrong last.
+  attempts  Int       @default(0)
+  lastError String?
+  lastTriedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  shopkeeper ShopkeeperProfile @relation(fields: [shopkeeperId], references: [id], onDelete: Cascade)
+  sale       PosSale           @relation(fields: [posSaleId], references: [id], onDelete: Cascade)
+
+  /// One invoice and one credit note per sale, never two of either.
+  @@unique([posSaleId, kind])
+  @@index([shopkeeperId, status])
+  @@index([shopkeeperId, createdAt])
+  @@map("pos_etims_invoices")
+}
+
+enum EtimsDocumentKind {
+  INVOICE
+  CREDIT_NOTE
+}
+
+/// Where a POS business stands with its subscription.
+enum PosBillingStatus {
+  /// Free to use while they try it. Ends on a date, not on a whim.
+  TRIAL
+  /// Paid up.
+  ACTIVE
+  /// The month is owed and the grace period is still running. The till works
+  /// and the shopkeeper is told.
+  PAST_DUE
+  /// Grace ran out. The till stops selling; nothing is deleted and the
+  /// reports stay readable, because the shop's own records are not the
+  /// platform's leverage.
+  SUSPENDED
+  /// Switched off by an admin, or by the shopkeeper leaving.
+  CANCELLED
+}
+
+enum PosChargeKind {
+  /// The one off amount for setting the till up.
+  SETUP
+  /// The recurring amount, for maintenance and support.
+  MONTHLY
+}
+
+enum PosChargeStatus {
+  DUE
+  PAID
+  /// Written off by an admin, with a reason. Not the same as paid, and the
+  /// difference matters when anyone counts revenue.
+  WAIVED
+  /// Raised in error.
+  VOID
+}
+
+/// What a POS business pays, and where it stands.
+///
+/// One row per business. The amounts are copied here from the platform's
+/// price list AT THE TIME THE BUSINESS SIGNED UP, not read live: a shop that
+/// joined at 500 a month does not get a surprise when the list price changes,
+/// and an admin raising the price for new shops should not silently reprice
+/// every existing one. Changing an existing shop's price is a deliberate act
+/// with its own audit line.
+model PosSubscription {
+  id         String @id @default(cuid())
+  businessId String @unique
+
+  status PosBillingStatus @default(TRIAL)
+
+  /// What this business pays, in KES.
+  setupFee   Decimal @default(0) @db.Decimal(12, 2)
+  monthlyFee Decimal @default(0) @db.Decimal(12, 2)
+
+  /// When the free period ends. Null once they are past it.
+  trialEndsAt DateTime?
+  /// What they have paid for. The till is owed nothing until this passes.
+  periodEndsAt DateTime?
+  /// How long after a missed payment the till keeps working.
+  graceDays    Int       @default(7)
+
+  /// True once the one off amount has been settled, so it is never asked for
+  /// twice.
+  setupSettled Boolean @default(false)
+
+  lastPaidAt DateTime?
+  /// Why an admin suspended or reinstated them, in their own words.
+  adminNote  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  business PosBusiness     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  charges  PosBillingCharge[]
+
+  @@index([status])
+  @@map("pos_subscriptions")
+}
+
+/// One amount, once. The whole billing history is these rows.
+///
+/// Append only, like every other ledger in this product. A charge that was
+/// raised and then deleted is a month nobody can account for.
+model PosBillingCharge {
+  id             String @id @default(cuid())
+  subscriptionId String
+  businessId     String
+
+  kind   PosChargeKind
+  status PosChargeStatus @default(DUE)
+
+  amount Decimal @db.Decimal(12, 2)
+  /// What the charge covers, for a monthly one.
+  periodStart DateTime?
+  periodEnd   DateTime?
+
+  /// When it was settled, how, and against what reference.
+  paidAt     DateTime?
+  paidMethod String?
+  reference  String?
+  /// Who recorded the payment, where an admin did it by hand.
+  recordedBy String?
+  /// Why it was waived or voided.
+  note       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  subscription PosSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, createdAt])
+  @@index([status])
+  @@map("pos_billing_charges")
 }

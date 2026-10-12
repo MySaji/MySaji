@@ -32,13 +32,15 @@ export async function getSubAdminUsers(): Promise<SubAdminUserRow[]> {
     take: 200,
     include: {
       providerProfile: { select: { id: true } },
-      shopkeeperProfile: { select: { id: true } },
+      // ALL their shops: an admin asking how many orders this person has
+      // means across the business, not at one counter.
+      shopkeeperProfiles: { select: { id: true } },
       distributorProfile: { select: { id: true } },
     },
   })
 
   const providerProfileIds = users.map((u) => u.providerProfile?.id).filter((id): id is string => !!id)
-  const shopkeeperProfileIds = users.map((u) => u.shopkeeperProfile?.id).filter((id): id is string => !!id)
+  const shopkeeperProfileIds = users.flatMap((u) => u.shopkeeperProfiles.map((p) => p.id))
   const distributorProfileIds = users.map((u) => u.distributorProfile?.id).filter((id): id is string => !!id)
   const userIds = users.map((u) => u.id)
 
@@ -70,7 +72,7 @@ export async function getSubAdminUsers(): Promise<SubAdminUserRow[]> {
 
   return users.map((u) => {
     const orders = (custOrderMap.get(u.id) ?? 0)
-      + (u.shopkeeperProfile ? shopOrderMap.get(u.shopkeeperProfile.id) ?? 0 : 0)
+      + u.shopkeeperProfiles.reduce((t, p) => t + (shopOrderMap.get(p.id) ?? 0), 0)
       + (u.distributorProfile ? distributorOrderMap.get(u.distributorProfile.id) ?? 0 : 0)
       + (custJobMap.get(u.id) ?? 0)
       + (u.providerProfile ? provJobMap.get(u.providerProfile.id) ?? 0 : 0)
@@ -79,7 +81,7 @@ export async function getSubAdminUsers(): Promise<SubAdminUserRow[]> {
     let status: SubAdminUserStatus = "active"
     if (!u.isActive) status = "suspended"
     else if (hasOpenDispute) status = "disputed"
-    else if (u.kycStatus === "PENDING" && (u.providerProfile || u.shopkeeperProfile || u.distributorProfile)) status = "pending"
+    else if (u.kycStatus === "PENDING" && (u.providerProfile || u.shopkeeperProfiles.length > 0 || u.distributorProfile)) status = "pending"
 
     return {
       id: u.id,

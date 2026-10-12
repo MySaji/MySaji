@@ -526,10 +526,13 @@ export async function receiveGoods(input: unknown): Promise<ReceiptResult> {
         }, "ALLOW")
         if (!moved.ok) throw new Error(moved.message)
 
-        // What the shop actually paid, which is what every margin figure
-        // downstream is computed from. The ORDER's figure is a quote and
-        // never writes this.
-        await tx.product.update({ where: { id: l.productId }, data: { costPrice: l.unitCost } })
+        // What the shop actually paid is carried on the movement above, and
+        // the ledger moves the product's cost to the weighted average of
+        // what was already on the shelf and what has just arrived. It used
+        // to be written straight over with this delivery's price, which
+        // meant a single crate bought dear repriced the whole shelf. The
+        // ORDER's figure is a quote and never writes it either way.
+        // See services/pos-costing.ts.
       }
 
       // Does the order still have anything outstanding?

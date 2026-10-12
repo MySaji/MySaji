@@ -3,6 +3,7 @@
 import { z } from "zod"
 import { auth } from "@/backend/auth"
 import { db } from "@/backend/db"
+import { primaryShopOf } from "@/backend/services/shopkeeper-scope"
 
 /** Owning a ShopkeeperProfile is what makes an account a shop, not `role` —
  *  a Saji Pro that sells products is role PROVIDER and owns one too. Same
@@ -12,7 +13,7 @@ async function requireShopkeeper(): Promise<{ userId: string; shopkeeperId: stri
   const session = await auth()
   if (!session?.user?.id) return null
   if (session.user.role !== "shopkeeper" && session.user.role !== "provider") return null
-  const profile = await db.shopkeeperProfile.findUnique({ where: { userId: session.user.id } })
+  const profile = await primaryShopOf(session.user.id)
   if (!profile) return null
   return { userId: session.user.id, shopkeeperId: profile.id }
 }

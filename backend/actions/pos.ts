@@ -3,6 +3,7 @@
 import { z } from "zod"
 import { auth } from "@/backend/auth"
 import { db } from "@/backend/db"
+import { posShopIdFor } from "@/backend/services/pos-tenant"
 import {
   POS_PROFILES, POS_PROFILE_BY_KEY, DEFAULT_POS_PROFILE_KEY,
   effectiveTraits, resolvePosProfile,
@@ -37,8 +38,10 @@ import { parsePosConfig, posConfigSchema, type PosConfig } from "@/backend/domai
 async function resolveMyShop() {
   const session = await auth()
   if (!session?.user?.id) return null
+  const shopId = await posShopIdFor(session.user.id)
+  if (!shopId) return null
   return db.shopkeeperProfile.findUnique({
-    where: { userId: session.user.id },
+    where: { id: shopId },
     select: {
       id: true, shopName: true,
       posEnabled: true, posProfileKey: true, posTraits: true, posConfig: true,

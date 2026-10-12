@@ -4,11 +4,14 @@ import { z } from "zod"
 import { Prisma } from "@prisma/client"
 import { auth } from "@/backend/auth"
 import { db } from "@/backend/db"
+import { posShopIdFor } from "@/backend/services/pos-tenant"
 import { recordStockMovement } from "@/backend/services/pos-ledger"
 import { parsePosConfig, type NegativeStockPolicy, type ExpiredStockPolicy } from "@/backend/domain/pos-config"
 import bcrypt from "bcryptjs"
 import { createHash } from "crypto"
 import { checkPromptStatus } from "@/backend/actions/pos-mpesa"
+import { queueSaleForEtims } from "@/backend/actions/pos-etims"
+import { getTillBillingGate } from "@/backend/actions/pos-billing-shop"
 import { effectiveTraits } from "@/backend/domain/pos-profiles"
 import type { PosTrait } from "@/backend/domain/pos-traits"
 
@@ -52,6 +55,10 @@ type TillTenant = {
   taxInclusive: boolean
   cashRounding: number
   managerPinToVoid: boolean
+  loyaltyEnabled: boolean
+  loyaltyPointsPerHundred: number
+  loyaltyShillingsPerPoint: number
+  loyaltyMinRedeem: number
   receiptHeader: string
   receiptFooter: string | null
   taxPin: string | null
@@ -63,8 +70,12 @@ async function requireTill(): Promise<TillTenant | null> {
   if (!session?.user?.id) return null
   if (session.user.role !== "provider" && session.user.role !== "shopkeeper") return null
 
+  // The store this person is working in, which for a business with branches
+  // is not simply "the shop on their account". See services/pos-tenant.ts.
+  const shopId = await posShopIdFor(session.user.id)
+  if (!shopId) return null
   const shop = await db.shopkeeperProfile.findUnique({
-    where: { userId: session.user.id },
+    where: { id: shopId },
     select: {
       id: true, shopName: true, posEnabled: true,
       posProfileKey: true, posTraits: true, posConfig: true,
@@ -86,6 +97,10 @@ async function requireTill(): Promise<TillTenant | null> {
     taxInclusive: config.taxInclusive,
     cashRounding: config.cashRounding,
     managerPinToVoid: config.managerPinToVoid,
+    loyaltyEnabled: config.loyaltyEnabled,
+    loyaltyPointsPerHundred: config.loyaltyPointsPerHundred,
+    loyaltyShillingsPerPoint: config.loyaltyShillingsPerPoint,
+    loyaltyMinRedeem: config.loyaltyMinRedeem,
     receiptHeader: config.receiptHeader?.trim() || shop.shopName,
     receiptFooter: config.receiptFooter?.trim() || null,
     taxPin: config.taxPin?.trim() || null,
@@ -673,6 +688,16 @@ const saleSchema = z.object({
   }).optional(),
   customerName: z.string().trim().max(120).optional(),
   customerPhone: z.string().trim().max(30).optional(),
+  /** The loyalty member this is rung up for, chosen at the till. */
+  posCustomerId: z.string().trim().max(60).optional(),
+  /**
+   * Points the customer is spending on this sale.
+   *
+   * A REQUEST, not a decision. The server checks the balance, the minimum
+   * and the shop's rate before any of it becomes a discount, because a
+   * browser that could set this would be printing money.
+   */
+  redeemPoints: z.number().int().min(0).max(10_000_000).optional(),
   /**
    * Which counter this came from.
    *
@@ -756,6 +781,21 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
   })
   if (already) {
     return { success: true, data: buildReceipt(till, already, already.items, already.payments, true, []) }
+  }
+
+  // --- is this till paid up ------------------------------------------------
+  //
+  // Checked on the SERVER, not only in the UI, because a banner is a request
+  // and this is the rule. Deliberately AFTER the replay above: a sale that
+  // already went through must still return its receipt even if the
+  // subscription lapsed in the meantime, or an offline till coming back
+  // would lose sales it had genuinely taken.
+  const gate = await getTillBillingGate()
+  if (!gate.canSell) {
+    return {
+      success: false,
+      error: gate.message ?? "This till is paused. Settle the subscription to start selling again.",
+    }
   }
 
   // --- price it on the server ---------------------------------------------
@@ -1055,11 +1095,69 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
     }
   }
 
+  // --- the loyalty member, and what they may actually spend -------------
+  //
+  // Everything about points is decided here, from the shop's settings and
+  // the ledger, and nothing from the request is trusted beyond "this
+  // customer, these points". The three refusals below are each a way a
+  // scheme leaks money if it is missed.
+  let loyaltyCustomer: { id: string; name: string; pointsBalance: number } | null = null
+  let redeemPoints = 0
+  let redeemValue = D(0)
+  const loyalty = {
+    enabled: till.loyaltyEnabled,
+    perHundred: till.loyaltyPointsPerHundred,
+    perPoint: till.loyaltyShillingsPerPoint,
+    minRedeem: till.loyaltyMinRedeem,
+  }
+
+  if (body.posCustomerId && loyalty.enabled) {
+    const found = await db.posCustomer.findFirst({
+      where: { id: body.posCustomerId, shopkeeperId: till.shopkeeperId, isActive: true },
+      select: { id: true, name: true, pointsBalance: true },
+    })
+    // A customer id from another shop is ignored rather than refused: the
+    // sale is real and the queue is waiting. They simply earn nothing.
+    if (found) loyaltyCustomer = found
+  }
+
+  if (loyaltyCustomer && body.redeemPoints && body.redeemPoints > 0) {
+    const want = Math.floor(body.redeemPoints)
+    if (want > loyaltyCustomer.pointsBalance) {
+      return { success: false, error: loyaltyCustomer.name + " has " + loyaltyCustomer.pointsBalance + " points, not " + want + "." }
+    }
+    if (loyalty.minRedeem > 0 && want < loyalty.minRedeem) {
+      return { success: false, error: "Points are spent " + loyalty.minRedeem + " at a time or more." }
+    }
+    redeemPoints = want
+    redeemValue = D(want).times(D(loyalty.perPoint))
+  }
+
   const saleDiscount = D(body.saleDiscount ?? 0)
   if (saleDiscount.greaterThan(subtotal)) {
     return { success: false, error: "The discount is more than the sale is worth." }
   }
-  const net = subtotal.minus(saleDiscount)
+
+  // Points come off the bill as a DISCOUNT, not as a payment.
+  //
+  // The distinction decides whether the day's takings tell the truth. As
+  // tender, two hundred points would look like two hundred shillings that
+  // ought to be in the drawer at close, and the cashier would be told they
+  // are short every time anyone redeemed. As a discount, the shop simply
+  // sold for less, which is what happened.
+  //
+  // Capped at what is left after any other discount, so a sale can never go
+  // negative and hand money back.
+  const headroom = subtotal.minus(saleDiscount)
+  const pointsDiscount = redeemValue.greaterThan(headroom) ? headroom : redeemValue
+  // What was not spendable is not spent. Charging a customer points that
+  // bought nothing is the worst possible rounding error.
+  if (pointsDiscount.lessThan(redeemValue) && loyalty.perPoint > 0) {
+    redeemPoints = Math.floor(Number(pointsDiscount.dividedBy(D(loyalty.perPoint)).toString()))
+    redeemValue = D(redeemPoints).times(D(loyalty.perPoint))
+  }
+
+  const net = headroom.minus(pointsDiscount)
 
   // Tax, and what it is not.
   //
@@ -1216,7 +1314,8 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
             // The rounding comes off as a discount rather than being hidden
             // inside the total, so the receipt still adds up line by line
             // and the shopkeeper can see what rounding cost them.
-            discount: saleDiscount.minus(roundingAdjustment),
+            // Points off and rounding off are both discounts on the bill.
+            discount: saleDiscount.plus(pointsDiscount).minus(roundingAdjustment),
             tax,
             total: rounded,
             amountPaid,
@@ -1226,8 +1325,9 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
             dueDate: isDeposit && body.deposit?.dueDate ? new Date(body.deposit.dueDate) : null,
             paymentMethod,
             ageVerified,
-            customerName: body.customerName?.trim() || null,
+            customerName: body.customerName?.trim() || loyaltyCustomer?.name || null,
             customerPhone: body.customerPhone?.trim() || null,
+            posCustomerId: loyaltyCustomer?.id ?? null,
             idempotencyKey: body.idempotencyKey,
             deviceId,
             occurredAt,
@@ -1409,8 +1509,88 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
           })
         }
 
+        // --- points -------------------------------------------------------
+        //
+        // Inside the same transaction as the sale, which is the point: a
+        // sale that recorded but failed to spend the points would hand the
+        // customer the discount AND leave the points in their account.
+        //
+        // Spending is written before earning so the balance it is checked
+        // against is the one before this sale, and the two rows read in the
+        // order they happened on the statement.
+        //
+        // A DEPOSIT earns nothing: the goods have not gone out and the sale
+        // is not finished. Points come when it is handed over.
+        if (loyaltyCustomer && loyalty.enabled) {
+          let balance = loyaltyCustomer.pointsBalance
+
+          if (redeemPoints > 0) {
+            balance -= redeemPoints
+            await tx.posLoyaltyEntry.create({
+              data: {
+                shopkeeperId: till.shopkeeperId,
+                customerId: loyaltyCustomer.id,
+                kind: "REDEEM",
+                points: -redeemPoints,
+                balanceAfter: balance,
+                saleId: sale.id,
+                amount: redeemValue,
+                reason: "Spent on " + sale.saleNumber,
+                actorName: cashierName,
+                // Replaying a queued sale must not spend the points twice.
+                idempotencyKey: "redeem:" + body.idempotencyKey,
+              },
+            })
+          }
+
+          // Earned on what was actually PAID, not on the shelf price. A
+          // customer who paid less because they used points earns on the
+          // smaller figure, or the scheme pays for itself twice.
+          const earned = loyalty.perHundred > 0
+            ? Math.floor(Number(rounded.toString()) / 100) * loyalty.perHundred
+            : 0
+
+          if (earned > 0 && !isDeposit) {
+            balance += earned
+            await tx.posLoyaltyEntry.create({
+              data: {
+                shopkeeperId: till.shopkeeperId,
+                customerId: loyaltyCustomer.id,
+                kind: "EARN",
+                points: earned,
+                balanceAfter: balance,
+                saleId: sale.id,
+                amount: rounded,
+                reason: sale.saleNumber,
+                actorName: cashierName,
+                idempotencyKey: "earn:" + body.idempotencyKey,
+              },
+            })
+          }
+
+          await tx.posCustomer.update({
+            where: { id: loyaltyCustomer.id },
+            data: {
+              pointsBalance: balance,
+              pointsEarned: { increment: earned },
+              totalSpent: { increment: rounded },
+              visits: { increment: 1 },
+              lastSeenAt: occurredAt,
+            },
+          })
+        }
+
         return sale
       }, { timeout: 30000, maxWait: 10000 })
+
+      // --- tell KRA, eventually ------------------------------------------
+      //
+      // Outside the transaction and deliberately not awaited for its result:
+      // a sale that has taken money must never be rolled back because a tax
+      // authority is slow, and the counter must never wait for one. The row
+      // this writes is picked up and sent afterwards. A shop that does not
+      // file gets a SKIPPED row, which is a record rather than a gap.
+      void queueSaleForEtims({ saleId: result.id, kind: "INVOICE" }).catch(() => {})
 
       return {
         success: true,
@@ -1558,6 +1738,65 @@ export async function voidPosSale(input: unknown): Promise<TillActionResult> {
           voidedByUserId: till.userId,
         },
       })
+
+      // --- points go back -------------------------------------------------
+      //
+      // Both directions. Points EARNED on a voided sale are taken back,
+      // because otherwise anyone could ring up sales and void them to farm
+      // a balance, and it costs them nothing. Points SPENT are returned,
+      // because the customer paid with them for goods they are not getting.
+      //
+      // Written as new rows rather than by deleting the old ones: the
+      // ledger is append only, and a statement that shows the earn, the
+      // spend and the reversal is one a customer can follow.
+      const points = await tx.posLoyaltyEntry.findMany({
+        where: { saleId: sale.id, kind: { in: ["EARN", "REDEEM"] } },
+        select: { id: true, customerId: true, points: true, kind: true },
+      })
+      if (points.length > 0) {
+        const customerId = points[0].customerId
+        const customer = await tx.posCustomer.findUnique({
+          where: { id: customerId },
+          select: { pointsBalance: true, pointsEarned: true },
+        })
+        let balance = customer?.pointsBalance ?? 0
+        let earnedBack = 0
+
+        for (const entry of points) {
+          // Already reversed? Then this is a second void of the same sale,
+          // which the status check above should have stopped, and doing it
+          // twice would corrupt the balance.
+          const already = await tx.posLoyaltyEntry.findFirst({
+            where: { saleId: sale.id, kind: "REVERSAL", reason: { contains: entry.id } },
+            select: { id: true },
+          })
+          if (already) continue
+
+          balance -= entry.points
+          if (entry.kind === "EARN") earnedBack += entry.points
+          await tx.posLoyaltyEntry.create({
+            data: {
+              shopkeeperId: till.shopkeeperId,
+              customerId,
+              kind: "REVERSAL",
+              points: -entry.points,
+              balanceAfter: balance,
+              saleId: sale.id,
+              reason: (entry.kind === "EARN" ? "Points taken back, sale voided" : "Points returned, sale voided")
+                + " (" + entry.id + ")",
+              actorName: till.userName,
+            },
+          })
+        }
+
+        await tx.posCustomer.update({
+          where: { id: customerId },
+          data: {
+            pointsBalance: balance,
+            pointsEarned: { decrement: earnedBack },
+          },
+        })
+      }
       // Reverse the MOVEMENTS, not the lines.
       //
       // A line filled from two deliveries — nine boxes when the oldest had
@@ -1617,6 +1856,11 @@ export async function voidPosSale(input: unknown): Promise<TillActionResult> {
     if (e instanceof PosSaleError) return { success: false, error: e.message }
     return { success: false, error: "That sale could not be voided. Nothing was changed — try again." }
   }
+
+  // A voided sale that was already declared needs a credit note: the invoice
+  // KRA hold stays a live declaration until one cancels it. Queued like the
+  // invoice was, and for the same reason.
+  void queueSaleForEtims({ saleId: sale.id, kind: "CREDIT_NOTE" }).catch(() => {})
 
   return { success: true } as TillActionResult
 }

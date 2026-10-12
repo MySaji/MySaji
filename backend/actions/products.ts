@@ -4,6 +4,7 @@ import { z } from "zod"
 import { auth } from "@/backend/auth"
 import { db } from "@/backend/db"
 import type { Prisma } from "@prisma/client"
+import { PUBLIC_SHOP_WHERE, publicProductWhere } from "@/backend/domain/public-catalog"
 
 type ProductWithRelations = Prisma.ProductGetPayload<{ include: { category: true; shopkeeper: true; inventory: true } }>
 
@@ -59,7 +60,7 @@ export async function getProducts(params?: {
   onlyFeatured?: boolean
   sortBy?: "recent" | "rating"
 }): Promise<ProductCard[]> {
-  const where: Prisma.ProductWhereInput = { isActive: true }
+  const where: Prisma.ProductWhereInput = publicProductWhere()
   if (params?.category && params.category !== "all") {
     where.category = { slug: params.category }
   }
@@ -102,7 +103,7 @@ export type ProductShopOption = { id: string; name: string; productCount: number
  * the brand-checkbox filter in the reference marketplace design. */
 export async function getProductShops(): Promise<ProductShopOption[]> {
   const shops = await db.shopkeeperProfile.findMany({
-    where: { products: { some: { isActive: true } } },
+    where: { ...PUBLIC_SHOP_WHERE, products: { some: { isActive: true } } },
     select: { id: true, shopName: true, _count: { select: { products: { where: { isActive: true } } } } },
     orderBy: { shopName: "asc" },
   })
@@ -129,7 +130,7 @@ export async function getMarketplaceProducts(params?: {
   page?: number
   perPage?: number
 }): Promise<MarketplaceProductsResult> {
-  const where: Prisma.ProductWhereInput = { isActive: true }
+  const where: Prisma.ProductWhereInput = publicProductWhere()
   if (params?.category && params.category !== "all") {
     where.category = { slug: params.category }
   }
@@ -178,7 +179,7 @@ export async function getMarketplaceProducts(params?: {
 /** Real price bounds from the actual catalog — the price-range slider's
  * min/max come from here rather than a guessed hardcoded range. */
 export async function getProductPriceBounds(): Promise<{ min: number; max: number }> {
-  const agg = await db.product.aggregate({ where: { isActive: true }, _min: { price: true }, _max: { price: true } })
+  const agg = await db.product.aggregate({ where: publicProductWhere(), _min: { price: true }, _max: { price: true } })
   return { min: agg._min.price != null ? Math.floor(Number(agg._min.price)) : 0, max: agg._max.price != null ? Math.ceil(Number(agg._max.price)) : 100_000 }
 }
 
@@ -211,7 +212,7 @@ export async function getProductById(id: string): Promise<ProductDetail> {
   if (!product) return null
 
   const related = await db.product.findMany({
-    where: { id: { not: product.id }, isActive: true, ...(product.categoryId ? { categoryId: product.categoryId } : {}) },
+    where: { ...publicProductWhere(), id: { not: product.id }, ...(product.categoryId ? { categoryId: product.categoryId } : {}) },
     take: 3,
     include: { category: true, shopkeeper: true, inventory: true },
   })

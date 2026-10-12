@@ -38,7 +38,8 @@ export async function getAgentVerifications(): Promise<AgentVerification[]> {
     include: {
       user: {
         include: {
-          shopkeeperProfile: true,
+          // Their main shop, for the name on the verification queue.
+          shopkeeperProfiles: { orderBy: [{ createdAt: "asc" }, { id: "asc" }], take: 1 },
           providerProfile: { include: { category: true } },
         },
       },
@@ -49,7 +50,7 @@ export async function getAgentVerifications(): Promise<AgentVerification[]> {
     const role = d.user.role as "SHOPKEEPER" | "PROVIDER"
     const displayName =
       role === "SHOPKEEPER"
-        ? (d.user.shopkeeperProfile?.shopName ?? "Unnamed Shop")
+        ? (d.user.shopkeeperProfiles[0]?.shopName ?? "Unnamed Shop")
         : (d.user.providerProfile?.businessName || d.user.providerProfile?.category?.name || "Provider")
 
     return {

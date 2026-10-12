@@ -48,6 +48,7 @@
  */
 
 import { Prisma } from "@prisma/client"
+import { movesTheAverage, weightedAverage, asMoney } from "@/backend/services/pos-costing"
 import type { NegativeStockPolicy } from "@/backend/domain/pos-config"
 
 export type StockMovementKind =
@@ -141,7 +142,13 @@ export type RecordMovementResult =
 
 /** The slice of Prisma this needs, so importing it pulls in no engine. */
 type LedgerTx = {
-  product: { findUnique: (args: unknown) => Promise<unknown> }
+  product: {
+    findUnique: (args: unknown) => Promise<unknown>
+    findMany: (args: unknown) => Promise<unknown>
+    // Written only to move the cost to its weighted average when goods
+    // arrive at a price. See services/pos-costing.ts.
+    update: (args: unknown) => Promise<unknown>
+  }
   productVariant: {
     findUnique: (args: unknown) => Promise<unknown>
     findMany: (args: unknown) => Promise<unknown>
@@ -175,6 +182,8 @@ type LedgerVariant = {
   productId: string
   currentStock: number
   stockOnHand: Prisma.Decimal | null
+  /** What this size costs the shop, averaged as deliveries arrive. */
+  costPrice: Prisma.Decimal | null
 }
 
 /** The batch columns the ledger reads. */
@@ -239,8 +248,16 @@ export async function recordStockMovement(
   // miss rather than a check somebody can forget to write.
   const product = (await tx.product.findUnique({
     where: { id: input.productId },
-    select: { id: true, shopkeeperId: true, unit: true, hasVariants: true, tracksBatches: true },
-  })) as { id: string; shopkeeperId: string; unit: string; hasVariants: boolean; tracksBatches: boolean } | null
+    select: {
+      id: true, shopkeeperId: true, unit: true, hasVariants: true, tracksBatches: true,
+      // Read here so the weighted average below has the figure it is
+      // replacing, inside the same transaction as the movement.
+      costPrice: true,
+    },
+  })) as {
+    id: string; shopkeeperId: string; unit: string; hasVariants: boolean; tracksBatches: boolean
+    costPrice: Prisma.Decimal | null
+  } | null
 
   if (!product) return { ok: false, code: "NOT_FOUND", message: "That product no longer exists." }
   if (product.shopkeeperId !== input.shopkeeperId) {
@@ -259,7 +276,10 @@ export async function recordStockMovement(
   if (input.variantId) {
     variant = (await tx.productVariant.findUnique({
       where: { id: input.variantId },
-      select: { id: true, shopkeeperId: true, productId: true, currentStock: true, stockOnHand: true },
+      select: {
+        id: true, shopkeeperId: true, productId: true, currentStock: true, stockOnHand: true,
+        costPrice: true,
+      },
     })) as LedgerVariant | null
     if (!variant || variant.shopkeeperId !== input.shopkeeperId) {
       return { ok: false, code: "NOT_FOUND", message: "That option no longer exists." }
@@ -436,6 +456,39 @@ export async function recordStockMovement(
     },
     select: { id: true },
   })) as { id: string }
+
+  // --- what the stock now costs -------------------------------------------
+  //
+  // Goods arriving at a known price move the product's cost to the weighted
+  // average of what was already there and what has just come in. Without
+  // this, `costPrice` was whatever somebody last typed into a form, and
+  // every margin and stock valuation in the product quoted it as fact.
+  //
+  // Inside the same transaction as the movement, so a cost can never be
+  // updated against a movement that was then rolled back. See
+  // services/pos-costing.ts for which movements count and why.
+  if (input.unitCost != null && movesTheAverage(input.kind, qty)) {
+    const average = asMoney(weightedAverage({
+      onHandBefore: before,
+      oldAverage: product.costPrice,
+      receivedQty: qty,
+      receivedUnitCost: D(input.unitCost),
+    }))
+    await tx.product.update({ where: { id: product.id }, data: { costPrice: average } })
+
+    // A size carries its own cost, for the shops where one size genuinely
+    // costs more than another. Averaged the same way, against that size's
+    // own stock rather than the product's.
+    if (variant) {
+      const variantAverage = asMoney(weightedAverage({
+        onHandBefore: before,
+        oldAverage: variant.costPrice ?? null,
+        receivedQty: qty,
+        receivedUnitCost: D(input.unitCost),
+      }))
+      await tx.productVariant.update({ where: { id: variant.id }, data: { costPrice: variantAverage } })
+    }
+  }
 
   // --- the projection ------------------------------------------------------
   //

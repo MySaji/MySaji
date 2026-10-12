@@ -5,6 +5,7 @@ import Link from "next/link"
 import {
   ArrowLeft, Calculator, Check, Clock, Loader2, Search, Store,
   AlertTriangle, Save, Users, ChevronRight, Monitor, MonitorDown, Smartphone,
+  LayoutDashboard, Truck, RotateCcw, Star, Package, Wallet, Receipt,
 } from "lucide-react"
 import { Card } from "@/frontend/components/ui/card"
 import { Button } from "@/frontend/components/ui/button"
@@ -364,6 +365,21 @@ export default function PosSettingsPage() {
       {/* --- who works the till ---------------------------------------------
           Its own page: a list that grows, a form, and two settings that only
           make sense next to that list. */}
+      <Link href="/provider/till/stores" className="block active:scale-[0.99] transition-transform">
+        <Card className="p-4 rounded-2xl flex items-center gap-3">
+          <span className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+            <Store className="w-4 h-4" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-bold text-gray-900 dark:text-white">Branches</span>
+            <span className="block text-xs text-gray-500 dark:text-gray-400 leading-snug mt-0.5">
+              Run more than one shop on this account, and move between them.
+            </span>
+          </span>
+          <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0" />
+        </Card>
+      </Link>
+
       <Link href="/provider/till/people" className="block active:scale-[0.99] transition-transform">
         <Card className="p-4 rounded-2xl flex items-center gap-3">
           <span className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
@@ -379,6 +395,96 @@ export default function PosSettingsPage() {
         </Card>
       </Link>
 
+      <Link href="/provider/till/dashboard" className="block active:scale-[0.99] transition-transform">
+        <Card className="p-4 rounded-2xl flex items-center gap-3">
+          <span className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+            <LayoutDashboard className="w-4 h-4" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-bold text-gray-900 dark:text-white">Dashboard</span>
+            <span className="block text-xs text-gray-500 dark:text-gray-400 leading-snug mt-0.5">
+              Today's takings, what is running low and what is selling.
+            </span>
+          </span>
+          <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0" />
+        </Card>
+      </Link>
+
+      <Link href="/provider/till/products" className="block active:scale-[0.99] transition-transform">
+        <Card className="p-4 rounded-2xl flex items-center gap-3">
+          <span className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+            <Package className="w-4 h-4" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-bold text-gray-900 dark:text-white">Products and prices</span>
+            <span className="block text-xs text-gray-500 dark:text-gray-400 leading-snug mt-0.5">
+              What you sell, what you charge, and what each line actually makes you.
+            </span>
+          </span>
+          <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0" />
+        </Card>
+      </Link>
+
+      <Link href="/provider/till/customers" className="block active:scale-[0.99] transition-transform">
+        <Card className="p-4 rounded-2xl flex items-center gap-3">
+          <span className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+            <Star className="w-4 h-4" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-bold text-gray-900 dark:text-white">Customers and points</span>
+            <span className="block text-xs text-gray-500 dark:text-gray-400 leading-snug mt-0.5">
+              Your regulars, what they have spent, and the points they are holding.
+            </span>
+          </span>
+          <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0" />
+        </Card>
+      </Link>
+
+      <Link href="/provider/till/expenses" className="block active:scale-[0.99] transition-transform">
+        <Card className="p-4 rounded-2xl flex items-center gap-3">
+          <span className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+            <Wallet className="w-4 h-4" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-bold text-gray-900 dark:text-white">Costs and what you kept</span>
+            <span className="block text-xs text-gray-500 dark:text-gray-400 leading-snug mt-0.5">
+              Rent, power, wages and transport, against the month's takings.
+            </span>
+          </span>
+          <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0" />
+        </Card>
+      </Link>
+
+      <Link href="/provider/till/purchasing" className="block active:scale-[0.99] transition-transform">
+        <Card className="p-4 rounded-2xl flex items-center gap-3">
+          <span className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+            <Truck className="w-4 h-4" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-bold text-gray-900 dark:text-white">Buying</span>
+            <span className="block text-xs text-gray-500 dark:text-gray-400 leading-snug mt-0.5">
+              Suppliers, orders, and recording what actually turned up.
+            </span>
+          </span>
+          <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0" />
+        </Card>
+      </Link>
+
+      <Link href="/provider/till/etims" className="block active:scale-[0.99] transition-transform">
+        <Card className="p-4 rounded-2xl flex items-center gap-3">
+          <span className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+            <Receipt className="w-4 h-4" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-bold text-gray-900 dark:text-white">KRA eTIMS</span>
+            <span className="block text-xs text-gray-500 dark:text-gray-400 leading-snug mt-0.5">
+              Declare sales and print signed tax invoices, if you are VAT registered.
+            </span>
+          </span>
+          <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0" />
+        </Card>
+      </Link>
+
       <Link href="/provider/till/mpesa" className="block active:scale-[0.99] transition-transform">
         <Card className="p-4 rounded-2xl flex items-center gap-3">
           <span className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
@@ -388,6 +494,21 @@ export default function PosSettingsPage() {
             <span className="block text-sm font-bold text-gray-900 dark:text-white">Taking M-Pesa</span>
             <span className="block text-xs text-gray-500 dark:text-gray-400 leading-snug mt-0.5">
               Your paybill or till number, and prompting the customer's phone to pay.
+            </span>
+          </span>
+          <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0" />
+        </Card>
+      </Link>
+
+      <Link href="/provider/till/subscription" className="block active:scale-[0.99] transition-transform">
+        <Card className="p-4 rounded-2xl flex items-center gap-3">
+          <span className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+            <Wallet className="w-4 h-4" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-bold text-gray-900 dark:text-white">Your subscription</span>
+            <span className="block text-xs text-gray-500 dark:text-gray-400 leading-snug mt-0.5">
+              What the till costs you, and what has been paid.
             </span>
           </span>
           <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0" />
@@ -469,6 +590,16 @@ export default function PosSettingsPage() {
           these is chosen — otherwise you could never correct a figure you know is wrong.
         </p>
       </Card>
+
+      {/* --- points -------------------------------------------------------
+          A scheme stays off until a shop deliberately turns it on, because a
+          half configured scheme that has already started handing out points
+          is worse than no scheme at all. */}
+      <LoyaltyCard
+        config={setup.config}
+        busy={busy === "loyalty"}
+        onSave={(patch) => saveConfig(patch, "loyalty")}
+      />
 
       {/* --- rounding ------------------------------------------------------- */}
       <Card className="p-4 rounded-2xl">
@@ -553,5 +684,167 @@ export default function PosSettingsPage() {
         </Card>
       )}
     </div>
+  )
+}
+
+/**
+ * The points scheme.
+ *
+ * Three numbers decide everything: how fast points are earned, what one is
+ * worth when spent, and the smallest number worth spending at once. They are
+ * held locally while being typed and sent together, because a scheme that sat
+ * half saved for even a moment would be giving away the wrong amount of money.
+ */
+function LoyaltyCard({
+  config, busy, onSave,
+}: {
+  config: PosSetup["config"]
+  busy: boolean
+  onSave: (patch: Record<string, unknown>) => void
+}) {
+  const [per100, setPer100] = useState(String(config.loyaltyPointsPerHundred ?? 1))
+  const [worth, setWorth] = useState(String(config.loyaltyShillingsPerPoint ?? 1))
+  const [floor, setFloor] = useState(String(config.loyaltyMinRedeem ?? 50))
+
+  const on = config.loyaltyEnabled === true
+  const dirty =
+    per100 !== String(config.loyaltyPointsPerHundred ?? 1) ||
+    worth !== String(config.loyaltyShillingsPerPoint ?? 1) ||
+    floor !== String(config.loyaltyMinRedeem ?? 50)
+
+  // What the shop is promising, said back in the words a customer would use.
+  // The arithmetic is the shop's own money, so it is better read off the
+  // screen than worked out in somebody's head at the counter.
+  const earnRate = Number(per100) || 0
+  const pointWorth = Number(worth) || 0
+  const spendPer100 = earnRate * pointWorth
+  const backPct = spendPer100 > 0 ? spendPer100 : 0
+
+  return (
+    <Card className="p-4 rounded-2xl">
+      <div className="flex items-start gap-3">
+        <span className="w-9 h-9 rounded-full bg-amber-50 dark:bg-amber-500/10 text-amber-600 flex items-center justify-center flex-shrink-0">
+          <Star className="w-4 h-4" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-sm font-bold text-gray-900 dark:text-white">Points for regulars</h2>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
+            Customers who give their number earn points as they shop, then spend them off a
+            later bill. Points come off as a discount, so your drawer still balances against
+            what was actually taken.
+          </p>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        role="switch"
+        aria-checked={on}
+        disabled={busy}
+        onClick={() => onSave({ loyaltyEnabled: !on })}
+        className={
+          on
+            ? "mt-3 w-full flex items-center gap-2.5 p-3 rounded-xl border text-left active:scale-[0.99] disabled:opacity-60 border-primary bg-primary/5"
+            : "mt-3 w-full flex items-center gap-2.5 p-3 rounded-xl border text-left active:scale-[0.99] disabled:opacity-60 border-gray-200 dark:border-gray-700"
+        }
+      >
+        <span
+          className={
+            on
+              ? "w-9 h-5 rounded-full bg-primary flex items-center px-0.5 flex-shrink-0 justify-end"
+              : "w-9 h-5 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center px-0.5 flex-shrink-0"
+          }
+        >
+          <span className="w-4 h-4 rounded-full bg-white block" />
+        </span>
+        <span className="min-w-0 flex-1 text-xs font-semibold text-gray-900 dark:text-white">
+          {on ? "Running" : "Not running"}
+        </span>
+        {busy && <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-400 flex-shrink-0" />}
+      </button>
+
+      {on && (
+        <div className="mt-3 space-y-3">
+          <div className="grid grid-cols-2 gap-2">
+            <label className="block">
+              <span className="block text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                Points per KSh 100 spent
+              </span>
+              <Input
+                value={per100}
+                onChange={(e) => setPer100(e.target.value.replace(/[^0-9.]/g, ""))}
+                inputMode="decimal"
+                className="mt-1 h-11 rounded-xl text-sm tabular-nums"
+              />
+            </label>
+            <label className="block">
+              <span className="block text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                One point is worth (KSh)
+              </span>
+              <Input
+                value={worth}
+                onChange={(e) => setWorth(e.target.value.replace(/[^0-9.]/g, ""))}
+                inputMode="decimal"
+                className="mt-1 h-11 rounded-xl text-sm tabular-nums"
+              />
+            </label>
+          </div>
+
+          <label className="block">
+            <span className="block text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+              Fewest points that can be spent at once
+            </span>
+            <Input
+              value={floor}
+              onChange={(e) => setFloor(e.target.value.replace(/[^0-9]/g, ""))}
+              inputMode="numeric"
+              className="mt-1 h-11 rounded-xl text-sm tabular-nums"
+            />
+            <span className="block mt-1 text-[11px] text-gray-400 leading-snug">
+              Stops a customer spending two points and holding up the queue. Zero allows any
+              amount.
+            </span>
+          </label>
+
+          <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800/60">
+            <p className="text-[11px] font-semibold text-gray-700 dark:text-gray-200">
+              What this promises
+            </p>
+            <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">
+              A customer spending KSh 100 earns {earnRate} point{earnRate === 1 ? "" : "s"},
+              which they can later spend as KSh {spendPer100.toFixed(2)}. That is{" "}
+              <span className="font-semibold text-gray-700 dark:text-gray-200">
+                {backPct.toFixed(1)}% of takings
+              </span>{" "}
+              going back to your regulars.
+            </p>
+            {backPct > 10 && (
+              <p className="mt-1.5 text-[11px] font-semibold text-amber-700 dark:text-amber-400 leading-snug">
+                That is a large share of your margin. Most shops give back between 0.5% and 2%.
+              </p>
+            )}
+          </div>
+
+          <Button
+            onClick={() =>
+              onSave({
+                loyaltyPointsPerHundred: Number(per100) || 0,
+                loyaltyShillingsPerPoint: Number(worth) || 0,
+                loyaltyMinRedeem: Math.floor(Number(floor) || 0),
+              })
+            }
+            disabled={busy || !dirty}
+            className="w-full h-11 rounded-xl text-xs"
+          >
+            {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : dirty ? "Save the rates" : "Saved"}
+          </Button>
+
+          <p className="text-[11px] text-gray-400 dark:text-gray-500 leading-snug">
+            Changing a rate affects points earned from now on. Points already held keep the
+            value they were given, so nobody loses what they have already collected.
+          </p>
+        </div>
+      )}
+    </Card>
   )
 }

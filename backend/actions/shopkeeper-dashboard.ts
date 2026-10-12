@@ -2,6 +2,7 @@
 
 import { auth } from "@/backend/auth"
 import { db } from "@/backend/db"
+import { primaryShopOf } from "@/backend/services/shopkeeper-scope"
 
 // A Provider Business owner can also run a shop (see setupBusinessShop() in
 // lib/actions/provider-business.ts) — that keeps role="provider" (their
@@ -23,7 +24,7 @@ export async function requireShopkeeper(): Promise<{ userId: string; shopkeeperI
   // was the visible symptom: the page spun forever.
   if (session.user.role !== "shopkeeper" && session.user.role !== "provider") return null
 
-  const profile = await db.shopkeeperProfile.findUnique({ where: { userId: session.user.id } })
+  const profile = await primaryShopOf(session.user.id)
   if (!profile) return null
   return { userId: session.user.id, shopkeeperId: profile.id }
 }

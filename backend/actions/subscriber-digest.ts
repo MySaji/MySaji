@@ -1,6 +1,7 @@
 "use server"
 
 import { db } from "@/backend/db"
+import { publicProductWhere } from "@/backend/domain/public-catalog"
 import { sendEmail } from "@/backend/services/email"
 import { wrapEmailLayout, emailButton, siteOrigin, emailBrand } from "@/backend/services/email-templates"
 
@@ -158,19 +159,19 @@ export async function runWeeklySubscriberDigest(): Promise<SubscriberDigestResul
 
   const [newProductsRaw, restockedProductsRaw, trendingRaw] = await Promise.all([
     db.product.findMany({
-      where: { isActive: true, createdAt: { gt: since } },
+      where: { ...publicProductWhere(), createdAt: { gt: since } },
       include: { shopkeeper: { select: { shopName: true } } },
       orderBy: { createdAt: "desc" },
       take: 10,
     }),
     db.product.findMany({
-      where: { isActive: true, inventory: { lastRestockedAt: { gt: since } } },
+      where: { ...publicProductWhere(), inventory: { lastRestockedAt: { gt: since } } },
       include: { shopkeeper: { select: { shopName: true } }, inventory: true },
       orderBy: { inventory: { lastRestockedAt: "desc" } },
       take: 10,
     }),
     db.product.findMany({
-      where: { isActive: true, reviewCount: { gt: 0 } },
+      where: { ...publicProductWhere(), reviewCount: { gt: 0 } },
       include: { shopkeeper: { select: { shopName: true } } },
       orderBy: [{ rating: "desc" }, { reviewCount: "desc" }],
       take: 10,

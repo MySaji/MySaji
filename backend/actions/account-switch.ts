@@ -33,7 +33,8 @@ export async function getMyRoleProfiles(): Promise<MyRoleProfiles> {
     select: {
       customerProfile: { select: { id: true } },
       providerProfile: { select: { id: true } },
-      shopkeeperProfile: { select: { id: true } },
+      // One branch is enough to answer "do they have a shop".
+      shopkeeperProfiles: { select: { id: true }, take: 1 },
     },
   })
   if (!user) return null
@@ -42,7 +43,7 @@ export async function getMyRoleProfiles(): Promise<MyRoleProfiles> {
     currentRole: session.user.role,
     hasCustomer: !!user.customerProfile,
     hasProvider: !!user.providerProfile,
-    hasShopkeeper: !!user.shopkeeperProfile,
+    hasShopkeeper: user.shopkeeperProfiles.length > 0,
   }
 }
 
@@ -85,7 +86,11 @@ export async function switchActiveRole(targetRole: SwitchableRole): Promise<Swit
 
   const user = await db.user.findUnique({
     where: { id: session.user.id },
-    include: { customerProfile: true, providerProfile: true, shopkeeperProfile: true },
+    include: {
+      customerProfile: true,
+      providerProfile: true,
+      shopkeeperProfiles: { orderBy: [{ createdAt: "asc" }, { id: "asc" }], take: 1 },
+    },
   })
   if (!user) return { success: false, error: "Account not found." }
 
@@ -120,7 +125,11 @@ export async function switchActiveRole(targetRole: SwitchableRole): Promise<Swit
   }
 
   // targetRole === "shopkeeper"
-  if (user.shopkeeperProfile) {
+  //
+  // Switching into the shop portal needs a shop to switch into, and any
+  // branch proves there is one. A second branch never makes this a first
+  // time again.
+  if (user.shopkeeperProfiles.length > 0) {
     await db.user.update({ where: { id: user.id }, data: { role: dbRole } })
     return { success: true, isFirstTime: false }
   }

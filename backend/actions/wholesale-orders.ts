@@ -3,6 +3,7 @@
 import { z } from "zod"
 import { auth } from "@/backend/auth"
 import { db } from "@/backend/db"
+import { primaryShopOf } from "@/backend/services/shopkeeper-scope"
 import { requireVerified } from "@/backend/services/verification-gate"
 import { requireShopkeeper } from "@/backend/actions/shopkeeper-dashboard"
 import { requireDistributor } from "@/backend/actions/distributor-dashboard"
@@ -115,7 +116,7 @@ export async function isCurrentUserVerifiedShopkeeper(): Promise<boolean> {
   // Keyed on the shop profile below, not on `role`: a Saji Pro that sells
   // products is role PROVIDER and can still be a verified shop buying stock.
   if (session.user.role !== "shopkeeper" && session.user.role !== "provider") return false
-  const profile = await db.shopkeeperProfile.findUnique({ where: { userId: session.user.id } })
+  const profile = await primaryShopOf(session.user.id)
   return profile?.isVerified ?? false
 }
 

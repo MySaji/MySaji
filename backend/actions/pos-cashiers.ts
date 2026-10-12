@@ -4,6 +4,7 @@ import { z } from "zod"
 import bcrypt from "bcryptjs"
 import { auth } from "@/backend/auth"
 import { db } from "@/backend/db"
+import { posShopIdFor } from "@/backend/services/pos-tenant"
 import { parsePosConfig } from "@/backend/domain/pos-config"
 
 /**
@@ -34,8 +35,12 @@ async function requireShopOwner() {
   const session = await auth()
   if (!session?.user?.id) return null
   if (session.user.role !== "provider" && session.user.role !== "shopkeeper") return null
+  // The store this person is working in, which for a business with branches
+  // is not simply "the shop on their account". See services/pos-tenant.ts.
+  const shopId = await posShopIdFor(session.user.id)
+  if (!shopId) return null
   const shop = await db.shopkeeperProfile.findUnique({
-    where: { userId: session.user.id },
+    where: { id: shopId },
     select: { id: true, posEnabled: true, posConfig: true },
   })
   if (!shop || !shop.posEnabled) return null

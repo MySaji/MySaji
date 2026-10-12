@@ -3,6 +3,7 @@
 import { z } from "zod"
 import { auth } from "@/backend/auth"
 import { db } from "@/backend/db"
+import { primaryShopOf } from "@/backend/services/shopkeeper-scope"
 import { verifyPassword, hashPassword } from "@/backend/services/password"
 import { firstCoordinate } from "@/backend/domain/geo"
 
@@ -49,7 +50,7 @@ export async function getMyShopAccount(): Promise<ShopkeeperAccountData> {
 
   const [user, profile, address, activeProducts, latestKycDocument] = await Promise.all([
     db.user.findUnique({ where: { id: session.user.id } }),
-    db.shopkeeperProfile.findUnique({ where: { userId: session.user.id } }),
+    primaryShopOf(session.user.id),
     db.address.findFirst({ where: { userId: session.user.id, type: "OFFICE" }, orderBy: { createdAt: "desc" } }),
     db.product.count({ where: { shopkeeper: { userId: session.user.id }, isActive: true } }),
     db.kycDocument.findFirst({ where: { userId: session.user.id }, orderBy: { submittedAt: "desc" } }),
@@ -133,12 +134,14 @@ export async function updateMyShopAccount(input: unknown): Promise<ShopkeeperAcc
     sundayOpeningTime, sundayClosingTime, holidayOpeningTime, holidayClosingTime } = parsed.data
   const coords = latitude != null && longitude != null ? { latitude, longitude } : {}
 
-  const profile = await db.shopkeeperProfile.findUnique({ where: { userId: session.user.id } })
+  const profile = await primaryShopOf(session.user.id)
   if (!profile) return { success: false, error: "Shop profile not found." }
 
   await db.$transaction(async (tx) => {
     await tx.shopkeeperProfile.update({
-      where: { userId: session.user!.id },
+      // By id: an account may hold more than one shop, and this form edits
+      // the one resolved above.
+      where: { id: profile.id },
       data: {
         shopName: shopName ?? undefined,
         shopDescription: shopDescription ?? undefined,
@@ -208,11 +211,11 @@ export async function setShopVacationMode(input: unknown): Promise<ShopkeeperAcc
   const parsed = vacationModeSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
 
-  const profile = await db.shopkeeperProfile.findUnique({ where: { userId: session.user.id } })
+  const profile = await primaryShopOf(session.user.id)
   if (!profile) return { success: false, error: "Shop profile not found." }
 
   await db.shopkeeperProfile.update({
-    where: { userId: session.user.id },
+    where: { id: profile.id },
     data: { isOnVacation: parsed.data.isOnVacation, vacationNote: parsed.data.vacationNote || null },
   })
 

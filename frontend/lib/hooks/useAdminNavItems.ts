@@ -14,6 +14,7 @@ import { getProCapabilityRequests } from "@/backend/actions/pro-capabilities"
 import { getPendingChatbotEscalationCount } from "@/backend/actions/chatbot-admin"
 import { getPendingCertificationCount } from "@/backend/actions/admin-certifications"
 import { getActiveSafetyIncidentsForAdmin } from "@/backend/actions/safety"
+import { getPosBillingSettings } from "@/backend/actions/admin-pos-billing"
 
 const EMPTY_BADGES: AdminNavBadges = { users: 0, jobs: 0, disputes: 0, verifications: 0, moderation: 0 }
 
@@ -51,6 +52,7 @@ export function useAdminNavItems(): AdminNavItem[] {
   const { data: pendingChatbotEscalations } = useSWR("admin-nav-chatbot-escalations", getPendingChatbotEscalationCount)
   const { data: pendingCertifications } = useSWR("admin-nav-certifications", getPendingCertificationCount)
   const { data: safetyIncidents } = useSWR("admin-nav-safety-incidents", getActiveSafetyIncidentsForAdmin, { refreshInterval: 30_000 })
+  const { data: posBilling } = useSWR("admin-nav-pos-billing", getPosBillingSettings)
 
   const pendingShopUpgrades = shopUpgradeRequests?.filter((r) => r.status === "OPEN" || r.status === "IN_PROGRESS").length ?? 0
   const pendingProBusiness = proCapabilityRequests?.filter((r) => r.status === "PENDING").length ?? 0
@@ -58,6 +60,9 @@ export function useAdminNavItems(): AdminNavItem[] {
   const chatbotCount = pendingChatbotEscalations ?? 0
   const certificationCount = pendingCertifications ?? 0
   const safetyIncidentCount = safetyIncidents?.length ?? 0
+  // How many POS businesses are behind. Null where the platform is not
+  // charging, which is the default, so the badge does not appear at all.
+  const posOwing = (posBilling?.counts.pastDue ?? 0) + (posBilling?.counts.suspended ?? 0)
 
   return [
     { icon: LayoutDashboard, label: "Dashboard", href: "/admin", badge: null, group: null },
@@ -74,6 +79,9 @@ export function useAdminNavItems(): AdminNavItem[] {
     { icon: CreditCard, label: "Payments", href: "/admin/payments", badge: null, group: "finance" },
     { icon: DollarSign, label: "Pricing", href: "/admin/pricing", badge: null, group: "finance" },
     { icon: Percent, label: "Commissions", href: "/admin/commissions", badge: null, group: "finance" },
+    // The till's own subscriptions. Badged with how many shops are behind,
+    // since that is the only reason to open it in a hurry.
+    { icon: Store, label: "POS Subscriptions", href: "/admin/pos", badge: posOwing > 0 ? posOwing.toLocaleString() : null, group: "finance" },
     { icon: BarChart3, label: "Analytics", href: "/admin/analytics", badge: null, group: "growth" },
     { icon: Gift, label: "Marketing", href: "/admin/marketing", badge: null, group: "growth" },
     { icon: Megaphone, label: "Announcements", href: "/admin/announcements", badge: null, group: "growth" },

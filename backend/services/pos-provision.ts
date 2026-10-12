@@ -21,7 +21,7 @@ import { shouldListOnMarketplace } from "@/backend/domain/pro-modules"
  */
 type PosTx = {
   shopkeeperProfile: {
-    findUnique: (args: unknown) => Promise<{ id: string; posEnabled: boolean } | null>
+    findFirst: (args: unknown) => Promise<{ id: string; posEnabled: boolean } | null>
     create: (args: unknown) => Promise<{ id: string }>
     update: (args: unknown) => Promise<unknown>
   }
@@ -55,8 +55,12 @@ export async function provisionPos(tx: PosTx, args: ProvisionPosArgs): Promise<s
 
   const config = posConfigSchema.parse({ defaultUnit: profile.defaultUnit })
 
-  const existing = (await tx.shopkeeperProfile.findUnique({
+  // Their FIRST shop, since an account may now own a branch or three.
+  // Provisioning is about turning the till on for the business, which means
+  // the original shop; a branch is created deliberately, elsewhere.
+  const existing = (await tx.shopkeeperProfile.findFirst({
     where: { userId: args.userId },
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
     select: { id: true, posEnabled: true },
   })) as { id: string; posEnabled: boolean } | null
 

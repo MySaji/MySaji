@@ -6,7 +6,7 @@ import {
   Calculator, Loader2, Search, Plus, Minus, Trash2, X, ArrowRight, ArrowLeft,
   SlidersHorizontal, Package, AlertTriangle, Clock, Banknote, Smartphone,
   CreditCard, Landmark, HandCoins, ShoppingCart, CloudOff, RefreshCw, Check, FileLock, Hammer,
-  User, ShieldCheck, LogOut, Delete, Camera,
+  User, ShieldCheck, LogOut, Delete, Camera, Star, Store,
 } from "lucide-react"
 import { Card } from "@/frontend/components/ui/card"
 import { Button } from "@/frontend/components/ui/button"
@@ -18,6 +18,12 @@ import {
 import { getCashierMode, signInCashier } from "@/backend/actions/pos-cashiers"
 import { registerTillDevice } from "@/backend/actions/pos-devices"
 import { getShopMpesa, promptCustomerPayment, checkPromptStatus } from "@/backend/actions/pos-mpesa"
+import {
+  findCustomerForTill, saveCustomer, getLoyaltySettings,
+  type CustomerRow, type LoyaltySettings,
+} from "@/backend/actions/pos-customers"
+import { getCurrentStore } from "@/backend/actions/pos-stores"
+import { getTillBillingGate } from "@/backend/actions/pos-billing-shop"
 import { getDeviceSecret, guessDeviceName, guessPlatform } from "@/frontend/lib/pos-device"
 import { TillReceipt } from "@/frontend/components/pos/till-receipt"
 import { TillInstall } from "@/frontend/components/pos/till-install"
@@ -214,6 +220,42 @@ export default function TillPage() {
    */
   const [scanning, setScanning] = useState(false)
 
+  /**
+   * The loyalty member this sale is for, if anyone.
+   *
+   * Looked up by the number the customer reads out, which is the only thing
+   * they reliably remember. Null for the overwhelming majority of sales,
+   * and everything about the till works unchanged when it is.
+   */
+  const [member, setMember] = useState<CustomerRow | null>(null)
+  const [memberQuery, setMemberQuery] = useState("")
+  const [memberHits, setMemberHits] = useState<CustomerRow[]>([])
+  const [memberSearching, setMemberSearching] = useState(false)
+  const [joinOpen, setJoinOpen] = useState(false)
+  const [joinName, setJoinName] = useState("")
+  const [redeem, setRedeem] = useState("")
+  const [loyalty, setLoyalty] = useState<LoyaltySettings | null>(null)
+
+  /**
+   * Which branch this till is ringing up for.
+   *
+   * Null for a business with one, which is nearly all of them, and the badge
+   * stays off the screen. Where there are several it is NOT optional
+   * decoration: everything this screen does belongs to one branch, and a
+   * cashier who did not notice the switch would sell one shop's stock from
+   * another's counter.
+   */
+  const [branch, setBranch] = useState<{ name: string; isOnlyOne: boolean } | null>(null)
+
+  /**
+   * Whether the subscription lets this till sell.
+   *
+   * Shown so the shopkeeper learns about it from a banner rather than from a
+   * refused sale with a customer standing there. The server refuses anyway,
+   * which is what actually enforces it; this is only the warning.
+   */
+  const [billing, setBilling] = useState<{ canSell: boolean; status: string; message: string | null } | null>(null)
+
   /** Open while a void is being asked for: the reason, and a manager's PIN where one is needed. */
   const [voidAsk, setVoidAsk] = useState<{ reason: string; pin: string } | null>(null)
 
@@ -235,6 +277,22 @@ export default function TillPage() {
     registerTillDevice({ secret, name: guessDeviceName(), platform: guessPlatform() })
       .then((r) => { if (r.success && r.revoked) setDeviceRevoked({ name: r.name }) })
       .catch(() => {})
+  }, [])
+
+  // What the subscription says. A failure here never blocks the till.
+  useEffect(() => {
+    getTillBillingGate().then(setBilling).catch(() => {})
+  }, [])
+
+  // Which branch, where the business has more than one.
+  useEffect(() => {
+    getCurrentStore().then(setBranch).catch(() => {})
+  }, [])
+
+  // Whether this shop runs a points scheme at all. A shop that does not
+  // never sees any of it.
+  useEffect(() => {
+    getLoyaltySettings({}).then(setLoyalty).catch(() => {})
   }, [])
 
   // How this shop takes M-Pesa. Failing here leaves the payment screen as
@@ -320,11 +378,35 @@ export default function TillPage() {
   }
   const subtotal = useMemo(() => cart.reduce((a, l) => a + lineTotal(l), 0), [cart])
   const discountNum = Math.min(Number(saleDiscount || 0), subtotal)
-  const net = subtotal - discountNum
+
+  /**
+   * The bill, worked out in the same order the server works it out.
+   *
+   * Subtotal, then any discount, then points, then tax, then rounding. The
+   * order is not a detail: the server is the one that decides what is owed,
+   * and a screen that disagrees with it sends a cashier to collect the wrong
+   * amount. The points and the rounding were both missing here, so a sale
+   * where somebody spent points showed the full price on the payment screen
+   * while the server recorded the discounted one.
+   */
+  const headroom = subtotal - discountNum
+  const perPoint = loyalty?.shillingsPerPoint ?? 1
+  const wantedPoints = member ? Math.floor(Number(redeem || 0)) : 0
+  // Capped at what is left after any other discount, and what cannot be
+  // spent is not spent: charging somebody points that bought nothing is the
+  // worst possible rounding error.
+  const pointsDiscount = Math.min(wantedPoints * perPoint, headroom)
+  const spendablePoints = perPoint > 0 ? Math.floor(pointsDiscount / perPoint) : 0
+  const net = headroom - pointsDiscount
   const taxRate = state?.taxRate ?? 0
   const taxInclusive = state?.taxInclusive ?? true
   const tax = taxRate === 0 ? 0 : taxInclusive ? net - net / (1 + taxRate / 100) : net * (taxRate / 100)
-  const total = taxInclusive ? net : net + tax
+  const beforeRounding = taxInclusive ? net : net + tax
+  // Rounded DOWN, never up, like the server. Rounding up is the shop taking
+  // money nobody agreed to.
+  const roundingStep = state?.cashRounding ?? 0
+  const total = roundingStep > 0 ? Math.floor(beforeRounding / roundingStep) * roundingStep : beforeRounding
+  const roundingOff = beforeRounding - total
   const paid = payments.reduce((a, p) => a + Number(p.amount || 0), 0)
   const hasCash = payments.some((p) => p.method === "CASH")
   const change = hasCash ? Math.max(0, paid - total) : 0
@@ -443,6 +525,7 @@ export default function TillPage() {
     setCart([]); setSaleDiscount(""); setCustomerName(""); setPickVariantFor(null)
     setPayments([{ method: "CASH", amount: "", reference: "" }])
     setPrompts({}); setPromptPhone("")
+    setMember(null); setMemberQuery(""); setMemberHits([]); setRedeem(""); setJoinOpen(false); setJoinName("")
     setReceipt(null); setError(""); setCartOpen(false); setAgeConfirmed(false)
     setScanSerialsFor(null); setSerialDraft("")
     setBuyer({ name: "", idNumber: "", phone: "", prescriberName: "", prescriptionRef: "" })
@@ -504,6 +587,11 @@ export default function TillPage() {
       // Which counter. Goes into the offline queue with the rest of the
       // sale, so a sale that syncs tomorrow still says where it came from.
       ...(deviceSecret ? { deviceSecret } : {}),
+      // Who is collecting points, and how many they are spending. Both are
+      // requests: the server checks the balance and the shop's rules before
+      // either becomes money.
+      ...(member ? { posCustomerId: member.id } : {}),
+      ...(member && spendablePoints > 0 ? { redeemPoints: spendablePoints } : {}),
     }
 
     const r = await offline.submitSale(payload, { total, itemCount: cart.length })
@@ -580,6 +668,27 @@ export default function TillPage() {
       ...prev,
       [idx]: { checkoutId: r.checkoutId, phone: r.phone, state: "failed", message: "No answer from the phone. Ask them to try again, or take cash." },
     }))
+  }
+
+  /** Find the member by the number they read out. */
+  const lookupMember = async (q: string) => {
+    if (q.trim().length < 2) { setMemberHits([]); return }
+    setMemberSearching(true)
+    const hits = await findCustomerForTill({ query: q }).catch(() => [])
+    setMemberSearching(false)
+    setMemberHits(hits)
+  }
+
+  /** Sign somebody up at the counter, in one field. */
+  const joinMember = async () => {
+    setBusy(true); setError("")
+    const r = await saveCustomer({ name: joinName.trim(), phone: memberQuery.trim() })
+    setBusy(false)
+    if (!r.success) { setError(r.error); return }
+    const hits = await findCustomerForTill({ query: memberQuery }).catch(() => [])
+    const found = hits.find((h) => h.id === r.customerId) ?? hits[0] ?? null
+    setMember(found)
+    setJoinOpen(false); setJoinName(""); setMemberHits([])
   }
 
   const doSignIn = async (entered: string) => {
@@ -735,7 +844,17 @@ export default function TillPage() {
             </div>
           </div>
         )}
-        <TillReceipt receipt={receipt} onNewSale={clearSale} onVoid={busy || voidAsk ? undefined : doVoid} />
+        <TillReceipt
+          receipt={receipt}
+          onNewSale={clearSale}
+          onVoid={busy || voidAsk ? undefined : doVoid}
+          /* Printed on the slip so a customer can pay later or query the
+             payment, which is the commonest reason they bring it back. */
+          payTo={mpesa?.shortcode
+            ? (mpesa.shortcodeType === "TILL" ? "Buy Goods " : "Paybill ") + mpesa.shortcode +
+              (mpesa.shortcodeType !== "TILL" && mpesa.accountRef ? ", acct " + mpesa.accountRef : "")
+            : null}
+        />
       </div>
     )
   }
@@ -894,6 +1013,41 @@ export default function TillPage() {
 
   return (
     <div className="pb-28 lg:pb-4">
+      {/* ---- the subscription, where it is in the way ---------------------
+          Above everything, because a cashier who learns about this from a
+          refused sale learns it in front of a customer. The server refuses
+          regardless; this is the warning, not the rule. */}
+      {billing && billing.message && (
+        <div className={
+          billing.canSell
+            ? "border-b border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-900/20 px-3 py-2.5"
+            : "border-b border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 px-3 py-2.5"
+        }>
+          <div className="flex items-start gap-2 max-w-3xl mx-auto">
+            <AlertTriangle className={
+              billing.canSell
+                ? "w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5"
+                : "w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5"
+            } />
+            <div className="min-w-0 flex-1">
+              <p className={
+                billing.canSell
+                  ? "text-[11px] text-amber-800 dark:text-amber-300 leading-snug"
+                  : "text-[11px] text-red-700 dark:text-red-300 leading-snug"
+              }>
+                {billing.message}
+              </p>
+              <Link
+                href="/provider/till/subscription"
+                className="mt-1 inline-block text-[11px] font-semibold underline text-gray-700 dark:text-gray-200"
+              >
+                See the subscription
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ---- shift and takings bar ---------------------------------------- */}
       <div className="sticky top-0 z-20 border-b border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-900/95 backdrop-blur px-3 py-2">
         {/* Connection, stated before anything else. A cashier must never
@@ -966,6 +1120,18 @@ export default function TillPage() {
             <Clock className="w-3.5 h-3.5" />
             {state.shift ? "Shift open" : "No shift"}
           </button>
+          {/* The branch, and only where there is more than one to confuse.
+              A link rather than a label, because the reason to look at it is
+              usually that you are in the wrong one. */}
+          {branch && !branch.isOnlyOne && (
+            <Link
+              href="/provider/till/stores"
+              className="h-9 px-2.5 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 active:scale-95 transition-transform bg-primary/10 text-primary max-w-[9rem]"
+            >
+              <Store className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="truncate">{branch.name}</span>
+            </Link>
+          )}
           {/* Who the till thinks is serving. Shown rather than assumed: a
               cashier who walked away without signing out is the commonest way
               sales end up under the wrong name. */}
@@ -1360,11 +1526,20 @@ export default function TillPage() {
                       className="h-8 w-24 rounded-lg text-right tabular-nums text-xs"
                     />
                   </div>
+                  {pointsDiscount > 0 && (
+                    <Row
+                      label={spendablePoints + " point" + (spendablePoints === 1 ? "" : "s")}
+                      value={"-" + sh(pointsDiscount)}
+                    />
+                  )}
                   {taxRate > 0 && (
                     <Row
                       label={`Tax ${taxRate}%${taxInclusive ? " (included)" : ""}`}
                       value={sh(tax)}
                     />
+                  )}
+                  {roundingOff > 0 && (
+                    <Row label="Rounded down" value={"-" + sh(roundingOff)} />
                   )}
                   <div className="flex items-center justify-between pt-1.5 border-t border-gray-200 dark:border-gray-700">
                     <span className="text-xs font-bold text-gray-900 dark:text-white">Total</span>
@@ -1853,6 +2028,148 @@ export default function TillPage() {
                 </button>
               )}
 
+              {/* --- points -----------------------------------------------
+                  Only where the shop runs a scheme. Searched by phone,
+                  because that is the one thing a customer reliably knows
+                  about their own membership. */}
+              {loyalty?.enabled && (
+                <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-2.5">
+                  {member ? (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <Star className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-xs font-semibold text-gray-900 dark:text-white truncate">
+                            {member.name}
+                          </span>
+                          <span className="block text-[11px] text-gray-500 tabular-nums">
+                            {member.pointsBalance.toLocaleString("en-KE")} points
+                            {" · worth KSh "}{sh(member.pointsValue)}
+                          </span>
+                        </span>
+                        <button
+                          onClick={() => { setMember(null); setRedeem(""); setMemberQuery("") }}
+                          aria-label="Remove the customer from this sale"
+                          className="w-9 h-9 rounded-lg flex items-center justify-center text-gray-400 active:scale-95 flex-shrink-0"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {member.pointsBalance >= (loyalty.minRedeem || 0) && (
+                        <div className="mt-2">
+                          <label className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                            Spend points on this sale
+                          </label>
+                          <div className="mt-1 flex gap-2">
+                            <Input
+                              value={redeem}
+                              onChange={(e) => setRedeem(e.target.value.replace(/\D/g, ""))}
+                              inputMode="numeric"
+                              placeholder={"0 of " + member.pointsBalance}
+                              className="h-11 rounded-xl text-sm tabular-nums"
+                            />
+                            <button
+                              onClick={() => {
+                                // The most they can usefully spend: never
+                                // more than they hold, and never more than
+                                // the bill, because points that paid for
+                                // nothing are points thrown away. Measured
+                                // against the bill BEFORE points come off,
+                                // which is what they are being spent on.
+                                const worthPerPoint = loyalty.shillingsPerPoint || 1
+                                const capByBill = Math.floor(headroom / worthPerPoint)
+                                setRedeem(String(Math.max(0, Math.min(member.pointsBalance, capByBill))))
+                              }}
+                              className="h-11 px-3 rounded-xl border border-gray-200 dark:border-gray-700 text-[11px] font-semibold text-gray-600 dark:text-gray-300 active:scale-95 whitespace-nowrap"
+                            >
+                              Use max
+                            </button>
+                          </div>
+                          {Number(redeem || 0) > 0 && (
+                            <p className="mt-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
+                              Takes KSh {sh(Number(redeem) * (loyalty.shillingsPerPoint || 1))} off this sale.
+                            </p>
+                          )}
+                          <p className="mt-1 text-[11px] text-gray-400 leading-snug">
+                            {loyalty.minRedeem > 0
+                              ? "Spent " + loyalty.minRedeem + " at a time or more."
+                              : "Any amount."}
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  ) : joinOpen ? (
+                    <div className="space-y-2">
+                      <p className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                        Sign them up for points
+                      </p>
+                      <Input
+                        value={joinName}
+                        onChange={(e) => setJoinName(e.target.value)}
+                        placeholder="Their name"
+                        className="h-11 rounded-xl text-sm"
+                      />
+                      <p className="text-[11px] text-gray-500 tabular-nums">On {memberQuery}</p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => { setJoinOpen(false); setJoinName("") }}
+                          className="h-11 px-3 rounded-xl border border-gray-200 dark:border-gray-700 text-[11px] font-semibold text-gray-500 active:scale-95"
+                        >
+                          Cancel
+                        </button>
+                        <Button
+                          onClick={() => void joinMember()}
+                          disabled={busy || joinName.trim().length < 2}
+                          className="flex-1 h-11 rounded-xl text-xs"
+                        >
+                          {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : "Sign up and add"}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <label className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                        Points card
+                      </label>
+                      <div className="mt-1 flex gap-2">
+                        <Input
+                          value={memberQuery}
+                          onChange={(e) => { setMemberQuery(e.target.value); void lookupMember(e.target.value) }}
+                          inputMode="tel"
+                          placeholder="Their phone number"
+                          className="h-11 rounded-xl text-sm tabular-nums"
+                        />
+                        {memberSearching && <Loader2 className="w-4 h-4 animate-spin text-gray-400 self-center" />}
+                      </div>
+                      {memberHits.length > 0 && (
+                        <div className="mt-1.5 space-y-1">
+                          {memberHits.map((h) => (
+                            <button
+                              key={h.id}
+                              onClick={() => { setMember(h); setMemberHits([]) }}
+                              className="w-full flex items-center gap-2 p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-left active:scale-[0.99]"
+                            >
+                              <Star className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
+                              <span className="min-w-0 flex-1 text-xs text-gray-900 dark:text-white truncate">{h.name}</span>
+                              <span className="text-[11px] text-gray-400 tabular-nums flex-shrink-0">{h.pointsBalance} pts</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {memberQuery.replace(/\D/g, "").length >= 9 && memberHits.length === 0 && !memberSearching && (
+                        <button
+                          onClick={() => setJoinOpen(true)}
+                          className="mt-1.5 w-full h-11 rounded-xl border border-dashed border-gray-300 dark:border-gray-600 text-[11px] font-semibold text-gray-500 active:scale-[0.99]"
+                        >
+                          Not a member yet. Sign them up?
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+
               <Input
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
@@ -1900,6 +2217,16 @@ export default function TillPage() {
               )}
 
               <div className="rounded-xl bg-gray-50 dark:bg-gray-800/60 p-3 space-y-1">
+                {pointsDiscount > 0 && (
+                  <>
+                    <Row label="Before points" value={sh(headroom)} />
+                    <Row
+                      label={spendablePoints + " point" + (spendablePoints === 1 ? "" : "s") + " spent"}
+                      value={"-" + sh(pointsDiscount)}
+                    />
+                  </>
+                )}
+                {roundingOff > 0 && <Row label="Rounded down" value={"-" + sh(roundingOff)} />}
                 <Row label="Total" value={sh(total)} />
                 <Row label="Paid" value={sh(paid)} />
                 {asDeposit && canDeposit && paid > 0 ? (

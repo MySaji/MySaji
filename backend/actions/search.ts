@@ -4,6 +4,7 @@ import { db } from "@/backend/db"
 import { OFFER_ACTION_LABEL } from "@/backend/domain/offer-constants"
 import { distanceFrom, sortByDistance, toCoordinates } from "@/backend/domain/geo"
 import { getMyLocationOrigin } from "@/backend/actions/geo"
+import { PUBLIC_SHOP_WHERE, publicProductWhere } from "@/backend/domain/public-catalog"
 
 export type SearchProductResult = {
   id: string
@@ -78,7 +79,7 @@ export async function unifiedSearch(query: string): Promise<UnifiedSearchResult>
     Promise.all([
     db.product.findMany({
       where: {
-        isActive: true,
+        ...publicProductWhere(),
         OR: [{ name: { contains: q, mode: "insensitive" } }, { description: { contains: q, mode: "insensitive" } }],
       },
       include: { shopkeeper: { select: { shopName: true } } },
@@ -95,6 +96,7 @@ export async function unifiedSearch(query: string): Promise<UnifiedSearchResult>
     }),
     db.shopkeeperProfile.findMany({
       where: {
+        ...PUBLIC_SHOP_WHERE,
         OR: [
           { shopName: { contains: q, mode: "insensitive" } },
           { shopDescription: { contains: q, mode: "insensitive" } },

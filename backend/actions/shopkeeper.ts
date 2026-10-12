@@ -3,6 +3,7 @@
 import { z } from "zod"
 import { auth } from "@/backend/auth"
 import { db } from "@/backend/db"
+import { primaryShopOf } from "@/backend/services/shopkeeper-scope"
 import { markVerificationPending } from "@/backend/services/verification-gate"
 import { checkKycDuplicate, buildKycDedupeFields, KYC_DUPLICATE_ERROR } from "@/backend/services/kyc-duplicate-check"
 
@@ -46,14 +47,16 @@ export async function completeShopkeeperOnboarding(input: unknown): Promise<Comp
   }
 
   try {
-    const profile = await db.shopkeeperProfile.findUnique({ where: { userId } })
+    const profile = await primaryShopOf(userId)
     if (!profile) {
       return { success: false, error: "Shop profile not found for this account." }
     }
 
     await db.$transaction(async (tx) => {
       await tx.shopkeeperProfile.update({
-        where: { userId },
+        // By id, since an account may now hold more than one shop and this
+        // form is editing the one resolved above.
+        where: { id: profile.id },
         data: {
           shopName: data.shopName,
           shopCategory: data.shopCategory,

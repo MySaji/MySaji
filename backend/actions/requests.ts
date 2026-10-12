@@ -44,7 +44,9 @@ async function getResponderProfiles(): Promise<{
     where: { id: session.user.id },
     select: {
       providerProfile: { select: { id: true, categoryId: true } },
-      shopkeeperProfile: { select: { id: true } },
+      // Their main shop. A request board answers one shop, and a branch is
+      // not a separate seller.
+      shopkeeperProfiles: { select: { id: true }, orderBy: [{ createdAt: "asc" }, { id: "asc" }], take: 1 },
       proCapabilities: { where: { status: "ACTIVE" }, select: { type: true } },
     },
   })
@@ -68,8 +70,8 @@ async function getResponderProfiles(): Promise<{
     provider: user.providerProfile && offersServices
       ? { providerId: user.providerProfile.id, categoryId: user.providerProfile.categoryId }
       : null,
-    shop: user.shopkeeperProfile && sellsProducts
-      ? { shopkeeperId: user.shopkeeperProfile.id }
+    shop: user.shopkeeperProfiles[0] && sellsProducts
+      ? { shopkeeperId: user.shopkeeperProfiles[0].id }
       : null,
   }
 }

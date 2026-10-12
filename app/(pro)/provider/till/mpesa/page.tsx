@@ -250,6 +250,52 @@ export default function TillMpesaPage() {
           </div>
         )}
 
+        {/* The way out of the chicken and egg.
+            A prompt needs Daraja credentials, and nobody registers with
+            Safaricom for an app they have not watched work. This lets the
+            whole flow be walked through first, and says in as many words
+            that no money moves. */}
+        {cfg.demoAvailable && (
+          <button
+            type="button"
+            role="switch"
+            aria-checked={cfg.usingDemoCreds}
+            disabled={busy}
+            onClick={() => save({ useDemoCreds: !cfg.usingDemoCreds })}
+            className={`mt-3 w-full flex items-start gap-2.5 p-3 rounded-xl border text-left transition-all active:scale-[0.99] disabled:opacity-60 ${
+              cfg.usingDemoCreds
+                ? "border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20"
+                : "border-gray-200 dark:border-gray-700"
+            }`}
+          >
+            <span className={`mt-0.5 w-9 h-5 rounded-full flex-shrink-0 relative transition-colors ${
+              cfg.usingDemoCreds ? "bg-amber-500" : "bg-gray-300 dark:bg-gray-600"
+            }`}>
+              <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${cfg.usingDemoCreds ? "left-[18px]" : "left-0.5"}`} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-xs font-semibold text-gray-900 dark:text-white">
+                Try prompts without registering yet
+              </span>
+              <span className="block text-[11px] text-gray-600 dark:text-gray-300 leading-snug mt-0.5">
+                Sends a real prompt to a phone through Safaricom&apos;s test system, so you can see
+                exactly how it works before you apply for your own API details.
+              </span>
+              <span className="block text-[11px] font-semibold text-amber-800 dark:text-amber-400 leading-snug mt-1">
+                No money moves, and nothing reaches your paybill. For trying it out only.
+              </span>
+            </span>
+          </button>
+        )}
+
+        {cfg.usingDemoCreds && (
+          <p className="mt-2 flex items-start gap-1.5 text-[11px] text-amber-800 dark:text-amber-400 leading-snug">
+            <AlertTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+            Test prompts are on. Switch this off and add your own API details before you take real
+            money this way.
+          </p>
+        )}
+
         <button
           type="button"
           role="switch"

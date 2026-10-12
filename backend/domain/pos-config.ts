@@ -84,6 +84,31 @@ export const posConfigSchema = z.object({
    */
   taxRate: z.number().min(0).max(100).default(0),
   taxInclusive: z.boolean().default(true),
+
+  /**
+   * Points for shopping here, the way a Kenyan supermarket does it.
+   *
+   * Two rates, kept separate because they answer different questions and
+   * shops set them independently:
+   *
+   *   loyaltyPointsPerHundred  how fast points are earned
+   *   loyaltyShillingsPerPoint what a point is worth when spent
+   *
+   * The defaults give 1 point per KES 100 and 1 shilling per point, which
+   * is a 1% reward. A shop wanting 2% raises the earn rate rather than the
+   * redemption value, because customers compare "points per hundred" and
+   * quietly notice when a point buys less than it used to.
+   */
+  loyaltyEnabled: z.boolean().default(false),
+  loyaltyPointsPerHundred: z.number().min(0).max(100).default(1),
+  loyaltyShillingsPerPoint: z.number().min(0).max(1000).default(1),
+  /**
+   * Fewest points that may be spent at once.
+   *
+   * Not meanness: redeeming three points for three shillings costs a
+   * cashier more time than the discount is worth, and a queue forms.
+   */
+  loyaltyMinRedeem: z.number().int().min(0).max(100000).default(50),
 })
 
 export type PosConfig = z.infer<typeof posConfigSchema>

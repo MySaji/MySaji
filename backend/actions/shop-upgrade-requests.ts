@@ -130,7 +130,11 @@ export async function switchToShopkeeperAccount(): Promise<SwitchAccountResult> 
     return { success: false, error: "You must be signed in as a provider." }
   }
 
-  const user = await db.user.findUnique({ where: { id: session.user.id }, include: { shopkeeperProfile: true } })
+  const user = await db.user.findUnique({
+    where: { id: session.user.id },
+    // Whether they have a shop at all, which one branch is enough to answer.
+    include: { shopkeeperProfiles: { orderBy: [{ createdAt: "asc" }, { id: "asc" }], take: 1 } },
+  })
   if (!user || user.role !== "PROVIDER") return { success: false, error: "This account is no longer a provider." }
 
   // Already been through the one-time conversion before — just flip the
@@ -144,7 +148,7 @@ export async function switchToShopkeeperAccount(): Promise<SwitchAccountResult> 
   // registration banner now reads its own profile's isVerified directly
   // (see app/shopkeeper/layout.tsx). Same reasoning as switchActiveRole in
   // lib/actions/account-switch.ts.
-  if (user.shopkeeperProfile) {
+  if (user.shopkeeperProfiles.length > 0) {
     await db.user.update({
       where: { id: user.id },
       data: { role: "SHOPKEEPER" },
@@ -207,10 +211,13 @@ export async function getPortalSwitchEligibility(): Promise<PortalSwitchEligibil
 
   const user = await db.user.findUnique({
     where: { id: session.user.id },
-    select: { providerProfile: { select: { id: true } }, shopkeeperProfile: { select: { id: true } } },
+    select: {
+      providerProfile: { select: { id: true } },
+      shopkeeperProfiles: { select: { id: true }, take: 1 },
+    },
   })
   return {
-    canSwitchToShopkeeper: session.user.role === "provider" && !!user?.shopkeeperProfile,
+    canSwitchToShopkeeper: session.user.role === "provider" && (user?.shopkeeperProfiles.length ?? 0) > 0,
     canSwitchToProvider: session.user.role === "shopkeeper" && !!user?.providerProfile,
   }
 }

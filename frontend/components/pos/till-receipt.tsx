@@ -1,7 +1,11 @@
 "use client"
 
-import { Check, AlertTriangle, RotateCcw } from "lucide-react"
+import { useCallback, useEffect, useRef, useState } from "react"
+import { Check, AlertTriangle, RotateCcw, Printer, Loader2 } from "lucide-react"
 import type { Receipt } from "@/backend/actions/pos-sales"
+import {
+  printReceipt, autoPrintEnabled, setAutoPrint, type PrintableReceipt,
+} from "@/frontend/lib/receipt-print"
 
 /**
  * The receipt, on screen.
@@ -31,16 +35,84 @@ const METHOD_LABEL: Record<string, string> = {
   CASH: "Cash", MPESA: "M-Pesa", CARD: "Card", BANK: "Bank", CREDIT: "On credit", SPLIT: "Split",
 }
 
+/** What the printer needs, out of what the server returned. */
+function toPrintable(receipt: Receipt, payTo: string | null, copyLabel: string | null): PrintableReceipt {
+  return {
+    shopName: receipt.shopName,
+    header: receipt.header,
+    footer: receipt.footer,
+    taxPin: receipt.taxPin,
+    payTo,
+    saleNumber: receipt.saleNumber,
+    occurredAt: receipt.occurredAt,
+    cashierName: receipt.cashierName,
+    customerName: receipt.customerName,
+    lines: receipt.lines.map((l) => ({
+      name: l.name,
+      variantLabel: l.variantLabel,
+      quantity: Number(l.quantity),
+      unit: l.unit,
+      unitPrice: l.unitPrice,
+      lineTotal: l.totalPrice,
+    })),
+    subtotal: receipt.subtotal,
+    discount: receipt.discount,
+    tax: receipt.tax,
+    taxRate: receipt.taxRate,
+    total: receipt.total,
+    payments: receipt.payments.map((p) => ({ method: p.method, amount: p.amount, reference: p.reference })),
+    amountPaid: receipt.amountPaid,
+    change: receipt.changeGiven,
+    copyLabel,
+  }
+}
+
 export function TillReceipt({
   receipt,
   onNewSale,
   onVoid,
+  payTo = null,
 }: {
   receipt: Receipt
   onNewSale?: () => void
   onVoid?: () => void
+  /** "Paybill 400200, account DUKA01", printed so a customer can query it. */
+  payTo?: string | null
 }) {
   const when = new Date(receipt.occurredAt)
+
+  const [auto, setAuto] = useState(false)
+  const [printing, setPrinting] = useState(false)
+  const [printed, setPrinted] = useState(false)
+  const [printFailed, setPrintFailed] = useState(false)
+  // Guards the automatic print, which must happen once per sale and not
+  // again on every re-render. A till that reprints each time React updates
+  // would bury the counter in paper.
+  const autoDone = useRef<string | null>(null)
+
+  useEffect(() => { setAuto(autoPrintEnabled()) }, [])
+
+  const doPrint = useCallback(async (isCopy: boolean) => {
+    setPrinting(true)
+    setPrintFailed(false)
+    const ok = await printReceipt(toPrintable(receipt, payTo, isCopy ? "copy" : null))
+    setPrinting(false)
+    if (ok) setPrinted(true)
+    else setPrintFailed(true)
+  }, [receipt, payTo])
+
+  // Print the moment the sale lands, where this device has a printer.
+  //
+  // A replayed sale is NOT reprinted: that is the same sale arriving twice
+  // because a queued request went through, and the customer already has the
+  // slip. Printing again would suggest a second sale happened.
+  useEffect(() => {
+    if (!auto) return
+    if (receipt.replayed) return
+    if (autoDone.current === receipt.saleId) return
+    autoDone.current = receipt.saleId
+    void doPrint(false)
+  }, [auto, receipt.replayed, receipt.saleId, doPrint])
 
   return (
     <div className="mx-auto w-full max-w-sm">
@@ -177,6 +249,49 @@ export function TillReceipt({
           </p>
         )}
       </div>
+
+      {/* What the printer did, said out loud.
+          A cashier needs to know whether paper came out without having to
+          look at the machine, and needs a way to try again when it did not.
+          Silence here is how a customer leaves without a slip. */}
+      <div className="mt-2 flex items-center justify-between gap-2 px-1">
+        <span className="text-[11px] text-gray-500 dark:text-gray-400 leading-snug min-w-0 flex-1">
+          {printing
+            ? "Printing..."
+            : printFailed
+              ? "It did not print. Try the button."
+              : printed
+                ? "Printed."
+                : auto
+                  ? "Waiting for the printer..."
+                  : "Automatic printing is off for this device."}
+        </span>
+        <button
+          onClick={() => void doPrint(printed)}
+          disabled={printing}
+          aria-label={printed ? "Print another copy" : "Print the receipt"}
+          className={`h-11 px-3 rounded-xl border text-[11px] font-semibold inline-flex items-center gap-1.5 active:scale-95 disabled:opacity-50 flex-shrink-0 ${
+            printFailed
+              ? "border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-400"
+              : "border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300"
+          }`}
+        >
+          {printing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Printer className="w-3.5 h-3.5" />}
+          {printed ? "Print again" : "Print"}
+        </button>
+      </div>
+
+      <label className="mt-1.5 flex items-center gap-2 px-1 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={auto}
+          onChange={(e) => { setAuto(e.target.checked); setAutoPrint(e.target.checked) }}
+          className="w-4 h-4 rounded border-gray-300"
+        />
+        <span className="text-[11px] text-gray-500 dark:text-gray-400">
+          Print every sale automatically on this device
+        </span>
+      </label>
 
       <div className="mt-3 flex gap-2">
         {onNewSale && (

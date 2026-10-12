@@ -10,6 +10,7 @@ import {
 } from "@/backend/domain/geo"
 import { distanceKmSql, withinRadiusSql, noteSpatialFailure, noteSpatialSuccess, postgisUnavailable } from "@/backend/services/geo-sql"
 import { getMyLocationOrigin, resolveLocationOrigin } from "@/backend/actions/geo"
+import { PUBLIC_SHOP_WHERE } from "@/backend/domain/public-catalog"
 
 export type HomeServiceCategory = {
   id: string
@@ -99,7 +100,11 @@ async function topRatedShops(
 
   if (origin) {
     const near = await db.shopkeeperProfile.findMany({
-      where: { ...(exclude.length > 0 ? { id: { notIn: exclude } } : {}), ...proximityWhere(origin) },
+      where: {
+        ...PUBLIC_SHOP_WHERE,
+        ...(exclude.length > 0 ? { id: { notIn: exclude } } : {}),
+        ...proximityWhere(origin),
+      },
       orderBy: order,
       take: take * 4,
       include: SHOP_INCLUDE,
@@ -110,7 +115,7 @@ async function topRatedShops(
 
   if (shops.length < take) {
     const fill = await db.shopkeeperProfile.findMany({
-      where: exclude.length > 0 ? { id: { notIn: exclude } } : undefined,
+      where: { ...PUBLIC_SHOP_WHERE, ...(exclude.length > 0 ? { id: { notIn: exclude } } : {}) },
       orderBy: order,
       take: take - shops.length,
       include: SHOP_INCLUDE,
@@ -165,7 +170,10 @@ export async function getRecommendedShops(): Promise<HomeFeaturedShop[]> {
 
   let shops: HomeFeaturedShop[] = []
   if (rankedIds.length > 0) {
-    const rows = await db.shopkeeperProfile.findMany({ where: { id: { in: rankedIds } }, include: SHOP_INCLUDE })
+    const rows = await db.shopkeeperProfile.findMany({
+      where: { ...PUBLIC_SHOP_WHERE, id: { in: rankedIds } },
+      include: SHOP_INCLUDE,
+    })
     const byId = new Map(rows.map((r) => [r.id, r]))
     shops = rankedIds.map((id) => byId.get(id)).filter((r): r is ShopWithPromotions => Boolean(r)).map((shop) => mapShop(shop, origin))
   }
@@ -200,6 +208,7 @@ export async function getAllShops(options: ShopBrowseOptions = {}): Promise<Home
   // silently returning nothing.
   if (!origin || radiusKm == null) {
     const shops = await db.shopkeeperProfile.findMany({
+      where: PUBLIC_SHOP_WHERE,
       orderBy: [{ isFeatured: "desc" }, { rating: "desc" }],
       include: SHOP_INCLUDE,
     })
@@ -241,7 +250,7 @@ export async function getAllShops(options: ShopBrowseOptions = {}): Promise<Home
           ) AS "hasSale",
           ${distance} AS "distanceKm"
         FROM "shopkeeper_profiles" s
-        WHERE ${within}
+        WHERE s."listedOnMarketplace" = true AND ${within}
         ORDER BY ${distance} ASC
       `
       noteSpatialSuccess()
@@ -255,7 +264,7 @@ export async function getAllShops(options: ShopBrowseOptions = {}): Promise<Home
   // discard the bounding box's corners with an exact measurement in JS.
   // Same results as the query above, just more rows over the wire.
   const shops = await db.shopkeeperProfile.findMany({
-    where: boundingBoxWhere(boundingBox(origin.latitude, origin.longitude, radiusKm)),
+    where: { ...PUBLIC_SHOP_WHERE, ...boundingBoxWhere(boundingBox(origin.latitude, origin.longitude, radiusKm)) },
     orderBy: [{ isFeatured: "desc" }, { rating: "desc" }],
     include: SHOP_INCLUDE,
   })

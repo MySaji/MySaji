@@ -2,6 +2,7 @@
 
 import { auth } from "@/backend/auth"
 import { db } from "@/backend/db"
+import { primaryShopOf } from "@/backend/services/shopkeeper-scope"
 import { isVerifiedStatus } from "@/backend/domain/verification-capabilities"
 
 async function requireProviderProfile() {
@@ -123,7 +124,7 @@ export async function getProDashboardOverview(): Promise<ProDashboardOverview> {
   // should describe that shop rather than the service offers it was written
   // against. Null for an account with no shop, which is what lets the screen
   // keep its existing offer-derived behaviour untouched.
-  const shopProfile = await db.shopkeeperProfile.findUnique({ where: { userId: session.user.id } })
+  const shopProfile = await primaryShopOf(session.user.id)
   const shop = shopProfile
     ? await (async () => {
         const [shopProducts, productCount, newOrders] = await Promise.all([
