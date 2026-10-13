@@ -28,6 +28,9 @@ import type { FencedProvider, FencedShop } from "@/backend/actions/geofence"
  * centre, so the server fills one in from the request's IP geolocation
  * and this renders before the browser has been asked for permission.
  */
+/** An estate, a ward, a walk. Matches services/proximity.ts. */
+const NEIGHBOURHOOD_KM = 2
+
 export function NearYouSection() {
   const { t } = useLocalization()
   const [asMap, setAsMap] = useState(false)
@@ -56,6 +59,24 @@ export function NearYouSection() {
   const shops = data?.shops ?? []
   const nothing = !isLoading && providers.length === 0 && shops.length === 0
 
+  /**
+   * How far the closest thing actually is.
+   *
+   * One wide window is searched, which is right: it adapts to how dense the
+   * area happens to be. But "near you" over a list whose nearest entry is
+   * eleven kilometres away is a claim the page should not make, so the
+   * nearest distance decides what is said above the row.
+   *
+   * Judged on the CLOSEST result rather than the window, because the window
+   * is wide on purpose and a shop two streets away sitting at the top of it
+   * means the customer does have a local option whatever the window was.
+   */
+  const distances = [...providers, ...shops]
+    .map((r) => (r as { distanceKm?: number | null }).distanceKm)
+    .filter((d): d is number => typeof d === "number" && Number.isFinite(d))
+  const nearestKm = distances.length > 0 ? Math.min(...distances) : null
+  const beyondWalking = nearestKm != null && nearestKm > NEIGHBOURHOOD_KM
+
   return (
     <section className="space-y-4">
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -77,6 +98,21 @@ export function NearYouSection() {
         )}
       </div>
 
+      {/* Nothing in the estate. Said before the row rather than leaving the
+          customer to work it out from the distance on each card, because
+          somebody expecting a shop round the corner should learn otherwise
+          in one sentence. */}
+      {!isLoading && beyondWalking && (
+        <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 dark:border-amber-900/60 dark:bg-amber-950/20">
+          <MapPin className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+          <p className="text-[11px] leading-relaxed text-amber-900 dark:text-amber-200">
+            Nothing within {NEIGHBOURHOOD_KM} km of you right now. The closest is about{" "}
+            {nearestKm != null && nearestKm < 10 ? nearestKm.toFixed(1) : Math.round(nearestKm ?? 0)} km
+            away, so expect a wait or a trip.
+          </p>
+        </div>
+      )}
+
       {asMap ? (
         // Same rows as the list, so a pin on the map and a card in the
         // list always mean the same thing: this pro is online now, or this
@@ -94,6 +130,10 @@ export function NearYouSection() {
           <Store className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
           <p className="text-sm font-medium text-foreground">{t("nearby.noneAvailableAuto")}</p>
           <p className="mx-auto mt-1 max-w-sm text-xs text-muted-foreground">{t("nearby.noneAvailableHint")}</p>
+          <p className="mx-auto mt-2 max-w-sm text-xs text-muted-foreground">
+            Nobody is available around you at the moment. Browsing everyone will show providers
+            and shops further out, who can usually still come to you.
+          </p>
           <Link
             href="/customer/find-specialists"
             className="mt-3 inline-block rounded-lg border border-border px-3 py-1.5 text-[11px] font-semibold text-foreground transition-colors hover:bg-muted"

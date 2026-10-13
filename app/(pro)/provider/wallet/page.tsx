@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { WalletTopupMethods } from "@/frontend/components/payment/wallet-topup-methods"
 import {
   Wallet, ArrowUpRight, ArrowDownLeft, TrendingUp, Building2, Smartphone,
   ChevronRight, Clock, CheckCircle2, AlertCircle, Download, Filter,
@@ -38,6 +39,16 @@ export default function ProviderWalletPage() {
 
   const [isLoading, setIsLoading] = useState(true)
   const [summary, setSummary] = useState<ProviderWalletSummary>(null)
+  /**
+   * Settling the commission.
+   *
+   * The money goes into the same wallet the debt came out of, because the
+   * debt IS that balance: a provider owing 400 has a balance of -400, and
+   * paying 400 in makes it nought. So this is the ordinary top-up path with
+   * the amount filled in, not a second way of moving money that would have
+   * to be kept in step with the first.
+   */
+  const [settling, setSettling] = useState(false)
 
   const refresh = () => getProviderWalletSummary().then(setSummary)
 
@@ -143,6 +154,35 @@ export default function ProviderWalletPage() {
                     className={summary.canAcceptWork ? "h-full rounded-full bg-amber-500" : "h-full rounded-full bg-red-500"}
                     style={{ width: Math.min(100, Math.round((summary.commissionOwed / summary.commissionCap) * 100)) + "%" }}
                   />
+                </div>
+              )}
+
+              {!settling && (
+                <button
+                  onClick={() => setSettling(true)}
+                  className="mt-3 h-10 rounded-xl bg-gray-900 px-4 text-xs font-semibold text-white active:scale-95 dark:bg-white dark:text-gray-900"
+                >
+                  Pay {formatCurrency(summary.commissionOwed)} now
+                </button>
+              )}
+
+              {settling && (
+                <div className="mt-3 max-w-md">
+                  <p className="mb-2 text-xs text-gray-700 dark:text-gray-300">
+                    An M-Pesa request goes to your phone. Once you enter your PIN the amount comes
+                    off what you owe straight away.
+                  </p>
+                  <WalletTopupMethods
+                    amount={summary.commissionOwed}
+                    returnPath="/provider/wallet"
+                    onSuccess={() => { setSettling(false); void refresh() }}
+                  />
+                  <button
+                    onClick={() => setSettling(false)}
+                    className="mt-2 text-xs text-gray-500 underline"
+                  >
+                    Not now
+                  </button>
                 </div>
               )}
             </div>
