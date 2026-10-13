@@ -29,6 +29,7 @@ export type PosProfileGroup =
   | "trade"
   | "health"
   | "general"
+  | "service"
 
 export const POS_PROFILE_GROUP_LABEL: Record<PosProfileGroup, string> = {
   food: "Food & fresh produce",
@@ -38,6 +39,7 @@ export const POS_PROFILE_GROUP_LABEL: Record<PosProfileGroup, string> = {
   trade: "Trade, building & motor",
   health: "Health & agriculture",
   general: "General retail",
+  service: "Services & hospitality",
 }
 
 export type PosProfile = {
@@ -141,6 +143,32 @@ export const POS_PROFILES: PosProfile[] = [
     traits: ["VARIANTS", "OPEN_PRICE"], defaultUnit: "piece", icon: "Gift" },
   { key: "SPORTS", label: "Sports equipment", description: "Kit and gear by size", group: "general",
     traits: ["VARIANTS"], defaultUnit: "piece", icon: "Dumbbell" },
+  // --- Services & hospitality ---
+  //
+  // The trades the catalogue had none of. Four of them share one shape:
+  // something is left with the shop, work happens to it, the customer comes
+  // back for it. That shape is the JOB_CARD trait, not four codebases.
+  { key: "GARAGE", label: "Garage & mechanics", description: "Vehicles booked in, parts fitted, labour charged", group: "service",
+    traits: ["SERVICE", "JOB_CARD", "FITMENT", "OPEN_PRICE"], defaultUnit: "piece", icon: "Wrench" },
+  { key: "REPAIR", label: "Repair shop", description: "Phones and electronics taken in, diagnosed and fixed", group: "service",
+    traits: ["SERVICE", "JOB_CARD", "SERIALISED", "OPEN_PRICE"], defaultUnit: "piece", icon: "Hammer" },
+  { key: "LAUNDRY", label: "Laundry & dry cleaning", description: "Garments tagged in, cleaned and collected", group: "service",
+    traits: ["SERVICE", "JOB_CARD", "MEASURED"], defaultUnit: "piece", icon: "Shirt" },
+  { key: "CARWASH", label: "Car wash & detailing", description: "Vehicles washed while the customer waits, or left with you", group: "service",
+    traits: ["SERVICE", "JOB_CARD"], defaultUnit: "piece", icon: "Droplets" },
+  { key: "SALON", label: "Salon, barber & spa", description: "Treatments by appointment, products sold alongside", group: "service",
+    traits: ["SERVICE", "VARIANTS", "OPEN_PRICE"], defaultUnit: "piece", icon: "Scissors" },
+  { key: "RESTAURANT", label: "Restaurant & cafe", description: "Food cooked to order, eaten in or taken away", group: "service",
+    traits: ["SERVICE", "MEASURED", "WASTAGE", "OPEN_PRICE"], defaultUnit: "piece", icon: "UtensilsCrossed" },
+  { key: "HOTEL", label: "Hotel & lodge", description: "Rooms by the night, with food and drinks charged on", group: "service",
+    traits: ["SERVICE", "VARIANTS", "OPEN_PRICE"], defaultUnit: "piece", icon: "BedDouble" },
+  { key: "RENTAL", label: "Rental & hire", description: "Equipment hired out by the day and brought back", group: "service",
+    traits: ["SERVICE", "JOB_CARD", "SERIALISED", "OPEN_PRICE"], defaultUnit: "piece", icon: "CalendarClock" },
+  { key: "FUEL", label: "Fuel station", description: "Fuel by the litre, with a shop alongside", group: "service",
+    traits: ["MEASURED", "WASTAGE"], defaultUnit: "l", icon: "Fuel" },
+  { key: "FARM", label: "Farm & produce collection", description: "Produce taken in from farmers, graded and weighed", group: "service",
+    traits: ["MEASURED", "WASTAGE", "OPEN_PRICE", "BULK_BREAK"], defaultUnit: "kg", icon: "Tractor" },
+
   { key: "WHOLESALE_COSMETICS", label: "Cosmetics wholesale", description: "Sold by carton to retailers, broken down on request", group: "general",
     traits: ["VARIANTS", "BATCH_EXPIRY", "BULK_BREAK"], defaultUnit: "crate", icon: "Boxes" },
 ]

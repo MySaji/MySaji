@@ -151,6 +151,8 @@ export type TillProduct = {
   fitsWith: string[]
   /** Whether each unit of this product is tracked by serial or IMEI. */
   tracksSerials: boolean
+  /** Work rather than goods: sellable with no stock behind it. */
+  isService: boolean
   /** Must be written into the controlled register when sold. */
   controlled: boolean
   /** Ordered now, handed over later. */
@@ -350,7 +352,7 @@ export async function findTillProducts(input: unknown): Promise<TillProduct[]> {
 
   const select = {
     id: true, name: true, sku: true, barcode: true, unit: true, images: true,
-    price: true, discountPrice: true, hasVariants: true, ageRestricted: true, fitsWith: true, tracksSerials: true, controlled: true, madeToOrder: true,
+    price: true, discountPrice: true, hasVariants: true, ageRestricted: true, fitsWith: true, tracksSerials: true, controlled: true, madeToOrder: true, isService: true,
     category: { select: { name: true } },
     inventory: { select: { currentStock: true, stockOnHand: true } },
     variants: {
@@ -437,6 +439,7 @@ export async function findTillProducts(input: unknown): Promise<TillProduct[]> {
     ageRestricted: p.ageRestricted,
     fitsWith: p.fitsWith,
     tracksSerials: p.tracksSerials,
+    isService: p.isService,
     controlled: p.controlled,
     madeToOrder: p.madeToOrder,
     variants: p.variants.map((v) => ({
@@ -804,7 +807,7 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
     select: {
       id: true, name: true, sku: true, barcode: true, unit: true,
       price: true, discountPrice: true, costPrice: true, hasVariants: true, tracksBatches: true,
-      ageRestricted: true, tracksSerials: true, controlled: true, madeToOrder: true,
+      ageRestricted: true, tracksSerials: true, controlled: true, madeToOrder: true, isService: true,
     },
   })
   const byId = new Map(products.map((p) => [p.id, p]))
@@ -871,6 +874,8 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
     costAtSale: Prisma.Decimal | null
     priceOverridden: boolean
     notes: string | null
+    /** Work rather than goods, so the ledger is left alone for this line. */
+    isService: boolean
   }
 
   const priced: PricedLine[] = []
@@ -1038,6 +1043,7 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
       variantId: variant?.id ?? null,
       variantLabel: variant?.label ?? null,
       allocations,
+      isService: product.isService,
       serialIds,
       serialNumbers,
       name: product.name,
@@ -1119,6 +1125,43 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
     // A customer id from another shop is ignored rather than refused: the
     // sale is real and the queue is waiting. They simply earn nothing.
     if (found) loyaltyCustomer = found
+  }
+
+  // ---- selling on the book ----------------------------------------------
+  //
+  // CREDIT used to be a label on a payment with nothing behind it: any
+  // amount, to anybody, with no record of who owed what. A credit sale now
+  // needs a named customer with a limit, and the charge is written inside the
+  // same transaction as the sale. If the two could come apart, the shop would
+  // hand over goods with no record of the debt, which is the exact failure
+  // this was built to end.
+  const creditAmount = body.payments
+    .filter((p) => p.method === "CREDIT")
+    .reduce((a, p) => a.plus(D(p.amount)), D(0))
+
+  let creditCustomer: { id: string; name: string; creditLimit: Prisma.Decimal; creditBalance: Prisma.Decimal; creditTermDays: number } | null = null
+
+  if (creditAmount.greaterThan(0)) {
+    if (!body.posCustomerId) {
+      return { success: false, error: "A sale on the book needs a named customer. Pick one, or take payment another way." }
+    }
+    const found = await db.posCustomer.findFirst({
+      where: { id: body.posCustomerId, shopkeeperId: till.shopkeeperId, isActive: true },
+      select: { id: true, name: true, creditLimit: true, creditBalance: true, creditTermDays: true },
+    })
+    if (!found) return { success: false, error: "That customer was not found in this shop." }
+    if (D(found.creditLimit).isZero()) {
+      return { success: false, error: found.name + " is not set up for credit. Set a limit on their account first." }
+    }
+    const after = D(found.creditBalance).plus(creditAmount)
+    if (after.greaterThan(D(found.creditLimit))) {
+      return {
+        success: false,
+        error: found.name + " can take " + D(found.creditLimit).minus(found.creditBalance).toFixed(2) +
+          " more on the book, not " + creditAmount.toFixed(2) + ".",
+      }
+    }
+    creditCustomer = found
   }
 
   if (loyaltyCustomer && body.redeemPoints && body.redeemPoints > 0) {
@@ -1327,7 +1370,10 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
             ageVerified,
             customerName: body.customerName?.trim() || loyaltyCustomer?.name || null,
             customerPhone: body.customerPhone?.trim() || null,
-            posCustomerId: loyaltyCustomer?.id ?? null,
+            // Falls back to the credit customer: loyalty can be switched
+            // off while credit is in use, and a credit sale with no customer
+            // on it cannot be traced back from the statement.
+            posCustomerId: loyaltyCustomer?.id ?? creditCustomer?.id ?? null,
             idempotencyKey: body.idempotencyKey,
             deviceId,
             occurredAt,
@@ -1397,6 +1443,11 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
           // The idempotency key gains the allocation index, so a replayed
           // sale replays each piece to its own key and the ledger refuses
           // them individually too.
+          // Work never touches the stock ledger: there is nothing to take
+          // out, and posting a movement for it would invent a negative
+          // balance for a product that has no balance.
+          if (l.isService) continue
+
           const pieces = l.allocations.length > 0
             ? l.allocations.map((a, j) => ({ batchId: a.batchId, quantity: a.quantity, suffix: `L${i}B${j}` }))
             : [{ batchId: null as string | null, quantity: l.quantity, suffix: `L${i}` }]
@@ -1577,6 +1628,37 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
               visits: { increment: 1 },
               lastSeenAt: occurredAt,
             },
+          })
+        }
+
+        // ---- the debt, in the same transaction as the sale ---------------
+        //
+        // Written here rather than afterwards on purpose. A sale that commits
+        // while the charge fails means goods left the shop with no record of
+        // who owes for them, and the balance the till checks limits against
+        // would start lying. Either both happen or neither does.
+        if (creditCustomer && creditAmount.greaterThan(0)) {
+          const after = D(creditCustomer.creditBalance).plus(creditAmount)
+          const dueOn = new Date(occurredAt)
+          dueOn.setDate(dueOn.getDate() + creditCustomer.creditTermDays)
+
+          await tx.posCreditEntry.create({
+            data: {
+              shopkeeperId: till.shopkeeperId,
+              posCustomerId: creditCustomer.id,
+              kind: "CHARGE",
+              amount: creditAmount,
+              balanceAfter: after,
+              posSaleId: sale.id,
+              dueOn,
+              actorUserId: till.userId,
+              actorName: till.userName,
+              occurredAt,
+            },
+          })
+          await tx.posCustomer.update({
+            where: { id: creditCustomer.id },
+            data: { creditBalance: after },
           })
         }
 

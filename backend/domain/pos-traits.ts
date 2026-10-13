@@ -41,6 +41,8 @@ export const POS_TRAITS = [
   "BULK_BREAK",
   "WASTAGE",
   "OPEN_PRICE",
+  "SERVICE",
+  "JOB_CARD",
 ] as const
 
 export type PosTrait = (typeof POS_TRAITS)[number]
@@ -138,6 +140,20 @@ export const POS_TRAIT_META: Record<PosTrait, PosTraitMeta> = {
     question: "Is the price agreed at the counter?",
     effect: "A line can be rung up with a price typed in rather than a fixed one",
     icon: "Pencil",
+    stage: "live",
+  },
+  SERVICE: {
+    label: "Sell work, not only goods",
+    question: "Do you charge for labour, time or a treatment?",
+    effect: "A product can be marked as work, and the till sells it without asking about stock",
+    icon: "Wrench",
+    stage: "live",
+  },
+  JOB_CARD: {
+    label: "Take work in and give it back",
+    question: "Do customers leave things with you to be worked on?",
+    effect: "Jobs are booked in with a ticket number, tracked to ready, and rung up on collection",
+    icon: "ClipboardList",
     stage: "live",
   },
 }

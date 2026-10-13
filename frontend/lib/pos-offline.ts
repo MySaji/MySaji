@@ -107,6 +107,9 @@ export type CachedProduct = {
   ageRestricted: boolean
   fitsWith: string[]
   tracksSerials: boolean
+  /** Work rather than goods. Cached too, or an offline till would refuse to
+   *  sell a service for being out of a stock it never had. */
+  isService: boolean
   controlled: boolean
   madeToOrder: boolean
   variants: CachedVariant[]

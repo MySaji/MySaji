@@ -10,7 +10,11 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/fronten
 // Signed-in staff/portal users are already deep in their own dashboard —
 // a "subscribe to our newsletter" nudge doesn't make sense there, only on
 // the public marketing site and other unauthenticated pages.
-const PORTAL_PREFIXES = ['/customer', '/provider', '/shopkeeper', '/admin', '/sub-admin', '/agent', '/secretary']
+// '/till-display' is not a portal but the second monitor at a shop counter,
+// turned towards the queue. Whoever is standing in front of it is a
+// stranger buying sugar, not a visitor to be signed up to a newsletter,
+// and the screen is not theirs to interact with at all.
+const PORTAL_PREFIXES = ['/customer', '/provider', '/shopkeeper', '/admin', '/sub-admin', '/agent', '/secretary', '/till-display']
 
 const DEVICE_ID_KEY = 'saji_device_id'
 const SUBSCRIBED_KEY = 'saji_subscribed_email'

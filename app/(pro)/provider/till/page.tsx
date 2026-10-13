@@ -3,10 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import {
-  Calculator, Loader2, Search, Plus, Minus, Trash2, X, ArrowRight, ArrowLeft,
-  SlidersHorizontal, Package, AlertTriangle, Clock, Banknote, Smartphone,
-  CreditCard, Landmark, HandCoins, ShoppingCart, CloudOff, RefreshCw, Check, FileLock, Hammer,
-  User, ShieldCheck, LogOut, Delete, Camera, Star, Store,
+  AlertTriangle, ArrowLeft, ArrowRight, Banknote, Calculator, Camera, Check, Clock, CloudOff, CreditCard, Delete, FileLock, Hammer, HandCoins, Landmark, Loader2, LogOut, Maximize, Minimize, Minus, MonitorPlay, Package, Plus, RefreshCw, Search, ShieldCheck, ShoppingCart, SlidersHorizontal, Smartphone, Star, Store, Trash2, User, X,
 } from "lucide-react"
 import { Card } from "@/frontend/components/ui/card"
 import { Button } from "@/frontend/components/ui/button"
@@ -25,6 +22,9 @@ import {
 import { getCurrentStore } from "@/backend/actions/pos-stores"
 import { getTillBillingGate } from "@/backend/actions/pos-billing-shop"
 import { useScannerKeys } from "@/frontend/lib/hooks/useScannerKeys"
+import {
+  createDisplayPublisher, openCustomerDisplay, type DisplayState,
+} from "@/frontend/lib/pos/customer-display"
 import { getDeviceSecret, guessDeviceName, guessPlatform } from "@/frontend/lib/pos-device"
 import { TillReceipt } from "@/frontend/components/pos/till-receipt"
 import { TillInstall } from "@/frontend/components/pos/till-install"
@@ -582,6 +582,93 @@ export default function TillPage() {
     searchRef.current?.focus()
   }
 
+  // ---- counter machine controls ------------------------------------------
+  //
+  // Only ever shown on a wide screen. A phone has no second monitor to drive
+  // and no chrome worth hiding, so offering either there is noise.
+  const [fullscreen, setFullscreen] = useState(false)
+  useEffect(() => {
+    const onChange = () => {
+      const on = !!document.fullscreenElement
+      setFullscreen(on)
+      // Tells the portal shell to get out of the way. The rules live in
+      // globals.css so the sidebar and topbar need no knowledge of the till.
+      if (on) document.documentElement.setAttribute("data-till-kiosk", "on")
+      else document.documentElement.removeAttribute("data-till-kiosk")
+    }
+    document.addEventListener("fullscreenchange", onChange)
+    // Leaving the till while still in full screen would otherwise strand the
+    // rest of the portal with no navigation.
+    return () => {
+      document.removeEventListener("fullscreenchange", onChange)
+      document.documentElement.removeAttribute("data-till-kiosk")
+    }
+  }, [])
+
+  const toggleFullscreen = () => {
+    // Both calls need a user gesture and both reject rather than throw when
+    // the browser or an administrator has disallowed it, so neither is awaited
+    // into an unhandled rejection.
+    if (document.fullscreenElement) void document.exitFullscreen().catch(() => {})
+    else void document.documentElement.requestFullscreen().catch(() => {})
+  }
+
+  // Keys a counter cashier can reach without looking down.
+  //
+  // F2/F4/F8 only. F1, F3, F5, F11 and F12 are claimed by the browser itself
+  // and cannot be reliably taken back, and anything on a plain letter would
+  // collide with the barcode wedge, which types its digits straight into the
+  // window (see useScannerKeys).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "F2") { e.preventDefault(); searchRef.current?.focus(); searchRef.current?.select() }
+      else if (e.key === "F4") { e.preventDefault(); toggleFullscreen() }
+      else if (e.key === "F8") { e.preventDefault(); void openCustomerDisplay() }
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [])
+
+  // ---- the screen the customer reads --------------------------------------
+  //
+  // A counter machine drives two monitors. Everything the customer sees is
+  // derived here from the same figures the cashier is looking at, so the two
+  // screens cannot disagree: there is no second calculation to drift.
+  const displayState: DisplayState = useMemo(() => {
+    const shopName = state?.shopName ?? "Saji"
+    // The receipt view means the drawer has opened. Hold the total and the
+    // change until the cashier starts the next sale, because that is exactly
+    // when the customer wants to check it.
+    if (view === "receipt") return { kind: "paid", shopName, total, paid, change }
+    if (cart.length === 0) return { kind: "idle", shopName }
+    return {
+      kind: "sale",
+      shopName,
+      lines: cart.map((l) => ({
+        id: lineKey(l.product.id, l.variant?.id ?? null),
+        name: l.product.name,
+        variant: l.variant?.label ?? null,
+        quantity: Number(l.quantity || 0),
+        unit: l.product.unit,
+        unitPrice: l.unitPriceOverride ?? l.variant?.price ?? l.product.price,
+        total: lineTotal(l),
+      })),
+      subtotal,
+      discount: discountNum,
+      points: pointsDiscount,
+      tax,
+      total,
+    }
+  }, [view, cart, state?.shopName, subtotal, discountNum, pointsDiscount, tax, total, paid, change])
+
+  const displayRef = useRef<ReturnType<typeof createDisplayPublisher> | null>(null)
+  useEffect(() => {
+    const pub = createDisplayPublisher()
+    displayRef.current = pub
+    return () => { pub.close(); displayRef.current = null }
+  }, [])
+  useEffect(() => { displayRef.current?.publish(displayState) }, [displayState])
+
   // ---- submitting ---------------------------------------------------------
   const takePayment = async () => {
     setBusy(true); setError("")
@@ -1096,7 +1183,7 @@ export default function TillPage() {
         {/* Connection, stated before anything else. A cashier must never
             have to infer it from a sale failing. */}
         {(offline.connection === "offline" || offline.pendingCount > 0 || offline.failedCount > 0 || (state?.openDeposits ?? 0) > 0) && (
-          <div className="max-w-5xl mx-auto mb-2 flex flex-wrap items-center gap-1.5">
+          <div className="max-w-5xl xl:max-w-[1600px] mx-auto mb-2 flex flex-wrap items-center gap-1.5">
             {offline.connection === "offline" && (
               <span className="inline-flex items-center gap-1.5 h-7 px-2 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 text-[11px] font-semibold">
                 <CloudOff className="w-3 h-3" /> No connection. Sales are saved here
@@ -1139,7 +1226,7 @@ export default function TillPage() {
           </div>
         )}
 
-        <div className="flex items-center gap-2 max-w-5xl mx-auto">
+        <div className="flex items-center gap-2 max-w-5xl xl:max-w-[1600px] mx-auto">
           <div className="min-w-0 flex-1">
             <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">{state.shopName}</p>
             <p className="text-sm font-bold text-gray-900 dark:text-white tabular-nums">
@@ -1162,6 +1249,25 @@ export default function TillPage() {
           >
             <Clock className="w-3.5 h-3.5" />
             {state.shift ? "Shift open" : "No shift"}
+          </button>
+
+          {/* Counter machine only. Hidden below xl for the same reason the
+              wide layout starts there: that is where a till stops being a
+              phone in someone's hand and becomes a monitor on a counter. */}
+          <button
+            onClick={() => void openCustomerDisplay()}
+            title="Customer screen (F8)"
+            className="hidden xl:flex h-9 px-2.5 rounded-lg text-[11px] font-semibold items-center gap-1.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 active:scale-95 transition-transform"
+          >
+            <MonitorPlay className="w-3.5 h-3.5" /> Customer screen
+          </button>
+          <button
+            onClick={toggleFullscreen}
+            title={fullscreen ? "Leave full screen (F4)" : "Full screen (F4)"}
+            aria-label={fullscreen ? "Leave full screen" : "Full screen"}
+            className="hidden xl:flex h-9 w-9 rounded-lg items-center justify-center bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 active:scale-95 transition-transform"
+          >
+            {fullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
           </button>
           {/* The branch, and only where there is more than one to confuse.
               A link rather than a label, because the reason to look at it is
@@ -1196,7 +1302,7 @@ export default function TillPage() {
         </div>
 
         {showShift && (
-          <div className="max-w-5xl mx-auto mt-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 p-3">
+          <div className="max-w-5xl xl:max-w-[1600px] mx-auto mt-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 p-3">
             {state.shift ? (
               <>
                 <div className="grid grid-cols-3 gap-2 text-center">
@@ -1255,7 +1361,7 @@ export default function TillPage() {
         )}
 
         {closeSummary && (
-          <div className={`max-w-5xl mx-auto mt-2 rounded-xl border p-3 ${
+          <div className={`max-w-5xl xl:max-w-[1600px] mx-auto mt-2 rounded-xl border p-3 ${
             closeSummary.variance === 0
               ? "border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20"
               : "border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/10"
@@ -1273,7 +1379,7 @@ export default function TillPage() {
         )}
       </div>
 
-      <div className="max-w-5xl mx-auto p-3 lg:grid lg:grid-cols-[1fr_360px] lg:gap-4 lg:items-start">
+      <div className="max-w-5xl xl:max-w-[1600px] mx-auto p-3 lg:grid lg:grid-cols-[1fr_360px] xl:grid-cols-[1fr_440px] lg:gap-4 xl:gap-6 lg:items-start">
         {/* ---- catalogue -------------------------------------------------- */}
         <div>
           <div className="relative flex gap-2">
@@ -1362,16 +1468,22 @@ export default function TillPage() {
               cashier could see six products at a time, so finding anything
               meant scrolling mid-queue. Two columns roughly doubles what is
               reachable without a scroll, and the tiles are still comfortably
-              above the 32px tap floor. */}
-          <div className="mt-3 grid grid-cols-2 lg:grid-cols-3 gap-2">
+              above the 32px tap floor.
+
+              Four and five columns on a counter monitor, for the same reason
+              in reverse: at 1280 and 1920 a three-column grid left half the
+              screen empty and still made the cashier scroll. */}
+          <div className="mt-3 grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 xl:gap-3">
             {results.map((p) => {
               const inCart = cart.find((l) => l.product.id === p.id)
-              const out = p.stock <= 0
+              // Work has no stock to be out of. A garage whose "fit a
+              // filter, 1 hour" tile is greyed out cannot sell its labour.
+              const out = !p.isService && p.stock <= 0
               return (
                 <button
                   key={p.id}
                   onClick={() => addProduct(p)}
-                  className={`relative text-left p-2.5 rounded-xl border min-h-[72px] active:scale-[0.98] transition-all ${
+                  className={`relative text-left p-2.5 xl:p-3.5 rounded-xl border min-h-[72px] xl:min-h-[104px] active:scale-[0.98] transition-all ${
                     inCart
                       ? "border-primary bg-primary/5"
                       : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-primary/50"
@@ -1386,7 +1498,7 @@ export default function TillPage() {
                       a grey placeholder, so a catalogue that was never
                       photographed does not end up looking broken. */}
                   {p.image && (
-                    <span className="float-right ml-2 mb-1 w-11 h-11 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 block">
+                    <span className="float-right ml-2 mb-1 w-11 h-11 xl:w-14 xl:h-14 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 block">
                       <img
                         src={p.image}
                         alt=""

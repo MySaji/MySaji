@@ -84,7 +84,7 @@ export default function ProviderTopbar({ onMenuClick }: { onMenuClick: () => voi
   }
 
   return (
-    <header className="sticky top-0 z-40 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border-b border-gray-200 dark:border-gray-700">
+    <header data-pro-chrome="topbar" className="sticky top-0 z-40 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border-b border-gray-200 dark:border-gray-700">
       <div className="flex items-center justify-between h-16 px-4 lg:px-6 gap-3">
         {/* Mobile menu trigger */}
         <button

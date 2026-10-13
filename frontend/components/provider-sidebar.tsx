@@ -242,6 +242,7 @@ export default function ProviderSidebar({ isOpen, onClose, isCollapsed, onToggle
     <>
       {/* Desktop Sidebar */}
       <aside
+        data-pro-chrome="sidebar"
         className={`${
           isOpen ? "translate-x-0" : "-translate-x-full"
         } lg:translate-x-0 fixed left-0 top-0 ${isCollapsed ? "lg:w-20" : "lg:w-64"} w-64 h-dvh bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-[transform,width] duration-300 z-50 flex flex-col`}

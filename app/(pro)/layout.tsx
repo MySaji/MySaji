@@ -115,7 +115,7 @@ export default function SajiProLayout({ children }: { children: React.ReactNode 
       <FloatingChatButton />
 
       {/* Main Content */}
-      <div className={isCollapsed ? "lg:pl-20" : "lg:pl-64"}>
+      <div data-pro-chrome="main" className={isCollapsed ? "lg:pl-20" : "lg:pl-64"}>
         <ProviderTopbar onMenuClick={() => setMobileNavOpen(true)} />
         {/* pb-36 / lg:pb-24 reserve the floating chat button's footprint as
             well as the bottom nav's; see app/customer/layout.tsx.

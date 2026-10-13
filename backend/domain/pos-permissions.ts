@@ -68,10 +68,16 @@ export const POS_PERMISSIONS = [
   "till.discount",
   "till.open_shift",
   "till.close_shift",
+  /// Money into or out of the drawer that is not a sale.
+  "till.cash_in_out",
   // goods
   "stock.view",
   "stock.adjust",
   "stock.count",
+  /// Posting a count's variances to the ledger, which is the step that
+  /// actually changes stock. Kept apart from "stock.count" so that counting
+  /// and approving can be two people.
+  "stock.count_approve",
   "stock.receive",
   "stock.write_off",
   "product.view",
@@ -106,7 +112,8 @@ const ALL: PosPermission[] = [...POS_PERMISSIONS]
 
 const MANAGER: PosPermission[] = [
   "till.sell", "till.void", "till.refund", "till.discount", "till.open_shift", "till.close_shift",
-  "stock.view", "stock.adjust", "stock.count", "stock.receive", "stock.write_off",
+  "till.cash_in_out",
+  "stock.view", "stock.adjust", "stock.count", "stock.count_approve", "stock.receive", "stock.write_off",
   "product.view", "product.create", "product.edit", "product.price",
   "supplier.view", "supplier.manage",
   "purchase.view", "purchase.create", "purchase.approve",
@@ -119,6 +126,13 @@ const MANAGER: PosPermission[] = [
 const CASHIER: PosPermission[] = [
   "till.sell",
   "till.open_shift", "till.close_shift",
+  // Granted, unlike till.void. The cashier is the one holding the drawer
+  // when the boda wants paying, and the choice is not between them doing it
+  // and not doing it: it is between a movement with their name and a reason
+  // on it, and money leaving with no record at all. Recorded beats forbidden
+  // here, which is the opposite of the void case above, where refusing
+  // simply means the sale stands.
+  "till.cash_in_out",
   // Looking up what is on the shelf is most of answering a customer.
   "stock.view", "product.view",
   // Deliberately absent: till.void, till.discount, till.refund, every report,
@@ -129,6 +143,9 @@ const CASHIER: PosPermission[] = [
 const STOCK_CONTROLLER: PosPermission[] = [
   "stock.view", "stock.adjust", "stock.count", "stock.receive", "stock.write_off",
   "product.view", "product.create", "product.edit",
+  // Not stock.count_approve: counting your own shelf and then signing off
+  // the shrinkage you found is the separation of duties this role exists to
+  // keep. A manager or the owner approves.
   "supplier.view", "supplier.manage",
   "purchase.view", "purchase.create",
   "report.stock",

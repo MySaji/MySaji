@@ -377,3 +377,23 @@
 @layer utilities {
   /* Utility classes */
 }
+
+/* ---------------------------------------------------------------------
+   Kiosk: the till taking over a counter monitor.
+
+   A counter machine is not a laptop someone is also answering mail on. The
+   portal sidebar costs 256px of a 1280px monitor, which is a fifth of the
+   screen given to navigation a cashier never uses mid-queue, so full screen
+   on the till hides the chrome rather than merely removing the browser frame.
+
+   Driven by an attribute the till sets on <html> when it enters full screen
+   (app/(pro)/provider/till/page.tsx) and clears when it leaves, so nothing
+   else in the portal has to know this mode exists.
+   --------------------------------------------------------------------- */
+html[data-till-kiosk="on"] [data-pro-chrome="sidebar"],
+html[data-till-kiosk="on"] [data-pro-chrome="topbar"] {
+  display: none !important;
+}
+html[data-till-kiosk="on"] [data-pro-chrome="main"] {
+  padding-left: 0 !important;
+}

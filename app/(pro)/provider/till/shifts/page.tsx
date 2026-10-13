@@ -9,6 +9,7 @@ import { Card } from "@/frontend/components/ui/card"
 import {
   getShiftHistory, getShiftSales, type ShiftRow, type ShiftSaleRow,
 } from "@/backend/actions/pos-reports"
+import { DrawerPanel } from "@/frontend/components/pos/drawer-panel"
 
 /**
  * Every shift, and what was in the drawer at the end of it.
@@ -84,6 +85,11 @@ export default function TillShiftsPage() {
           see the sales that made it up.
         </p>
       </div>
+
+      {/* The open shift's drawer. Above the history on purpose: money moving
+          in and out has to be recorded while it happens, and the history is
+          read afterwards. */}
+      <DrawerPanel />
 
       {short > 0 && (
         <div className="rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-900/20 px-3 py-2.5 flex items-start gap-2">

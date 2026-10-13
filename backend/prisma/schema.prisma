@@ -1228,6 +1228,10 @@ model ShopkeeperProfile {
   posGoodsReceipts           PosGoodsReceipt[]
   posCustomers               PosCustomer[]
   posExpenses                PosExpense[]
+  posCashMovements           PosCashMovement[]
+  posStockCounts             PosStockCount[]
+  posJobCards                PosJobCard[]
+  posCreditEntries           PosCreditEntry[]
   // ---- eTIMS, the KRA electronic tax invoice system --------------------
   //
   // Per shop, not per platform: the credentials identify a TAXPAYER, and
@@ -1778,6 +1782,14 @@ model Product {
   /// True once this product's units are tracked individually. Set when the
   /// first serial is recorded. Once set, a sale of this product must name
   /// which units are leaving.
+  /// Work rather than goods: a haircut, a wash, an hour of labour.
+  ///
+  /// The till must not refuse to sell one for being out of stock, because
+  /// there is no stock to be out of. Kept as a flag on Product rather than a
+  /// separate Service model so a garage selling both a filter and the hour
+  /// that fits it rings them up on one sale, through one catalogue, with one
+  /// set of reports.
+  isService     Boolean   @default(false)
   tracksSerials Boolean   @default(false)
   /// Must be written into the shop's controlled-substances register when
   /// sold. Per product, like ageRestricted: a chemist sells plasters too.
@@ -1824,6 +1836,8 @@ model Product {
 
   stockMovements StockMovement[]
   posSaleItems   PosSaleItem[]
+  posCountLines  PosStockCountLine[]
+  posJobLines    PosJobLine[]
   variants       ProductVariant[]
   batches        ProductBatch[]
   serials        ProductSerial[]
@@ -4740,8 +4754,9 @@ model TillSession {
   variance     Decimal?  @db.Decimal(14, 2)
   note         String?
 
-  shopkeeper ShopkeeperProfile @relation(fields: [shopkeeperId], references: [id], onDelete: Cascade)
-  sales      PosSale[]
+  shopkeeper    ShopkeeperProfile @relation(fields: [shopkeeperId], references: [id], onDelete: Cascade)
+  sales         PosSale[]
+  cashMovements PosCashMovement[]
 
   @@index([shopkeeperId, openedAt])
   @@index([shopkeeperId, closedAt])
@@ -5221,6 +5236,19 @@ model PosCustomer {
   /// Points they hold now. A PROJECTION of the ledger below, kept here so a
   /// busy till does not sum a thousand rows to print a receipt. The ledger
   /// is the truth; this is recomputed from it, never adjusted blindly.
+  /// What this customer may owe at once. Zero means no credit at all, which
+  /// is the right default: a shop extends credit to people it knows, one at a
+  /// time, and a system where every walk-in can buy on the book by default is
+  /// one that loses money quietly.
+  creditLimit    Decimal @default(0) @db.Decimal(14, 2)
+  /// What they owe right now. A projection of the ledger, kept here so the
+  /// till can check a limit without summing a history mid-queue. The ledger
+  /// is the authority; this is the fast figure, the same relationship
+  /// Inventory.currentStock has to StockMovement.
+  creditBalance  Decimal @default(0) @db.Decimal(14, 2)
+  /// Days until a credit sale falls due. Drives the ageing buckets.
+  creditTermDays Int     @default(30)
+
   pointsBalance Int     @default(0)
   /// Lifetime earned, which is what a shop means by "a good customer".
   pointsEarned  Int     @default(0)
@@ -5235,6 +5263,7 @@ model PosCustomer {
   shopkeeper ShopkeeperProfile @relation(fields: [shopkeeperId], references: [id], onDelete: Cascade)
   user       User?             @relation("PosCustomerUser", fields: [userId], references: [id], onDelete: SetNull)
   entries    PosLoyaltyEntry[]
+  creditEntries PosCreditEntry[]
   sales      PosSale[]         @relation("PosSaleCustomer")
 
   @@unique([shopkeeperId, phone])
@@ -5399,6 +5428,7 @@ model ProductVariant {
 
   product        Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
   stockMovements StockMovement[]
+  posCountLines  PosStockCountLine[]
   posSaleItems   PosSaleItem[]
   batches        ProductBatch[]
   serials        ProductSerial[]
@@ -5878,4 +5908,374 @@ model PosBillingCharge {
   @@index([businessId, createdAt])
   @@index([status])
   @@map("pos_billing_charges")
+}
+
+// =========================================================================
+// THE DRAWER, BEYOND SALES
+// =========================================================================
+
+/// Why money moved in or out of the drawer when nobody bought anything.
+///
+/// A shift that only knows its sales cannot be reconciled. Real counters pay
+/// the boda who brought the delivery, take a float to the bank at lunchtime,
+/// put in change borrowed from the shop next door and take out the owner's
+/// lunch money. Without a record of those, the count at close is short or
+/// over by an amount nobody can explain, and an unexplained variance quickly
+/// becomes an ignored variance.
+enum PosCashMovementKind {
+  /// Money in that is not a sale: a float top-up, change brought in, an
+  /// owner putting their own cash in to make the drawer work.
+  PAY_IN
+  /// Money out that is not change: paying a supplier in cash, a delivery
+  /// fee, petty expenses, a safe drop or a banking run.
+  PAY_OUT
+}
+
+model PosCashMovement {
+  id            String @id @default(cuid())
+  shopkeeperId  String
+  /// Always against a shift. Cash that moved outside an open shift belongs
+  /// to nobody and reconciles against nothing.
+  tillSessionId String
+
+  kind PosCashMovementKind
+  /// SIGNED, for exactly the reason StockMovement.quantity is: expected cash
+  /// is then a plain SUM over float, cash sales and these, and cannot be got
+  /// wrong by forgetting to branch on the kind. PAY_IN is positive, PAY_OUT
+  /// negative, and the kind is kept beside it for reading and filtering.
+  amount Decimal @db.Decimal(14, 2)
+
+  /// Never optional. A drawer movement without a reason is indistinguishable
+  /// from a hand in the till, which is the thing this exists to make visible.
+  reason    String
+  /// A receipt number, an M-Pesa code, whatever was written on the chit.
+  reference String?
+
+  /// Who did it. Plain columns, as on StockMovement and PosSale.
+  actorUserId String?
+  actorName   String?
+
+  /// Cancelled rather than deleted, same rule as PosExpense: a figure that
+  /// appeared in a shift's reconciliation and then vanished is how a till's
+  /// numbers stop being believed.
+  voidedAt       DateTime?
+  voidReason     String?
+  voidedByUserId String?
+
+  occurredAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  shopkeeper  ShopkeeperProfile @relation(fields: [shopkeeperId], references: [id], onDelete: Cascade)
+  tillSession TillSession       @relation(fields: [tillSessionId], references: [id], onDelete: Cascade)
+
+  @@index([shopkeeperId, occurredAt])
+  @@index([tillSessionId])
+  @@map("pos_cash_movements")
+}
+
+// =========================================================================
+// COUNTING WHAT IS ACTUALLY ON THE SHELF
+// =========================================================================
+
+/// A physical count of stock, and what it disagreed with.
+///
+/// The ledger says what SHOULD be there. A count says what IS. The gap
+/// between them is the shop's shrinkage, and it is the single number a
+/// shopkeeper most wants and most rarely has.
+///
+/// WHY THIS IS A DOCUMENT AND NOT A FIELD EDIT
+///
+/// Letting somebody type a new stock figure over the old one destroys the
+/// evidence: there is no record of what the ledger claimed, who disagreed
+/// with it, by how much, or whether anybody approved the correction. A count
+/// is therefore a document that is started, filled in, submitted and
+/// approved, and only on approval does it post COUNT_ADJUSTMENT movements to
+/// the ledger. Before that it has changed nothing.
+enum PosStockCountStatus {
+  /// Being counted. Lines may be added and changed.
+  DRAFT
+  /// Counting finished, variances visible, waiting on somebody who is
+  /// allowed to approve them.
+  SUBMITTED
+  /// Variances posted to the stock ledger. Immutable from here.
+  APPROVED
+  /// Abandoned. Kept, because a count somebody started and dropped is itself
+  /// worth being able to see.
+  CANCELLED
+}
+
+model PosStockCount {
+  id           String @id @default(cuid())
+  shopkeeperId String
+  /// Sequential within the shop, like PosSale.saleNumber: quoted internally,
+  /// never globally.
+  reference    String
+
+  /// What was counted. Free text rather than an enum because a count is as
+  /// often "the fridge" or "cigarettes behind the counter" as it is the
+  /// whole shop.
+  scope  String
+  status PosStockCountStatus @default(DRAFT)
+  note   String?
+
+  /// Separation of duties: whoever counted is recorded apart from whoever
+  /// approved, so a shop that cares can require they differ.
+  countedByUserId  String?
+  countedByName    String?
+  approvedByUserId String?
+  approvedByName   String?
+
+  startedAt   DateTime  @default(now())
+  submittedAt DateTime?
+  approvedAt  DateTime?
+  cancelledAt DateTime?
+
+  shopkeeper ShopkeeperProfile   @relation(fields: [shopkeeperId], references: [id], onDelete: Cascade)
+  lines      PosStockCountLine[]
+
+  @@unique([shopkeeperId, reference])
+  @@index([shopkeeperId, status, startedAt])
+  @@map("pos_stock_counts")
+}
+
+model PosStockCountLine {
+  id      String @id @default(cuid())
+  countId String
+
+  productId String
+  variantId String?
+
+  /// Snapshotted beside the ids, like PosSaleItem: a count from last year
+  /// must stay readable after a product is renamed or removed.
+  name         String
+  sku          String?
+  variantLabel String?
+  unit         String  @default("piece")
+
+  /// What the ledger said at the moment the sheet was drawn up. Frozen on
+  /// purpose: if this were recomputed at approval time, a sale rung up while
+  /// the counting was happening would silently change the variance and the
+  /// shop would chase a discrepancy that never existed.
+  expected Decimal  @db.Decimal(14, 3)
+  /// What was actually found. Null until somebody enters it, which is what
+  /// distinguishes a line nobody counted from a line counted as zero. Those
+  /// two are completely different and must never be merged.
+  counted  Decimal? @db.Decimal(14, 3)
+  /// counted - expected. Stored rather than derived for the same reason
+  /// TillSession.variance is: it is a fact about a moment.
+  variance Decimal? @db.Decimal(14, 3)
+
+  /// Cost at the time, so the shrinkage can be valued in money as well as
+  /// units. A shopkeeper acts on "we lost 14,000 shillings", not "we lost 93
+  /// items".
+  unitCost Decimal? @db.Decimal(12, 2)
+  /// Why it differed, where the counter knew. "Broken", "expired", "found
+  /// behind the fridge".
+  reason   String?
+
+  countedAt DateTime?
+
+  count   PosStockCount   @relation(fields: [countId], references: [id], onDelete: Cascade)
+  product Product         @relation(fields: [productId], references: [id])
+  variant ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@unique([countId, productId, variantId])
+  @@index([countId])
+  @@index([productId])
+  @@map("pos_stock_count_lines")
+}
+
+// =========================================================================
+// WORK TAKEN IN: GARAGES, REPAIR SHOPS, LAUNDRIES, SALONS
+// =========================================================================
+
+/// Where a job has got to.
+///
+/// Deliberately the same five states for a car, a cracked phone screen and a
+/// bag of shirts. A garage, a repair bench and a dry cleaner are the same
+/// shape of business: something is left with you, work happens to it, and the
+/// customer comes back for it. Building three of these would have given three
+/// places for the same bug.
+enum PosJobStatus {
+  /// Taken in and written down. Nothing done to it yet.
+  RECEIVED
+  IN_PROGRESS
+  /// Finished and waiting to be collected.
+  READY
+  /// Handed back. This is the point a sale is rung up.
+  COLLECTED
+  /// The customer took it away unfinished, or never came back.
+  CANCELLED
+}
+
+/// One thing left with the shop to be worked on.
+model PosJobCard {
+  id           String @id @default(cuid())
+  shopkeeperId String
+  /// Sequential within the shop, like PosSale.saleNumber. This is the number
+  /// written on the ticket the customer walks away with.
+  reference    String
+
+  status PosJobStatus @default(RECEIVED)
+
+  /// A walk-in has no account, exactly as at the till. The name and phone are
+  /// free text so taking work in never requires creating a customer, and
+  /// posCustomerId is set only where they are a known one.
+  customerName  String
+  customerPhone String?
+  posCustomerId String?
+
+  /// What was left. "Toyota Probox KCA 123A", "iPhone 11, cracked screen",
+  /// "3 shirts and a suit". One field rather than a per-trade schema,
+  /// because the trades genuinely do not agree on what the columns are.
+  itemDescription String
+  /// The plate, the IMEI, the tag number. What is used to find it again on a
+  /// crowded rack or in a yard.
+  itemIdentifier  String?
+  /// What the customer says is wrong, in their words. Kept apart from what
+  /// was actually done, because the two regularly differ and the difference
+  /// is what an argument at collection turns on.
+  faultReported   String?
+  /// What came with it: a charger, a spare wheel, the buttons on a coat.
+  /// Written down at intake because this is what goes missing.
+  accessories     String?
+
+  /// What the customer was told it would cost, before the work. Not the
+  /// total: the lines below are the total, and the gap between the two is
+  /// the conversation to have BEFORE doing the work rather than after.
+  quotedAmount Decimal? @db.Decimal(14, 2)
+  /// Taken at intake, which for most of these trades is how the parts get
+  /// bought. Counted against the sale raised at collection.
+  depositPaid  Decimal  @default(0) @db.Decimal(14, 2)
+
+  /// The sale raised when it was collected, where it has been. Null until
+  /// then: work in progress is not revenue, and counting it as revenue is
+  /// how a service business convinces itself it is doing better than it is.
+  posSaleId String?
+
+  /// Who is doing it. A plain column, as elsewhere in POS.
+  assignedToName String?
+  promisedAt     DateTime?
+  notes          String?
+
+  receivedAt   DateTime  @default(now())
+  startedAt    DateTime?
+  readyAt      DateTime?
+  collectedAt  DateTime?
+  cancelledAt  DateTime?
+  cancelReason String?
+
+  createdByUserId String?
+  createdByName   String?
+
+  shopkeeper ShopkeeperProfile @relation(fields: [shopkeeperId], references: [id], onDelete: Cascade)
+  lines      PosJobLine[]
+
+  @@unique([shopkeeperId, reference])
+  @@index([shopkeeperId, status, receivedAt])
+  @@index([shopkeeperId, itemIdentifier])
+  @@map("pos_job_cards")
+}
+
+/// What the job actually cost: the hours and the parts.
+enum PosJobLineKind {
+  /// Time and skill. Has no stock and never touches the ledger.
+  LABOUR
+  /// Something off the shelf, which does.
+  PART
+}
+
+model PosJobLine {
+  id    String @id @default(cuid())
+  jobId String
+
+  kind PosJobLineKind
+
+  /// Set for a PART taken from the shop's own catalogue, so collecting the
+  /// job can move the stock. Null for labour, and for a part bought in
+  /// specially that the shop does not stock.
+  productId String?
+
+  /// Snapshotted, same rule as PosSaleItem: a job card from last year has to
+  /// stay readable after a product is renamed or retired.
+  description String
+  quantity    Decimal @db.Decimal(14, 3)
+  unitPrice   Decimal @db.Decimal(12, 2)
+  total       Decimal @db.Decimal(14, 2)
+
+  createdAt DateTime @default(now())
+
+  job     PosJobCard @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  product Product?   @relation(fields: [productId], references: [id])
+
+  @@index([jobId])
+  @@index([productId])
+  @@map("pos_job_lines")
+}
+
+// =========================================================================
+// SELLING ON THE BOOK
+// =========================================================================
+
+/// Why a customer's balance changed.
+enum PosCreditEntryKind {
+  /// A sale taken on credit. Increases what they owe.
+  CHARGE
+  /// Money received against the account. Reduces it.
+  PAYMENT
+  /// A correction or a write-off, in either direction, by somebody named.
+  ADJUSTMENT
+}
+
+/// One immutable fact about what a customer owes. Never updated, never deleted.
+///
+/// WHY A LEDGER AND NOT A BALANCE FIELD
+///
+/// The whole point of credit is the argument six weeks later about whether
+/// something was paid. A single balance column answers "how much" and can
+/// never answer "why", which is the only question that matters when a
+/// customer disputes it. The balance on PosCustomer is a projection of this;
+/// this is the evidence.
+model PosCreditEntry {
+  id            String @id @default(cuid())
+  shopkeeperId  String
+  posCustomerId String
+
+  kind PosCreditEntryKind
+  /// SIGNED, like StockMovement.quantity and PosCashMovement.amount. A CHARGE
+  /// is positive and a PAYMENT negative, so the balance is a plain sum and an
+  /// ADJUSTMENT can go either way without a second flag to forget.
+  amount Decimal @db.Decimal(14, 2)
+  /// The running balance immediately after this entry. Redundant against the
+  /// sum, and kept so a statement shows the figure the customer was told at
+  /// the time, and so a divergence is detectable rather than merely suspected.
+  balanceAfter Decimal? @db.Decimal(14, 2)
+
+  /// The sale this charge came from, where it came from one.
+  posSaleId String?
+  /// An M-Pesa code, a cheque number, whatever was written on the receipt.
+  reference String?
+  note      String?
+
+  /// When this charge falls due, from the customer's terms at the time.
+  /// Null on payments and adjustments: only a charge can be overdue.
+  dueOn DateTime?
+
+  actorUserId String?
+  actorName   String?
+
+  voidedAt       DateTime?
+  voidReason     String?
+  voidedByUserId String?
+
+  occurredAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  shopkeeper ShopkeeperProfile @relation(fields: [shopkeeperId], references: [id], onDelete: Cascade)
+  customer   PosCustomer       @relation(fields: [posCustomerId], references: [id], onDelete: Cascade)
+
+  @@index([shopkeeperId, occurredAt])
+  @@index([posCustomerId, occurredAt])
+  @@index([shopkeeperId, dueOn])
+  @@map("pos_credit_entries")
 }

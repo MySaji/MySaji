@@ -3,8 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import {
-  Loader2, TrendingUp, TrendingDown, Receipt, Users, AlertTriangle, Package,
-  ShoppingCart, Plus, ClipboardList, BarChart3, UserCog, ArrowRight, Clock, Boxes, Star, Wallet,
+  AlertTriangle, ArrowRight, BarChart3, Boxes, ClipboardCheck, ClipboardList, Clock, Loader2, Package, Plus, Receipt, ShoppingCart, Star, TrendingDown, TrendingUp, UserCog, Users, Wallet, Wrench,
 } from "lucide-react"
 import { Card } from "@/frontend/components/ui/card"
 import { getPosDashboard, type PosDashboard } from "@/backend/actions/pos-dashboard"
@@ -260,6 +259,8 @@ export default function TillDashboardPage() {
           <Action href="/provider/till" icon={ShoppingCart} label="New sale" />
           <Action href="/provider/till/products" icon={Package} label="Products" />
           <Action href="/provider/till/stock" icon={Boxes} label="Stock" />
+          <Action href="/provider/till/stocktake" icon={ClipboardCheck} label="Count" />
+          <Action href="/provider/till/jobs" icon={Wrench} label="Jobs" />
           <Action href="/provider/till/purchasing" icon={ClipboardList} label="Buying" />
           <Action href="/provider/till/shifts" icon={Clock} label="Shifts" />
           <Action href="/provider/till/customers" icon={Star} label="Customers" />
