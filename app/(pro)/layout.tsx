@@ -67,18 +67,21 @@ export default function SajiProLayout({ children }: { children: React.ReactNode 
   }
 
   // Deliberately keyed on `user` rather than `isLoading`/`isAuthenticated`:
-  // next-auth's `update()` (used by refreshSession() inside
-  // components/account-menu.tsx's role switcher) flips its shared `status`
-  // to "loading" for the duration of that request, which would otherwise
-  // trip this guard and unmount {children} — losing that page's local state
-  // — even though the already-cached `user` data hasn't gone anywhere.
-  // `user` itself is only ever null before the first session resolves or
-  // once truly logged out, so this keeps the exact same visible behavior for
-  // those cases while no longer flickering to the spinner on every in-place
-  // session refresh. Tolerating all 3 switchable roles (not just shopkeeper)
-  // avoids a race against the switcher's own hard-navigation effect,
-  // whichever role it's headed to.
-  if (!user || (user.role !== "provider" && user.role !== "shopkeeper" && user.role !== "customer")) {
+  // next-auth's `update()` flips its shared `status` to "loading" for the
+  // duration of that request, which would otherwise trip this guard and
+  // unmount {children}, losing that page's local state, even though the
+  // already-cached `user` data has not gone anywhere. `user` itself is only
+  // ever null before the first session resolves or once truly logged out, so
+  // this keeps the same visible behaviour for those cases while no longer
+  // flickering to the spinner on every in-place session refresh.
+  //
+  // "customer" used to be tolerated here purely to avoid a race against the
+  // role switcher's own hard navigation, whichever portal it was heading to.
+  // The switcher is gone, no page in this route group serves customers, and
+  // nothing else guards these routes (middleware.ts only handles maintenance
+  // mode), so tolerating it would simply render the pro shell to somebody who
+  // never signed up for it.
+  if (!user || (user.role !== "provider" && user.role !== "shopkeeper")) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />

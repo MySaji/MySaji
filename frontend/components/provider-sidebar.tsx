@@ -276,7 +276,7 @@ export default function ProviderSidebar({ isOpen, onClose, isCollapsed, onToggle
           </button>
         </div>
 
-        {/* User Info / Account Switcher */}
+        {/* Account menu */}
         <div className={`p-3 border-b border-gray-200 dark:border-gray-700 ${isCollapsed ? "lg:hidden" : ""}`}>
           <AccountMenu alwaysShowLabel />
         </div>

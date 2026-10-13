@@ -20,7 +20,12 @@ export type MyRoleProfiles = {
   hasShopkeeper: boolean
 } | null
 
-/** Powers the header account-switcher dropdown. Deliberately scoped to
+/** No longer wired to any UI: the account-switcher dropdown it fed was
+ * removed. Left in place because it only reads which profiles the caller's own
+ * account already has, which grants nothing, and it is what a restored
+ * switcher would read first.
+ *
+ * Previously: powered the header account-switcher dropdown. Deliberately scoped to
  * customer/provider/shopkeeper only — distributor and every staff role
  * (agent/secretary/sub-admin/admin) are out of scope for self-service
  * switching, so this returns null for any of those. */
@@ -75,7 +80,27 @@ export type SwitchRoleResult =
  * open, so neither `kycStatus` nor `verificationStatus` is touched here. The
  * per-portal registration banners now read their own profile's isVerified
  * flag instead (see app/shopkeeper/layout.tsx). */
-export async function switchActiveRole(targetRole: SwitchableRole): Promise<SwitchRoleResult> {
+/** Self-service role switching was removed on request, so this refuses.
+ *
+ * Hiding the dropdown would not have been enough. A "use server" export is
+ * reachable by anyone who knows its action id, and this particular one both
+ * rewrote User.role and created a provider or shopkeeper profile out of
+ * nothing, so leaving it live would have left the whole capability live
+ * behind a missing button.
+ *
+ * The implementation is kept directly below, unreferenced, because the
+ * decision here is a product one rather than a defect: deleting it would mean
+ * rebuilding the profile-creation and KYC reasoning from scratch if switching
+ * ever comes back. To restore it, call performRoleSwitch from here and put the
+ * switcher back in frontend/components/account-menu.tsx. */
+export async function switchActiveRole(_targetRole: SwitchableRole): Promise<SwitchRoleResult> {
+  return {
+    success: false,
+    error: "Switching between customer, provider and shopkeeper accounts is no longer available. Each account keeps the role it signed up with.",
+  }
+}
+
+async function performRoleSwitch(targetRole: SwitchableRole): Promise<SwitchRoleResult> {
   const session = await auth()
   if (!session?.user?.id || !isSwitchableRole(session.user.role)) {
     return { success: false, error: "You must be signed in as a customer, provider, or shopkeeper." }

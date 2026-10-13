@@ -4,9 +4,19 @@ import { withSentryConfig } from "@sentry/nextjs"
 const nextConfig = {
   // Self-hosting (cPanel/Passenger, not Vercel) needs a self-contained
   // server bundle rather than relying on the platform to run `next start`
-  // against the full node_modules tree — standalone output is dramatically
+  // against the full node_modules tree. Standalone output is dramatically
   // smaller, which matters on shared hosting's file-count/disk limits.
-  output: "standalone",
+  //
+  // Skipped on Windows. The step copies node_modules by creating symlinks,
+  // which Windows refuses without Developer Mode or an elevated shell, so
+  // the build died at the very last step after compiling everything. Not a
+  // loss: a bundle whose links were made on Windows is not deployable to a
+  // Linux host anyway, so the only machine whose standalone output is worth
+  // producing is the Linux one that builds for cPanel. Set
+  // NEXT_STANDALONE=1 to force it on regardless.
+  ...(process.platform !== "win32" || process.env.NEXT_STANDALONE === "1"
+    ? { output: "standalone" }
+    : {}),
   typescript: {
     ignoreBuildErrors: true,
   },

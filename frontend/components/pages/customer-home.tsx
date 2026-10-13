@@ -20,6 +20,7 @@ import { getLiveOffers, type PublicOfferListItem } from "@/backend/actions/offer
 import { getWishlistIds, getWishlistedProviders, toggleWishlist, type WishlistedProvider, type WishlistTargetKind } from "@/backend/actions/wishlist"
 import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 import { NearYouSection } from "@/frontend/components/geo/near-you-section"
+import { SuggestionsSection } from "@/frontend/components/home/suggestions-section"
 import { RequestPhotoButton } from "@/frontend/components/customer/request-photo-button"
 import { ProviderStoryRing } from "@/frontend/components/provider-story-ring"
 import { getOnlineProviders, type OnlineProviderCard } from "@/backend/actions/specialists"
@@ -805,6 +806,11 @@ export function CustomerHome() {
             it is backed by a single geofence pull rather than a query per
             lane. It renders itself away when no location can be resolved. */}
         <NearYouSection />
+
+        {/* Below "who is near me" on purpose: proximity answers a question
+            the customer already has, where suggestions propose one. Renders
+            itself away for somebody signed out or brand new. */}
+        <SuggestionsSection />
 
         <SolveAProblemSection />
 

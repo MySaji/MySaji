@@ -124,7 +124,19 @@ export type SwitchAccountResult =
  * — so the same account keeps both profiles permanently once created, and
  * `role` is really just "which portal is active right now," free to flip
  * back and forth via this and `switchToProviderAccount()` below. */
+/** Refuses, for the same reason as switchActiveRole in
+ * backend/actions/account-switch.ts: self-service role switching was removed,
+ * and this is the older door into the same capability. It had no callers left,
+ * but an uncalled "use server" export is still reachable by its action id, and
+ * this one created a shopkeeper profile and rewrote User.role.
+ *
+ * Body kept below, unreferenced, so the shop-upgrade-ticket reasoning is not
+ * lost if switching returns. */
 export async function switchToShopkeeperAccount(): Promise<SwitchAccountResult> {
+  return { success: false, error: "Switching between customer, provider and shopkeeper accounts is no longer available. Each account keeps the role it signed up with." }
+}
+
+async function performShopkeeperSwitch(): Promise<SwitchAccountResult> {
   const session = await auth()
   if (!session?.user?.id || session.user.role !== "provider") {
     return { success: false, error: "You must be signed in as a provider." }
@@ -178,7 +190,12 @@ export async function switchToShopkeeperAccount(): Promise<SwitchAccountResult> 
 /** The reverse direction of the switch above — always a repeat action,
  * since every account starts as a provider, so there's no "first time" case
  * to gate here. */
+/** Refuses too. See switchToShopkeeperAccount above. */
 export async function switchToProviderAccount(): Promise<ShopUpgradeActionResult> {
+  return { success: false, error: "Switching between customer, provider and shopkeeper accounts is no longer available. Each account keeps the role it signed up with." }
+}
+
+async function performProviderSwitch(): Promise<ShopUpgradeActionResult> {
   const session = await auth()
   if (!session?.user?.id || session.user.role !== "shopkeeper") {
     return { success: false, error: "You must be signed in as a shopkeeper." }

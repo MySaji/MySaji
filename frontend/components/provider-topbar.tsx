@@ -212,7 +212,7 @@ export default function ProviderTopbar({ onMenuClick }: { onMenuClick: () => voi
             )}
           </div>
 
-          {/* Account / role switcher */}
+          {/* Account menu */}
           <AccountMenu />
         </div>
       </div>

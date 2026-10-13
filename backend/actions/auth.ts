@@ -171,7 +171,9 @@ export async function registerUser(input: unknown): Promise<RegisterResult> {
         // "Sell Products" is backed by a real ShopkeeperProfile — the merchant
         // pages inside Saji Pro read from it, and without one they would have
         // nothing to render. `role` stays PROVIDER; this is a second profile
-        // on the same account, exactly as switchActiveRole already creates.
+        // on the same account. Note this is not the old role switch, which
+        // now refuses: role stays PROVIDER throughout and the merchant pages
+        // read the profile from inside Saji Pro.
         // A POS account needs the same row, so provisionPos creates it —
         // including the listedOnMarketplace flag, which is the one thing
         // this create cannot get right on its own. Guarded so the two paths

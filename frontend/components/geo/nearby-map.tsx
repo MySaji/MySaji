@@ -1,12 +1,19 @@
 "use client"
 
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useMemo, useRef, useState } from "react"
 import Link from "next/link"
-import { useJsApiLoader, GoogleMap, MarkerF, InfoWindowF } from "@react-google-maps/api"
-import { MapPin, Star, ShieldCheck } from "lucide-react"
+import { useJsApiLoader, GoogleMap, MarkerF, InfoWindowF, CircleF } from "@react-google-maps/api"
+import { useTheme } from "next-themes"
+import { MapPin, Star, ShieldCheck, Navigation, Crosshair, Store, Wrench } from "lucide-react"
+import {
+  MAP_STYLE_LIGHT, MAP_STYLE_DARK, PIN_PATH, PIN_ANCHOR, PIN_LABEL_ORIGIN,
+} from "@/frontend/components/geo/map-style"
 import { GOOGLE_MAPS_LIBRARIES, GOOGLE_MAPS_LOADER_ID, isGoogleMapsConfigured } from "@/backend/services/google-maps"
 import type { FencedProvider, FencedShop, Geofence } from "@/backend/actions/geofence"
 import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
+
+/** The neighbourhood ring, in metres. Matches services/proximity.ts. */
+const NEIGHBOURHOOD_METRES = 2000
 
 /** Flattened pin, so the map does not care which collection a thing came
  *  from beyond how to colour it and where it links. */
@@ -103,6 +110,7 @@ export function NearbyMap({
   // far enough to collapse pins a couple of kilometres apart into one
   // blob. What matters is where the results actually are.
   const onLoad = useCallback((map: google.maps.Map) => {
+    mapRef.current = map
     if (!fence) return
     const bounds = new google.maps.LatLngBounds()
     bounds.extend({ lat: fence.latitude, lng: fence.longitude })
@@ -120,6 +128,20 @@ export function NearbyMap({
     map.fitBounds(bounds, 48)
   }, [fence, pins])
 
+  // Night styling follows the app, with `resolvedTheme` rather than
+  // `theme` so "system" is answered rather than passed through.
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme === "dark"
+
+  // Kept so the recentre control can put the customer back in the middle
+  // after they have panned away looking at something.
+  const mapRef = useRef<google.maps.Map | null>(null)
+  const recentre = useCallback(() => {
+    if (!mapRef.current || !fence) return
+    mapRef.current.panTo({ lat: fence.latitude, lng: fence.longitude })
+    mapRef.current.setZoom(14)
+  }, [fence])
+
   const containerClass = className ?? "h-[420px] w-full rounded-xl"
 
   if (!configured || !isLoaded || !fence) {
@@ -134,21 +156,46 @@ export function NearbyMap({
   const centre = { lat: fence.latitude, lng: fence.longitude }
   const open = pins.find((p) => p.key === openKey) ?? null
 
+  const shopCount = pins.filter((p) => p.kind === "shop").length
+  const proCount = pins.length - shopCount
+
   return (
-    <GoogleMap
-      mapContainerClassName={containerClass}
-      center={centre}
-      zoom={12}
-      onLoad={onLoad}
-      options={{
-        streetViewControl: false,
-        mapTypeControl: false,
-        fullscreenControl: false,
-        // The map sits in a scrolling page, so a one-finger drag should
-        // scroll the page rather than pan the map.
-        gestureHandling: "cooperative",
-      }}
-    >
+    <div className={"relative " + containerClass}>
+      <GoogleMap
+        mapContainerClassName="h-full w-full"
+        center={centre}
+        zoom={12}
+        onLoad={onLoad}
+        options={{
+          streetViewControl: false,
+          mapTypeControl: false,
+          fullscreenControl: false,
+          // Google's own zoom buttons are drawn over by the controls below
+          // on a phone, and pinch works regardless.
+          zoomControl: false,
+          clickableIcons: false,
+          // The map sits in a scrolling page, so a one-finger drag should
+          // scroll the page rather than pan the map.
+          gestureHandling: "cooperative",
+          styles: isDark ? MAP_STYLE_DARK : MAP_STYLE_LIGHT,
+        }}
+      >
+      {/* The neighbourhood, drawn faintly. Gives the distances on the pins
+          something to be read against: "2 km" means little until you can
+          see how much of the screen it covers. */}
+      <CircleF
+        center={centre}
+        radius={NEIGHBOURHOOD_METRES}
+        options={{
+          strokeColor: VIEWER_COLOUR,
+          strokeOpacity: 0.35,
+          strokeWeight: 1,
+          fillColor: VIEWER_COLOUR,
+          fillOpacity: isDark ? 0.07 : 0.05,
+          clickable: false,
+        }}
+      />
+
       {/* Where the customer is. Deliberately distinct from the results. */}
       <MarkerF
         position={centre}
@@ -164,23 +211,32 @@ export function NearbyMap({
         zIndex={1}
       />
 
-      {pins.map((pin) => (
-        <MarkerF
-          key={pin.key}
-          position={{ lat: pin.latitude, lng: pin.longitude }}
-          title={pin.name}
-          onClick={() => setOpenKey(pin.key)}
-          icon={{
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: 9,
-            fillColor: pin.kind === "shop" ? SHOP_COLOUR : PROVIDER_COLOUR,
-            fillOpacity: 1,
-            strokeColor: "#ffffff",
-            strokeWeight: 2,
-          }}
-          zIndex={2}
-        />
-      ))}
+      {/* Teardrops rather than dots: a pin anchored at its point says
+          exactly which spot it means, where a circle centred on the place
+          leaves it ambiguous at the zoom levels a street search uses. The
+          selected one is drawn larger and above the rest. */}
+      {pins.map((pin) => {
+        const selected = pin.key === openKey
+        return (
+          <MarkerF
+            key={pin.key}
+            position={{ lat: pin.latitude, lng: pin.longitude }}
+            title={pin.name}
+            onClick={() => setOpenKey(pin.key)}
+            icon={{
+              path: PIN_PATH,
+              scale: selected ? 1.5 : 1.15,
+              fillColor: pin.kind === "shop" ? SHOP_COLOUR : PROVIDER_COLOUR,
+              fillOpacity: 1,
+              strokeColor: "#ffffff",
+              strokeWeight: 2,
+              anchor: new google.maps.Point(PIN_ANCHOR.x, PIN_ANCHOR.y),
+              labelOrigin: new google.maps.Point(PIN_LABEL_ORIGIN.x, PIN_LABEL_ORIGIN.y),
+            }}
+            zIndex={selected ? 4 : 2}
+          />
+        )
+      })}
 
       {open && (
         <InfoWindowF
@@ -210,9 +266,50 @@ export function NearbyMap({
                 <span className="font-medium text-blue-700">{t("nearby.distanceAway", { km: open.distanceKm })}</span>
               )}
             </p>
+            {/* The reason most people open a map at all. Hands off to the
+                phone's own map app, which has their traffic and their saved
+                preferences; a route drawn in here would be a worse copy. */}
+            <a
+              href={"https://www.google.com/maps/dir/?api=1&destination=" + open.latitude + "," + open.longitude}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 inline-flex items-center gap-1 rounded-md bg-gray-900 px-2 py-1.5 text-[11px] font-semibold text-white"
+            >
+              <Navigation className="h-3 w-3" /> Directions
+            </a>
           </div>
         </InfoWindowF>
       )}
-    </GoogleMap>
+      </GoogleMap>
+
+      {/* ---- what the colours mean, and a way back ---------------------
+          A legend because two colours of pin with nothing explaining them
+          is a puzzle, and recentre because the first thing anyone does on
+          a map is pan away from themselves. */}
+      <div className="pointer-events-none absolute inset-x-2 bottom-2 flex items-end justify-between gap-2">
+        <div className="pointer-events-auto flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-border bg-background/95 px-2.5 py-1.5 shadow-sm backdrop-blur">
+          <span className="flex items-center gap-1 text-[10px] font-medium text-foreground">
+            <Store className="h-3 w-3" style={{ color: SHOP_COLOUR }} />
+            {shopCount} {shopCount === 1 ? "shop" : "shops"}
+          </span>
+          <span className="flex items-center gap-1 text-[10px] font-medium text-foreground">
+            <Wrench className="h-3 w-3" style={{ color: PROVIDER_COLOUR }} />
+            {proCount} {proCount === 1 ? "pro" : "pros"}
+          </span>
+          <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+            <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: VIEWER_COLOUR }} />
+            you
+          </span>
+        </div>
+
+        <button
+          onClick={recentre}
+          aria-label={t("nearby.youAreHere")}
+          className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-background/95 text-foreground shadow-sm backdrop-blur transition-colors hover:bg-muted"
+        >
+          <Crosshair className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
   )
 }

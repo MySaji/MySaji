@@ -410,7 +410,7 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
                 )}
               </div>
 
-              {/* Account / role switcher */}
+              {/* Account menu */}
               <AccountMenu />
             </div>
           </div>

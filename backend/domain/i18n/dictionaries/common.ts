@@ -88,8 +88,7 @@ const en = {
   "common.createdAt": "Created",
 
   // Account switcher (header dropdown — customer/provider/shopkeeper only)
-  "accountMenu.switchRole": "Switch Role",
-  "accountMenu.current": "Current",
+  "accountMenu.openMenu": "Account menu",
   "accountMenu.myProfile": "My Profile",
 
   // Shared "classic" chat shell — used identically across every portal's
@@ -344,8 +343,7 @@ const sw: Record<keyof typeof en, string> = {
   "common.order": "Agizo",
   "common.createdAt": "Iliundwa",
 
-  "accountMenu.switchRole": "Badilisha Wadhifa",
-  "accountMenu.current": "Wa Sasa",
+  "accountMenu.openMenu": "Menyu ya akaunti",
   "accountMenu.myProfile": "Wasifu Wangu",
 
   "chat.title": "Mazungumzo",
@@ -597,8 +595,7 @@ const fr: Record<keyof typeof en, string> = {
   "common.order": "Commande",
   "common.createdAt": "Créé",
 
-  "accountMenu.switchRole": "Changer de Rôle",
-  "accountMenu.current": "Actuel",
+  "accountMenu.openMenu": "Menu du compte",
   "accountMenu.myProfile": "Mon Profil",
 
   "chat.title": "Chat",
