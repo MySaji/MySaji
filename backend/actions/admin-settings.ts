@@ -6,6 +6,26 @@ import { requireAdmin, logAdminAction } from "@/backend/actions/admin-dashboard"
 
 export type PlatformPreferences = {
   platformFee: number
+  /**
+   * How a customer pays for a job.
+   *
+   *   IN_APP   the platform takes the money and pays the provider the rest
+   *   DIRECT   the customer pays the provider themselves, afterwards, and
+   *            the provider owes the platform its commission
+   *   BOTH     either, decided per job by whether money came through here
+   *
+   * DIRECT while the app is new: asking a stranger to hand money to an app
+   * before a plumber has arrived reads as a scam to the people being asked,
+   * and they are not wrong to think so. The in-app route is kept whole and
+   * switched off rather than removed.
+   */
+  jobPaymentMode: "IN_APP" | "DIRECT" | "BOTH"
+  /**
+   * How much unpaid commission a provider may carry before they stop being
+   * able to accept new work. Nothing else stops; see
+   * services/commission-debt.ts.
+   */
+  commissionDebtCap: number
   autoApprove: boolean
   requireVerification: boolean
   enableDisputeResolution: boolean
@@ -33,6 +53,8 @@ export type PlatformPreferences = {
 
 const DEFAULT_PREFERENCES: PlatformPreferences = {
   platformFee: 5, autoApprove: true, requireVerification: true, enableDisputeResolution: true, maintenanceMode: false,
+  jobPaymentMode: "DIRECT",
+  commissionDebtCap: 1500,
   cancellationDispatchFee: 300,
   protectionCoverageLimit: 100000,
   providerProPriceKES: 1500,

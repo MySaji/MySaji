@@ -10,6 +10,7 @@ import { createBooking, getJobById, type JobDetail } from "@/backend/actions/job
 import { addServiceToCart } from "@/backend/actions/cart"
 import { revalidateCartCount } from "@/frontend/lib/hooks/useCartCount"
 import { capturePaypalOrder } from "@/backend/actions/payments"
+import { getEffectivePlatformPreferences } from "@/backend/actions/admin-settings"
 import { Button } from "@/frontend/components/ui/button"
 import { Card } from "@/frontend/components/ui/card"
 import { Input } from "@/frontend/components/ui/input"
@@ -105,6 +106,21 @@ export default function BookingContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  /**
+   * Whether the customer pays here or pays the provider.
+   *
+   * Null until it is known, and the payment step is not offered before then:
+   * showing a card form for a moment and snatching it away reads as the app
+   * changing its mind about taking their money, which is the exact feeling
+   * this whole arrangement exists to avoid.
+   */
+  const [payMode, setPayMode] = useState<"IN_APP" | "DIRECT" | "BOTH" | null>(null)
+  useEffect(() => {
+    getEffectivePlatformPreferences()
+      .then((p) => setPayMode((p.jobPaymentMode as "IN_APP" | "DIRECT" | "BOTH") ?? "DIRECT"))
+      .catch(() => setPayMode("DIRECT"))
+  }, [])
+
   const handleConfirm = async () => {
     if ((!serviceId && !offerId) || pendingJobId) return
     setIsSubmitting(true)
@@ -136,6 +152,13 @@ export default function BookingContent() {
       // customer with a message and nowhere to act on it.
       if (handleGateFailure(result)) return
       setError(result.error)
+      return
+    }
+    // Paying the provider directly means there is nothing to pay here, so
+    // the booking is done and the customer goes straight to the confirmation
+    // rather than to a payment step that would never complete.
+    if (payMode === "DIRECT") {
+      router.push(`/customer/booking-confirmation?jobId=${result.jobId}`)
       return
     }
     setPendingJobId(result.jobId)
@@ -213,11 +236,15 @@ export default function BookingContent() {
 
             {error && <p className="text-xs text-red-600">{error}</p>}
 
-            <PaymentMethods
-              amount={resumeJob.price}
-              jobId={pendingJobId}
-              onSuccess={() => router.push(`/customer/booking-confirmation?jobId=${pendingJobId}`)}
-            />
+            {payMode === "DIRECT" ? (
+              <DirectPaymentNote />
+            ) : (
+              <PaymentMethods
+                amount={resumeJob.price}
+                jobId={pendingJobId}
+                onSuccess={() => router.push(`/customer/booking-confirmation?jobId=${pendingJobId}`)}
+              />
+            )}
           </Card>
         </div>
       </div>
@@ -413,7 +440,9 @@ export default function BookingContent() {
 
             {error && <p className="text-xs text-red-600">{error}</p>}
 
-            {pendingJobId ? (
+            {payMode === "DIRECT" && <DirectPaymentNote />}
+
+            {pendingJobId && payMode !== "DIRECT" ? (
               <PaymentMethods
                 amount={service.basePrice * bookingData.quantity}
                 jobId={pendingJobId}
@@ -457,6 +486,29 @@ export default function BookingContent() {
           </Card>
         )}
       </div>
+    </div>
+  )
+}
+
+/**
+ * What the customer is told instead of a payment form.
+ *
+ * Said in plain words and before they commit, because the question in their
+ * head is "when do I pay and to whom". Answering it badly is how a booking
+ * turns into a no-show.
+ */
+function DirectPaymentNote() {
+  return (
+    <div className="rounded-lg border border-border bg-muted/50 p-4">
+      <p className="text-sm font-semibold text-foreground">You pay the provider directly</p>
+      <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+        Nothing is charged now and SAJI does not hold your money. Agree the final amount with
+        the provider, and pay them on their phone once the work is done and you are happy with
+        it.
+      </p>
+      <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
+        Paying inside the app is coming soon.
+      </p>
     </div>
   )
 }

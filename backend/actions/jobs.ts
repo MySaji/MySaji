@@ -3,6 +3,7 @@
 import { z } from "zod"
 import { auth } from "@/backend/auth"
 import { db } from "@/backend/db"
+import { jobPaymentMode } from "@/backend/services/commission-debt"
 import { requireVerified } from "@/backend/services/verification-gate"
 import { customerHasOpenDispute } from "@/backend/actions/account-status"
 import { distanceKm } from "@/backend/services/google-maps"
@@ -86,6 +87,20 @@ export async function maybeRewardReferral(customerId: string) {
   }, "promo")
 }
 
+/**
+ * What a booking starts as.
+ *
+ * PENDING_PAYMENT holds a job until money arrives through the platform. Where
+ * the customer is going to pay the provider directly that money never comes,
+ * so the job would sit there forever and the provider would never see it.
+ * In that mode a booking is simply PENDING: live, and waiting for the
+ * provider to accept.
+ */
+async function openingJobStatus(): Promise<"PENDING" | "PENDING_PAYMENT"> {
+  const mode = await jobPaymentMode()
+  return mode === "DIRECT" ? "PENDING" : "PENDING_PAYMENT"
+}
+
 /** Creates a Job as PENDING_PAYMENT — the single real booking-creation path
  * for every customer-facing flow (Marketplace quick-book, Emergency, and
  * the dedicated wizard). The job isn't visible to the provider and doesn't
@@ -147,7 +162,7 @@ export async function createBooking(input: unknown): Promise<CreateBookingResult
       latitude: data.latitude,
       longitude: data.longitude,
       scheduledDate,
-      status: "PENDING_PAYMENT",
+      status: await openingJobStatus(),
     },
   })
 
@@ -240,7 +255,7 @@ export async function createEmergencyBooking(input: unknown): Promise<CreateEmer
       longitude,
       scheduledDate: new Date(),
       urgency: "URGENT",
-      status: "PENDING_PAYMENT",
+      status: await openingJobStatus(),
     },
   })
 

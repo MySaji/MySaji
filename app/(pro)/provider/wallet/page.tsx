@@ -106,6 +106,50 @@ export default function ProviderWalletPage() {
 
   return (
     <div className="min-h-screen bg-[linear-gradient(135deg,_rgba(240,253,250,1),_rgba(248,250,252,1))] pb-6 dark:bg-[linear-gradient(135deg,_rgba(2,6,23,1),_rgba(15,23,42,1))]">
+      {/* ---- commission owed ---------------------------------------------
+          Above the balance, and only when there is something to say. A
+          provider who cannot take the next job needs to learn it here rather
+          than from a refusal when they tap Accept with a customer waiting. */}
+      {summary.commissionOwed > 0 && (
+        <div className={
+          summary.canAcceptWork
+            ? "border-b border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-900 dark:bg-amber-900/20"
+            : "border-b border-red-200 bg-red-50 px-4 py-3 dark:border-red-900 dark:bg-red-900/20"
+        }>
+          <div className="mx-auto flex max-w-5xl items-start gap-3">
+            <AlertTriangle className={
+              summary.canAcceptWork
+                ? "mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600 dark:text-amber-400"
+                : "mt-0.5 h-4 w-4 flex-shrink-0 text-red-600 dark:text-red-400"
+            } />
+            <div className="min-w-0 flex-1">
+              <p className={
+                summary.canAcceptWork
+                  ? "text-sm font-semibold text-amber-900 dark:text-amber-200"
+                  : "text-sm font-semibold text-red-800 dark:text-red-200"
+              }>
+                You owe {formatCurrency(summary.commissionOwed)} in commission
+              </p>
+              <p className="mt-0.5 text-xs leading-relaxed text-gray-700 dark:text-gray-300">
+                {summary.canAcceptWork
+                  ? "This is the platform's share of jobs your customers paid you for directly. At " +
+                    formatCurrency(summary.commissionCap) + " you will not be able to accept new work."
+                  : "You have reached the limit of " + formatCurrency(summary.commissionCap) +
+                    ". Settle this to start accepting work again. Jobs you have already accepted are not affected."}
+              </p>
+              {summary.commissionCap > 0 && (
+                <div className="mt-2 h-1.5 w-full max-w-sm overflow-hidden rounded-full bg-black/10 dark:bg-white/10">
+                  <div
+                    className={summary.canAcceptWork ? "h-full rounded-full bg-amber-500" : "h-full rounded-full bg-red-500"}
+                    style={{ width: Math.min(100, Math.round((summary.commissionOwed / summary.commissionCap) * 100)) + "%" }}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="bg-gradient-to-br from-emerald-600 via-teal-600 to-sky-600 p-6 text-white lg:rounded-b-3xl">
         <div className="mx-auto max-w-5xl">
           <div className="mb-6 flex items-start justify-between gap-4">

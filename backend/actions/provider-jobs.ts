@@ -11,6 +11,9 @@ import { maybeRewardReferralForProvider } from "@/backend/actions/referrals"
 import { providerHasOpenDispute } from "@/backend/actions/account-status"
 import { getEffectivePlatformPreferences } from "@/backend/actions/admin-settings"
 import { getEffectiveCommissionRate, splitByCommission } from "@/backend/services/commission"
+import {
+  debtStateOf, chargeCommissionDebt, reverseCommissionDebt, jobIsProviderPaid,
+} from "@/backend/services/commission-debt"
 
 import { canAcceptAnotherJob, BUSINESS_STAFF_MAX_CONCURRENT_JOBS } from "@/backend/services/job-limits"
 import { resolveJobCancellation } from "@/backend/services/job-cancellation"
@@ -135,6 +138,20 @@ export async function acceptJob(input: unknown): Promise<ProviderJobActionResult
     return { success: false, error: `You already have ${BUSINESS_STAFF_MAX_CONCURRENT_JOBS} active jobs. Complete one before accepting another.` }
   }
 
+  // Commission owed on work already taken. Checked here rather than at
+  // completion because this is the moment that costs somebody something: a
+  // provider who cannot settle up should not be taking a customer's booking
+  // off the market. Jobs already in hand are untouched, so nobody is left
+  // waiting on a provider who has just been cut off mid-job.
+  const debt = await debtStateOf(provider.userId)
+  if (!debt.canAcceptWork) {
+    return {
+      success: false,
+      error: "You owe KSh " + debt.owed.toLocaleString("en-KE") + " in commission, which is the limit of KSh " +
+        debt.cap.toLocaleString("en-KE") + ". Settle it from Earnings to start accepting work again.",
+    }
+  }
+
   await db.$transaction([
     db.job.update({ where: { id: job.id }, data: { status: "ACCEPTED" } }),
     db.notification.create({
@@ -149,6 +166,19 @@ export async function acceptJob(input: unknown): Promise<ProviderJobActionResult
       },
     }),
   ])
+
+  // Where the customer pays the provider directly, the platform's cut is
+  // charged now, against this provider. Deliberately after the job is
+  // accepted and outside that transaction: a commission row that failed to
+  // write must not undo an acceptance the customer has already been told
+  // about. It is idempotent per job, so a sweep can pick up anything missed.
+  if (await jobIsProviderPaid(job.id)) {
+    await chargeCommissionDebt({
+      jobId: job.id,
+      providerUserId: provider.userId,
+      providerProfileId: provider.providerId,
+    })
+  }
 
   await pushToUser(job.customerId, { title: "Booking accepted", body: `Your booking for ${job.title} has been accepted by the provider.`, url: "/customer/jobs" }, "job")
 
@@ -166,6 +196,11 @@ export async function declineJob(input: unknown): Promise<ProviderJobActionResul
   const job = await db.job.findUnique({ where: { id: parsed.data.jobId } })
   if (!job || job.providerId !== provider.providerId) return { success: false, error: "Job not found." }
   if (job.status !== "PENDING") return { success: false, error: "This job is no longer pending." }
+
+  // A job never accepted was never charged, but reversing is free and
+  // idempotent, and it closes the case where a provider accepts, the
+  // customer reverts it to pending, and it is then declined.
+  await reverseCommissionDebt(job.id)
 
   await db.$transaction([
     db.job.update({ where: { id: job.id }, data: { status: "CANCELLED" } }),
@@ -262,6 +297,42 @@ export async function completeJob(input: unknown): Promise<ProviderJobActionResu
   if (!job || job.providerId !== provider.providerId) return { success: false, error: "Job not found." }
   if (job.status !== "ACCEPTED" && job.status !== "IN_PROGRESS") {
     return { success: false, error: "This job can't be marked complete yet." }
+  }
+
+  // Paid directly by the customer? Then there is nothing here to pay out:
+  // the provider already has the money in their hand, and the platform's
+  // share was charged to them when they accepted. Crediting the wallet as
+  // well would hand them the fare twice.
+  const providerPaidDirectly = await jobIsProviderPaid(job.id)
+  if (providerPaidDirectly) {
+    await db.$transaction([
+      db.job.update({ where: { id: job.id }, data: { status: "COMPLETED", completedAt: new Date() } }),
+      db.providerProfile.update({ where: { id: provider.providerId }, data: { completedJobs: { increment: 1 } } }),
+      db.notification.create({
+        data: {
+          userId: job.customerId,
+          title: "Job completed",
+          message: `${job.title} has been marked complete. Please leave a review!`,
+          type: "JOB",
+          relatedType: "JOB",
+          relatedId: job.id,
+          actionUrl: "/customer/jobs",
+        },
+      }),
+    ])
+
+    // The commission is charged on acceptance, but a job that reached
+    // completion without one (accepted before this was switched on, or a
+    // write that failed) is charged now rather than slipping through.
+    await chargeCommissionDebt({
+      jobId: job.id,
+      providerUserId: provider.userId,
+      providerProfileId: provider.providerId,
+    })
+
+    await pushToUser(job.customerId, { title: "Job completed", body: `${job.title} has been marked complete. Please leave a review!`, url: "/customer/jobs" }, "job")
+    await logJobEvent({ jobId: job.id, type: "JOB_COMPLETED", actor: "PROVIDER", actorUserId: provider.userId, description: "Provider marked the job complete" })
+    return { success: true }
   }
 
   const wallet = await db.wallet.findUnique({ where: { userId: provider.userId } })

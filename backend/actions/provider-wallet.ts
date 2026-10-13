@@ -3,6 +3,7 @@
 import { z } from "zod"
 import { auth } from "@/backend/auth"
 import { db } from "@/backend/db"
+import { debtStateOf } from "@/backend/services/commission-debt"
 import { requireVerified } from "@/backend/services/verification-gate"
 import { encryptAccountNumber } from "@/backend/services/payment-method-crypto"
 
@@ -33,6 +34,19 @@ export type ProviderEscrowJob = {
 
 export type ProviderWalletSummary = {
   balance: number
+  /**
+   * Commission owed to the platform, as a positive figure.
+   *
+   * Where the customer pays the provider directly, the platform's cut is a
+   * debt rather than a deduction, so the wallet can sit below zero. Shown on
+   * its own rather than left as a minus sign on the balance, because "you
+   * owe 400" and "your balance is -400" are read very differently by
+   * somebody deciding whether to take the next job.
+   */
+  commissionOwed: number
+  commissionCap: number
+  canAcceptWork: boolean
+  commissionMessage: string | null
   available: number
   pending: number
   escrow: number
@@ -71,9 +85,17 @@ export async function getProviderWalletSummary(): Promise<ProviderWalletSummary>
 
   const escrowTotal = escrowJobsRaw.reduce((sum, j) => sum + Number(j.price), 0)
 
+  const debt = await debtStateOf(provider.userId)
+
   return {
     balance: Number(wallet.balance),
-    available: Number(wallet.balance) - Number(wallet.pendingBalance),
+    commissionOwed: debt.owed,
+    commissionCap: debt.cap,
+    canAcceptWork: debt.canAcceptWork,
+    commissionMessage: debt.message,
+    // Nothing to draw down while the balance is negative: what is there is
+    // owed, not earned.
+    available: Math.max(0, Number(wallet.balance) - Number(wallet.pendingBalance)),
     pending: Number(wallet.pendingBalance),
     escrow: escrowTotal,
     thisMonth: Number(thisMonthAgg._sum.amount ?? 0),

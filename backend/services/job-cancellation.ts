@@ -7,6 +7,7 @@
 // by two different "use server" action files can't itself be one.
 import { db } from "@/backend/db"
 import { getEffectivePlatformPreferences } from "@/backend/actions/admin-settings"
+import { reverseCommissionDebt } from "@/backend/services/commission-debt"
 import { logJobEvent } from "@/backend/actions/job-events"
 
 export type JobCancellationReason = "EARLY_CANCELLATION" | "LATE_CANCELLATION" | "NO_SHOW"
@@ -118,6 +119,13 @@ export async function resolveJobCancellation(
     console.error("resolveJobCancellation transaction failed:", err)
     return { success: false, error: "Something went wrong. Please try again." }
   }
+
+  // The platform's commission goes back with it. A job that did not happen
+  // earned nothing, and leaving the charge on the provider would have them
+  // paying for a cancellation they may not have caused. Outside the
+  // transaction above and idempotent, so a failure here cannot undo a
+  // cancellation the customer has already been told about.
+  await reverseCommissionDebt(job.id)
 
   await logJobEvent({
     jobId: job.id, type: "JOB_CANCELLED", actor: opts.reason === "NO_SHOW" ? "PROVIDER" : "SYSTEM",

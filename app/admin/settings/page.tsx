@@ -87,6 +87,100 @@ function PlatformTab() {
         </div>
       </Card>
 
+      {/* ---- how a job gets paid for -------------------------------------
+          Written out rather than hidden behind a translation key, because
+          the three choices change where the money goes and an admin should
+          read exactly that before touching it. */}
+      <Card className="border-0 shadow-lg p-6">
+        <div className="mb-4">
+          <h3 className="text-base font-semibold text-gray-900 dark:text-white">How customers pay for jobs</h3>
+          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+            Decides where the money goes and who owes the commission. Changing this affects new
+            jobs only; anything already accepted keeps the arrangement it was taken under.
+          </p>
+        </div>
+
+        <div className="space-y-2 max-w-2xl">
+          {([
+            {
+              key: "DIRECT",
+              title: "The customer pays the provider directly",
+              note:
+                "No money passes through SAJI. The provider is charged the commission when they " +
+                "accept a job, and carries it as a debt until they settle it. In-app payment is " +
+                "shown to customers as coming soon.",
+            },
+            {
+              key: "IN_APP",
+              title: "The customer pays through the app",
+              note:
+                "SAJI holds the money and pays the provider the rest when the job is done. No " +
+                "commission debt is ever charged.",
+            },
+            {
+              key: "BOTH",
+              title: "Either, job by job",
+              note:
+                "A job paid through the app is settled that way; one that is not leaves the " +
+                "commission with the provider. Nobody is charged twice.",
+            },
+          ] as const).map((opt) => {
+            const on = (preferences.jobPaymentMode ?? "DIRECT") === opt.key
+            return (
+              <button
+                key={opt.key}
+                type="button"
+                role="radio"
+                aria-checked={on}
+                onClick={() => setPreferences({ ...preferences, jobPaymentMode: opt.key })}
+                className={
+                  on
+                    ? "w-full flex items-start gap-3 p-3 rounded-xl border text-left transition-all border-primary bg-primary/5"
+                    : "w-full flex items-start gap-3 p-3 rounded-xl border text-left transition-all border-gray-200 dark:border-gray-700"
+                }
+              >
+                <span className={
+                  on
+                    ? "mt-0.5 w-4 h-4 rounded-full border-[5px] border-primary flex-shrink-0"
+                    : "mt-0.5 w-4 h-4 rounded-full border-[5px] border-gray-300 dark:border-gray-600 flex-shrink-0"
+                } />
+                <span className="min-w-0">
+                  <span className="block text-sm font-semibold text-gray-900 dark:text-white">{opt.title}</span>
+                  <span className="block text-xs text-gray-600 dark:text-gray-400 leading-relaxed mt-0.5">{opt.note}</span>
+                </span>
+              </button>
+            )
+          })}
+        </div>
+
+        {(preferences.jobPaymentMode ?? "DIRECT") !== "IN_APP" && (
+          <div className="mt-4 max-w-xs">
+            <p className="text-sm font-semibold text-gray-900 dark:text-white">
+              Most a provider may owe
+            </p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 leading-relaxed">
+              Once their unpaid commission reaches this, they cannot accept new work until they
+              settle. Jobs already in hand are never stopped.
+            </p>
+            <div className="flex items-center gap-2 mt-2">
+              <span className="text-xs text-gray-500 dark:text-gray-400">KES</span>
+              <Input
+                type="number"
+                min="0"
+                max="100000"
+                value={preferences.commissionDebtCap ?? 1500}
+                onChange={(e) => setPreferences({ ...preferences, commissionDebtCap: Number(e.target.value) || 0 })}
+              />
+            </div>
+            {Number(preferences.commissionDebtCap ?? 1500) === 0 && (
+              <p className="mt-2 text-xs font-semibold text-amber-700 dark:text-amber-400 leading-snug">
+                Zero means no limit at all: a provider could run up any amount and keep working.
+              </p>
+            )}
+          </div>
+        )}
+      </Card>
+
       <Card className="border-0 shadow-lg p-6">
         <div className="mb-4">
           <h3 className="text-base font-semibold text-gray-900 dark:text-white">{t("admin.settings.cancellationDispatchFee")}</h3>
