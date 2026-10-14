@@ -93,7 +93,13 @@ export default async function PosLandingPage() {
               </Link>
             ) : (
               <>
-                <Link
+                  <Link
+                  href="/pos/contact"
+                  className="h-9 px-3 rounded-lg text-xs font-semibold inline-flex items-center text-muted-foreground hover:text-foreground active:scale-95"
+                >
+                  Contact
+                </Link>
+              <Link
                   href="/pos/login"
                   className="h-9 px-3 rounded-lg border border-border text-xs font-semibold inline-flex items-center text-foreground active:scale-95"
                 >
@@ -215,6 +221,10 @@ export default async function PosLandingPage() {
         <p className="text-[11px] text-muted-foreground">
           SAJI Till is part of SAJI. You do not need a SAJI shop or provider
           account to use it.
+        </p>
+        <p className="mt-2 text-[11px] text-muted-foreground">
+          Questions before you start?{" "}
+          <Link href="/pos/contact" className="text-primary font-medium">Talk to us</Link>.
         </p>
       </footer>
     </main>

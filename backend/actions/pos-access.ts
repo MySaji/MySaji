@@ -82,6 +82,8 @@ export async function resolvePosActor(staffId?: string | null): Promise<PosActor
   let storeId: string | null = null
   let shopkeeperId: string | null = null
   let resolvedStaffId: string | null = null
+  /** Per-seat overrides. Empty means "whatever the role says". */
+  let seatFeatures: string[] = []
 
   if (owned) {
     businessId = owned.id
@@ -96,20 +98,61 @@ export async function resolvePosActor(staffId?: string | null): Promise<PosActor
     storeId = store?.id ?? null
     shopkeeperId = store?.shopkeeperId ?? null
   } else {
-    const seat = await db.posStaff.findFirst({
+    let seat = await db.posStaff.findFirst({
       where: { userId, isActive: true },
       select: {
-        id: true, name: true, role: true, storeId: true,
+        id: true, name: true, role: true, storeId: true, features: true,
         business: { select: { id: true, name: true } },
         store: { select: { id: true, shopkeeperId: true } },
       },
     })
+
+    // No seat under this user id, but there may be one waiting on the
+    // address they signed in with. Claiming it here means an employee simply
+    // signs in and is in, with no invite code to lose and nothing granted
+    // until the address the owner invited matches the one they used.
+    if (!seat) {
+      const me = await db.user.findUnique({
+        where: { id: userId },
+        select: { email: true, phone: true },
+      })
+      const identifiers = [me?.email, me?.phone].filter((x): x is string => !!x)
+      if (identifiers.length > 0) {
+        const waiting = await db.posStaff.findFirst({
+          where: {
+            userId: null,
+            isActive: true,
+            OR: [
+              { email: { in: identifiers, mode: "insensitive" } },
+              { phone: { in: identifiers } },
+            ],
+          },
+          select: { id: true },
+        })
+        if (waiting) {
+          await db.posStaff.update({
+            where: { id: waiting.id },
+            data: { userId, claimedAt: new Date() },
+          })
+          seat = await db.posStaff.findFirst({
+            where: { id: waiting.id },
+            select: {
+              id: true, name: true, role: true, storeId: true, features: true,
+              business: { select: { id: true, name: true } },
+              store: { select: { id: true, shopkeeperId: true } },
+            },
+          })
+        }
+      }
+    }
+
     if (!seat) return null
     businessId = seat.business.id
     businessName = seat.business.name
     role = seat.role as PosRole
     name = seat.name
     resolvedStaffId = seat.id
+    seatFeatures = seat.features
     storeId = seat.store?.id ?? null
     shopkeeperId = seat.store?.shopkeeperId ?? null
     if (!storeId) {
@@ -129,12 +172,13 @@ export async function resolvePosActor(staffId?: string | null): Promise<PosActor
   if (staffId) {
     const atTill = await db.posStaff.findFirst({
       where: { id: staffId, businessId, isActive: true },
-      select: { id: true, name: true, role: true, storeId: true, store: { select: { id: true, shopkeeperId: true } } },
+      select: { id: true, name: true, role: true, storeId: true, features: true, store: { select: { id: true, shopkeeperId: true } } },
     })
     if (atTill) {
       resolvedStaffId = atTill.id
       name = atTill.name
       role = atTill.role as PosRole
+      seatFeatures = atTill.features
       if (atTill.store) { storeId = atTill.store.id; shopkeeperId = atTill.store.shopkeeperId }
     }
   }
@@ -148,7 +192,11 @@ export async function resolvePosActor(staffId?: string | null): Promise<PosActor
     staffId: resolvedStaffId,
     name,
     role,
-    can: (p: PosPermission) => roleCan(role, p),
+    // A seat with its own list REPLACES the role's set rather than adding to
+    // it, so what the owner ticked is exactly what this person has. An empty
+    // list falls back to the role, which is what almost every seat uses.
+    can: (p: PosPermission) =>
+      seatFeatures.length > 0 ? seatFeatures.includes(p) : roleCan(role, p),
   }
 }
 

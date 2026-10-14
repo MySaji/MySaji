@@ -79,8 +79,8 @@ const GROUPS: { title: string; blurb: string; items: { href: string; icon: typeo
     title: "Setting up",
     blurb: "Your people, your branches and how the till behaves.",
     items: [
-      { href: "/pos/people", icon: UserCog, label: "Staff" },
-      { href: "/pos/customers", icon: Star, label: "Customers" },
+      { href: "/pos/team", icon: UserCog, label: "Team" },
+      { href: "/pos/people", icon: Users, label: "Till PINs" },
       { href: "/pos/stores", icon: Store, label: "Branches" },
       { href: "/pos/devices", icon: Monitor, label: "Devices" },
       { href: "/pos/settings", icon: Settings, label: "Settings" },

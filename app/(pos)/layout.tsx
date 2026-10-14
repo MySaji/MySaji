@@ -33,7 +33,7 @@ import {
  */
 
 /** Paths that are not the application: read before anybody has a till. */
-const PUBLIC = ["/pos", "/pos/login", "/pos/signup", "/pos/setup"]
+const PUBLIC = ["/pos", "/pos/login", "/pos/signup", "/pos/setup", "/pos/contact"]
 
 /** The register, and the kitchen screen, own their whole window. */
 const FULL_BLEED = ["/pos/sell", "/pos/kitchen"]

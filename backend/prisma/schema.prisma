@@ -4937,6 +4937,28 @@ model PosStaff {
   email   String?
   phone   String?
 
+  /// Exactly which parts of the POS this person may use.
+  ///
+  /// EMPTY MEANS "WHATEVER THE ROLE SAYS", which is the right default: an
+  /// owner adding a cashier should not have to tick twelve boxes to get the
+  /// obvious answer. A non-empty list REPLACES the role's set entirely, so
+  /// what is on screen is exactly what they have, with no invisible extras
+  /// inherited from a role they were given months ago.
+  ///
+  /// Stored as permission keys from domain/pos-permissions.ts rather than as
+  /// booleans, so adding a feature does not require a migration and an
+  /// existing seat simply does not have the new key.
+  features String[]
+
+  /// How somebody who is not yet a SAJI user joins.
+  ///
+  /// The owner enters an email or phone; the seat waits. When that person
+  /// signs in to the POS, the seat is matched to their account and claimed.
+  /// No invite codes to lose, and nothing is granted until the address they
+  /// were invited on is the one they actually signed in with.
+  invitedAt  DateTime?
+  claimedAt  DateTime?
+
   isActive   Boolean   @default(true)
   lastSeenAt DateTime?
   createdAt  DateTime  @default(now())

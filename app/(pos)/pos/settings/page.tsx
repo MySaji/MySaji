@@ -32,6 +32,30 @@ import { POS_PROFILE_ICON, POS_TRAIT_ICON } from "@/frontend/components/pos/pos-
  * Three groups, in the order they matter: what kind of shop this is, how it
  * sells, and what the till does when stock runs out.
  */
+/** The sections, in the order they appear. Used by the jump bar. */
+const SECTIONS = [
+  { id: "shop", label: "Your shop" },
+  { id: "features", label: "What it can do" },
+  { id: "people", label: "People and places" },
+  { id: "rules", label: "Rules" },
+]
+
+/**
+ * A section break.
+ *
+ * `scroll-mt` matters: the jump bar is sticky, so without it an anchor lands
+ * with the heading hidden underneath the bar and the page looks like it
+ * jumped to the wrong place.
+ */
+function SectionHeading({ id, title, blurb }: { id: string; title: string; blurb: string }) {
+  return (
+    <div id={id} className="pt-3 scroll-mt-28">
+      <h2 className="text-base font-bold text-gray-900 dark:text-white">{title}</h2>
+      <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">{blurb}</p>
+    </div>
+  )
+}
+
 export default function PosSettingsPage() {
   const [setup, setSetup] = useState<PosSetup | null>(null)
   const [loading, setLoading] = useState(true)
@@ -148,6 +172,27 @@ export default function PosSettingsPage() {
           <p className="text-xs text-emerald-700 dark:text-emerald-300">{saved}</p>
         </div>
       )}
+
+      {/* ---- getting around ------------------------------------------------
+          Twenty cards in one scroll is a page people give up on halfway. The
+          cards themselves are unchanged; what is new is that they are now in
+          named sections with a bar that jumps to them, so somebody who came
+          here to change one thing can reach it without reading the rest. */}
+      <nav className="sticky top-12 z-30 -mx-4 px-4 py-2 bg-background/95 backdrop-blur border-b border-border">
+        <div className="flex gap-1.5 overflow-x-auto">
+          {SECTIONS.map((sec) => (
+            <a
+              key={sec.id}
+              href={"#" + sec.id}
+              className="h-8 px-2.5 rounded-lg text-[11px] font-semibold whitespace-nowrap bg-muted text-muted-foreground hover:text-foreground active:scale-95"
+            >
+              {sec.label}
+            </a>
+          ))}
+        </div>
+      </nav>
+
+      <SectionHeading id="shop" title="Your shop" blurb="What you sell and how the till is set up for it." />
 
       {/* --- 1. What kind of shop ------------------------------------------- */}
       <Card className="p-4 rounded-2xl">
@@ -282,6 +327,8 @@ export default function PosSettingsPage() {
       </Card>
 
       {/* --- 2. How it sells ------------------------------------------------ */}
+      <SectionHeading id="features" title="What the till can do" blurb="Switch on only what your shop actually needs. Each one changes what the counter asks for." />
+
       <Card className="p-4 rounded-2xl">
         <h2 className="text-sm font-bold text-gray-900 dark:text-white">How you sell</h2>
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
@@ -361,6 +408,8 @@ export default function PosSettingsPage() {
           </div>
         )}
       </Card>
+
+      <SectionHeading id="people" title="People and places" blurb="Your branches, your team and the devices they work on." />
 
       {/* --- who works the till ---------------------------------------------
           Its own page: a list that grows, a form, and two settings that only
@@ -546,6 +595,8 @@ export default function PosSettingsPage() {
       </Link>
 
       {/* --- 3. When stock runs out ----------------------------------------- */}
+      <SectionHeading id="rules" title="Rules at the counter" blurb="What the till does when stock runs out, expires, or the total needs rounding." />
+
       <Card className="p-4 rounded-2xl">
         <h2 className="text-sm font-bold text-gray-900 dark:text-white">When stock runs out</h2>
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">

@@ -101,7 +101,9 @@ export default function PosLoginPage() {
           <>
             <h1 className="mt-6 text-2xl font-bold text-gray-900 dark:text-white">Sign in</h1>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-              For the shop owner, or a manager with a login.
+              For the shop owner, and for anyone they have added to the team.
+              Use the email or phone your employer added you with, and their
+              shop opens for you.
             </p>
 
             <div className="mt-5 space-y-3">
@@ -130,6 +132,8 @@ export default function PosLoginPage() {
             <p className="mt-5 text-center text-xs text-gray-500 dark:text-gray-400">
               No till yet?{" "}
               <Link href="/pos/signup" className="font-semibold text-primary">Set one up</Link>
+              {" · "}
+              <Link href="/pos/contact" className="font-semibold text-primary">Talk to us</Link>
             </p>
           </>
         ) : (

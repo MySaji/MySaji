@@ -152,6 +152,25 @@ export default function PosSignupPage() {
               Four things now, and you can be selling in a few minutes.
             </p>
 
+            {/* An employee who lands here would otherwise create a second,
+                empty business of their own and wonder why none of their
+                employer's products are in it. Said at the top, before they
+                start typing, because after four fields it is too late. */}
+            <div className="mt-4 rounded-xl border border-border bg-muted/50 p-3">
+              <p className="text-xs font-semibold text-foreground">Were you added by your employer?</p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground leading-relaxed">
+                Do not set up a till here. Sign in with the email or phone your
+                employer used when they added you, and their shop opens for you
+                automatically.
+              </p>
+              <Link
+                href="/pos/login"
+                className="mt-2 inline-flex h-9 px-3 rounded-lg bg-background border border-border text-xs font-semibold text-foreground items-center active:scale-95"
+              >
+                Sign in instead
+              </Link>
+            </div>
+
             <div className="mt-5 space-y-3">
               <Field label="What is the shop called?" hint="This goes on your receipts.">
                 <Input value={businessName} onChange={(e) => setBusinessName(e.target.value)} placeholder="Mama Njeri Supermarket" className="h-12 rounded-xl text-base" />
@@ -177,6 +196,8 @@ export default function PosSignupPage() {
             <p className="mt-4 text-center text-xs text-gray-500 dark:text-gray-400">
               Already have a till?{" "}
               <Link href="/pos/login" className="font-semibold text-primary">Sign in</Link>
+              {" · "}
+              <Link href="/pos/contact" className="font-semibold text-primary">Talk to us</Link>
             </p>
           </div>
         )}
