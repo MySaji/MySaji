@@ -77,6 +77,24 @@ export const posConfigSchema = z.object({
   managerPinToVoid: z.boolean().default(true),
 
   /**
+   * Approval thresholds, in shillings.
+   *
+   * Null means never ask. A number means ask once the amount goes above it.
+   *
+   * WHY A THRESHOLD AND NOT A SWITCH
+   *
+   * Requiring a manager for every discount sounds like control and is the
+   * opposite: a cashier knocking ten shillings off a dented tin cannot wait
+   * for anybody, so the shop either turns the rule off entirely or starts
+   * sharing the manager's PIN. Both leave it with less control than before.
+   * A threshold asks only where the amount is worth asking about, which is
+   * the only version a counter will actually keep using.
+   */
+  discountApprovalAbove: z.number().min(0).nullable().default(null),
+  voidApprovalAbove: z.number().min(0).nullable().default(null),
+  refundApprovalAbove: z.number().min(0).nullable().default(null),
+
+  /**
    * Percentage added at the till. Deliberately NOT called "VAT": this is an
    * arithmetic convenience, and calling it VAT would imply a compliance
    * claim that nothing here supports. Real VAT and eTIMS are a separate

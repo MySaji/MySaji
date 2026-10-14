@@ -75,7 +75,7 @@ export const PRO_BUSINESS_TYPE_META: Record<ProBusinessType, ProBusinessTypeMeta
     description: "Serve customers at your counter — scan, weigh, take cash or M-Pesa, print a receipt",
     icon: "Calculator",
     workLabel: "Till",
-    workHref: "/provider/till",
+    workHref: "/pos/sell",
     // A counter sale creates nothing a customer browses. POS is the one
     // business type that does not publish offers, which is exactly why it
     // can stand alone without a marketplace listing.
@@ -195,18 +195,18 @@ export const PRO_MODULES: ProModule[] = [
   // with Shop Orders would imply all three. The two groups coexist for an
   // account holding POS + PRODUCTS, which is the point: one stock figure,
   // two places it can be sold from.
-  { key: "till", label: "Till", href: "/provider/till", icon: "Calculator", group: "till", exact: true, description: "The register screen — ring up a sale at the counter" },
-  { key: "posOrders", label: "Orders to Deliver", href: "/provider/till/orders", icon: "Hammer", group: "till", description: "Part-paid orders waiting to be handed over" },
-  { key: "posSettings", label: "POS Settings", href: "/provider/till/settings", icon: "SlidersHorizontal", group: "till", description: "Shop type, selling behaviours and stock policy" },
-  { key: "posStock", label: "Stock", href: "/provider/till/stock", icon: "Boxes", group: "till", description: "Stock on hand, what moved it, receipts, counts and losses" },
-  { key: "posReports", label: "Till Reports", href: "/provider/till/reports", icon: "BarChart3", group: "till", description: "Takings by day, by method, by cashier and by product, plus shift history" },
+  { key: "till", label: "Till", href: "/pos/sell", icon: "Calculator", group: "till", exact: true, description: "The register screen — ring up a sale at the counter" },
+  { key: "posOrders", label: "Orders to Deliver", href: "/pos/orders", icon: "Hammer", group: "till", description: "Part-paid orders waiting to be handed over" },
+  { key: "posSettings", label: "POS Settings", href: "/pos/settings", icon: "SlidersHorizontal", group: "till", description: "Shop type, selling behaviours and stock policy" },
+  { key: "posStock", label: "Stock", href: "/pos/stock", icon: "Boxes", group: "till", description: "Stock on hand, what moved it, receipts, counts and losses" },
+  { key: "posReports", label: "Till Reports", href: "/pos/reports", icon: "BarChart3", group: "till", description: "Takings by day, by method, by cashier and by product, plus shift history" },
   // Still unbuilt, so still absent from DEFAULT_MODULES_BY_TYPE.POS below.
   // Shift history lives on the reports page for now; a page of its own is
   // only worth it once there is more to do there than read. Devices waits
   // on device pairing, which belongs with the offline work — a page that
   // only repeated the install button would be a dead end.
-  { key: "posShifts", label: "Cash Shifts", href: "/provider/till/shifts", icon: "Clock", group: "till", description: "A page of its own for shifts — NOT BUILT YET (history is on Till Reports)" },
-  { key: "posDevices", label: "Devices", href: "/provider/till/devices", icon: "MonitorDown", group: "till", description: "Pair and revoke counter machines — NOT BUILT YET (needs device pairing)" },
+  { key: "posShifts", label: "Cash Shifts", href: "/pos/shifts", icon: "Clock", group: "till", description: "A page of its own for shifts — NOT BUILT YET (history is on Till Reports)" },
+  { key: "posDevices", label: "Devices", href: "/pos/devices", icon: "MonitorDown", group: "till", description: "Pair and revoke counter machines — NOT BUILT YET (needs device pairing)" },
 
   // --- Business ---
   { key: "portfolio", label: "My Work", href: "/provider/portfolio", icon: "Camera", group: "business", description: "Photo and video portfolio on the public profile" },

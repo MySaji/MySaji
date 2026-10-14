@@ -54,6 +54,25 @@ export async function jobPaymentMode(): Promise<JobPaymentMode> {
   return mode === "IN_APP" || mode === "BOTH" ? mode : "DIRECT"
 }
 
+/**
+ * What a booking starts as.
+ *
+ * PENDING_PAYMENT holds a job until money arrives through the platform. Where
+ * the customer is going to pay the provider directly that money never comes,
+ * so the job would sit there forever: invisible to the provider, never
+ * accepted, never cancelled, and from the customer's side simply ignored.
+ *
+ * Lives here rather than in an action because FIVE different flows create
+ * jobs (the booking wizard, quick-book, an offer, an accepted quote on a
+ * request, and a service contract) and three of them were setting
+ * PENDING_PAYMENT by hand. One of them being missed is exactly how a booking
+ * silently goes nowhere.
+ */
+export async function openingJobStatus(): Promise<"PENDING" | "PENDING_PAYMENT"> {
+  const mode = await jobPaymentMode()
+  return mode === "DIRECT" ? "PENDING" : "PENDING_PAYMENT"
+}
+
 /** How much a provider may owe before they stop being able to take work. */
 export async function commissionDebtCap(): Promise<number> {
   const prefs = await getEffectivePlatformPreferences()

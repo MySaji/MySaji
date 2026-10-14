@@ -3,7 +3,7 @@
 import { z } from "zod"
 import { auth } from "@/backend/auth"
 import { db } from "@/backend/db"
-import { jobPaymentMode } from "@/backend/services/commission-debt"
+import { jobPaymentMode, openingJobStatus } from "@/backend/services/commission-debt"
 import { requireVerified } from "@/backend/services/verification-gate"
 import { customerHasOpenDispute } from "@/backend/actions/account-status"
 import { distanceKm } from "@/backend/services/google-maps"
@@ -87,23 +87,13 @@ export async function maybeRewardReferral(customerId: string) {
   }, "promo")
 }
 
-/**
- * What a booking starts as.
+/** The single real booking-creation path for every customer-facing flow
+ * (Marketplace quick-book, Emergency, and the dedicated wizard).
  *
- * PENDING_PAYMENT holds a job until money arrives through the platform. Where
- * the customer is going to pay the provider directly that money never comes,
- * so the job would sit there forever and the provider would never see it.
- * In that mode a booking is simply PENDING: live, and waiting for the
- * provider to accept.
- */
-async function openingJobStatus(): Promise<"PENDING" | "PENDING_PAYMENT"> {
-  const mode = await jobPaymentMode()
-  return mode === "DIRECT" ? "PENDING" : "PENDING_PAYMENT"
-}
-
-/** Creates a Job as PENDING_PAYMENT — the single real booking-creation path
+ * The opening status depends on who is paying: see openingJobStatus. Where
+ * the platform takes the money the job is PENDING_PAYMENT
  * for every customer-facing flow (Marketplace quick-book, Emergency, and
- * the dedicated wizard). The job isn't visible to the provider and doesn't
+ *  and isn't visible to the provider and doesn't
  * reward referrals until real payment actually clears via
  * `confirmJobPayment` — a customer abandoning payment leaves no side
  * effects behind. The frontend calls `/api/payments/initiate` with the

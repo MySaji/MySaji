@@ -1232,6 +1232,14 @@ model ShopkeeperProfile {
   posStockCounts             PosStockCount[]
   posJobCards                PosJobCard[]
   posCreditEntries           PosCreditEntry[]
+  posPromotions              PosPromotion[]
+  posPriceLists              PosPriceList[]
+  posGiftCards               PosGiftCard[]
+  posQuotes                  PosQuote[]
+  posTables                  PosTable[]
+  posTableOrders             PosTableOrder[]
+  posTransfersOut            PosStockTransfer[] @relation("PosTransferFrom")
+  posTransfersIn             PosStockTransfer[] @relation("PosTransferTo")
   // ---- eTIMS, the KRA electronic tax invoice system --------------------
   //
   // Per shop, not per platform: the credentials identify a TAXPAYER, and
@@ -1838,6 +1846,12 @@ model Product {
   posSaleItems   PosSaleItem[]
   posCountLines  PosStockCountLine[]
   posJobLines    PosJobLine[]
+  posPromotions  PosPromotion[]
+  posQuoteLines  PosQuoteLine[]
+  posTableLines  PosTableOrderLine[]
+  posPriceListItems PosPriceListItem[]
+  posTransferLines PosStockTransferLine[] @relation("PosTransferLineProduct")
+  posTransferLinesIn PosStockTransferLine[] @relation("PosTransferLineTarget")
   variants       ProductVariant[]
   batches        ProductBatch[]
   serials        ProductSerial[]
@@ -4554,6 +4568,8 @@ enum PosPaymentMethod {
   CARD
   BANK
   CREDIT // on the shop's own book, to be settled later
+  /// A gift card or store credit note. Money the shop already has.
+  GIFT_CARD
   SPLIT // several of the above; see PosPayment rows
 }
 
@@ -4622,6 +4638,14 @@ model PosSale {
   voidedAt       DateTime?
   voidReason     String?
   voidedByUserId String?
+
+  /// Who approved the discount on this sale, where one was over the shop's
+  /// threshold and a manager had to enter their PIN.
+  ///
+  /// Recorded rather than merely enforced, for the same reason ageVerified
+  /// is: the useful artefact when a shopkeeper reviews a suspicious day is a
+  /// name against the sale, not a dialog nobody can prove appeared.
+  discountApprovedBy String?
 
   shopkeeper  ShopkeeperProfile @relation(fields: [shopkeeperId], references: [id], onDelete: Cascade)
   tillSession TillSession?      @relation(fields: [tillSessionId], references: [id])
@@ -4852,8 +4876,9 @@ model PosBusiness {
   updatedAt DateTime @updatedAt
 
   owner  User       @relation("PosBusinessOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
-  stores PosStore[]
-  staff  PosStaff[]
+  stores    PosStore[]
+  staff     PosStaff[]
+  transfers PosStockTransfer[]
 
   @@map("pos_businesses")
 }
@@ -5248,6 +5273,10 @@ model PosCustomer {
   creditBalance  Decimal @default(0) @db.Decimal(14, 2)
   /// Days until a credit sale falls due. Drives the ageing buckets.
   creditTermDays Int     @default(30)
+  /// The price list this customer buys on, where they are not on walk-in
+  /// prices. This is how a wholesale customer and a retail one get different
+  /// prices from one catalogue.
+  priceListId    String?
 
   pointsBalance Int     @default(0)
   /// Lifetime earned, which is what a shop means by "a good customer".
@@ -5264,6 +5293,8 @@ model PosCustomer {
   user       User?             @relation("PosCustomerUser", fields: [userId], references: [id], onDelete: SetNull)
   entries    PosLoyaltyEntry[]
   creditEntries PosCreditEntry[]
+  giftCards     PosGiftCard[]
+  priceList     PosPriceList?     @relation(fields: [priceListId], references: [id], onDelete: SetNull)
   sales      PosSale[]         @relation("PosSaleCustomer")
 
   @@unique([shopkeeperId, phone])
@@ -6278,4 +6309,552 @@ model PosCreditEntry {
   @@index([posCustomerId, occurredAt])
   @@index([shopkeeperId, dueOn])
   @@map("pos_credit_entries")
+}
+
+// =========================================================================
+// MOVING STOCK BETWEEN BRANCHES
+// =========================================================================
+
+/// Where a transfer has got to.
+///
+/// DISPATCHED is the state that matters and the one a naive design leaves
+/// out. Between a branch sending goods and the other branch confirming they
+/// arrived, the stock belongs to neither: it is on a matatu. Treating a
+/// transfer as instant means the sending branch is short and the receiving
+/// branch is over for however long the journey takes, and every stock count
+/// in that window disagrees with the system for reasons nobody can explain.
+enum PosTransferStatus {
+  /// Being picked. Nothing has moved.
+  DRAFT
+  /// Gone. Out of the sending branch's stock, not yet in the other's.
+  DISPATCHED
+  /// Arrived and counted in.
+  RECEIVED
+  /// Abandoned before dispatch, or sent and never arrived.
+  CANCELLED
+}
+
+model PosStockTransfer {
+  id         String @id @default(cuid())
+  /// Both branches belong to one business. A transfer between two businesses
+  /// is a sale, not a transfer, and must not be able to pretend otherwise.
+  businessId String
+  reference  String
+
+  fromShopkeeperId String
+  toShopkeeperId   String
+
+  status PosTransferStatus @default(DRAFT)
+  note   String?
+
+  dispatchedByName String?
+  receivedByName   String?
+
+  createdAt    DateTime  @default(now())
+  dispatchedAt DateTime?
+  receivedAt   DateTime?
+  cancelledAt  DateTime?
+  cancelReason String?
+
+  business PosBusiness       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  from     ShopkeeperProfile @relation("PosTransferFrom", fields: [fromShopkeeperId], references: [id], onDelete: Cascade)
+  to       ShopkeeperProfile @relation("PosTransferTo", fields: [toShopkeeperId], references: [id], onDelete: Cascade)
+  lines    PosStockTransferLine[]
+
+  @@unique([businessId, reference])
+  @@index([fromShopkeeperId, status])
+  @@index([toShopkeeperId, status])
+  @@map("pos_stock_transfers")
+}
+
+model PosStockTransferLine {
+  id         String @id @default(cuid())
+  transferId String
+
+  /// The sending branch's product row.
+  productId String
+  /// The receiving branch's own row for the same thing.
+  ///
+  /// Branches are separate ShopkeeperProfiles with separate catalogues, so
+  /// "the same product" is two rows with the same SKU. Resolved and frozen at
+  /// dispatch rather than at receipt: if the match were made on arrival, a
+  /// branch that renamed or re-SKU'd something mid-journey would strand the
+  /// goods with nowhere to put them.
+  toProductId String?
+
+  /// Snapshotted, same rule as everywhere else in POS.
+  name String
+  sku  String?
+  unit String  @default("piece")
+
+  quantitySent Decimal @db.Decimal(14, 3)
+  /// What the far end actually counted in. Null until they do. A difference
+  /// is a real loss and is recorded as one rather than quietly averaged away.
+  quantityReceived Decimal? @db.Decimal(14, 3)
+  discrepancyNote  String?
+
+  /// Carried across so the receiving branch values the stock at what it cost
+  /// the business, not at the sending branch's selling price.
+  unitCost Decimal? @db.Decimal(12, 2)
+
+  transfer  PosStockTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  product   Product          @relation("PosTransferLineProduct", fields: [productId], references: [id])
+  toProduct Product?         @relation("PosTransferLineTarget", fields: [toProductId], references: [id])
+
+  @@index([transferId])
+  @@index([productId])
+  @@map("pos_stock_transfer_lines")
+}
+
+// =========================================================================
+// WHAT SOMETHING COSTS TODAY
+// =========================================================================
+
+/// A named set of prices, for customers who do not pay the shelf price.
+///
+/// WHY NOT A DISCOUNT PERCENTAGE ON THE CUSTOMER
+///
+/// A flat "10% off everything" is the shortcut, and it is wrong in exactly
+/// the cases that matter: a wholesaler's margin differs per line, some goods
+/// are sold at cost to move them, and a few are never discounted at all. A
+/// list of prices says what each thing costs this customer, which is what a
+/// shopkeeper actually negotiates.
+model PosPriceList {
+  id           String  @id @default(cuid())
+  shopkeeperId String
+  name         String
+  /// Shown to the cashier so they know why the price changed.
+  description  String?
+  isActive     Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  shopkeeper ShopkeeperProfile  @relation(fields: [shopkeeperId], references: [id], onDelete: Cascade)
+  items      PosPriceListItem[]
+  customers  PosCustomer[]
+
+  @@unique([shopkeeperId, name])
+  @@index([shopkeeperId, isActive])
+  @@map("pos_price_lists")
+}
+
+model PosPriceListItem {
+  id          String @id @default(cuid())
+  priceListId String
+  productId   String
+
+  /// What this customer pays. Not a discount: an absolute price, so a cost
+  /// change on the shelf does not silently move a negotiated figure.
+  price Decimal @db.Decimal(12, 2)
+
+  /// The break this price applies from. 1 means "always". Several rows for
+  /// one product make a quantity ladder: 1 at 100, 12 at 90, 100 at 80.
+  minQuantity Decimal @default(1) @db.Decimal(14, 3)
+
+  priceList PosPriceList @relation(fields: [priceListId], references: [id], onDelete: Cascade)
+  product   Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([priceListId, productId, minQuantity])
+  @@index([priceListId])
+  @@map("pos_price_list_items")
+}
+
+/// What kind of offer this is.
+enum PosPromotionKind {
+  /// A percentage off the line.
+  PERCENT_OFF
+  /// A fixed amount off each unit.
+  AMOUNT_OFF
+  /// Buy X, get Y free or cheaper. Covers both BOGO and "3 for 2".
+  BUY_X_GET_Y
+  /// N of a thing for one fixed price. "6 for 500".
+  BUNDLE_PRICE
+}
+
+/// An offer that changes a price for a while.
+///
+/// WHY PROMOTIONS ARE NOT DISCOUNT CODES
+///
+/// This shop already has a Promotion model: that is the marketplace's
+/// discount-code system, where a customer types a code at checkout. This is
+/// the opposite. Nobody types anything, the cashier does not have to
+/// remember, and the till applies it because the basket qualifies. The two
+/// share a word and nothing else.
+model PosPromotion {
+  id           String @id @default(cuid())
+  shopkeeperId String
+  name         String
+
+  kind     PosPromotionKind
+  isActive Boolean @default(true)
+
+  /// What it applies to. Exactly one of these, or neither for the whole shop.
+  productId  String?
+  categoryId String?
+
+  /// PERCENT_OFF: 10 means ten per cent.
+  percentOff Decimal? @db.Decimal(5, 2)
+  /// AMOUNT_OFF: off each unit.
+  amountOff  Decimal? @db.Decimal(12, 2)
+  /// BUY_X_GET_Y: buy this many...
+  buyQuantity Int?
+  /// ...and get this many at getPercentOff (100 means free).
+  getQuantity Int?
+  getPercentOff Decimal? @db.Decimal(5, 2)
+  /// BUNDLE_PRICE: this many...
+  bundleQuantity Int?
+  /// ...for this much, in total.
+  bundlePrice    Decimal? @db.Decimal(12, 2)
+
+  /// When it runs. Null either side means open-ended.
+  startsAt DateTime?
+  endsAt   DateTime?
+
+  /// Lower runs first. Two offers on one line are applied in this order and
+  /// the second sees the price the first left behind, which is the only
+  /// reading a shopkeeper can predict.
+  priority Int @default(100)
+  /// Whether another promotion may also touch a line this one has touched.
+  /// Off by default: stacked offers are how a shop sells below cost by
+  /// accident.
+  stackable Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  shopkeeper ShopkeeperProfile @relation(fields: [shopkeeperId], references: [id], onDelete: Cascade)
+  product    Product?          @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([shopkeeperId, isActive])
+  @@index([shopkeeperId, productId])
+  @@map("pos_promotions")
+}
+
+// =========================================================================
+// MONEY THE SHOP ALREADY HAS
+// =========================================================================
+
+enum PosGiftCardKind {
+  /// Bought as a present. Somebody paid cash for it up front.
+  GIFT_CARD
+  /// Given instead of a refund, when goods came back. Nobody paid for it;
+  /// the shop already had the money.
+  STORE_CREDIT
+}
+
+enum PosGiftCardEntryKind {
+  ISSUE
+  TOPUP
+  REDEEM
+  /// Cancelled, or written off when it expired.
+  VOID
+}
+
+/// A card or credit note, and what is left on it.
+///
+/// WHY STORE CREDIT AND GIFT CARDS ARE ONE MODEL
+///
+/// They differ only in where the money came from. Both are a balance the
+/// customer may spend in this shop and nowhere else, both need a code the
+/// counter can look up, both must refuse to go below zero, and both are
+/// money the shop is holding on somebody's behalf. Two models would be two
+/// implementations of the same redemption arithmetic.
+///
+/// WHY THE BALANCE IS NOT TRUSTED ALONE
+///
+/// Same pattern as credit and stock: the entries are the evidence and this
+/// is the fast figure. A customer disputing "I had five hundred on this"
+/// needs a history, not a number.
+model PosGiftCard {
+  id           String @id @default(cuid())
+  shopkeeperId String
+
+  /// What is printed on the card or written on the slip. Unique within the
+  /// shop so the counter can type it, and deliberately not a cuid: nobody is
+  /// reading a cuid off a till receipt.
+  code String
+
+  kind PosGiftCardKind
+
+  initialValue Decimal @default(0) @db.Decimal(14, 2)
+  balance      Decimal @default(0) @db.Decimal(14, 2)
+
+  /// Who it was for. Free text, like a walk-in at the till, so issuing one
+  /// never requires creating a customer record.
+  issuedToName  String?
+  issuedToPhone String?
+  posCustomerId String?
+
+  /// Expiry is optional and, where set, is enforced at redemption rather
+  /// than by a job: a card nobody presents costs nothing to leave alone.
+  expiresAt DateTime?
+
+  isActive       Boolean   @default(true)
+  voidedAt       DateTime?
+  voidReason     String?
+
+  /// Where it came from, for a credit note issued against a return.
+  posReturnId String?
+
+  issuedByName String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  shopkeeper ShopkeeperProfile  @relation(fields: [shopkeeperId], references: [id], onDelete: Cascade)
+  customer   PosCustomer?       @relation(fields: [posCustomerId], references: [id], onDelete: SetNull)
+  entries    PosGiftCardEntry[]
+
+  @@unique([shopkeeperId, code])
+  @@index([shopkeeperId, isActive])
+  @@map("pos_gift_cards")
+}
+
+model PosGiftCardEntry {
+  id     String @id @default(cuid())
+  cardId String
+
+  kind PosGiftCardEntryKind
+  /// SIGNED, like every other ledger here: issuing and topping up are
+  /// positive, redeeming negative, so the balance is a plain sum.
+  amount       Decimal  @db.Decimal(14, 2)
+  balanceAfter Decimal  @db.Decimal(14, 2)
+
+  posSaleId String?
+  note      String?
+
+  actorUserId String?
+  actorName   String?
+  occurredAt  DateTime @default(now())
+
+  card PosGiftCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+
+  @@index([cardId, occurredAt])
+  @@map("pos_gift_card_entries")
+}
+
+// =========================================================================
+// A PRICE PUT IN WRITING BEFORE ANYTHING IS SOLD
+// =========================================================================
+
+enum PosQuoteStatus {
+  /// Being put together.
+  DRAFT
+  /// Given to the customer. The figures are now a promise.
+  SENT
+  /// They said yes. Not yet rung up.
+  ACCEPTED
+  /// Rung up. The sale it became is on posSaleId.
+  CONVERTED
+  /// Its validity date passed with no answer.
+  EXPIRED
+  CANCELLED
+}
+
+/// A quotation or pro forma invoice.
+///
+/// WHY THIS IS NOT JUST A PARKED SALE
+///
+/// A parked sale is a basket somebody walked away from, priced at whatever
+/// the shelf says when it is resumed. A quote is a figure the shop PUT IN
+/// WRITING: a hardware merchant who quotes 180,000 for a roof cannot have
+/// that become 186,000 because cement moved on Tuesday. So the prices are
+/// frozen on the line, and converting to a sale carries them across rather
+/// than re-pricing. The validity date is how the shop limits how long it is
+/// held to them.
+///
+/// It also has to survive being printed and carried around for a fortnight,
+/// which a parked basket does not.
+model PosQuote {
+  id           String @id @default(cuid())
+  shopkeeperId String
+  reference    String
+
+  status PosQuoteStatus @default(DRAFT)
+
+  customerName  String
+  customerPhone String?
+  posCustomerId String?
+
+  /// After this the shop is no longer held to the figures. Null means open
+  /// ended, which is a decision rather than an oversight and so is allowed.
+  validUntil DateTime?
+
+  note String?
+
+  /// The sale this became, once somebody said yes and paid.
+  posSaleId String?
+
+  preparedByName String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  sentAt         DateTime?
+  acceptedAt     DateTime?
+  convertedAt    DateTime?
+  cancelledAt    DateTime?
+  cancelReason   String?
+
+  shopkeeper ShopkeeperProfile @relation(fields: [shopkeeperId], references: [id], onDelete: Cascade)
+  lines      PosQuoteLine[]
+
+  @@unique([shopkeeperId, reference])
+  @@index([shopkeeperId, status, createdAt])
+  @@map("pos_quotes")
+}
+
+model PosQuoteLine {
+  id      String @id @default(cuid())
+  quoteId String
+
+  /// Null for something written in by hand that the shop does not stock, which
+  /// on a builder's quote is half the lines.
+  productId String?
+
+  /// Snapshotted, and here the snapshot is the whole point: these figures are
+  /// what the customer was told.
+  name      String
+  sku       String?
+  unit      String  @default("piece")
+  quantity  Decimal @db.Decimal(14, 3)
+  unitPrice Decimal @db.Decimal(12, 2)
+  total     Decimal @db.Decimal(14, 2)
+
+  createdAt DateTime @default(now())
+
+  quote   PosQuote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id])
+
+  @@index([quoteId])
+  @@map("pos_quote_lines")
+}
+
+// =========================================================================
+// A RESTAURANT FLOOR
+// =========================================================================
+
+/// A table, or a counter seat, or a takeaway slot.
+model PosTable {
+  id           String @id @default(cuid())
+  shopkeeperId String
+
+  /// What the waiters call it. "T4", "Terrace 2", "Takeaway".
+  name String
+  /// Which part of the room, for places big enough to have sections.
+  area String?
+  seats Int @default(4)
+
+  isActive Boolean @default(true)
+  position Int     @default(0)
+
+  shopkeeper ShopkeeperProfile @relation(fields: [shopkeeperId], references: [id], onDelete: Cascade)
+  orders     PosTableOrder[]
+
+  @@unique([shopkeeperId, name])
+  @@index([shopkeeperId, isActive])
+  @@map("pos_tables")
+}
+
+enum PosTableOrderStatus {
+  /// Being taken. Nothing has gone to the kitchen.
+  OPEN
+  /// Some or all of it is with the kitchen.
+  IN_KITCHEN
+  /// Everything ordered has been served.
+  SERVED
+  /// Paid and the table is free. The sale it became is on posSaleId.
+  CLOSED
+  CANCELLED
+}
+
+/// A tab: everything one table has ordered this sitting.
+///
+/// WHY A RESTAURANT CANNOT USE THE TILL'S BASKET
+///
+/// A counter basket is rung up in one go by the person holding it. A tab is
+/// open for an hour, added to three times by two different waiters, partly
+/// cooked, and paid at the end. The till's cart has nowhere to put "ordered
+/// at 19:42, with the kitchen, not yet served", and that is the only state
+/// anybody on a restaurant floor actually cares about.
+///
+/// It becomes an ordinary PosSale when it is paid, for the same reason a job
+/// card does: one place decides what a sale is.
+model PosTableOrder {
+  id           String  @id @default(cuid())
+  shopkeeperId String
+  tableId      String?
+  reference    String
+
+  status PosTableOrderStatus @default(OPEN)
+
+  /// How many people are eating. Drives covers-per-head reporting, and tells
+  /// the kitchen how to plate.
+  covers Int?
+
+  /// Takeaway and delivery have no table, which is why tableId is optional.
+  isTakeaway Boolean @default(false)
+
+  customerName  String?
+  customerPhone String?
+
+  /// A service charge is a percentage of the food, decided per order because
+  /// a takeaway does not carry one and a large party sometimes does.
+  serviceChargePercent Decimal? @db.Decimal(5, 2)
+
+  openedByName String?
+  note         String?
+
+  posSaleId String?
+
+  openedAt    DateTime  @default(now())
+  closedAt    DateTime?
+  cancelledAt DateTime?
+  cancelReason String?
+
+  shopkeeper ShopkeeperProfile   @relation(fields: [shopkeeperId], references: [id], onDelete: Cascade)
+  table      PosTable?           @relation(fields: [tableId], references: [id], onDelete: SetNull)
+  lines      PosTableOrderLine[]
+
+  @@unique([shopkeeperId, reference])
+  @@index([shopkeeperId, status, openedAt])
+  @@index([tableId, status])
+  @@map("pos_table_orders")
+}
+
+model PosTableOrderLine {
+  id      String @id @default(cuid())
+  orderId String
+
+  productId String?
+
+  name      String
+  quantity  Decimal @db.Decimal(14, 3)
+  unitPrice Decimal @db.Decimal(12, 2)
+  total     Decimal @db.Decimal(14, 2)
+
+  /// "No chilli", "extra ugali", "well done". Free text and an array,
+  /// because every kitchen's list is different and a fixed set would be
+  /// wrong everywhere. These are what the kitchen screen shows under the
+  /// dish, and getting one wrong is what sends a plate back.
+  modifiers String[]
+
+  /// Starters are 1, mains 2, and so on. The kitchen uses it to decide what
+  /// to cook now and what to hold.
+  course Int @default(1)
+
+  /// The three moments a restaurant measures itself by.
+  sentToKitchenAt DateTime?
+  readyAt         DateTime?
+  servedAt        DateTime?
+
+  voidedAt   DateTime?
+  voidReason String?
+
+  createdAt DateTime @default(now())
+
+  order   PosTableOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product?      @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+  @@index([sentToKitchenAt])
+  @@map("pos_table_order_lines")
 }

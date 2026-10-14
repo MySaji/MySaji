@@ -1,10 +1,10 @@
 {
-  "id": "/provider/till",
+  "id": "/pos/sell",
   "name": "Saji Till",
   "short_name": "Till",
   "description": "Serve customers at your counter - scan, weigh, take cash or M-Pesa, print a receipt.",
-  "start_url": "/provider/till",
-  "scope": "/provider/",
+  "start_url": "/pos/sell",
+  "scope": "/pos/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#0f172a",
@@ -17,7 +17,7 @@
   ],
   "categories": ["business", "productivity", "finance"],
   "shortcuts": [
-    { "name": "New sale", "url": "/provider/till" },
-    { "name": "POS settings", "url": "/provider/till/settings" }
+    { "name": "New sale", "url": "/pos/sell" },
+    { "name": "POS settings", "url": "/pos/settings" }
   ]
 }

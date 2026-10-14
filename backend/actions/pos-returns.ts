@@ -7,6 +7,7 @@ import { db } from "@/backend/db"
 import { recordStockMovement } from "@/backend/services/pos-ledger"
 import { parsePosConfig } from "@/backend/domain/pos-config"
 import { requirePosPermission, recordPosAudit } from "@/backend/actions/pos-access"
+import { approveWithManagerPin, aboveThresholdOrNever } from "@/backend/services/pos-approval"
 
 /**
  * Goods brought back over the counter.
@@ -210,6 +211,13 @@ const returnSchema = z.object({
   method: z.enum(PAYMENT_METHODS).default("CASH"),
   staffId: z.string().trim().max(60).optional(),
   approvedByName: z.string().trim().max(80).optional(),
+  /**
+   * A manager's PIN, where the refund is over the shop's threshold.
+   *
+   * Separate from approvedByName above, which is a name somebody typed and
+   * proves nothing. This one is checked.
+   */
+  managerPin: z.string().trim().max(10).optional(),
   deviceSecret: z.string().trim().max(200).optional(),
   lines: z.array(z.object({
     saleItemId: z.string().trim().min(1),
@@ -307,6 +315,27 @@ export async function recordPosReturn(input: unknown): Promise<ReturnResult> {
   if (priced.length === 0) return { success: false, error: "Nothing was marked to come back." }
 
   const totalRefunded = priced.reduce((a, l) => a.plus(l.lineRefund), D(0))
+
+  // ---- a refund somebody should see ---------------------------------------
+  //
+  // Money leaving the drawer against goods coming back is the easiest thing
+  // in a shop to invent, which is why the spec asks for it and why the
+  // threshold is read here rather than trusted from the request.
+  const shopConfig = await db.shopkeeperProfile.findUnique({
+    where: { id: t.shopkeeperId },
+    select: { posConfig: true },
+  })
+  const refundApproval = await approveWithManagerPin({
+    shopkeeperId: t.shopkeeperId,
+    required: aboveThresholdOrNever(
+      parsePosConfig(shopConfig?.posConfig).refundApprovalAbove,
+      Number(totalRefunded.toString()),
+    ),
+    pin: body.managerPin,
+    what: "a refund of " + totalRefunded.toFixed(2),
+  })
+  if (!refundApproval.ok) return { success: false, error: refundApproval.error }
+
   const occurredAt = new Date()
 
   try {
@@ -327,7 +356,9 @@ export async function recordPosReturn(input: unknown): Promise<ReturnResult> {
           note: body.note?.trim() || null,
           handledByUserId: t.userId || null,
           handledByName: t.actorName,
-          approvedByName: body.approvedByName?.trim() || null,
+          // The checked approver wins over a typed name: one is evidence,
+          // the other is whatever the cashier felt like writing.
+          approvedByName: refundApproval.approvedBy ?? body.approvedByName?.trim() ?? null,
           occurredAt,
           items: {
             create: priced.map((l) => ({

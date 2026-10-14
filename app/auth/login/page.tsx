@@ -80,7 +80,7 @@ function LoginContent() {
   /**
    * Where to go once they are in.
    *
-   * A shop's own till address sends people here with ?next=/provider/till so
+   * A shop's own till address sends people here with ?next=/pos/sell so
    * they land at the register rather than the dashboard.
    *
    * Only a path on this site is honoured. Anything else — an absolute URL, a

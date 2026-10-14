@@ -75,7 +75,7 @@ export default async function ShopTillDoorPage({ params }: Props) {
       where: { userId: session.user.id, tillSlug: shop.slug },
       select: { id: true },
     })
-    if (mine) redirect("/provider/till")
+    if (mine) redirect("/pos/sell")
   }
 
   const initials = shop.shopName
@@ -98,7 +98,7 @@ export default async function ShopTillDoorPage({ params }: Props) {
         </div>
 
         <Link
-          href={`/auth/login?next=${encodeURIComponent("/provider/till")}`}
+          href={`/auth/login?next=${encodeURIComponent("/pos/sell")}`}
           className="mt-7 flex h-12 items-center justify-center rounded-xl bg-primary text-primary-foreground text-sm font-semibold active:scale-[0.98] transition-transform"
         >
           Sign in to open the till

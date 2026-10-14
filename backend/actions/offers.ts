@@ -28,6 +28,7 @@ import {
   type OfferActionType, type OfferStatus, type OfferPricingModel, type OfferAvailabilityStatus,
   type OfferFulfilmentMethod, type OfferDocument,
 } from "@/backend/domain/offer-constants"
+import { openingJobStatus } from "@/backend/services/commission-debt"
 
 export type { OfferActionType, OfferStatus }
 
@@ -791,7 +792,10 @@ export async function createOfferBooking(input: unknown): Promise<CreateOfferBoo
       latitude: data.latitude,
       longitude: data.longitude,
       scheduledDate,
-      status: "PENDING_PAYMENT",
+      // Not hardcoded: where the customer pays the provider directly this
+      // must open as PENDING or the job is invisible to the provider and
+      // waits forever for money that is never coming through the platform.
+      status: await openingJobStatus(),
       quantity: data.quantity,
     },
   })

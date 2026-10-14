@@ -305,14 +305,30 @@ export async function completeJob(input: unknown): Promise<ProviderJobActionResu
   // well would hand them the fare twice.
   const providerPaidDirectly = await jobIsProviderPaid(job.id)
   if (providerPaidDirectly) {
+    // Named in the message below. One cheap read on a path that already does
+    // several, and "pay Mwangi 2,500" is an instruction where "pay your
+    // provider" is a reminder.
+    const me = await db.user.findUnique({
+      where: { id: provider.userId },
+      select: { name: true },
+    })
     await db.$transaction([
       db.job.update({ where: { id: job.id }, data: { status: "COMPLETED", completedAt: new Date() } }),
       db.providerProfile.update({ where: { id: provider.providerId }, data: { completedJobs: { increment: 1 } } }),
       db.notification.create({
         data: {
           userId: job.customerId,
-          title: "Job completed",
-          message: `${job.title} has been marked complete. Please leave a review!`,
+          title: "Work finished",
+          // The customer still owes the money at this point: that is the
+          // whole shape of direct payment, and a message that only asks for
+          // a review leaves the one outstanding action unsaid. The amount is
+          // named because "pay the provider" without a figure is not an
+          // instruction anybody can act on.
+          message:
+            `${job.title} has been marked complete. Pay ` +
+            `${me?.name ?? "your provider"} ` +
+            `${job.currency ?? "KES"} ${Number(job.price ?? 0).toLocaleString("en-KE")} ` +
+            "directly, then leave them a review.",
           type: "JOB",
           relatedType: "JOB",
           relatedId: job.id,

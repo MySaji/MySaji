@@ -55,7 +55,24 @@ export async function resolvePosActor(staffId?: string | null): Promise<PosActor
   // The business this account owns, or one it holds a staff seat in.
   const owned = await db.posBusiness.findUnique({
     where: { ownerUserId: userId },
-    select: { id: true, name: true, stores: { where: { isActive: true }, select: { id: true, shopkeeperId: true }, take: 1 } },
+    select: {
+      id: true, name: true,
+      // activeStoreId, not simply the first store.
+      //
+      // This used to take stores[0], which meant an owner who had switched to
+      // another branch still had every POS action land on the first one:
+      // expenses filed against the wrong shop, a stock count drawn from the
+      // wrong catalogue, a transfer that could never be received because the
+      // actor was always the sending branch. The till never had the bug
+      // because it resolves through posShopIdFor, which has always honoured
+      // the choice. This now matches it.
+      activeStoreId: true,
+      stores: {
+        where: { isActive: true },
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        select: { id: true, shopkeeperId: true },
+      },
+    },
   })
 
   let businessId: string
@@ -70,8 +87,14 @@ export async function resolvePosActor(staffId?: string | null): Promise<PosActor
     businessId = owned.id
     businessName = owned.name
     role = "OWNER"
-    storeId = owned.stores[0]?.id ?? null
-    shopkeeperId = owned.stores[0]?.shopkeeperId ?? null
+    // Only if the chosen store is still one of theirs and still active: a
+    // branch can be closed while it is the one selected.
+    const chosen = owned.activeStoreId
+      ? owned.stores.find((st) => st.id === owned.activeStoreId)
+      : null
+    const store = chosen ?? owned.stores[0]
+    storeId = store?.id ?? null
+    shopkeeperId = store?.shopkeeperId ?? null
   } else {
     const seat = await db.posStaff.findFirst({
       where: { userId, isActive: true },

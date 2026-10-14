@@ -6,6 +6,12 @@ import { auth } from "@/backend/auth"
 import { db } from "@/backend/db"
 import { posShopIdFor } from "@/backend/services/pos-tenant"
 import { recordStockMovement } from "@/backend/services/pos-ledger"
+import {
+  approveWithManagerPin, aboveThresholdOrAlways, aboveThresholdOrNever,
+} from "@/backend/services/pos-approval"
+import {
+  priceLine, type PriceListEntry, type Promotion as PricingPromotion,
+} from "@/backend/domain/pos-pricing"
 import { parsePosConfig, type NegativeStockPolicy, type ExpiredStockPolicy } from "@/backend/domain/pos-config"
 import bcrypt from "bcryptjs"
 import { createHash } from "crypto"
@@ -55,6 +61,8 @@ type TillTenant = {
   taxInclusive: boolean
   cashRounding: number
   managerPinToVoid: boolean
+  discountApprovalAbove: number | null
+  voidApprovalAbove: number | null
   loyaltyEnabled: boolean
   loyaltyPointsPerHundred: number
   loyaltyShillingsPerPoint: number
@@ -97,6 +105,8 @@ async function requireTill(): Promise<TillTenant | null> {
     taxInclusive: config.taxInclusive,
     cashRounding: config.cashRounding,
     managerPinToVoid: config.managerPinToVoid,
+    discountApprovalAbove: config.discountApprovalAbove,
+    voidApprovalAbove: config.voidApprovalAbove,
     loyaltyEnabled: config.loyaltyEnabled,
     loyaltyPointsPerHundred: config.loyaltyPointsPerHundred,
     loyaltyShillingsPerPoint: config.loyaltyShillingsPerPoint,
@@ -615,7 +625,11 @@ export async function closeTillShift(input: unknown): Promise<TillActionResult<S
 // Recording a sale
 // ---------------------------------------------------------------------------
 
-const PAYMENT_METHODS = ["CASH", "MPESA", "CARD", "BANK", "CREDIT"] as const
+// GIFT_CARD is a tender like any other: the card's number travels in the
+// payment's reference. SPLIT is deliberately absent, here and before: it is
+// what the SALE is when there are several of these, never a method a cashier
+// picks for one payment.
+const PAYMENT_METHODS = ["CASH", "MPESA", "CARD", "BANK", "CREDIT", "GIFT_CARD"] as const
 
 const saleSchema = z.object({
   /**
@@ -658,6 +672,11 @@ const saleSchema = z.object({
     stkPhone: z.string().trim().max(16).optional(),
   })).min(1).max(5),
   saleDiscount: z.number().min(0).max(100_000_000).optional(),
+  /**
+   * A manager's PIN, where the discount on this sale is over the shop's
+   * threshold. Ignored entirely when it is not.
+   */
+  managerPin: z.string().trim().max(10).optional(),
   /**
    * The cashier confirmed the buyer is old enough. Required when any line
    * is age-restricted and the shop has the trait on; ignored otherwise, so
@@ -808,6 +827,7 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
       id: true, name: true, sku: true, barcode: true, unit: true,
       price: true, discountPrice: true, costPrice: true, hasVariants: true, tracksBatches: true,
       ageRestricted: true, tracksSerials: true, controlled: true, madeToOrder: true, isService: true,
+      categoryId: true,
     },
   })
   const byId = new Map(products.map((p) => [p.id, p]))
@@ -878,9 +898,64 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
     isService: boolean
   }
 
+  // ---- what things cost today --------------------------------------------
+  //
+  // Loaded once for the whole sale rather than per line: a basket of twenty
+  // items would otherwise make twenty round trips for the same two answers.
+  // Both are empty for a shop that uses neither, and the engine then returns
+  // the shelf price, so this costs nothing where it is not used.
+  const pricingNow = new Date()
+  const [livePromotions, customerPriceList] = await Promise.all([
+    db.posPromotion.findMany({
+      where: {
+        shopkeeperId: till.shopkeeperId,
+        isActive: true,
+        AND: [
+          { OR: [{ startsAt: null }, { startsAt: { lte: pricingNow } }] },
+          { OR: [{ endsAt: null }, { endsAt: { gte: pricingNow } }] },
+        ],
+      },
+      orderBy: { priority: "asc" },
+    }),
+    body.posCustomerId
+      ? db.posCustomer.findFirst({
+          where: { id: body.posCustomerId, shopkeeperId: till.shopkeeperId },
+          select: { priceList: { select: { isActive: true, items: { select: { productId: true, price: true, minQuantity: true } } } } },
+        })
+      : Promise.resolve(null),
+  ])
+
+  const priceListEntries: PriceListEntry[] =
+    customerPriceList?.priceList && customerPriceList.priceList.isActive
+      ? customerPriceList.priceList.items.map((i) => ({
+          productId: i.productId,
+          price: Number(i.price),
+          minQuantity: Number(i.minQuantity),
+        }))
+      : []
+
+  const promotionRules: PricingPromotion[] = livePromotions.map((p) => ({
+    id: p.id,
+    name: p.name,
+    kind: p.kind,
+    productId: p.productId,
+    categoryId: p.categoryId,
+    percentOff: p.percentOff === null ? null : Number(p.percentOff),
+    amountOff: p.amountOff === null ? null : Number(p.amountOff),
+    buyQuantity: p.buyQuantity,
+    getQuantity: p.getQuantity,
+    getPercentOff: p.getPercentOff === null ? null : Number(p.getPercentOff),
+    bundleQuantity: p.bundleQuantity,
+    bundlePrice: p.bundlePrice === null ? null : Number(p.bundlePrice),
+    priority: p.priority,
+    stackable: p.stackable,
+  }))
+
   const priced: PricedLine[] = []
   /** Shown on the receipt, like the negative-stock ones. */
   const expiryWarnings: string[] = []
+  /** What the customer saved, and why. A saving nobody can see is not one. */
+  const promotionSavings: { name: string; saved: number }[] = []
   let subtotal = D(0)
 
   for (const line of body.lines) {
@@ -934,8 +1009,33 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
       overridden = true
     }
 
+    // --- the customer's price, and whatever is on offer -------------------
+    //
+    // Run even when the cashier typed a price: the engine checks the override
+    // first and returns it untouched, so there is one place that decides what
+    // a line costs rather than two that can disagree.
+    const breakdown = priceLine(
+      {
+        productId: product.id,
+        categoryId: product.categoryId ?? null,
+        quantity: Number(quantity.toString()),
+        basePrice: Number(D(variant?.price ?? product.discountPrice ?? product.price).toString()),
+        override: overridden ? Number(unitPrice.toString()) : null,
+      },
+      priceListEntries,
+      promotionRules,
+    )
+    // The line total is what the engine says. The unit price is derived back
+    // from it so the receipt still adds up line by line, which matters more
+    // to a customer reading it than carrying the pre-offer figure around.
+    const pricedTotal = D(breakdown.lineTotal)
+    unitPrice = quantity.isZero() ? D(0) : pricedTotal.dividedBy(quantity)
+    for (const applied of breakdown.appliedPromotions) {
+      promotionSavings.push({ name: applied.name, saved: applied.saved })
+    }
+
     const lineDiscount = D(line.lineDiscount ?? 0)
-    const gross = unitPrice.times(quantity)
+    const gross = pricedTotal
     if (lineDiscount.greaterThan(gross)) {
       return { success: false, error: `The discount on ${product.name} is more than the line is worth.` }
     }
@@ -1127,6 +1227,55 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
     if (found) loyaltyCustomer = found
   }
 
+  // ---- paying with money the shop already has -----------------------------
+  //
+  // A gift card or credit note tendered at the till. The code travels in the
+  // payment's reference field, which is where a cashier would type it anyway.
+  // Checked here and spent inside the sale transaction, for the same reason
+  // the credit charge is: a sale that commits while the redemption fails
+  // would let the same card be spent twice.
+  const giftTenders = body.payments
+    .map((p, i) => ({ ...p, i }))
+    .filter((p) => p.method === "GIFT_CARD")
+
+  const giftRedemptions: { cardId: string; code: string; amount: Prisma.Decimal; after: Prisma.Decimal }[] = []
+
+  if (giftTenders.length > 0) {
+    const now = new Date()
+    for (const tender of giftTenders) {
+      const code = (tender.reference ?? "").trim().toUpperCase()
+      if (!code) {
+        return { success: false, error: "Enter the number from the card to pay with it." }
+      }
+      const card = await db.posGiftCard.findFirst({
+        where: { shopkeeperId: till.shopkeeperId, code },
+      })
+      if (!card) return { success: false, error: "No card in this shop has the number " + code + "." }
+      if (!card.isActive) {
+        return { success: false, error: "Card " + code + " was cancelled." }
+      }
+      if (card.expiresAt && card.expiresAt < now) {
+        return { success: false, error: "Card " + code + " expired on " + card.expiresAt.toLocaleDateString("en-KE") + "." }
+      }
+      // Already counted within this same basket: two tenders on one card
+      // must not both see the opening balance.
+      const alreadyHere = giftRedemptions
+        .filter((r) => r.cardId === card.id)
+        .reduce((a, r) => a.plus(r.amount), D(0))
+      const available = D(card.balance).minus(alreadyHere)
+      const wanted = D(tender.amount)
+      if (wanted.greaterThan(available)) {
+        return {
+          success: false,
+          error: "Card " + code + " has " + available.toFixed(2) + " left, not " + wanted.toFixed(2) + ".",
+        }
+      }
+      giftRedemptions.push({
+        cardId: card.id, code, amount: wanted, after: available.minus(wanted),
+      })
+    }
+  }
+
   // ---- selling on the book ----------------------------------------------
   //
   // CREDIT used to be a label on a payment with nothing behind it: any
@@ -1180,6 +1329,21 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
   if (saleDiscount.greaterThan(subtotal)) {
     return { success: false, error: "The discount is more than the sale is worth." }
   }
+
+  // ---- a discount somebody should see ------------------------------------
+  //
+  // Measured on everything knocked off, not only the sale-level figure: a
+  // cashier splitting 2,000 across twenty lines to stay under a threshold is
+  // precisely the behaviour this exists to catch.
+  const discountGiven = priced
+    .reduce((a, l) => a.plus(l.lineDiscount), saleDiscount)
+  const discountApproval = await approveWithManagerPin({
+    shopkeeperId: till.shopkeeperId,
+    required: aboveThresholdOrNever(till.discountApprovalAbove, Number(discountGiven.toString())),
+    pin: body.managerPin,
+    what: "a discount of " + discountGiven.toFixed(2),
+  })
+  if (!discountApproval.ok) return { success: false, error: discountApproval.error }
 
   // Points come off the bill as a DISCOUNT, not as a payment.
   //
@@ -1368,6 +1532,9 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
             dueDate: isDeposit && body.deposit?.dueDate ? new Date(body.deposit.dueDate) : null,
             paymentMethod,
             ageVerified,
+            // Null unless a manager actually had to approve it, so the
+            // presence of a name means something.
+            discountApprovedBy: discountApproval.approvedBy,
             customerName: body.customerName?.trim() || loyaltyCustomer?.name || null,
             customerPhone: body.customerPhone?.trim() || null,
             // Falls back to the credit customer: loyalty can be switched
@@ -1631,6 +1798,26 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
           })
         }
 
+        // ---- the cards, spent with the sale -------------------------------
+        for (const r of giftRedemptions) {
+          await tx.posGiftCardEntry.create({
+            data: {
+              cardId: r.cardId,
+              kind: "REDEEM",
+              amount: r.amount.negated(),
+              balanceAfter: r.after,
+              posSaleId: sale.id,
+              actorUserId: till.userId,
+              actorName: till.userName,
+              occurredAt,
+            },
+          })
+          await tx.posGiftCard.update({
+            where: { id: r.cardId },
+            data: { balance: r.after },
+          })
+        }
+
         // ---- the debt, in the same transaction as the sale ---------------
         //
         // Written here rather than afterwards on purpose. A sale that commits
@@ -1792,22 +1979,16 @@ export async function voidPosSale(input: unknown): Promise<TillActionResult> {
   // Enforced only where managers actually EXIST: a setting that is on by
   // default must not lock a one-person duka out of correcting its own
   // mistake.
-  if (till.managerPinToVoid) {
-    const managers = await db.posCashier.findMany({
-      where: { shopkeeperId: till.shopkeeperId, isActive: true, role: "manager" },
-      select: { name: true, pinHash: true },
-    })
-    if (managers.length > 0) {
-      if (!parsed.data.managerPin) {
-        return { success: false, error: "A manager has to approve a void. Ask one to enter their PIN." }
-      }
-      let approved = false
-      for (const m of managers) {
-        if (await bcrypt.compare(parsed.data.managerPin, m.pinHash)) { approved = true; break }
-      }
-      if (!approved) return { success: false, error: "That is not a manager PIN for this till." }
-    }
-  }
+  // The switch says whether to ask at all; the threshold says when it is
+  // worth asking. A shop that wants every void approved simply leaves the
+  // threshold unset.
+  const voidApproval = await approveWithManagerPin({
+    shopkeeperId: till.shopkeeperId,
+    required: till.managerPinToVoid && aboveThresholdOrAlways(till.voidApprovalAbove, Number(sale.total)),
+    pin: parsed.data.managerPin,
+    what: "a void of " + Number(sale.total).toFixed(2),
+  })
+  if (!voidApproval.ok) return { success: false, error: voidApproval.error }
 
   try {
     await db.$transaction(async (tx) => {

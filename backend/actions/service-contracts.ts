@@ -7,6 +7,7 @@ import { requireVerified } from "@/backend/services/verification-gate"
 import { requirePro } from "@/backend/actions/provider-subscription"
 import { logJobEvent } from "@/backend/actions/job-events"
 import { notifyUser } from "@/backend/actions/notify"
+import { openingJobStatus } from "@/backend/services/commission-debt"
 
 async function requireProviderId(): Promise<string | null> {
   const session = await auth()
@@ -196,7 +197,10 @@ export async function respondToContractQuote(input: unknown): Promise<RespondToQ
       price: contract.quotedPrice,
       location: contract.location,
       scheduledDate: new Date(),
-      status: "PENDING_PAYMENT",
+      // Not hardcoded: where the customer pays the provider directly this
+      // must open as PENDING or the job is invisible to the provider and
+      // waits forever for money that is never coming through the platform.
+      status: await openingJobStatus(),
     },
   })
 

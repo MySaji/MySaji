@@ -18,7 +18,7 @@
  *      the dominant failure in practice.
  *
  *   2. THE TILL IS STARTED COLD WITH NO CONNECTION.  Handled, as of the
- *      shell cache in public/provider/sw.js, with one condition: the till
+ *      shell cache in public/pos/sw.js, with one condition: the till
  *      must have been opened at least once with a connection since it was
  *      installed. A device that has never reached the server has nothing
  *      saved to open, and says exactly that rather than pretending.

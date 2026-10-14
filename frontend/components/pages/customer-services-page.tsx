@@ -38,6 +38,8 @@ import { getWishlistIds, toggleWishlist } from "@/backend/actions/wishlist"
 import { addToCart, getCart, type CartLine } from "@/backend/actions/cart"
 import { revalidateCartCount } from "@/frontend/lib/hooks/useCartCount"
 import { createBooking, createEmergencyBooking } from "@/backend/actions/jobs"
+import { getEffectivePlatformPreferences } from "@/backend/actions/admin-settings"
+import { DirectPaymentNote } from "@/frontend/components/booking/direct-payment-note"
 import { getAddresses } from "@/backend/actions/addresses"
 import PaymentMethods from "@/frontend/components/payment/payment-methods"
 import { withTimeout, DASHBOARD_FETCH_TIMEOUT_MS } from "@/frontend/lib/swr-utils"
@@ -400,6 +402,21 @@ export function CustomerServicesPage() {
       setBookingStep(3)
     }
   }
+
+  /**
+   * Who is taking the money.
+   *
+   * Defaults to DIRECT on failure, and starts null so nothing is rendered
+   * before the answer is known. Guessing IN_APP and being wrong would show a
+   * customer a payment step that cannot complete, which is the exact failure
+   * this whole arrangement exists to avoid.
+   */
+  const [payMode, setPayMode] = useState<"IN_APP" | "DIRECT" | "BOTH" | null>(null)
+  useEffect(() => {
+    getEffectivePlatformPreferences()
+      .then((p: { jobPaymentMode?: string }) => setPayMode((p.jobPaymentMode as "IN_APP" | "DIRECT" | "BOTH") ?? "DIRECT"))
+      .catch(() => setPayMode("DIRECT"))
+  }, [])
 
   const handleBookingPaymentSuccess = async () => {
     const wallet = await getWalletSummary()
@@ -1063,7 +1080,7 @@ export function CustomerServicesPage() {
                 <DialogTitle className="text-base">
                   {bookingStep === 1 && t("customer.services.selectDateTime")}
                   {bookingStep === 2 && t("customer.services.serviceDetails")}
-                  {bookingStep === 3 && t("customer.services.confirmAndPay")}
+                  {bookingStep === 3 && (payMode === "DIRECT" ? t("customer.services.confirmBooking") : t("customer.services.confirmAndPay"))}
                 </DialogTitle>
               </DialogHeader>
 
@@ -1169,7 +1186,20 @@ export function CustomerServicesPage() {
                     <p className="text-[11px] text-muted-foreground leading-relaxed">{t("customer.booking.cancellationPolicy")}</p>
                   </div>
 
-                  {createdJobId ? (
+                  {/* Nothing to pay here when the customer settles with the
+                      provider themselves, so the step becomes a confirmation
+                      rather than a payment form that could never complete. */}
+                  {payMode === "DIRECT" ? (
+                    <>
+                      <DirectPaymentNote />
+                      <button
+                        onClick={() => void handleBookingPaymentSuccess()}
+                        className="w-full h-12 rounded-xl bg-primary text-primary-foreground text-sm font-semibold active:scale-[0.98]"
+                      >
+                        {t("customer.services.allDone")}
+                      </button>
+                    </>
+                  ) : createdJobId ? (
                     <PaymentMethods jobId={createdJobId} amount={getBookingTotal()} onSuccess={handleBookingPaymentSuccess} />
                   ) : (
                     <div className="flex justify-center py-4"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
@@ -1200,7 +1230,7 @@ export function CustomerServicesPage() {
                   <AlertTriangle className="w-5 h-5" />
                   {emergencyStep === 1 && t("customer.services.selectEmergencyType")}
                   {emergencyStep === 2 && t("customer.services.emergencyDetails")}
-                  {emergencyStep === 3 && t("customer.services.confirmAndPay")}
+                  {emergencyStep === 3 && (payMode === "DIRECT" ? t("customer.services.confirmBooking") : t("customer.services.confirmAndPay"))}
                 </DialogTitle>
               </DialogHeader>
 
@@ -1310,7 +1340,21 @@ export function CustomerServicesPage() {
                   </div>
                   {emergencyError && <p className="text-[11px] text-red-600">{emergencyError}</p>}
 
-                  {createdJobId ? (
+                  {/* Same as the booking flow: an emergency job the customer
+                      settles directly has nothing to collect here, and an
+                      emergency is the worst possible moment to show somebody
+                      a payment form that cannot go through. */}
+                  {payMode === "DIRECT" ? (
+                    <>
+                      <DirectPaymentNote compact />
+                      <button
+                        onClick={() => void handleEmergencyPaymentSuccess()}
+                        className="w-full h-12 rounded-xl bg-primary text-primary-foreground text-sm font-semibold active:scale-[0.98]"
+                      >
+                        {t("customer.services.allDone")}
+                      </button>
+                    </>
+                  ) : createdJobId ? (
                     <PaymentMethods jobId={createdJobId} amount={getEmergencyTotal()} onSuccess={handleEmergencyPaymentSuccess} />
                   ) : (
                     <div className="flex justify-center py-4"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>

@@ -199,6 +199,37 @@ export async function createPosAccount(input: unknown): Promise<CreatePosAccount
 
 // ----------------------------------------------------------------- progress
 
+/**
+ * Where this account belongs in the POS.
+ *
+ * One function, used by the sign-in screen and by the landing page's button,
+ * so the two can never disagree about where somebody should end up. Sending
+ * everybody to /pos/setup was the old behaviour and pushed a cashier into
+ * their employer's setup wizard.
+ */
+export async function posDestination(): Promise<string> {
+  const session = await auth()
+  if (!session?.user?.id) return "/pos/login"
+
+  const business = await db.posBusiness.findUnique({
+    where: { ownerUserId: session.user.id },
+    select: { setupCompletedAt: true },
+  })
+  // An owner mid-wizard resumes it; a finished one goes to work.
+  if (business) return business.setupCompletedAt ? "/pos/home" : "/pos/setup"
+
+  // Staff on somebody else's till. The register is where they are needed,
+  // and the home page is mostly things their role cannot open.
+  const seat = await db.posStaff.findFirst({
+    where: { userId: session.user.id, isActive: true },
+    select: { id: true },
+  })
+  if (seat) return "/pos/sell"
+
+  // Signed in to SAJI with no till of any kind.
+  return "/pos/signup"
+}
+
 export async function getOnboardingProgress(): Promise<OnboardingProgress | null> {
   const ctx = await requireOwner()
   if (!ctx) return null

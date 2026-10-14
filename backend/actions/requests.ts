@@ -10,6 +10,7 @@ import { pushToUser } from "@/backend/actions/push"
 import { logJobEvent } from "@/backend/actions/job-events"
 import { distanceFrom, sortByDistance, toCoordinates } from "@/backend/domain/geo"
 import { resolveLocationOrigin, getMyLocationOrigin } from "@/backend/actions/geo"
+import { openingJobStatus } from "@/backend/services/commission-debt"
 
 const REQUEST_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000
 const MAX_NOTIFIED_PROVIDERS = 15
@@ -705,7 +706,10 @@ export async function acceptRequestResponse(input: unknown): Promise<AcceptRespo
         price: amount,
         location: request.location,
         scheduledDate,
-        status: "PENDING_PAYMENT",
+        // Not hardcoded: where the customer pays the provider directly this
+      // must open as PENDING or the job is invisible to the provider and
+      // waits forever for money that is never coming through the platform.
+      status: await openingJobStatus(),
       },
     })
     jobId = job.id

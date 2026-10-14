@@ -68,11 +68,11 @@ export function TillInstall() {
 
     // Registering the worker is what makes the install offer appear at all.
     // Scope "/provider/" rather than "/", so it cannot displace the app-wide
-    // push worker, and rather than "/provider/till/", which would not have
-    // covered the till page itself — see the note in public/provider/sw.js.
+    // push worker, and rather than "/pos/", which would not have
+    // covered the till page itself — see the note in public/pos/sw.js.
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker
-        .register("/provider/sw.js", { scope: "/provider/" })
+        .register("/pos/sw.js", { scope: "/pos/" })
         .then(() => navigator.serviceWorker.ready)
         .then((reg) => {
           // Ask it to sweep now that the page has loaded. The worker sees no

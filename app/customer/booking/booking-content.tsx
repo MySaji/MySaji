@@ -18,6 +18,7 @@ import { ArrowLeft, Calendar, Clock, MapPin, Check, Loader2 } from "lucide-react
 import PaymentMethods from "@/frontend/components/payment/payment-methods"
 import { AddressAutocompleteInput, type PlaceResult } from "@/frontend/components/maps/address-autocomplete-input"
 import { SajiProtectionBanner } from "@/frontend/components/saji-protection-banner"
+import { DirectPaymentNote } from "@/frontend/components/booking/direct-payment-note"
 
 export default function BookingContent() {
   const { handleGateFailure } = useGatedAction()
@@ -497,18 +498,3 @@ export default function BookingContent() {
  * head is "when do I pay and to whom". Answering it badly is how a booking
  * turns into a no-show.
  */
-function DirectPaymentNote() {
-  return (
-    <div className="rounded-lg border border-border bg-muted/50 p-4">
-      <p className="text-sm font-semibold text-foreground">You pay the provider directly</p>
-      <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-        Nothing is charged now and SAJI does not hold your money. Agree the final amount with
-        the provider, and pay them on their phone once the work is done and you are happy with
-        it.
-      </p>
-      <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
-        Paying inside the app is coming soon.
-      </p>
-    </div>
-  )
-}
