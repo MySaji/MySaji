@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { MapPin, Star, ShieldCheck, Store, Loader2, Map as MapIcon, List, ChevronRight } from "lucide-react"
@@ -11,6 +11,9 @@ import { NearbyMap } from "@/frontend/components/geo/nearby-map"
 import { PresenceBadge } from "@/frontend/components/geo/online-dot"
 import { isGoogleMapsConfigured } from "@/backend/services/google-maps"
 import type { FencedProvider, FencedShop } from "@/backend/actions/geofence"
+import {
+  getProvidersServingMyArea, type AreaProvidersResult,
+} from "@/backend/actions/providers-serving-area"
 
 /**
  * The customer home page's "Near you" row.
@@ -56,6 +59,26 @@ export function NearYouSection() {
   if (!isLoading && !data?.fence) return null
 
   const providers = data?.providers ?? []
+
+  /**
+   * Providers who cover this area but have never been located.
+   *
+   * Most providers on this platform have no coordinates at all: they signed
+   * up, said they work in Nairobi, and never typed an address. A radius can
+   * never find them, which is why this row showed shops and almost nobody
+   * else. Asked for separately, shown separately, and never given a distance
+   * we do not have.
+   */
+  const [areaPros, setAreaPros] = useState<AreaProvidersResult | null>(null)
+  useEffect(() => {
+    let alive = true
+    getProvidersServingMyArea({ excludeIds: providers.map((p) => p.providerId) })
+      .then((r) => { if (alive) setAreaPros(r) })
+      .catch(() => {})
+    return () => { alive = false }
+    // Keyed on the located ids so the exclusion list stays correct as the
+    // fence resolves, and not on the array itself, which is new every render.
+  }, [providers.map((p) => p.providerId).join(",")])
   const shops = data?.shops ?? []
   const nothing = !isLoading && providers.length === 0 && shops.length === 0
 
@@ -151,6 +174,17 @@ export function NearYouSection() {
           {shops.length > 0 && (
             <Row title={t("nearby.shopsTitle")} href="/customer/shops" seeAll={t("nearby.viewAllShops")}>
               {shops.map((s) => <ShopCard key={s.id} shop={s} />)}
+            </Row>
+          )}
+          {/* Below the located ones, and titled so the difference is obvious:
+              these are not "600 m away", they are "covers your area". */}
+          {areaPros && areaPros.items.length > 0 && (
+            <Row
+              title={"Also serving " + areaPros.area}
+              href="/customer/find-specialists"
+              seeAll={t("nearby.viewAllPros")}
+            >
+              {areaPros.items.map((p) => <AreaProviderCard key={p.id} provider={p} />)}
             </Row>
           )}
         </>
@@ -307,5 +341,49 @@ function ShopCard({ shop }: { shop: FencedShop }) {
         {t("nearby.viewShop")}
       </Link>
     </div>
+  )
+}
+
+/**
+ * A provider matched by the area they cover rather than by distance.
+ *
+ * Deliberately says what it knows ("covers Nairobi") and nothing it does
+ * not. An earlier draft put "nearby" on these and it was simply untrue: the
+ * system has no idea where this person is.
+ */
+function AreaProviderCard({ provider }: { provider: AreaProvidersResult["items"][number] }) {
+  return (
+    <Link
+      href={provider.slug ? "/p/" + provider.slug : "/customer/find-specialists"}
+      className="w-[160px] flex-shrink-0 snap-start overflow-hidden rounded-xl border border-border bg-card transition-shadow hover:shadow-md"
+    >
+      <div className="relative h-20 w-full bg-muted">
+        {provider.image ? (
+          <Image src={provider.image} alt="" fill sizes="160px" className="object-cover" />
+        ) : (
+          <div className="flex h-full items-center justify-center">
+            <Store className="h-6 w-6 text-muted-foreground/40" />
+          </div>
+        )}
+      </div>
+      <div className="p-2.5">
+        <p className="truncate text-xs font-semibold text-foreground">
+          {provider.businessName || provider.name}
+        </p>
+        {provider.categoryName && (
+          <p className="mt-0.5 truncate text-[10px] text-muted-foreground">{provider.categoryName}</p>
+        )}
+        <p className="mt-1 flex items-center gap-1 text-[10px] text-muted-foreground">
+          <MapPin className="h-2.5 w-2.5 flex-shrink-0" />
+          <span className="truncate">Covers {provider.servesArea}</span>
+        </p>
+        {provider.reviewCount > 0 && (
+          <p className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
+            <Star className="h-2.5 w-2.5 flex-shrink-0" />
+            {provider.rating.toFixed(1)} ({provider.reviewCount})
+          </p>
+        )}
+      </div>
+    </Link>
   )
 }

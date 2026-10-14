@@ -413,7 +413,8 @@ async function fallbackGeofence(args: {
   availableOnly: boolean
 }): Promise<GeofenceResult> {
   const { centre, radiusKm, fence, centreFrom, limit, availableOnly } = args
-  const within = boundingBoxWhere(boundingBox(centre.latitude, centre.longitude, radiusKm))
+  const boxFor = boundingBox(centre.latitude, centre.longitude, radiusKm)
+  const within = boundingBoxWhere(boxFor)
   const take = limit * 3
 
   const [shopRows, providerRows, requestRows] = await Promise.all([
@@ -432,7 +433,32 @@ async function fallbackGeofence(args: {
       : Promise.resolve([]),
     args.wantProviders
       ? db.providerProfile.findMany({
-          where: { ...within, parentBusinessId: null, user: { isActive: true } },
+          // Either position puts a provider on the map.
+          //
+          // This used to filter on the PROFILE position only, while the code
+          // below happily displays the live availability position when it is
+          // fresh. The two disagreed, and the query won: a provider who had
+          // never typed an address into their profile was invisible no matter
+          // how close they actually were or how recently their phone had
+          // reported in. On this database that was 10 of the 14 eligible
+          // providers, which is why a customer saw shops and almost no
+          // people.
+          //
+          // The freshness of the availability position is still judged below,
+          // on the row: this only widens what is fetched.
+          where: {
+            parentBusinessId: null,
+            user: { isActive: true },
+            OR: [
+              within,
+              {
+                availability: {
+                  lastKnownLatitude: { gte: boxFor.minLat, lte: boxFor.maxLat, not: null },
+                  lastKnownLongitude: { gte: boxFor.minLng, lte: boxFor.maxLng, not: null },
+                },
+              },
+            ],
+          },
           orderBy: [{ rating: "desc" }, { completedJobs: "desc" }],
           take,
           select: {
