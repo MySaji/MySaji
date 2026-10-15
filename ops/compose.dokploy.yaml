@@ -1,5 +1,7 @@
 # Selected deployment: Dokploy Compose mode, isolated staging project.
-# Configure domain -> app:3000 in Dokploy; inspect Preview Compose before deployment.
+# Configure the native Dokploy domain -> app:3000 and keep Dokploy Isolated
+# Deployments disabled: it attaches the proxy network to every service, including db.
+# Inspect Preview Compose to confirm only app joins dokploy-network and neither service publishes ports.
 x-logging: &logging
   driver: json-file
   options:
