@@ -1,12 +1,12 @@
 # MySaji owner progress update
 
-**As of 15 October 2026, 20:10 UTC**
+**As of 15 October 2026, 20:47 UTC**
 
 The core foundation is in place, and the public apex website is live at **https://mysaji.com**. The latest check independently confirmed that the apex resolves directly to Vercel IP addresses and returns **HTTP 200**. The app's `/api/health` also returned **HTTP 200** with `status: ok` and `database: ok`. Cloudflare remains authoritative for DNS; these web record changes were made outside this session.
 
-The MySaji GitHub repository is configured as this checkout's origin. Local DevOps documentation and preparation are committed through `b5611fb`; the local branch is two commits ahead of the last recorded `origin/main` (`98da6d5`). The working tree was clean at the latest check. The commits have not been pushed. Local build, TypeScript, Docker, and synthetic PostGIS restore/connectivity checks passed. No customer database was migrated.
+The MySaji GitHub repository is configured as this checkout's origin. Local DevOps documentation and preparation are committed locally and have not been pushed. The last recorded `origin/main` is `98da6d5`; check the local Git log for the current ahead count. The working tree was clean before this update. Local build, TypeScript, Docker, and synthetic PostGIS restore/connectivity checks passed. A synthetic Dokploy Compose render also confirms no published app/database ports and a private internal DB network. No customer database was migrated.
 
-The VPS owner reports that the server is up. SSH on port 22 responds, but the available root key is rejected, so server services and Dokploy status are not yet independently verified. No VPS or firewall changes have been made.
+The VPS owner reports that the server is up. SSH on port 22 responds, but the available root key is rejected, so server services and Dokploy status are not yet independently verified. The host key seen during connection must be compared with the Contabo console before reuse. No VPS or firewall changes have been made.
 
 ## Items still in progress
 
