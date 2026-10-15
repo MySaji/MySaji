@@ -1,0 +1,10 @@
+# Template only. Install as root mode 600 after checking subnet overlap.
+[Interface]
+Address = 10.77.0.1/24
+ListenPort = 51820
+PrivateKey = REPLACE_LOCALLY_NEVER_COMMIT
+
+[Peer]
+# alice: use a distinct public key and /32 per developer
+PublicKey = REPLACE_WITH_ALICE_PUBLIC_KEY
+AllowedIPs = 10.77.0.2/32

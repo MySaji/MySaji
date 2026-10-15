@@ -49,3 +49,11 @@ scripts/.demo-presence-backup.json
 .artifacts/
 playwright-report/
 test-results/
+# Infrastructure secrets and backups
+!ops/*.env.example
+ops/*.env
+ops/secrets/
+*.dump
+*.backup
+*.key
+ops/wireguard/*.conf

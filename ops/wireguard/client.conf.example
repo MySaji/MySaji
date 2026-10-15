@@ -1,0 +1,12 @@
+# Generate PrivateKey locally on the owning device. Keep this file mode 600.
+[Interface]
+PrivateKey = GENERATED_ON_THIS_DEVICE
+Address = UNIQUE_CLIENT_VPN_IP/32
+DNS = OPTIONAL_PRIVATE_DNS
+
+[Peer]
+PublicKey = SERVER_PUBLIC_KEY
+Endpoint = 169.58.242.133:51820
+# Split tunnel only; replace with verified VPN subnet and required routes.
+AllowedIPs = VERIFIED_VPN_SUBNET
+PersistentKeepalive = 25

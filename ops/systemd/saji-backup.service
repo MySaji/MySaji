@@ -1,0 +1,9 @@
+[Unit]
+Description=Encrypted MySaji off-server backup
+Requires=docker.service
+After=docker.service network-online.target
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/saji/backup.env
+ExecStart=/bin/bash /opt/saji/ops/backup.sh
+UMask=0077
