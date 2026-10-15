@@ -105,5 +105,6 @@
   },
   "prisma": {
     "schema": "backend/prisma/schema.prisma"
-  }
+  },
+  "packageManager": "pnpm@10.11.0"
 }

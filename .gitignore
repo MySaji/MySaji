@@ -42,3 +42,12 @@ image-backup/
 
 # Local backup written by scripts/seed-demo-presence.js
 scripts/.demo-presence-backup.json
+
+# Infrastructure secrets and backups
+!ops/*.env.example
+ops/*.env
+ops/secrets/
+*.dump
+*.backup
+*.key
+ops/wireguard/*.conf
