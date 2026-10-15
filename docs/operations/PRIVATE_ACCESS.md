@@ -1,6 +1,6 @@
 # MySaji private access handover
 
-Status updated 2026-10-15. This is a plan and evidence record; no account, VPN peer or firewall change on the VPS has been performed. Latest retry to TCP port 22 returned Connection refused before SSH authentication. Target: `vmi3668179` / `169.58.242.133` (user reports Ubuntu 24.04, 6 vCPU, 12 GB RAM, 200 GB SSD). Current working state is blocked on SSH onboarding.
+Status updated 2026-10-15. This is a plan and evidence record; no account, VPN peer or firewall change on the VPS has been performed. Latest retry reaches TCP port 22 but root public-key authentication is denied; earlier attempts saw Connection refused. Target: `vmi3668179` / `169.58.242.133` (user reports Ubuntu 24.04, 6 vCPU, 12 GB RAM, 200 GB SSD). Current working state is blocked on SSH onboarding.
 
 ## Intended access map
 
@@ -36,7 +36,7 @@ Oliver uses `User oliver` and his distinct private identity filename. Connect th
 
 ## Current blockers and evidence
 
-- An earlier SSH root attempt to `169.58.242.133` failed with `Permission denied (publickey,password)`; the latest TCP connection now returns `Connection refused`. No host inspection or changes ran. The first-seen host key is in `/tmp/saji-vmi3668179-known-hosts`, fingerprint `SHA256:9wav+1ZCnxR5owau2pZxRzRdNO9LbJeTW9+VrXNV71k`; verify it against the Contabo console before trusting it.
+- An earlier SSH root attempt to `169.58.242.133` failed with `Permission denied (publickey,password)`; the latest attempt reaches the SSH service but returns `Permission denied (publickey,password)`; an earlier retry returned `Connection refused`. No host inspection or changes ran. The first-seen host key is in `/tmp/saji-vmi3668179-known-hosts`, fingerprint `SHA256:9wav+1ZCnxR5owau2pZxRzRdNO9LbJeTW9+VrXNV71k`; verify it against the Contabo console before trusting it.
 - First check VPS power/state, assigned IP and provider firewall/console because TCP port 22 currently returns Connection refused. Restore SSH through the provider console/rescue path without changing existing workloads; re-verify host fingerprint, then onboard the available public key. Only after SSH responds should host services, firewall, networks and routes be inventoried read-only.
 - Dokploy installer review found forced Swarm leave and network removal, so do not run it unchanged on a host with unknown existing workloads.
 - No named Linux account, WireGuard peer, Dokploy identity, VPN reachability, private port rule, external block test or reboot-persistence test is verified.
