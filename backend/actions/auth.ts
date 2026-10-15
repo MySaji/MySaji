@@ -1,6 +1,8 @@
 "use server"
 
 import { z } from "zod"
+import { activeUser } from "@/backend/services/active-user"
+import { randomInt } from "node:crypto"
 import { db } from "@/backend/db"
 import { buildProviderSlug } from "@/backend/domain/provider-slug"
 import { hashPassword } from "@/backend/services/password"
@@ -8,7 +10,7 @@ import { ROLE_APP_TO_DB } from "@/backend/services/role-map"
 import { sendEmail } from "@/backend/services/email"
 import { checkRateLimit, getClientIp } from "@/backend/services/rate-limit"
 import { checkKycDuplicate, buildKycDedupeFields, KYC_DUPLICATE_ERROR } from "@/backend/services/kyc-duplicate-check"
-import { isSignupProofValid, consumeSignupProof } from "@/backend/actions/otp"
+import { isSignupProofValid, consumeSignupProof } from "@/backend/services/signup-proof"
 import { isAllowedCombination } from "@/backend/domain/pro-modules"
 import { provisionPos } from "@/backend/services/pos-provision"
 
@@ -257,7 +259,7 @@ function generateTemporaryPassword(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789"
   let result = ""
   for (let i = 0; i < 12; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length))
+    result += chars.charAt(randomInt(chars.length))
   }
   return result
 }
@@ -269,6 +271,8 @@ function generateTemporaryPassword(): string {
  * relay to the new team member out-of-band.
  */
 export async function registerTeamMember(input: unknown): Promise<RegisterTeamMemberResult> {
+  const admin = await activeUser()
+  if (admin?.role !== "ADMIN") return { success: false, error: "Not authorized." }
   const parsed = teamMemberSchema.safeParse(input)
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }

@@ -4,7 +4,7 @@ import { z } from "zod"
 import { Prisma } from "@prisma/client"
 import { db } from "@/backend/db"
 import { parsePosConfig } from "@/backend/domain/pos-config"
-import { requirePosPermission, recordPosAudit } from "@/backend/actions/pos-access"
+import { requirePosPermission, recordPosAudit } from "@/backend/services/pos-access-core"
 
 /**
  * Customers, and the points they earn for shopping here.

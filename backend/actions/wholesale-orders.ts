@@ -8,7 +8,7 @@ import { requireVerified } from "@/backend/services/verification-gate"
 import { requireShopkeeper } from "@/backend/actions/shopkeeper-dashboard"
 import { requireDistributor } from "@/backend/actions/distributor-dashboard"
 import { getEffectiveCommissionRate, splitByCommission } from "@/backend/services/commission"
-import { pushToUser } from "@/backend/actions/push"
+import { pushToUser } from "@/backend/services/push-core"
 import { quoteDelivery, outOfRangeMessage, type DeliveryZone } from "@/backend/domain/delivery-zone"
 import { toCoordinates } from "@/backend/domain/geo"
 

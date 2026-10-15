@@ -1,4 +1,5 @@
 "use server"
+import { settleConfirmedPayment } from "@/backend/services/payment-settlement"
 
 import { z } from "zod"
 import { confirmRentalBookingPayment } from "@/backend/services/settlement-core"
@@ -376,14 +377,14 @@ export async function checkRentalBookingPaymentStatus(bookingId: string): Promis
   const payment = await db.payment.findFirst({ where: { rentalBookingId: bookingId }, orderBy: { createdAt: "desc" } })
 
   if (payment?.status === "PENDING" && payment.externalRef) {
-    const { queryMpesaPayment, retrieveStripeSessionStatus } = await import("@/backend/actions/payments")
+    const { queryMpesaPayment, retrieveStripeSessionStatus } = await import("@/backend/services/payment-gateways")
     const ref = payment.externalRef
     if (ref.startsWith("ws_CO_")) {
       const result = await queryMpesaPayment(ref)
       if (result) {
         if (result.resultCode === 0) {
           await db.payment.update({ where: { id: payment.id }, data: { status: "COMPLETED", paidAt: new Date() } })
-          await confirmRentalBookingPayment(bookingId)
+          await settleConfirmedPayment(payment.id)
         } else {
           await db.payment.update({ where: { id: payment.id }, data: { status: "FAILED", failureReason: result.reason ?? null } })
         }
@@ -392,11 +393,12 @@ export async function checkRentalBookingPaymentStatus(bookingId: string): Promis
       const stripeStatus = await retrieveStripeSessionStatus(ref)
       if (stripeStatus === "paid") {
         await db.payment.update({ where: { id: payment.id }, data: { status: "COMPLETED", paidAt: new Date() } })
-        await confirmRentalBookingPayment(bookingId)
+        await settleConfirmedPayment(payment.id)
       }
     }
   }
 
+  if (payment?.status === "COMPLETED") await settleConfirmedPayment(payment.id)
   const freshBooking = await db.rentalBooking.findUnique({ where: { id: bookingId } })
   const freshPayment = await db.payment.findFirst({ where: { rentalBookingId: bookingId }, orderBy: { createdAt: "desc" } })
 

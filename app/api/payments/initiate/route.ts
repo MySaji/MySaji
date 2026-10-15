@@ -1,7 +1,9 @@
+import { settleConfirmedPayment } from "@/backend/services/payment-settlement"
+import { payWithWallet } from "@/backend/services/wallet-payment"
 import { NextResponse } from "next/server"
 import { confirmProSubscriptionPayment, confirmRentalBookingPayment } from "@/backend/services/settlement-core"
 import { markPaymentCompleted, confirmJobPayment } from "@/backend/services/payment-core"
-import { initiateMpesaPayment, initiateAirtelPayment, initiatePaypalPayment, createStripeCheckout } from "@/backend/actions/payments"
+import { initiateMpesaPayment, initiateAirtelPayment, initiatePaypalPayment, createStripeCheckout } from "@/backend/services/payment-gateways"
 
 import { getEffectivePlatformPreferences } from "@/backend/actions/admin-settings"
 import { auth } from "@/backend/auth"
@@ -42,7 +44,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: false, message: "Enter a valid amount." }, { status: 400 })
       }
 
-      const origin = req.headers.get("origin") || new URL(req.url).origin
+      const origin = process.env.CALLBACK_URL || new URL(req.url).origin
       // Wallet top-up is now available from more than just the customer
       // wallet page (e.g. shopkeeper earnings, for funding distributor
       // orders) — the caller tells us where to redirect back to instead of
@@ -105,7 +107,7 @@ export async function POST(req: Request) {
       const prefs = await getEffectivePlatformPreferences()
       const amount = prefs.providerProPriceKES
 
-      const origin = req.headers.get("origin") || new URL(req.url).origin
+      const origin = process.env.CALLBACK_URL || new URL(req.url).origin
       const returnPath = "/provider/pro"
       const successUrl = `${origin}${returnPath}?stripe=success&session_id={CHECKOUT_SESSION_ID}`
       const cancelUrl = `${origin}${returnPath}?stripe=cancel`
@@ -118,7 +120,7 @@ export async function POST(req: Request) {
         })
         if (simulated) {
           await db.payment.update({ where: { id: payment.id }, data: { status: "COMPLETED", paidAt: new Date() } })
-          await confirmProSubscriptionPayment(providerProfile!.id, amount)
+          await settleConfirmedPayment(payment.id)
         }
         return payment
       }
@@ -129,34 +131,7 @@ export async function POST(req: Request) {
           // "wallet" branch below — the provider's own Saji Wallet balance
           // funding their own Pro subscription in one step, no gateway
           // round trip needed.
-          const wallet = await db.wallet.findUnique({ where: { userId: session.user.id } })
-          if (!wallet) return NextResponse.json({ success: false, message: "Wallet not found." })
-          if (Number(wallet.balance) < amount) {
-            return NextResponse.json({ success: false, message: "Insufficient wallet balance for this amount." })
-          }
-
-          const balanceBefore = Number(wallet.balance)
-          const balanceAfter = balanceBefore - amount
-          const payment = await db.payment.create({
-            data: { amount, currency: "KES", status: "COMPLETED", contextType: "SUBSCRIPTION", payerId: session.user.id, paidAt: new Date() },
-          })
-          await db.$transaction([
-            db.wallet.update({ where: { userId: session.user.id }, data: { balance: balanceAfter } }),
-            db.transaction.create({
-              data: {
-                walletId: wallet.id,
-                type: "DEBIT",
-                amount: -amount,
-                description: "SAJI Pro subscription",
-                referenceType: "SUBSCRIPTION",
-                referenceId: payment.id,
-                status: "COMPLETED",
-                balanceBefore,
-                balanceAfter,
-              },
-            }),
-          ])
-          await confirmProSubscriptionPayment(providerProfile.id, amount)
+          await payWithWallet({ userId: session.user.id, amount, providerId: providerProfile.id })
           return NextResponse.json({ success: true, provider: "wallet", instant: true, message: "Paid from your SAJI wallet." })
         }
         case "mpesa": {
@@ -205,7 +180,7 @@ export async function POST(req: Request) {
       }
       const amount = Number(booking.totalAmount)
 
-      const origin = req.headers.get("origin") || new URL(req.url).origin
+      const origin = process.env.CALLBACK_URL || new URL(req.url).origin
       const returnPath = `/customer/rentals/${booking.offerId}?bookingId=${bookingId}`
       const successUrl = `${origin}${returnPath}&stripe=success&session_id={CHECKOUT_SESSION_ID}`
       const cancelUrl = `${origin}${returnPath}&stripe=cancel`
@@ -218,7 +193,7 @@ export async function POST(req: Request) {
         })
         if (simulated) {
           await db.payment.update({ where: { id: payment.id }, data: { status: "COMPLETED", paidAt: new Date() } })
-          await confirmRentalBookingPayment(bookingId)
+          await settleConfirmedPayment(payment.id)
         }
         return payment
       }
@@ -270,14 +245,14 @@ export async function POST(req: Request) {
 
     // CALLBACK_URL isn't configured in this environment; Stripe/PayPal need
     // absolute redirect URLs, so derive the origin from the request itself.
-    const origin = req.headers.get("origin") || new URL(req.url).origin
+    const origin = process.env.CALLBACK_URL || new URL(req.url).origin
     const successUrl = `${origin}/customer/booking-confirmation?jobId=${jobId}`
     const cancelUrl = `${origin}/customer/booking?service=${job.serviceId ?? ""}&jobId=${jobId}&status=cancelled`
     const paypalReturnUrl = `${origin}/customer/booking?paypal=return&jobId=${jobId}`
     const paypalCancelUrl = `${origin}/customer/booking?paypal=cancel&jobId=${jobId}`
 
     async function recordPayment(requestId: string | undefined, simulated: boolean | undefined) {
-      await db.payment.create({ data: { amount, currency: "KES", status: "PENDING", contextType: "JOB", jobId, payerId: session!.user!.id, externalRef: requestId ?? null } }).catch(() => {})
+      await db.payment.create({ data: { amount, currency: "KES", status: "PENDING", contextType: "JOB", jobId, payerId: session!.user!.id, externalRef: requestId ?? null } })
       if (simulated && requestId) await markPaymentCompleted(requestId)
     }
 
@@ -288,33 +263,7 @@ export async function POST(req: Request) {
         // external gateways, and doing it here (rather than a separate
         // wallet-only code path) is what makes this one real payment flow
         // instead of two divergent ones.
-        const wallet = await db.wallet.findUnique({ where: { userId: session.user.id } })
-        if (!wallet) return NextResponse.json({ success: false, message: "Wallet not found." })
-        if (Number(wallet.balance) < amount) {
-          return NextResponse.json({ success: false, message: "Insufficient wallet balance for this amount." })
-        }
-
-        const balanceBefore = Number(wallet.balance)
-        const balanceAfter = balanceBefore - amount
-        const payment = await db.payment.create({
-          data: { amount, currency: "KES", status: "COMPLETED", contextType: "JOB", jobId, payerId: session.user.id, paidAt: new Date() },
-        })
-        await db.$transaction([
-          db.wallet.update({ where: { userId: session.user.id }, data: { balance: balanceAfter } }),
-          db.transaction.create({
-            data: {
-              walletId: wallet.id,
-              type: "DEBIT",
-              amount: -amount,
-              description: `Payment for ${job.title}`,
-              referenceType: "JOB",
-              referenceId: jobId,
-              status: "COMPLETED",
-              balanceBefore,
-              balanceAfter,
-            },
-          }),
-        ])
+        const payment = await payWithWallet({ userId: session.user.id, amount, jobId })
         await confirmJobPayment(jobId)
         return NextResponse.json({ success: true, provider: "wallet", requestId: payment.id })
       }

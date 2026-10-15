@@ -1,5 +1,6 @@
 "use client"
 
+import { suspendOfflineScope } from "@/frontend/lib/pos-offline-scope"
 import { useCallback } from "react"
 import { useSession, signIn as nextAuthSignIn, signOut as nextAuthSignOut, getSession } from "next-auth/react"
 import type { UserRole } from "@/backend/domain/types"
@@ -43,8 +44,8 @@ export function useAuth() {
       }
     : null
 
-  const login = useCallback(async (identifier: string, password: string): Promise<LoginResult> => {
-    const result = await nextAuthSignIn("credentials", { identifier, password, redirect: false })
+  const login = useCallback(async (identifier: string, password: string, otpProof?: string): Promise<LoginResult> => {
+    const result = await nextAuthSignIn("credentials", { identifier, password, otpProof, redirect: false })
     if (!result || result.error) {
       // NextAuth splits a CredentialsSignin error into two fields: `error`
       // is always the generic "CredentialsSignin" type, `code` is the
@@ -98,6 +99,7 @@ export function useAuth() {
   }, [])
 
   const logout = useCallback(async () => {
+    suspendOfflineScope()
     await nextAuthSignOut({ redirect: false })
   }, [])
 

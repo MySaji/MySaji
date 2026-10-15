@@ -1,3 +1,5 @@
+> Historical snapshot. For the current implementation and outstanding validation, see [Implementation status](IMPLEMENTATION-STATUS.md) and [Deployment](DEPLOYMENT.md).
+
 ﻿# SAJI stack, architecture and GitHub ownership
 
 9 October 2026. Source inspection: D:\OLIVER\MAIN, commit 3ad9644eedcb1749550ef55a87bb4565af6e636f, 92 reachable commits. Four tracked POS files have local changes and one manual SQL file is untracked. Live deployment, database contents and service availability were not tested.

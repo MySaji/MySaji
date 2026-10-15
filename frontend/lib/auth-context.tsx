@@ -10,7 +10,7 @@ interface AuthContextType {
   user: AuthUser | null
   isLoading: boolean
   isAuthenticated: boolean
-  login: (identifier: string, password: string) => Promise<LoginResult>
+  login: (identifier: string, password: string, otpProof?: string) => Promise<LoginResult>
   loginWithGoogle: (callbackUrl: string) => Promise<{ success: true; url: string } | { success: false; error: string }>
   logout: () => void
   refreshSession: () => Promise<void>

@@ -4,7 +4,7 @@ import crypto from "crypto"
 import { z } from "zod"
 import { auth } from "@/backend/auth"
 import { db } from "@/backend/db"
-import { logJobEvent } from "@/backend/actions/job-events"
+import { logJobEvent } from "@/backend/services/job-events-core"
 
 const HANDSHAKE_TTL_MS = 3 * 60 * 1000
 

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { deleteExpiredProviderStories } from "@/backend/actions/provider-stories"
+import { deleteExpiredProviderStories } from "@/backend/services/story-cleanup"
 
 /** Triggered by Vercel Cron (see vercel.json) once a day. Same shared-secret
  * pattern as the other cron routes — see email-digest's route for the full

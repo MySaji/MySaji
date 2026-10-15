@@ -56,7 +56,6 @@ export function NearYouSection() {
 
   // No location at all — permission denied, no saved address, no usable
   // edge geolocation. The rest of the home page is unaffected.
-  if (!isLoading && !data?.fence) return null
 
   const providers = data?.providers ?? []
 
@@ -79,6 +78,8 @@ export function NearYouSection() {
     // Keyed on the located ids so the exclusion list stays correct as the
     // fence resolves, and not on the array itself, which is new every render.
   }, [providers.map((p) => p.providerId).join(",")])
+  if (!isLoading && !data?.fence) return null
+
   const shops = data?.shops ?? []
   const nothing = !isLoading && providers.length === 0 && shops.length === 0
 

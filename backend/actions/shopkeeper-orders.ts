@@ -5,7 +5,7 @@ import { awardLoyaltyPoints } from "@/backend/services/settlement-core"
 import { db } from "@/backend/db"
 import { requireVerified } from "@/backend/services/verification-gate"
 import { requireShopkeeper } from "@/backend/actions/shopkeeper-dashboard"
-import { pushToUser } from "@/backend/actions/push"
+import { pushToUser } from "@/backend/services/push-core"
 import { recordOrderMovements, orderStockDelta } from "@/backend/services/pos-ledger"
 import { reverseOrder } from "@/backend/services/order-cancellation"
 

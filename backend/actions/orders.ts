@@ -6,7 +6,7 @@ import { db } from "@/backend/db"
 import { RETURN_REASONS, type ReturnReason } from "@/backend/domain/order-return-reasons"
 import { CANCEL_REASONS, type CancelReason } from "@/backend/domain/order-cancel-reasons"
 import { reverseOrder } from "@/backend/services/order-cancellation"
-import { pushToUser } from "@/backend/actions/push"
+import { pushToUser } from "@/backend/services/push-core"
 
 export type CustomerOrder = {
   id: string

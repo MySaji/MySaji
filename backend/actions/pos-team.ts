@@ -2,7 +2,7 @@
 
 import { z } from "zod"
 import { db } from "@/backend/db"
-import { requirePosPermission, recordPosAudit } from "@/backend/actions/pos-access"
+import { requirePosPermission, recordPosAudit } from "@/backend/services/pos-access-core"
 import {
   POS_PERMISSIONS, POS_ROLES, POS_ROLE_META, POS_ROLE_PERMISSIONS,
   type PosPermission, type PosRole,

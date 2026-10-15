@@ -4,7 +4,7 @@ import { z } from "zod"
 import { auth } from "@/backend/auth"
 import { db } from "@/backend/db"
 import { generateChatbotReply } from "@/backend/services/ai/chatbot"
-import { pushToUser } from "@/backend/actions/push"
+import { pushToUser } from "@/backend/services/push-core"
 
 async function requireUser() {
   const session = await auth()

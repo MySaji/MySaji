@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { runWeeklySubscriberDigest } from "@/backend/actions/subscriber-digest"
+import { runWeeklySubscriberDigest } from "@/backend/services/subscriber-digest-core"
 
 /** Triggered by Vercel Cron (see vercel.json) once a week — same
  * shared-secret pattern as /api/cron/email-digest. */

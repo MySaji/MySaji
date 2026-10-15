@@ -1,4 +1,9 @@
 "use server"
+import { randomBytes } from "node:crypto"
+import { auth } from "@/backend/auth"
+import { checkRateLimit, getClientIp } from "@/backend/services/rate-limit"
+
+import { createAndEmailReceipt } from "@/backend/services/receipts-core"
 
 import { db } from "@/backend/db"
 import { sendEmail } from "@/backend/services/email"
@@ -15,7 +20,7 @@ function generateReceiptNumber(): string {
   const d = String(now.getDate()).padStart(2, "0")
   // Random, not sequential — a receipt number doubles as the public /verify
   // lookup key, so it shouldn't be trivially enumerable.
-  const random = Math.floor(10000 + Math.random() * 90000)
+  const random = randomBytes(24).toString("hex").toUpperCase()
   return `SAJ-${y}${m}${d}-${random}`
 }
 
@@ -55,14 +60,14 @@ async function buildPdfData(receipt: {
     type: receipt.type,
     createdAt: receipt.createdAt,
     paymentMethod: receipt.paymentMethod,
-    transactionRef: receipt.transactionRef,
+    transactionRef: null,
     customerName,
     lineItems: receipt.lineItems as ReceiptLineItem[],
     subtotal: receipt.subtotal != null ? Number(receipt.subtotal) : null,
     adjustments: (receipt.adjustments as ReceiptAdjustment[] | null) ?? [],
     totalAmount: Number(receipt.totalAmount),
     currency: receipt.currency,
-    balanceAfter: receipt.balanceAfter != null ? Number(receipt.balanceAfter) : null,
+    balanceAfter: null,
     logoDataUrl: site.logoUrl,
     supportEmail: site.supportEmail,
     supportPhone: site.supportPhone,
@@ -80,62 +85,7 @@ async function buildPdfData(receipt: {
  * the emailDigest preference emailUser checks: a receipt is a transaction
  * record the customer is owed, not an optional update.
  */
-export async function createAndEmailReceipt(input: CreateReceiptInput): Promise<{ receiptNumber: string } | null> {
-  try {
-    const user = await db.user.findUnique({ where: { id: input.userId } })
-    if (!user) return null
 
-    let receiptNumber = generateReceiptNumber()
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const existing = await db.receipt.findUnique({ where: { receiptNumber }, select: { id: true } })
-      if (!existing) break
-      receiptNumber = generateReceiptNumber()
-    }
-
-    const receipt = await db.receipt.create({
-      data: {
-        receiptNumber,
-        userId: input.userId,
-        type: input.type,
-        paymentMethod: input.paymentMethod ?? null,
-        transactionRef: input.transactionRef ?? null,
-        lineItems: input.lineItems,
-        subtotal: input.subtotal ?? undefined,
-        adjustments: input.adjustments && input.adjustments.length > 0 ? input.adjustments : undefined,
-        totalAmount: input.totalAmount,
-        currency: input.currency ?? "KES",
-        balanceAfter: input.balanceAfter ?? undefined,
-        emailedTo: user.email,
-      },
-    })
-
-    const pdfData = await buildPdfData(receipt, user.name)
-    const pdf = await generateReceiptPdf(pdfData)
-
-    const subject = input.type === "PAYMENT" ? "Your SAJI payment receipt"
-      : input.type === "DEPOSIT" ? "Your SAJI wallet deposit receipt"
-      : "Your SAJI withdrawal receipt"
-    const html = wrapEmailLayout({
-      title: subject,
-      bodyHtml: `
-        <p>Hi ${user.name},</p>
-        <p>Your receipt <strong>${receiptNumber}</strong> is attached as a PDF.</p>
-        ${emailButton("Verify this receipt", pdfData.verifyUrl)}
-      `,
-    })
-    await sendEmail({
-      to: user.email,
-      subject,
-      html,
-      attachments: [{ filename: `SAJI-Receipt-${receiptNumber}.pdf`, content: pdf, contentType: "application/pdf" }],
-    })
-
-    return { receiptNumber }
-  } catch (err) {
-    console.error("createAndEmailReceipt failed:", err)
-    return null
-  }
-}
 
 export type PublicReceiptView = {
   receiptNumber: string
@@ -158,24 +108,30 @@ export type PublicReceiptView = {
  * verification portal works. */
 export async function getReceiptByNumber(receiptNumber: string): Promise<PublicReceiptView> {
   const normalized = receiptNumber.trim().toUpperCase()
-  if (!normalized) return null
+  if (!/^SAJ-\d{8}-[A-Z0-9]+$/.test(normalized)) return null
+  const limit = await checkRateLimit(`receipt:${await getClientIp()}`, "receipt", 30, 60_000)
+  if (!limit.allowed) return null
 
   const receipt = await db.receipt.findUnique({ where: { receiptNumber: normalized }, include: { user: true } })
   if (!receipt) return null
+  if (!/^SAJ-\d{8}-[A-F0-9]{48}$/.test(normalized)) {
+    const session = await auth()
+    if (session?.user?.id !== receipt.userId) return null
+  }
 
   return {
     receiptNumber: receipt.receiptNumber,
     type: receipt.type,
     createdAt: receipt.createdAt.toISOString(),
-    customerName: receipt.user.name,
+    customerName: "Customer",
     paymentMethod: receipt.paymentMethod,
-    transactionRef: receipt.transactionRef,
+    transactionRef: null,
     lineItems: receipt.lineItems as ReceiptLineItem[],
     subtotal: receipt.subtotal != null ? Number(receipt.subtotal) : null,
     adjustments: (receipt.adjustments as ReceiptAdjustment[] | null) ?? [],
     totalAmount: Number(receipt.totalAmount),
     currency: receipt.currency,
-    balanceAfter: receipt.balanceAfter != null ? Number(receipt.balanceAfter) : null,
+    balanceAfter: null,
   }
 }
 
@@ -184,11 +140,17 @@ export async function getReceiptByNumber(receiptNumber: string): Promise<PublicR
  * live logo/contact info same as the emailed copy did at send time. */
 export async function getReceiptPdfBuffer(receiptNumber: string): Promise<Buffer | null> {
   const normalized = receiptNumber.trim().toUpperCase()
-  if (!normalized) return null
+  if (!/^SAJ-\d{8}-[A-Z0-9]+$/.test(normalized)) return null
+  const limit = await checkRateLimit(`receipt:${await getClientIp()}`, "receipt", 30, 60_000)
+  if (!limit.allowed) return null
 
   const receipt = await db.receipt.findUnique({ where: { receiptNumber: normalized }, include: { user: true } })
   if (!receipt) return null
+  if (!/^SAJ-\d{8}-[A-F0-9]{48}$/.test(normalized)) {
+    const session = await auth()
+    if (session?.user?.id !== receipt.userId) return null
+  }
 
-  const pdfData = await buildPdfData(receipt, receipt.user.name)
+  const pdfData = await buildPdfData({ ...receipt, transactionRef: null, balanceAfter: null }, "Customer")
   return generateReceiptPdf(pdfData)
 }

@@ -3,7 +3,7 @@
 import { z } from "zod"
 import { db } from "@/backend/db"
 import { requireSecretary } from "@/backend/actions/secretary-dashboard"
-import { logAdminAction } from "@/backend/actions/admin-dashboard"
+import { logAdminAction } from "@/backend/services/admin-audit-core"
 import type { TaxReportType } from "@prisma/client"
 
 export type RevenuePeriod = "monthly" | "quarterly" | "annual"

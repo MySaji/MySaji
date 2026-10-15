@@ -3,8 +3,8 @@
 import { z } from "zod"
 import { auth } from "@/backend/auth"
 import { db } from "@/backend/db"
-import { logJobEvent } from "@/backend/actions/job-events"
-import { pushToUser } from "@/backend/actions/push"
+import { logJobEvent } from "@/backend/services/job-events-core"
+import { pushToUser } from "@/backend/services/push-core"
 
 export type SafetyIncidentStatus = "ACTIVE" | "ESCALATED" | "EMERGENCY_SERVICES_CONTACTED" | "SAFETY_TEAM_ALERTED" | "RESOLVED"
 export type SafetyActionResult = { success: true } | { success: false; error: string }

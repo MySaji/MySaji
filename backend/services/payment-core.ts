@@ -1,10 +1,10 @@
 import { db } from "@/backend/db"
-import { logJobEvent } from "@/backend/actions/job-events"
-import { maybeRewardReferral } from "@/backend/actions/jobs"
-import { pushToUser } from "@/backend/actions/push"
-import { notifyUser } from "@/backend/actions/notify"
+import { logJobEvent } from "@/backend/services/job-events-core"
+import { maybeRewardReferral } from "@/backend/services/referral-reward-core"
+import { pushToUser } from "@/backend/services/push-core"
+import { notifyUser } from "@/backend/services/notifications-core"
 import { canAcceptAnotherJob } from "@/backend/services/job-limits"
-import { createAndEmailReceipt } from "@/backend/actions/receipts"
+import { createAndEmailReceipt } from "@/backend/services/receipts-core"
 
 /**
  * Job-payment settlement, deliberately NOT a server action.
@@ -69,7 +69,8 @@ export async function confirmJobPayment(jobId: string) {
     newStatus = (availability?.autoAccept ?? false) && canAccept ? "ACCEPTED" : "PENDING"
   }
 
-  await db.job.update({ where: { id: job.id }, data: { status: newStatus } }).catch(() => {})
+  const claimed = await db.job.updateMany({ where: { id: job.id, status: "PENDING_PAYMENT" }, data: { status: newStatus } })
+  if (claimed.count !== 1) return
 
   // The real stock decrement for a BUY-offer purchase — deliberately here,
   // not at createOfferBooking() (lib/actions/offers.ts), so an abandoned/

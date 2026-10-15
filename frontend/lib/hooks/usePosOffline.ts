@@ -1,5 +1,7 @@
 "use client"
 
+import { useSession } from "next-auth/react"
+import { initializeOfflineScope, offlineScope } from "@/frontend/lib/pos-offline-scope"
 import { useCallback, useEffect, useRef, useState } from "react"
 import {
   isOfflineStoreAvailable, cacheCatalogue, readCatalogue, readOutbox,
@@ -50,6 +52,15 @@ export type PosOfflineState = {
 }
 
 export function usePosOffline() {
+  const { data: session } = useSession()
+  const userId = session?.user?.id
+  const [scopeReady, setScopeReady] = useState(false)
+  useEffect(() => {
+    let cancelled = false
+    setScopeReady(false)
+    if (userId) initializeOfflineScope(userId).then(scope => { if (!cancelled) setScopeReady(Boolean(scope)) }).catch(() => {})
+    return () => { cancelled = true }
+  }, [userId])
   const [state, setState] = useState<PosOfflineState>({
     available: false,
     connection: "online",
@@ -68,7 +79,7 @@ export function usePosOffline() {
   const syncing = useRef(false)
 
   const refreshQueue = useCallback(async () => {
-    if (!isOfflineStoreAvailable()) return
+    if (!scopeReady || !offlineScope() || !isOfflineStoreAvailable()) return
     try {
       const queue = await readOutbox()
       setState((s) => ({
@@ -80,12 +91,12 @@ export function usePosOffline() {
     } catch {
       // A store that cannot be read is a store the till does without.
     }
-  }, [])
+  }, [scopeReady])
 
   // --- open the store, load what is there ---------------------------------
   useEffect(() => {
     let cancelled = false
-    if (!isOfflineStoreAvailable()) {
+    if (!scopeReady || !offlineScope() || !isOfflineStoreAvailable()) {
       setState((s) => ({ ...s, available: false }))
       return
     }
@@ -107,11 +118,11 @@ export function usePosOffline() {
       }
     })()
     return () => { cancelled = true }
-  }, [])
+  }, [scopeReady])
 
   // --- replay ---------------------------------------------------------------
   const sync = useCallback(async (): Promise<void> => {
-    if (syncing.current || !isOfflineStoreAvailable()) return
+    if (!scopeReady || !offlineScope() || syncing.current || !isOfflineStoreAvailable()) return
     const queue = await readOutbox()
     const pending = queue.filter((q) => q.status !== "failed")
     if (pending.length === 0) return
@@ -146,7 +157,7 @@ export function usePosOffline() {
       setState((s) => ({ ...s, syncing: false }))
       await refreshQueue()
     }
-  }, [refreshQueue])
+  }, [refreshQueue, scopeReady])
 
   // --- notice a reconnection -----------------------------------------------
   useEffect(() => {
@@ -180,6 +191,9 @@ export function usePosOffline() {
       payload: { idempotencyKey: string } & Record<string, unknown>,
       summary: { total: number; itemCount: number },
     ): Promise<{ ok: true; receipt: Receipt } | { ok: false; queued: true } | { ok: false; queued: false; error: string }> => {
+      const scope = offlineScope()
+      if (!scope) return { ok: false, queued: false, error: "Open this store online before recording sales." }
+      payload = { ...payload, expectedShopId: scope.shopId, expectedUserId: scope.userId }
       try {
         const result = await recordPosSale(payload)
         setState((s) => ({ ...s, connection: "online" }))
@@ -189,7 +203,7 @@ export function usePosOffline() {
         return { ok: false, queued: false, error: result.error }
       } catch {
         setState((s) => ({ ...s, connection: "offline" }))
-        if (!isOfflineStoreAvailable()) {
+        if (!scopeReady || !offlineScope() || !isOfflineStoreAvailable()) {
           return {
             ok: false,
             queued: false,
@@ -213,21 +227,21 @@ export function usePosOffline() {
         }
       }
     },
-    [refreshQueue],
+    [refreshQueue, scopeReady],
   )
 
   const saveCatalogue = useCallback(async (products: CachedProduct[]) => {
-    if (!isOfflineStoreAvailable() || products.length === 0) return
+    if (!scopeReady || !offlineScope() || !isOfflineStoreAvailable()) return
     try {
       await cacheCatalogue(products)
       setState((s) => ({ ...s, catalogue: products, catalogueUpdatedAt: new Date().toISOString() }))
     } catch {
       // Caching is an optimisation; failing to cache must never fail a sale.
     }
-  }, [])
+  }, [scopeReady])
 
   const retry = useCallback(async (key: string) => { await retrySale(key); await refreshQueue(); void sync() }, [refreshQueue, sync])
-  const discard = useCallback(async (key: string) => { await discardSale(key); await refreshQueue() }, [refreshQueue])
+  const discard = useCallback(async (key: string) => { await discardSale(key); await refreshQueue() }, [refreshQueue, scopeReady])
 
   return { ...state, sync, submitSale, saveCatalogue, retry, discard, refreshQueue }
 }

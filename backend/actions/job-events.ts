@@ -1,43 +1,10 @@
 "use server"
 
 import { auth } from "@/backend/auth"
+
 import { db } from "@/backend/db"
-import type { Prisma } from "@prisma/client"
 
 export type JobEventActor = "CUSTOMER" | "PROVIDER" | "SYSTEM" | "ADMIN"
-
-/** Appends one real event to a job's Evidence Timeline. Internal — called
- * from the server action that actually performed the real thing being
- * logged (job created, quote submitted, work completed, payment released,
- * QR handshake, change order, warranty claim, safety incident, ...), never
- * exposed as a directly client-callable mutation, so the timeline can't be
- * forged from the client with an arbitrary description. Failures here never
- * throw — evidence logging is additive, not a hard dependency of whatever
- * real operation it's attached to. */
-export async function logJobEvent(input: {
-  jobId?: string
-  contractId?: string
-  type: string
-  actor: JobEventActor
-  actorUserId?: string | null
-  description: string
-  metadata?: Record<string, unknown>
-  attachments?: string[]
-}): Promise<void> {
-  if (!input.jobId && !input.contractId) return
-  await db.jobEvent.create({
-    data: {
-      jobId: input.jobId ?? null,
-      contractId: input.contractId ?? null,
-      type: input.type,
-      actor: input.actor,
-      actorUserId: input.actorUserId ?? null,
-      description: input.description,
-      metadata: (input.metadata as Prisma.InputJsonValue) ?? undefined,
-      attachments: input.attachments ?? [],
-    },
-  }).catch(() => {})
-}
 
 export type JobTimelineEvent = {
   id: string
@@ -50,9 +17,6 @@ export type JobTimelineEvent = {
   createdAt: string
 }
 
-/** Customer, the assigned provider, or an admin can read a job's timeline
- * — nobody else. Returns an empty list (not an error) for anyone else, same
- * fail-closed convention as other job-scoped reads in this app. */
 export async function getJobTimeline(jobId: string): Promise<JobTimelineEvent[]> {
   const session = await auth()
   if (!session?.user?.id) return []
@@ -85,10 +49,6 @@ export async function getJobTimeline(jobId: string): Promise<JobTimelineEvent[]>
   }))
 }
 
-/** Same as getJobTimeline but for a ServiceContract still in negotiation
- * (before AGREED creates a real Job — see respondToContractQuote, which
- * re-parents these same rows onto the job's timeline the moment one
- * exists, so nothing here is ever a second, disconnected history). */
 export async function getContractTimeline(contractId: string): Promise<JobTimelineEvent[]> {
   const session = await auth()
   if (!session?.user?.id) return []

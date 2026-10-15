@@ -6,7 +6,7 @@ import { auth } from "@/backend/auth"
 import { db } from "@/backend/db"
 import { sendEmail } from "@/backend/services/email"
 import { wrapEmailLayout, emailButton, siteOrigin } from "@/backend/services/email-templates"
-import { notifyUser } from "@/backend/actions/notify"
+import { notifyUser } from "@/backend/services/notifications-core"
 
 export type HouseholdRole = "OWNER" | "MEMBER" | "PROPERTY_MANAGER" | "PAYMENT_APPROVER"
 export type HouseholdActionResult = { success: true } | { success: false; error: string }

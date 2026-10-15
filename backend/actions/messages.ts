@@ -5,7 +5,7 @@ import { isBlockedFrom, recordViolations, reportUser } from "@/backend/services/
 import { auth } from "@/backend/auth"
 import { db } from "@/backend/db"
 import { ROLE_DB_TO_APP, ROLE_APP_TO_DB } from "@/backend/services/role-map"
-import { pushToUser } from "@/backend/actions/push"
+import { pushToUser } from "@/backend/services/push-core"
 import { canMessage, messageableRolesFor, ROLE_LABEL } from "@/backend/domain/message-permissions"
 import { maskContactInfo } from "@/backend/domain/contact-info-filter"
 import type { UserRole } from "@/backend/domain/types"

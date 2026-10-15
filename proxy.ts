@@ -31,5 +31,4 @@ export default auth(async (req) => {
 
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|svg|webp|ico)).*)"],
-  runtime: "nodejs",
 }

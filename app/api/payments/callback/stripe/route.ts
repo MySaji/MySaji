@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { handleStripeWebhook } from "@/backend/actions/payments"
+import { handleStripeWebhook } from "@/backend/services/payment-gateways"
 
 export async function POST(req: Request) {
   const sig = req.headers.get("stripe-signature") || ""

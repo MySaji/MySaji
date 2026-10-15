@@ -336,17 +336,8 @@ export default function SignupPage() {
         return
       }
 
-      const loginResult = await login(formData.email, formData.password)
       setIsLoading(false)
-
-      if (!loginResult.success) {
-        // Account was created but automatic sign-in failed; let them log in manually.
-        router.push("/auth/login")
-        return
-      }
-
-      setNextPath(resolveNextPath(loginResult.role))
-      setStep("success")
+      router.push("/auth/login")
     } catch {
       setError(t("authPage.signup.registrationError"))
       setIsLoading(false)

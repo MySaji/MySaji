@@ -3,7 +3,7 @@
 import { auth } from "@/backend/auth"
 import { db } from "@/backend/db"
 import { creditWalletTopup } from "@/backend/services/wallet-core"
-import { pushToUser } from "@/backend/actions/push"
+import { pushToUser } from "@/backend/services/push-core"
 
 // 1 point per KES 100 spent, redeemable 1:1 for wallet credit (so 1 point =
 // KES 1 — easy to explain in the UI as "earn 1% back as points").

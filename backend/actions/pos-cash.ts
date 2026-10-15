@@ -3,7 +3,7 @@
 import { z } from "zod"
 import { Prisma } from "@prisma/client"
 import { db } from "@/backend/db"
-import { requirePosPermission, recordPosAudit } from "@/backend/actions/pos-access"
+import { requirePosPermission, recordPosAudit } from "@/backend/services/pos-access-core"
 
 /**
  * Money into and out of the drawer that is not a sale.

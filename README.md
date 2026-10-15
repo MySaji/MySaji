@@ -1,243 +1,42 @@
 # SAJI
 
-Multi-Service Marketplace & Escrow Platform
+SAJI is a Next.js marketplace and business application for customers, professionals, shops, distributors, and platform staff. Saji Till provides point-of-sale, stock, staff, and offline sale workflows.
 
-Joshua Project is a full-featured multi-service marketplace and escrow platform that connects customers with verified service providers while ensuring secure payments, transparent workflows, and dispute protection.
+## Technology
 
-The platform is designed to handle real-world service transactions, from job posting and provider selection to escrow-protected payments, verification, and dispute resolution — all managed through a powerful admin dashboard.
+Next.js 16.4.1, React 19.3.1, TypeScript, Tailwind CSS 4, Prisma 6/PostgreSQL, and Auth.js 5. The browser communicates through Next.js Server Actions and selected HTTP endpoints. This is one application with separate frontend and backend directories, not independently deployed services.
 
-🌟 Key Features
-👤 User Roles
+## Public information
 
-Customers – Post jobs, chat with providers, make escrow payments, and verify job completion.
+The homepage introduces the platform and links to a searchable knowledge base at `/knowledge`. Fourteen guides cover getting started, customer bookings, providers, shops, distributors, payments, verification, POS, offline operation, disputes, messaging, teams, security, and support. Content lives in `backend/domain/knowledge.ts`.
 
-Service Providers – Receive job requests, communicate with customers, complete jobs, and receive payments.
+## Development
 
-Administrators – Fully manage users, jobs, payments, disputes, verifications, site content, and branding.
+Use Node.js 22 and pnpm 11.15.1. Copy `.env.example` to `.env`; supply credentials privately. Then run `pnpm install --frozen-lockfile` and `pnpm dev`.
 
-🏗️ Core Modules
-🏠 Public Website (Before Login)
+Validation: `pnpm env:check`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build`. Browser checks: start the app on port 3100 and run `pnpm test:browser`. On Windows the tests use installed Chrome; other environments need Playwright Chromium.
 
-Modern landing page with service search
+## Database and deployment
 
-Category browsing
+New databases use reviewed migrations with `pnpm db:deploy`. Existing databases require safe baselining first. Never run the baseline CREATE statements against a populated database. PostGIS extension/index setup is a separate operation. See [Deployment](docs/DEPLOYMENT.md).
 
-Clear onboarding (Sign Up / Log In)
+Missing gateway configuration disables payments by default. Development simulation is explicit and cannot run in production. Airtel is not a completed live integration. Bank reconciliation, payouts, eTIMS, email/SMS delivery, TURN relay, and monitoring require external configuration and acceptance testing.
 
-Trust indicators (secure escrow, verified providers)
+## Project layout
 
-👥 User Management
+- `app/`: public and authenticated routes, API handlers, layouts.
+- `frontend/`: components, browser state, hooks and offline storage.
+- `backend/actions/`: intentional Server Action endpoints.
+- `backend/services/`: internal operations, settlement and external integrations.
+- `backend/domain/`: shared business definitions and knowledge content.
+- `backend/prisma/`: database schema, migrations, archived manual SQL.
+- `backend/scripts/`: operational tooling and read-only action inventory.
+- `tests/`: unit, isolated PostgreSQL, and public browser regression tests.
 
-Customer & provider registration
+See [Architecture](ARCHITECTURE.md), [Implementation status](docs/IMPLEMENTATION-STATUS.md), and [Staging acceptance](docs/STAGING-ACCEPTANCE.md). Older audits and PDFs are historical snapshots.
 
-Profile management
+## Security boundaries
 
-Provider verification workflow
+Credentials sign-in consumes an expiring, user-bound OTP proof. Sessions refresh account state from the database. Sensitive actions must enforce authorization independently of page layouts. Internal mutations belong in server-only services and must not be re-exported from `use server` modules. Financial state transitions need transactions, concurrency control, and idempotency.
 
-Account status control (active, suspended, banned)
-
-💼 Jobs Management
-
-Customers post jobs with requirements
-
-Providers apply or receive direct job offers
-
-Job lifecycle states:
-
-Pending
-
-Active
-
-Completed
-
-Disputed
-
-Real-time job status tracking
-
-💬 Real-Time Chat System
-
-Secure in-platform messaging
-
-Separate chat interfaces for:
-
-Customers
-
-Service Providers
-
-Job-linked conversations
-
-Admin visibility for dispute investigations
-
-💰 Payments & Escrow System
-
-Secure escrow-based payment flow
-
-Payment modes:
-
-Deposit
-
-Balance payments
-
-Funds held until job completion is verified
-
-Automatic release after approval
-
-Refund and reversal handling
-
-⚠️ Disputes Management
-
-Customers or providers can raise disputes
-
-Admin review and resolution panel
-
-Evidence and chat history access
-
-Controlled fund release or refund decisions
-
-✅ Verification System
-
-Provider identity verification
-
-Job completion verification
-
-Admin approval & rejection workflows
-
-Fraud prevention controls
-
-🛠️ Pricing & Services
-
-Service category management
-
-Admin-defined pricing models
-
-Enable/disable services dynamically
-
-Commission and platform fee configuration
-
-⚙️ Admin Settings (Full Control)
-
-Admins can control every aspect of the platform, including:
-
-Branding (logo, colors, favicon)
-
-Website content (contact info, about text, footer content)
-
-Currency & localization
-
-Notification rules
-
-Payment rules
-
-System preferences
-
-Feature toggles
-
-👤 Admin Profile & Security
-
-Profile management
-
-Password updates
-
-Two-Factor Authentication (2FA)
-
-Notification preferences
-
-Appearance customization
-
-Session & security controls
-
-📊 Admin Dashboard
-
-A powerful dashboard with:
-
-User statistics
-
-Active jobs overview
-
-Pending verifications
-
-Open disputes
-
-Revenue & escrow summaries
-
-Alerts and system activity logs
-
-🖥️ Technology Stack
-Frontend
-
-Next.js 16 (App Router) / React 19 / TypeScript
-
-Tailwind CSS v4
-
-shadcn/ui + Radix UI primitives
-
-Recharts (analytics/dashboards), Lucide icons
-
-Backend
-
-Currently a frontend-only prototype — all data (auth session, cart, wallet balance, KYC docs, etc.) is persisted to `localStorage`, and the only two API routes (`send-newsletter`, `subscribers`) are non-functional stubs.
-
-Planned: PostgreSQL via Supabase (Auth + Storage included) with M-Pesa Daraja API for Kenyan mobile payments — see `02-API-Requirements.md` and `DATABASE_SCHEMA_ANALYSIS.md` for the full migration spec.
-
-Security
-
-Role-based access control (client-side today; server-side enforcement pending backend migration)
-
-Escrow protection logic
-
-Secure authentication
-
-Data validation and sanitization
-
-🎨 Design Philosophy
-
-Clean, modern UI
-
-Admin-friendly layouts
-
-Mobile-responsive
-
-User-focused workflows
-
-Scalable architecture
-
-📦 Project Status
-
-Core features implemented across all 7 portals (frontend)
-
-Admin panel fully designed
-
-Chat, escrow, disputes, and verification workflows defined
-
-Currently frontend-only (localStorage-backed); real database/backend integration not yet started
-
-Actively evolving with future enhancements planned
-
-🚧 Future Enhancements
-
-Backend integration (Supabase + M-Pesa Daraja API) — the next major milestone
-
-Mobile app version
-
-Advanced analytics & reporting
-
-AI-powered provider matching
-
-Multi-currency support
-
-Automated dispute resolution assistance
-
-📜 License
-
-This project is currently under private development.
-License details will be added upon public release.
-
-🤝 Contribution
-
-Contributions, suggestions, and feedback are welcome.
-Please open an issue or submit a pull request.
-
-✨ Author
-OliverYoung-dev(githubusername)
-ver-otieno-potfolio.vercel.app
-Developed with passion as a real-world service marketplace solution.
+Never commit `.env`, expose secret values in logs, or use production credentials as test fixtures.

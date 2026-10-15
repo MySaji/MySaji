@@ -46,7 +46,7 @@
 // Bump to retire every previous cache. The activate handler deletes any
 // cache whose name is not this one, so a stale shell cannot outlive a
 // deploy.
-const CACHE = "saji-till-shell-v1"
+const CACHE = "saji-till-shell-v2"
 
 // The shell, fetched at install so the first cold start offline works even
 // if the cashier has not opened that exact page since installing.
@@ -123,7 +123,7 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((names) => Promise.all(names.filter((n) => n !== CACHE).map((n) => caches.delete(n))))
+      .then((names) => Promise.all(names.filter((n) => n.startsWith("saji-till-shell-") && n !== CACHE).map((n) => caches.delete(n))))
       .then(() => self.clients.claim()),
   )
 })

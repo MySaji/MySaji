@@ -2,8 +2,8 @@
 
 import { z } from "zod"
 import { db } from "@/backend/db"
-import { requirePosPermission } from "@/backend/actions/pos-access"
-import { resolvePosActor } from "@/backend/actions/pos-access"
+import { requirePosPermission } from "@/backend/services/pos-access-core"
+import { resolvePosActor } from "@/backend/services/pos-access-core"
 import { billingStateOf, advanceBilling, ensureSubscription } from "@/backend/services/pos-billing"
 
 /**

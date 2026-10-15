@@ -1,5 +1,7 @@
 "use server"
 
+import { runWeeklySubscriberDigest } from "@/backend/services/subscriber-digest-core"
+
 import { db } from "@/backend/db"
 import { publicProductWhere } from "@/backend/domain/public-catalog"
 import { sendEmail } from "@/backend/services/email"
@@ -153,100 +155,4 @@ export type SubscriberDigestResult = {
  * week, not a reason to send on its own — otherwise every single week would
  * always have "something" to send (there's almost always a top-rated
  * product), which defeats the point of the gate. */
-export async function runWeeklySubscriberDigest(): Promise<SubscriberDigestResult> {
-  const since = await getLastDigestAt()
-  const now = new Date()
 
-  const [newProductsRaw, restockedProductsRaw, trendingRaw] = await Promise.all([
-    db.product.findMany({
-      where: { ...publicProductWhere(), createdAt: { gt: since } },
-      include: { shopkeeper: { select: { shopName: true } } },
-      orderBy: { createdAt: "desc" },
-      take: 10,
-    }),
-    db.product.findMany({
-      where: { ...publicProductWhere(), inventory: { lastRestockedAt: { gt: since } } },
-      include: { shopkeeper: { select: { shopName: true } }, inventory: true },
-      orderBy: { inventory: { lastRestockedAt: "desc" } },
-      take: 10,
-    }),
-    db.product.findMany({
-      where: { ...publicProductWhere(), reviewCount: { gt: 0 } },
-      include: { shopkeeper: { select: { shopName: true } } },
-      orderBy: [{ rating: "desc" }, { reviewCount: "desc" }],
-      take: 10,
-    }),
-  ])
-
-  const seen = new Set<string>()
-  const toDigest = (p: (typeof newProductsRaw)[number], badge: DigestProduct["badge"]): DigestProduct => ({
-    id: p.id,
-    name: p.name,
-    price: Number(p.price),
-    discountPrice: p.discountPrice != null ? Number(p.discountPrice) : null,
-    shopName: p.shopkeeper.shopName,
-    badge,
-    image: p.images[0] ?? null,
-  })
-
-  const newProducts: DigestProduct[] = []
-  for (const p of newProductsRaw) {
-    if (seen.has(p.id)) continue
-    seen.add(p.id)
-    newProducts.push(toDigest(p, "New"))
-  }
-  const restocked: DigestProduct[] = []
-  for (const p of restockedProductsRaw) {
-    if (seen.has(p.id)) continue
-    seen.add(p.id)
-    restocked.push(toDigest(p, "Back in Stock"))
-  }
-  const trending: DigestProduct[] = []
-  for (const p of trendingRaw) {
-    if (seen.has(p.id)) continue
-    seen.add(p.id)
-    trending.push(toDigest(p, "Trending"))
-    if (trending.length >= 5) break
-  }
-
-  const subscribers = await db.subscriber.findMany({ select: { email: true, unsubscribeToken: true } })
-
-  if (newProducts.length === 0 && restocked.length === 0) {
-    await setLastDigestAt(now)
-    return {
-      subscribersConsidered: subscribers.length,
-      emailsSent: 0,
-      emailsFailed: 0,
-      emailsUnconfigured: 0,
-      newProductCount: 0,
-      restockedProductCount: 0,
-      trendingProductCount: 0,
-    }
-  }
-
-  const totalCount = newProducts.length + restocked.length
-  const subject = `${totalCount} new update${totalCount === 1 ? "" : "s"} on SAJI this week`
-
-  let emailsSent = 0
-  let emailsFailed = 0
-  let emailsUnconfigured = 0
-  for (const sub of subscribers) {
-    const html = buildDigestHtml({ newProducts, restocked, trending }, sub.unsubscribeToken)
-    const result = await sendEmail({ to: sub.email, subject, html })
-    if (result.sent) emailsSent++
-    else if (result.error) emailsFailed++
-    else emailsUnconfigured++
-  }
-
-  await setLastDigestAt(now)
-
-  return {
-    subscribersConsidered: subscribers.length,
-    emailsSent,
-    emailsFailed,
-    emailsUnconfigured,
-    newProductCount: newProductsRaw.length,
-    restockedProductCount: restockedProductsRaw.filter((p) => !newProductsRaw.some((n) => n.id === p.id)).length,
-    trendingProductCount: trending.length,
-  }
-}

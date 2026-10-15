@@ -3,8 +3,9 @@
 import { z } from "zod"
 import { confirmJobPayment, failJobPayment } from "@/backend/services/payment-core"
 import { db } from "@/backend/db"
-import { requireAdmin, logAdminAction } from "@/backend/actions/admin-dashboard"
-import { queryMpesaPayment, retrieveStripeSessionStatus } from "@/backend/actions/payments"
+import { requireAdmin } from "@/backend/actions/admin-dashboard"
+import { logAdminAction } from "@/backend/services/admin-audit-core"
+import { queryMpesaPayment, retrieveStripeSessionStatus } from "@/backend/services/payment-gateways"
 
 export type AdminPaymentStatus = "Completed" | "Pending" | "Processing" | "Failed" | "Refunded"
 

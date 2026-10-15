@@ -6,10 +6,10 @@ import { auth } from "@/backend/auth"
 import { db } from "@/backend/db"
 import { ensureSubscription } from "@/backend/services/pos-billing"
 import { provisionPos } from "@/backend/services/pos-provision"
-import { isSignupProofValid, consumeSignupProof } from "@/backend/actions/otp"
+import { isSignupProofValid, consumeSignupProof } from "@/backend/services/signup-proof"
 import { checkRateLimit } from "@/backend/services/rate-limit"
 import { resolvePosProfile } from "@/backend/domain/pos-profiles"
-import { recordPosAudit } from "@/backend/actions/pos-access"
+import { recordPosAudit } from "@/backend/services/pos-access-core"
 import { ONBOARDING_STEPS, type OnboardingStep } from "@/backend/domain/pos-onboarding-steps"
 
 /**

@@ -3,7 +3,7 @@
 import { z } from "zod"
 import { auth } from "@/backend/auth"
 import { db } from "@/backend/db"
-import { logJobEvent } from "@/backend/actions/job-events"
+import { logJobEvent } from "@/backend/services/job-events-core"
 
 async function requireProvider(): Promise<{ userId: string; providerId: string } | null> {
   const session = await auth()

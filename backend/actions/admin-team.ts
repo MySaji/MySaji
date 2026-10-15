@@ -2,7 +2,8 @@
 
 import { z } from "zod"
 import { db } from "@/backend/db"
-import { requireAdmin, logAdminAction } from "@/backend/actions/admin-dashboard"
+import { requireAdmin } from "@/backend/actions/admin-dashboard"
+import { logAdminAction } from "@/backend/services/admin-audit-core"
 
 export type AdminTeamRole = "sub-admin" | "secretary" | "agent"
 

@@ -1,4 +1,5 @@
 "use server"
+import { settleConfirmedPayment } from "@/backend/services/payment-settlement"
 
 import { auth } from "@/backend/auth"
 import { confirmProSubscriptionPayment } from "@/backend/services/settlement-core"
@@ -100,7 +101,7 @@ export async function checkProSubscriptionPaymentStatus(paymentId: string): Prom
   if (!payment || payment.payerId !== session.user.id || payment.contextType !== "SUBSCRIPTION") return null
 
   if (payment.status === "PENDING" && payment.externalRef) {
-    const { queryMpesaPayment, retrieveStripeSessionStatus } = await import("@/backend/actions/payments")
+    const { queryMpesaPayment, retrieveStripeSessionStatus } = await import("@/backend/services/payment-gateways")
     const providerProfile = await db.providerProfile.findUnique({ where: { userId: session.user.id } })
     const ref = payment.externalRef
     if (ref.startsWith("ws_CO_")) {
@@ -108,7 +109,7 @@ export async function checkProSubscriptionPaymentStatus(paymentId: string): Prom
       if (result) {
         if (result.resultCode === 0) {
           await db.payment.update({ where: { id: payment.id }, data: { status: "COMPLETED", paidAt: new Date() } })
-          if (providerProfile) await confirmProSubscriptionPayment(providerProfile.id, Number(payment.amount))
+          await settleConfirmedPayment(payment.id)
         } else {
           await db.payment.update({ where: { id: payment.id }, data: { status: "FAILED", failureReason: result.reason ?? null } })
         }
@@ -117,11 +118,12 @@ export async function checkProSubscriptionPaymentStatus(paymentId: string): Prom
       const stripeStatus = await retrieveStripeSessionStatus(ref)
       if (stripeStatus === "paid") {
         await db.payment.update({ where: { id: payment.id }, data: { status: "COMPLETED", paidAt: new Date() } })
-        if (providerProfile) await confirmProSubscriptionPayment(providerProfile.id, Number(payment.amount))
+        await settleConfirmedPayment(payment.id)
       }
     }
   }
 
+  if (payment.status === "COMPLETED") await settleConfirmedPayment(payment.id)
   const fresh = await db.payment.findUnique({ where: { id: paymentId } })
   return { status: (fresh?.status as ProSubscriptionPaymentStatus["status"]) ?? "PENDING", failureReason: fresh?.failureReason ?? null }
 }

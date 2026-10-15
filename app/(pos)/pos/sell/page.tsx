@@ -314,6 +314,7 @@ export default function TillPage() {
   }, [])
 
   useEffect(() => {
+    if (!offline.available) return
     Promise.all([
       getTillState().then((s) => {
         setState(s)
@@ -343,9 +344,7 @@ export default function TillPage() {
         }
       })
       .finally(() => setLoading(false))
-    // offline.saveCatalogue is stable; this must run once, on mount.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [offline.available, offline.saveCatalogue])
 
   // Debounced, because a barcode scanner types a whole code in milliseconds
   // and a request per keystroke would both hammer the server and let an

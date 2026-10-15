@@ -57,7 +57,7 @@ export default function PosLoginPage() {
     setBusy(true); setError("")
     const v = await verifyLoginOtp(identifier, code)
     if (!v.success) { setBusy(false); setError(v.error); setDigits(Array(OTP_LENGTH).fill("")); boxes.current[0]?.focus(); return }
-    const signedIn = await login(identifier, password)
+    const signedIn = await login(identifier, password, v.proof)
     setBusy(false)
     if (!signedIn.success) { setError(signedIn.error); setStep("credentials"); return }
     // /pos decides where they land: it knows whether this account owns a

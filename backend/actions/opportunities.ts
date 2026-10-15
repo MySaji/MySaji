@@ -3,7 +3,7 @@
 import { z } from "zod"
 import { auth } from "@/backend/auth"
 import { db } from "@/backend/db"
-import { notifyUser } from "@/backend/actions/notify"
+import { notifyUser } from "@/backend/services/notifications-core"
 
 async function requireProvider(): Promise<{ userId: string; providerId: string; categoryId: string | null } | null> {
   const session = await auth()

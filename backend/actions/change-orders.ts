@@ -4,8 +4,8 @@ import { z } from "zod"
 import { auth } from "@/backend/auth"
 import { db } from "@/backend/db"
 import { requirePro } from "@/backend/actions/provider-subscription"
-import { logJobEvent } from "@/backend/actions/job-events"
-import { notifyUser } from "@/backend/actions/notify"
+import { logJobEvent } from "@/backend/services/job-events-core"
+import { notifyUser } from "@/backend/services/notifications-core"
 
 async function requireProvider(): Promise<{ userId: string; providerId: string } | null> {
   const session = await auth()

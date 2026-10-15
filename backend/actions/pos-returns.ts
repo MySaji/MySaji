@@ -6,7 +6,7 @@ import { auth } from "@/backend/auth"
 import { db } from "@/backend/db"
 import { recordStockMovement } from "@/backend/services/pos-ledger"
 import { parsePosConfig } from "@/backend/domain/pos-config"
-import { requirePosPermission, recordPosAudit } from "@/backend/actions/pos-access"
+import { requirePosPermission, recordPosAudit } from "@/backend/services/pos-access-core"
 import { approveWithManagerPin, aboveThresholdOrNever } from "@/backend/services/pos-approval"
 
 /**

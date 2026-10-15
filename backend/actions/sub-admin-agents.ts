@@ -3,7 +3,7 @@
 import { z } from "zod"
 import { db } from "@/backend/db"
 import { requireSubAdmin } from "@/backend/actions/sub-admin-dashboard"
-import { logAdminAction } from "@/backend/actions/admin-dashboard"
+import { logAdminAction } from "@/backend/services/admin-audit-core"
 import { registerTeamMember } from "@/backend/actions/auth"
 
 export type SubAdminAgent = {

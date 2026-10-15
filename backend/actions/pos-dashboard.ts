@@ -3,7 +3,7 @@
 import { z } from "zod"
 import { Prisma } from "@prisma/client"
 import { db } from "@/backend/db"
-import { requirePosPermission } from "@/backend/actions/pos-access"
+import { requirePosPermission } from "@/backend/services/pos-access-core"
 
 /**
  * The first screen a shopkeeper sees.

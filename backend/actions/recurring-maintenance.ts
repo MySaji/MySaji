@@ -3,7 +3,7 @@
 import { z } from "zod"
 import { auth } from "@/backend/auth"
 import { db } from "@/backend/db"
-import { notifyUser } from "@/backend/actions/notify"
+import { notifyUser } from "@/backend/services/notifications-core"
 
 const createSchema = z.object({
   title: z.string().trim().min(1, "Give this schedule a name"),

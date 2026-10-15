@@ -10,7 +10,7 @@ import { hashPassword } from "@/backend/services/password"
 import { sendEmail } from "@/backend/services/email"
 import { wrapEmailLayout, emailButton, siteOrigin } from "@/backend/services/email-templates"
 import { distanceKm } from "@/backend/services/google-maps"
-import { notifyUser } from "@/backend/actions/notify"
+import { notifyUser } from "@/backend/services/notifications-core"
 import { BUSINESS_STAFF_MAX_CONCURRENT_JOBS } from "@/backend/services/job-limits"
 
 const STAFF_INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000 // 7 days

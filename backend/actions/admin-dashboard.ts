@@ -1,12 +1,13 @@
 "use server"
 
-import { auth } from "@/backend/auth"
+import { activeUser } from "@/backend/services/active-user"
+
 import { db } from "@/backend/db"
 
 export async function requireAdmin(): Promise<{ userId: string; name: string } | null> {
-  const session = await auth()
-  if (!session?.user?.id || session.user.role !== "admin") return null
-  return { userId: session.user.id, name: session.user.name ?? "Admin" }
+  const user = await activeUser()
+  if (!user || user.role !== "ADMIN") return null
+  return { userId: user.id, name: user.name ?? "Admin" }
 }
 
 export type AdminNavBadges = {
@@ -30,26 +31,6 @@ export async function getAdminNavBadges(): Promise<AdminNavBadges> {
   ])
 
   return { users, jobs, disputes, verifications, moderation }
-}
-
-export async function logAdminAction(input: {
-  userId: string
-  action: string
-  entityType: string
-  entityId: string
-  oldValues?: Record<string, unknown>
-  newValues?: Record<string, unknown>
-}): Promise<void> {
-  await db.auditLog.create({
-    data: {
-      userId: input.userId,
-      action: input.action,
-      entityType: input.entityType,
-      entityId: input.entityId,
-      oldValues: input.oldValues as object | undefined,
-      newValues: input.newValues as object | undefined,
-    },
-  })
 }
 
 function pctChange(current: number, previous: number): number {
@@ -151,12 +132,6 @@ export async function getAdminDashboard(): Promise<AdminDashboardData> {
   }
 }
 
-// ============================= REVENUE (period-filterable) =============================
-// Split out from getAdminDashboard() so switching the Revenue Overview
-// card's time range doesn't require re-fetching the rest of the dashboard
-// (user counts, disputes, top performers, etc.) — those don't depend on
-// the selected period at all.
-
 export type AdminRevenueQuery = { year: number; month?: number }
 
 export type AdminRevenueData = {
@@ -170,10 +145,6 @@ export type AdminRevenueData = {
 
 const COMMISSION_RATE = 0.06
 
-/** `month` is 0-11 (JS Date convention) and optional — omitted means "the
- * whole year", bucketed by month; given means that specific calendar
- * month, bucketed by day. Both are real, explicitly-chosen calendar
- * periods (any year back to 1990), not a rolling window. */
 export async function getAdminRevenue(query: AdminRevenueQuery): Promise<AdminRevenueData | null> {
   const admin = await requireAdmin()
   if (!admin) return null

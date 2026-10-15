@@ -16,7 +16,7 @@ import { parsePosConfig, type NegativeStockPolicy, type ExpiredStockPolicy } fro
 import bcrypt from "bcryptjs"
 import { createHash } from "crypto"
 import { checkPromptStatus } from "@/backend/actions/pos-mpesa"
-import { queueSaleForEtims } from "@/backend/actions/pos-etims"
+import { queueSaleForEtims } from "@/backend/services/etims-queue-core"
 import { getTillBillingGate } from "@/backend/actions/pos-billing-shop"
 import { effectiveTraits } from "@/backend/domain/pos-profiles"
 import type { PosTrait } from "@/backend/domain/pos-traits"
@@ -632,6 +632,8 @@ export async function closeTillShift(input: unknown): Promise<TillActionResult<S
 const PAYMENT_METHODS = ["CASH", "MPESA", "CARD", "BANK", "CREDIT", "GIFT_CARD"] as const
 
 const saleSchema = z.object({
+  expectedShopId: z.string().optional(),
+  expectedUserId: z.string().optional(),
   /**
    * Generated once by the till for this sale attempt, and resent unchanged on
    * every retry. The reason a dropped connection cannot ring a sale up twice.
@@ -794,6 +796,7 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
     return { success: false, error: parsed.error.issues[0]?.message ?? "That sale could not be read." }
   }
   const body = parsed.data
+  if (body.expectedShopId !== till.shopkeeperId || body.expectedUserId !== till.userId) return { success: false, error: "This sale belongs to a different account or store. Return to its original store to synchronize." }
   const occurredAt = body.occurredAt ? new Date(body.occurredAt) : new Date()
 
   // --- a replay returns the original receipt, not an error -----------------

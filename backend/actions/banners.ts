@@ -2,7 +2,8 @@
 
 import { z } from "zod"
 import { db } from "@/backend/db"
-import { requireAdmin, logAdminAction } from "@/backend/actions/admin-dashboard"
+import { requireAdmin } from "@/backend/actions/admin-dashboard"
+import { logAdminAction } from "@/backend/services/admin-audit-core"
 import type { BannerPlacement } from "@prisma/client"
 
 export type BannerActionResult = { success: true } | { success: false; error: string }

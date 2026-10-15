@@ -3,7 +3,7 @@ import { auth } from '@/backend/auth'
 import { db } from '@/backend/db'
 import { sendEmail } from '@/backend/services/email'
 import { wrapEmailLayout, emailButton, siteOrigin } from '@/backend/services/email-templates'
-import { logAdminAction } from '@/backend/actions/admin-dashboard'
+import { logAdminAction } from "@/backend/services/admin-audit-core"
 
 // Renders the admin's free-text content into the shared branded shell —
 // each line becomes a paragraph, except a line that's just a bare URL,

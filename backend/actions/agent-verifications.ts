@@ -3,7 +3,7 @@
 import { z } from "zod"
 import { db } from "@/backend/db"
 import { requireAgent } from "@/backend/actions/agent-dashboard"
-import { logAdminAction } from "@/backend/actions/admin-dashboard"
+import { logAdminAction } from "@/backend/services/admin-audit-core"
 import { approveKycDocument, rejectKycDocument } from "@/backend/services/kyc-review-core"
 
 export type AgentVerification = {

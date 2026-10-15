@@ -48,13 +48,7 @@ export default function StaffInviteAcceptPage() {
       setError(result.error)
       return
     }
-    const loginResult = await login(email, password)
-    setIsSubmitting(false)
-    if (!loginResult.success) {
-      router.push("/auth/login")
-      return
-    }
-    router.push("/provider/profile/skills")
+    router.push("/auth/login")
   }
 
   if (isChecking) {

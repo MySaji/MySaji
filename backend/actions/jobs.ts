@@ -1,17 +1,26 @@
 "use server"
 
 import { z } from "zod"
+
 import { auth } from "@/backend/auth"
+
 import { db } from "@/backend/db"
-import { jobPaymentMode, openingJobStatus } from "@/backend/services/commission-debt"
+
+import { openingJobStatus } from "@/backend/services/commission-debt"
+
 import { requireVerified } from "@/backend/services/verification-gate"
+
 import { customerHasOpenDispute } from "@/backend/actions/account-status"
+
 import { distanceKm } from "@/backend/services/google-maps"
+
 import { resolveJobCancellation } from "@/backend/services/job-cancellation"
+
 import { isWithinLateCancellationWindow } from "@/backend/domain/cancellation-policy"
-import { logJobEvent } from "@/backend/actions/job-events"
-import { pushToUser } from "@/backend/actions/push"
-import { notifyUser } from "@/backend/actions/notify"
+
+import { logJobEvent } from "@/backend/services/job-events-core"
+
+import { notifyUser } from "@/backend/services/notifications-core"
 
 const createBookingSchema = z.object({
   serviceId: z.string().trim().min(1),
@@ -28,76 +37,6 @@ const createBookingSchema = z.object({
 
 export type CreateBookingResult = { success: true; jobId: string; amount: number } | { success: false; error: string }
 
-const REFERRAL_REWARD_AMOUNT = 500
-
-/** Fires when a referred customer's first-ever *paid* Job is confirmed —
- * credits the referrer's real wallet and flips the Referral row to
- * REWARDED. Counts only jobs past PENDING_PAYMENT so an abandoned/unpaid
- * booking attempt can't burn the referral before a real one lands. */
-export async function maybeRewardReferral(customerId: string) {
-  const jobCount = await db.job.count({ where: { customerId, status: { not: "PENDING_PAYMENT" } } })
-  if (jobCount !== 1) return
-
-  const referral = await db.referral.findUnique({ where: { referredUserId: customerId } })
-  if (!referral || referral.status !== "ACTIVATED") return
-
-  const wallet = await db.wallet.findUnique({ where: { userId: referral.referrerId } })
-  if (!wallet) return
-
-  const balanceBefore = Number(wallet.balance)
-  const balanceAfter = balanceBefore + REFERRAL_REWARD_AMOUNT
-
-  await db.$transaction([
-    db.referral.update({
-      where: { id: referral.id },
-      data: { status: "REWARDED", rewardAmount: REFERRAL_REWARD_AMOUNT, rewardGivenAt: new Date() },
-    }),
-    db.wallet.update({
-      where: { userId: referral.referrerId },
-      data: { balance: balanceAfter, totalEarned: { increment: REFERRAL_REWARD_AMOUNT } },
-    }),
-    db.transaction.create({
-      data: {
-        walletId: wallet.id,
-        type: "CREDIT",
-        amount: REFERRAL_REWARD_AMOUNT,
-        description: "Referral reward: your friend completed their first booking",
-        referenceType: "REFERRAL",
-        referenceId: referral.id,
-        status: "COMPLETED",
-        balanceBefore,
-        balanceAfter,
-      },
-    }),
-    db.notification.create({
-      data: {
-        userId: referral.referrerId,
-        title: "Referral reward earned!",
-        message: `KES ${REFERRAL_REWARD_AMOUNT} was added to your wallet for referring a friend.`,
-        type: "PROMO",
-        actionUrl: "/customer/referrals",
-      },
-    }),
-  ])
-
-  await pushToUser(referral.referrerId, {
-    title: "Referral reward earned!",
-    body: `KES ${REFERRAL_REWARD_AMOUNT} was added to your wallet for referring a friend.`,
-    url: "/customer/referrals",
-  }, "promo")
-}
-
-/** The single real booking-creation path for every customer-facing flow
- * (Marketplace quick-book, Emergency, and the dedicated wizard).
- *
- * The opening status depends on who is paying: see openingJobStatus. Where
- * the platform takes the money the job is PENDING_PAYMENT
- * for every customer-facing flow (Marketplace quick-book, Emergency, and
- *  and isn't visible to the provider and doesn't
- * reward referrals until real payment actually clears via
- * `confirmJobPayment` — a customer abandoning payment leaves no side
- * effects behind. The frontend calls `/api/payments/initiate` with the
- * returned `jobId` next. */
 export async function createBooking(input: unknown): Promise<CreateBookingResult> {
   const session = await auth()
   if (!session?.user?.id || session.user.role !== "customer") {
@@ -184,12 +123,6 @@ export type CreateEmergencyBookingResult =
   | { success: true; jobId: string; amount: number; assigned: boolean }
   | { success: false; error: string }
 
-/** Attempts a real provider match (verified, active, in the requested
- * category, highest-rated first) instead of leaving the Job permanently
- * unassigned — matching itself doesn't require payment, only actually
- * *notifying* the matched provider and the customer does (fired from
- * `confirmJobPayment` once real payment clears, same PENDING_PAYMENT gate
- * every other booking flow now uses). */
 export async function createEmergencyBooking(input: unknown): Promise<CreateEmergencyBookingResult> {
   const session = await auth()
   if (!session?.user?.id || session.user.role !== "customer") {
@@ -340,11 +273,6 @@ export type CustomerJob = {
   distanceKm: number | null
 }
 
-/**
- * @param includeJobId a purchase this page would normally hide, pulled in
- *   because the customer followed a link straight to it from their orders.
- *   Still scoped to their own jobs by the customerId filter.
- */
 export async function getCustomerJobs(includeJobId?: string): Promise<CustomerJob[]> {
   const session = await auth()
   if (!session?.user?.id) return []
@@ -419,11 +347,6 @@ export type ActiveEscrowJob = {
   status: "ACCEPTED" | "IN_PROGRESS"
 }
 
-/** Real held-funds jobs — an ACCEPTED/IN_PROGRESS job with a COMPLETED
- * Payment means the customer's money genuinely is sitting in escrow right
- * now. Deliberately no progress percentage: this schema has no
- * milestone/percentage field on Job, so a "60% done" bar would be
- * invented rather than derived from anything real. */
 export async function getActiveEscrowJobs(): Promise<ActiveEscrowJob[]> {
   const session = await auth()
   if (!session?.user?.id) return []
@@ -458,14 +381,6 @@ const cancelJobSchema = z.object({ jobId: z.string().trim().min(1) })
 
 const CUSTOMER_CANCELLABLE_STATUSES = ["PENDING", "ACCEPTED"] as const
 
-/**
- * Self-service cancellation — only while the provider hasn't started work
- * yet (PENDING/ACCEPTED). Runs the Gap 6 dispatch-fee policy engine: a
- * full refund if it's still >=2h before the scheduled time, otherwise a
- * fixed dispatch fee is carved out and paid to the provider. Once a job is
- * IN_PROGRESS, this intentionally stops being self-service — that's what
- * the dispute flow is for.
- */
 export async function cancelMyJob(input: unknown): Promise<JobActionResult> {
   const session = await auth()
   if (!session?.user?.id) return { success: false, error: "You must be signed in." }
@@ -525,12 +440,6 @@ const submitJobReviewSchema = z.object({
 
 export type SubmitJobReviewResult = { success: true } | { success: false; error: string }
 
-/** Real review persistence for a completed job — mirrors submitProductReview
- * in lib/actions/products.ts exactly: write the Review row, then recompute
- * the provider's real rating/reviewCount from all their real reviews. This
- * is what makes provider ratings shown everywhere (Find Specialists,
- * service listings, the booking modal) reflect actual customer feedback
- * instead of staying frozen at whatever was seeded. */
 export async function submitJobReview(input: unknown): Promise<SubmitJobReviewResult> {
   const session = await auth()
   if (!session?.user?.id) return { success: false, error: "You must be signed in." }

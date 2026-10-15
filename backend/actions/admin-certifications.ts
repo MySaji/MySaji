@@ -2,8 +2,9 @@
 
 import { z } from "zod"
 import { db } from "@/backend/db"
-import { requireAdmin, logAdminAction } from "@/backend/actions/admin-dashboard"
-import { notifyUser } from "@/backend/actions/notify"
+import { requireAdmin } from "@/backend/actions/admin-dashboard"
+import { logAdminAction } from "@/backend/services/admin-audit-core"
+import { notifyUser } from "@/backend/services/notifications-core"
 
 export type PendingCertification = {
   id: string

@@ -7,15 +7,19 @@ import { BrandLogo } from "@/frontend/components/brand-logo"
 import { getPublicSiteSettings, type PublicSiteSettings } from "@/backend/actions/admin-settings"
 
 const QUICK_LINKS = [
+  { label: "Knowledge Base", href: "/knowledge" },
+  { label: "Getting Started", href: "/knowledge/getting-started" },
+  { label: "Saji Till Guide", href: "/knowledge/pos-guide" },
+  { label: "Payments & Help", href: "/knowledge/payments-wallet" },
   { label: "Home", href: "/" },
-  { label: "How It Works", href: "/#how-it-works" },
-  { label: "Features", href: "/#features" },
-  { label: "Services", href: "/#categories" },
+  { label: "How It Works", href: "/knowledge/getting-started" },
+  { label: "Features", href: "/knowledge/provider-guide" },
+  { label: "Services", href: "/knowledge/customer-bookings" },
   { label: "Become a Provider", href: "/auth/signup?role=provider" },
 ]
 
 const SUPPORT_LINKS = [
-  { label: "FAQ", href: "/#faq" },
+  { label: "FAQ", href: "/knowledge/support" },
   { label: "Sign In", href: "/auth/login" },
   { label: "Create Account", href: "/auth/signup" },
 ]

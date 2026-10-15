@@ -3,7 +3,8 @@
 import { z } from "zod"
 import { Prisma } from "@prisma/client"
 import { db } from "@/backend/db"
-import { requireAdmin, logAdminAction } from "@/backend/actions/admin-dashboard"
+import { requireAdmin } from "@/backend/actions/admin-dashboard"
+import { logAdminAction } from "@/backend/services/admin-audit-core"
 import {
   getPriceList, parsePriceList, billingStateOf, advanceBilling, settleCharge,
   ensureSubscription, addDays, addMonth,

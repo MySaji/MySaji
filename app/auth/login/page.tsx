@@ -95,9 +95,9 @@ function LoginContent() {
     return raw
   })()
 
-  const completeSignIn = async () => {
+  const completeSignIn = async (proof: string) => {
     setIsLoading(true)
-    const result = await login(identifier, password)
+    const result = await login(identifier, password, proof)
     setIsLoading(false)
     if (!result.success) {
       setError(result.error)
@@ -147,7 +147,7 @@ function LoginContent() {
       setError(result.error)
       return
     }
-    await completeSignIn()
+    await completeSignIn(result.proof)
   }
 
   // Shared by paste and WebOTP autofill — fills every box at once (rather

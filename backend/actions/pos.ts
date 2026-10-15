@@ -1,6 +1,7 @@
 "use server"
 
 import { z } from "zod"
+import { requirePosPermission } from "@/backend/services/pos-access-core"
 import { auth } from "@/backend/auth"
 import { db } from "@/backend/db"
 import { posShopIdFor } from "@/backend/services/pos-tenant"
@@ -129,6 +130,8 @@ const profileSchema = z.object({
 })
 
 export async function setPosProfile(input: unknown): Promise<PosActionResult> {
+  const permission = await requirePosPermission("settings.store")
+  if (!permission.ok) return { success: false, error: permission.error }
   const parsed = profileSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: "Invalid input" }
 
@@ -160,6 +163,8 @@ const traitsSchema = z.object({
 })
 
 export async function setPosTraits(input: unknown): Promise<PosActionResult> {
+  const permission = await requirePosPermission("settings.store")
+  if (!permission.ok) return { success: false, error: permission.error }
   const parsed = traitsSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: "Invalid input" }
 
@@ -178,6 +183,8 @@ export async function setPosTraits(input: unknown): Promise<PosActionResult> {
 }
 
 export async function updatePosConfig(input: unknown): Promise<PosActionResult> {
+  const permission = await requirePosPermission("settings.store")
+  if (!permission.ok) return { success: false, error: permission.error }
   const shop = await resolveMyShop()
   if (!shop) return { success: false, error: "You do not have a shop on this account." }
   if (!shop.posEnabled) return { success: false, error: "The till is not switched on for this shop." }

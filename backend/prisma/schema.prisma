@@ -3124,6 +3124,7 @@ model Payment {
   failureReason    String?
   createdAt        DateTime           @default(now())
   paidAt           DateTime?
+  settledAt        DateTime?
   refundedAt       DateTime?
 
   job            Job?            @relation(fields: [jobId], references: [id])

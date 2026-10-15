@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
+import { getCallIceServers } from "@/backend/actions/call-configuration"
 import { sendCallSignal, getCallSignals, clearCallSignals, type CallSignalItem } from "@/backend/actions/calls"
 import { startRinging, stopRinging } from "@/frontend/lib/ringtone"
 
@@ -101,8 +102,9 @@ export function useVoiceCall(conversationId: string | null) {
     }
   }, [])
 
-  const createPeerConnection = useCallback((convId: string) => {
-    const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS })
+  const createPeerConnection = useCallback(async (convId: string) => {
+    const configured = await getCallIceServers()
+    const pc = new RTCPeerConnection({ iceServers: configured.length ? configured : ICE_SERVERS })
     pc.onicecandidate = (event) => {
       if (event.candidate) {
         void sendCallSignal({ conversationId: convId, type: "ice-candidate", payload: event.candidate.toJSON() })
@@ -136,7 +138,7 @@ export function useVoiceCall(conversationId: string | null) {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       localStreamRef.current = stream
-      const pc = createPeerConnection(conversationId)
+      const pc = await createPeerConnection(conversationId)
       stream.getTracks().forEach((track) => pc.addTrack(track, stream))
       const offer = await pc.createOffer()
       await pc.setLocalDescription(offer)
@@ -155,7 +157,7 @@ export function useVoiceCall(conversationId: string | null) {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       localStreamRef.current = stream
-      const pc = createPeerConnection(conversationId)
+      const pc = await createPeerConnection(conversationId)
       stream.getTracks().forEach((track) => pc.addTrack(track, stream))
       await pc.setRemoteDescription(new RTCSessionDescription(offer))
       await flushPendingCandidates()

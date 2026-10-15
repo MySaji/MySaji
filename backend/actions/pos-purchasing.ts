@@ -4,7 +4,8 @@ import { z } from "zod"
 import { Prisma } from "@prisma/client"
 import { db } from "@/backend/db"
 import { recordStockMovement } from "@/backend/services/pos-ledger"
-import { requirePosPermission, recordPosAudit, type PosActor } from "@/backend/actions/pos-access"
+import { type PosActor } from "@/backend/actions/pos-access"
+import { requirePosPermission, recordPosAudit } from "@/backend/services/pos-access-core"
 
 /**
  * Buying goods: who from, what was ordered, and what actually turned up.

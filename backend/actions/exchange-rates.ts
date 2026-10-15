@@ -2,7 +2,8 @@
 
 import { z } from "zod"
 import { db } from "@/backend/db"
-import { requireAdmin, logAdminAction } from "@/backend/actions/admin-dashboard"
+import { requireAdmin } from "@/backend/actions/admin-dashboard"
+import { logAdminAction } from "@/backend/services/admin-audit-core"
 import { DEFAULT_EXCHANGE_RATES, type ExchangeRateRow } from "@/backend/domain/currency"
 
 function toRow(r: { code: string; name: string; symbol: string; rate: unknown; isBase: boolean; isActive: boolean }): ExchangeRateRow {

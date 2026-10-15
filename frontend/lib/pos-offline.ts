@@ -1,3 +1,4 @@
+import { offlineScope } from "@/frontend/lib/pos-offline-scope"
 /**
  * The till's local store: a catalogue snapshot and a durable outbox.
  *
@@ -121,13 +122,17 @@ export function isOfflineStoreAvailable(): boolean {
   return typeof window !== "undefined" && typeof window.indexedDB !== "undefined"
 }
 
-let dbPromise: Promise<IDBDatabase> | null = null
+const databases = new Map<string, Promise<IDBDatabase>>()
 
 function open(): Promise<IDBDatabase> {
   if (!isOfflineStoreAvailable()) return Promise.reject(new Error("IndexedDB unavailable"))
-  if (dbPromise) return dbPromise
-  dbPromise = new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, DB_VERSION)
+  const scope = offlineScope()
+  if (!scope) return Promise.reject(new Error("Select an authorized account and store before using offline data."))
+  const name = `${DB_NAME}-v2:${scope.userId}:${scope.shopId}`
+  const existing = databases.get(name)
+  if (existing) return existing
+  const dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
+    const req = indexedDB.open(name, DB_VERSION)
     req.onupgradeneeded = () => {
       const db = req.result
       if (!db.objectStoreNames.contains(STORE_CATALOGUE)) db.createObjectStore(STORE_CATALOGUE, { keyPath: "id" })
@@ -140,6 +145,7 @@ function open(): Promise<IDBDatabase> {
     // caller falls back to online-only rather than hanging forever.
     req.onblocked = () => reject(new Error("the till's local store is in use by another tab"))
   })
+  databases.set(name, dbPromise)
   return dbPromise
 }
 

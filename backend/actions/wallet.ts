@@ -4,10 +4,10 @@ import { z } from "zod"
 import { auth } from "@/backend/auth"
 import { db } from "@/backend/db"
 import { requireVerified } from "@/backend/services/verification-gate"
-import { pushToUser } from "@/backend/actions/push"
-import { notifyUser } from "@/backend/actions/notify"
+import { pushToUser } from "@/backend/services/push-core"
+import { notifyUser } from "@/backend/services/notifications-core"
 import { getActiveEscrowJobs, type ActiveEscrowJob } from "@/backend/actions/jobs"
-import { createAndEmailReceipt } from "@/backend/actions/receipts"
+import { createAndEmailReceipt } from "@/backend/services/receipts-core"
 import { encryptAccountNumber } from "@/backend/services/payment-method-crypto"
 // Wallet money movement lives in a plain module, not here: an export of a
 // "use server" file is a public HTTP endpoint, and crediting a balance must
@@ -203,7 +203,7 @@ export async function checkWalletTopupStatus(paymentId: string): Promise<WalletT
   if (!payment || payment.payerId !== session.user.id || payment.contextType !== "WALLET_TOPUP") return null
 
   if (payment.status === "PENDING" && payment.externalRef) {
-    const { queryMpesaPayment, retrieveStripeSessionStatus } = await import("@/backend/actions/payments")
+    const { queryMpesaPayment, retrieveStripeSessionStatus } = await import("@/backend/services/payment-gateways")
     const ref = payment.externalRef
     if (ref.startsWith("ws_CO_")) {
       const result = await queryMpesaPayment(ref)

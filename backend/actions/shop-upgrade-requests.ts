@@ -3,8 +3,8 @@
 import { z } from "zod"
 import { auth } from "@/backend/auth"
 import { db } from "@/backend/db"
-import { logAdminAction } from "@/backend/actions/admin-dashboard"
-import { pushToUser } from "@/backend/actions/push"
+import { logAdminAction } from "@/backend/services/admin-audit-core"
+import { pushToUser } from "@/backend/services/push-core"
 
 // Providers request this from /provider/shop, which files a real
 // SupportTicket (category "shop_upgrade") rather than a dedicated model —

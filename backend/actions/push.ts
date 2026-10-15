@@ -1,10 +1,10 @@
 "use server"
 
 import { z } from "zod"
+
 import { auth } from "@/backend/auth"
+
 import { db } from "@/backend/db"
-import { sendWebPush, type PushPayload } from "@/backend/services/push"
-import type { NotificationPreferences } from "@/backend/actions/settings"
 
 export async function getVapidPublicKey(): Promise<string | null> {
   return process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || null
@@ -49,44 +49,4 @@ export async function hasActivePushSubscription(): Promise<boolean> {
   if (!session?.user?.id) return false
   const count = await db.pushSubscription.count({ where: { userId: session.user.id } })
   return count > 0
-}
-
-// Same category→preference mapping as lib/actions/notifications.ts's real
-// bell filtering — a category the customer has muted in the bell shouldn't
-// buzz their phone either.
-const CATEGORY_PREFERENCE_KEY: Partial<Record<string, keyof NotificationPreferences>> = {
-  job: "jobUpdates",
-  message: "messages",
-  payment: "payments",
-  promo: "promotions",
-}
-
-/** Pushes to every one of a user's subscribed browsers, respecting both
- * their real pushNotifications (channel) and, when a category is given,
- * the matching per-category preference — and prunes subscriptions the
- * browser itself has since expired/unsubscribed (a 404/410 from the push
- * service). Never throws: a failed push must never break the caller's own
- * real business logic (e.g. confirming a payment). */
-export async function pushToUser(userId: string, payload: PushPayload, category?: keyof typeof CATEGORY_PREFERENCE_KEY): Promise<void> {
-  try {
-    const user = await db.user.findUnique({ where: { id: userId } })
-    const prefs = user?.notificationPreferences as Partial<NotificationPreferences> | null
-    if (prefs?.pushNotifications === false) return
-    const categoryKey = category ? CATEGORY_PREFERENCE_KEY[category] : undefined
-    if (categoryKey && prefs?.[categoryKey] === false) return
-
-    const subs = await db.pushSubscription.findMany({ where: { userId } })
-    if (subs.length === 0) return
-
-    await Promise.all(
-      subs.map(async (sub) => {
-        const result = await sendWebPush(sub, payload)
-        if (result.expired) {
-          await db.pushSubscription.delete({ where: { id: sub.id } }).catch(() => {})
-        }
-      }),
-    )
-  } catch {
-    // Never let a push failure break the real notification-creating action.
-  }
 }

@@ -3,7 +3,7 @@
 import { z } from "zod"
 import { db } from "@/backend/db"
 import { auth } from "@/backend/auth"
-import { requirePosPermission, recordPosAudit } from "@/backend/actions/pos-access"
+import { requirePosPermission, recordPosAudit } from "@/backend/services/pos-access-core"
 import { posShopIdFor } from "@/backend/services/pos-tenant"
 import { parsePosConfig } from "@/backend/domain/pos-config"
 

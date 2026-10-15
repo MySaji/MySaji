@@ -1,3 +1,5 @@
+> Historical snapshot. For the current implementation and outstanding validation, see [Implementation status](IMPLEMENTATION-STATUS.md) and [Deployment](DEPLOYMENT.md).
+
 ﻿# SAJI Technical Audit & Development Valuation Report
 
 Prepared for: SAJI project stakeholders

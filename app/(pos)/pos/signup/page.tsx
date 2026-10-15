@@ -100,11 +100,8 @@ export default function PosSignupPage() {
     })
     if (!r.success) { setBusy(false); setError(r.error); return }
 
-    // Straight into the wizard, signed in. Making somebody log in again
-    // immediately after creating an account is a step with no purpose.
-    const signedIn = await login(email, password)
     setBusy(false)
-    router.push(signedIn.success ? "/pos/setup" : "/pos/login")
+    router.push("/pos/login")
   }
 
   const fillDigits = (raw: string) => {

@@ -1,3 +1,4 @@
+import { consumeLoginProof } from "@/backend/services/login-proof"
 import NextAuth, { CredentialsSignin } from "next-auth"
 import type { JWT } from "next-auth/jwt"
 import Credentials from "next-auth/providers/credentials"
@@ -88,6 +89,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       credentials: {
         identifier: { label: "Email or phone", type: "text" },
         password: { label: "Password", type: "password" },
+        otpProof: { label: "Verification proof", type: "text" },
       },
       async authorize(credentials) {
         const identifier = credentials?.identifier as string | undefined
@@ -119,6 +121,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
           const valid = await verifyPassword(password, user.password)
           if (!valid) return null
+          if (!(await consumeLoginProof(user.id, credentials?.otpProof))) return null
 
           return {
             id: user.id,
@@ -270,8 +273,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // until the next full sign-in. Also re-reads isActive so an admin
       // suspending or reactivating a user updates their restricted-screen
       // state without forcing a fresh login.
-      if (trigger === "update" && token.id) {
+      if (token.id) {
         const freshUser = await db.user.findUnique({ where: { id: token.id } })
+        if (!freshUser || freshUser.deletedAt || !freshUser.isActive) return null
         if (freshUser) {
           const rawRole = freshUser.role as unknown as string
           token.role = rawRole in ROLE_DB_TO_APP ? ROLE_DB_TO_APP[rawRole as keyof typeof ROLE_DB_TO_APP] : (rawRole as typeof token.role)

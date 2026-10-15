@@ -8,7 +8,7 @@
 import { db } from "@/backend/db"
 import { getEffectivePlatformPreferences } from "@/backend/actions/admin-settings"
 import { reverseCommissionDebt } from "@/backend/services/commission-debt"
-import { logJobEvent } from "@/backend/actions/job-events"
+import { logJobEvent } from "@/backend/services/job-events-core"
 
 export type JobCancellationReason = "EARLY_CANCELLATION" | "LATE_CANCELLATION" | "NO_SHOW"
 

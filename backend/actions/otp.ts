@@ -1,21 +1,25 @@
 "use server"
 
 import { db } from "@/backend/db"
+
 import { verifyPassword } from "@/backend/services/password"
+
 import { checkRateLimit } from "@/backend/services/rate-limit"
+
 import { sendEmail } from "@/backend/services/email"
+
 import { wrapEmailLayout, otpCodeBlock } from "@/backend/services/email-templates"
+
 import { sendInfobipPin, verifyInfobipPin, normalizeKenyanPhone } from "@/backend/services/sms"
+
 import crypto from "crypto"
+
+import { issueLoginProof } from "@/backend/services/login-proof"
 
 function looksLikeEmail(value: string): boolean {
   return value.includes("@")
 }
 
-/** Resolves free-form user input (email or Kenyan phone in any common shape)
- * to the canonical form it's stored/keyed under everywhere else in this
- * flow — lowercased email, or E.164 phone. Returns null for an unrecognized
- * phone shape. */
 function canonicalIdentifier(value: string): string | null {
   const trimmed = value.trim()
   if (looksLikeEmail(trimmed)) return trimmed.toLowerCase()
@@ -23,15 +27,13 @@ function canonicalIdentifier(value: string): string | null {
 }
 
 function generateCode(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString()
+  return crypto.randomInt(100000, 1000000).toString()
 }
 
 function generateProofToken(): string {
   return crypto.randomBytes(24).toString("hex")
 }
 
-/** Only ever shown back to the user it belongs to — not a secrecy boundary,
- * just avoids flashing the full contact string across the OTP screen. */
 function maskDestination(value: string): string {
   if (looksLikeEmail(value)) {
     const [user, domain] = value.split("@")
@@ -40,15 +42,6 @@ function maskDestination(value: string): string {
   return `${value.slice(0, 7)}${"*".repeat(Math.max(value.length - 10, 3))}${value.slice(-3)}`
 }
 
-/**
- * Where a code actually went.
- *
- * `channel` is what the code was sent over and `destination` is where, which
- * are NOT always what was asked for: a phone send that the provider refuses
- * falls back to email where one is available. The screen that asks for the
- * code has to verify against the destination that was really used, so this
- * has to come back rather than be assumed.
- */
 type SendOutcome =
   | { sent: true; channel: "email" | "sms"; destination: string; fellBackToEmail: boolean }
   | { sent: false; error: string }
@@ -62,7 +55,7 @@ async function sendEmailCode(identifierKey: string, destination: string): Promis
     let created = false
     for (let attempt = 0; attempt < 3 && !created; attempt++) {
       try {
-        await db.verificationToken.create({ data: { identifier: identifierKey, token: code, expires: new Date(Date.now() + 10 * 60 * 1000) } })
+        await db.verificationToken.create({ data: { identifier: identifierKey, token: crypto.createHash("sha256").update(code).digest("hex"), expires: new Date(Date.now() + 10 * 60 * 1000) } })
         created = true
       } catch {
         code = generateCode()
@@ -84,19 +77,6 @@ async function sendEmailCode(identifierKey: string, destination: string): Promis
   }
 }
 
-/**
- * Send a code, preferring the channel asked for.
- *
- * `fallbackEmail` is the address the same form already collected. It is used
- * ONLY when the SMS provider will not send for us — no credit, bad key, an
- * outage. That is our problem, not the applicant's, and dead-ending someone
- * on it when we are holding a working email address is the wrong answer: a
- * shopkeeper who cannot finish signing up does not file a bug, they leave.
- *
- * A number that is simply wrong does NOT fall back. Silently emailing a code
- * to someone who mistyped their phone number would hide the mistake and
- * leave a wrong number on the account forever.
- */
 async function issueAndSendCode(
   identifierKey: string,
   destination: string,
@@ -147,7 +127,7 @@ async function checkCode(identifierKey: string, code: string, destination: strin
   if (stored.expires < new Date()) return { valid: false, error: "This code has expired. Please request a new one." }
 
   if (looksLikeEmail(destination)) {
-    if (stored.token !== code) return { valid: false, error: "Invalid verification code." }
+    if (stored.token !== crypto.createHash("sha256").update(code).digest("hex")) return { valid: false, error: "Invalid verification code." }
     return { valid: true }
   }
 
@@ -155,12 +135,6 @@ async function checkCode(identifierKey: string, code: string, destination: strin
   // is the source of truth for whether the submitted digits match.
   return verifyInfobipPin(stored.token, code)
 }
-
-// ============================= LOGIN OTP =============================
-// A second factor gating the *existing* Credentials sign-in — this action
-// only checks the password and dispatches a code; it never establishes a
-// session. The client still calls the real signIn("credentials", ...) as
-// the final step once verifyLoginOtp() below succeeds.
 
 export type RequestLoginOtpResult =
   | { success: true; destination: string; fellBackToEmail: boolean }
@@ -208,7 +182,7 @@ export async function requestLoginOtp(identifier: string, password: string): Pro
   }
 }
 
-export type VerifyLoginOtpResult = { success: true } | { success: false; error: string }
+export type VerifyLoginOtpResult = { success: true; proof: string } | { success: false; error: string }
 
 export async function verifyLoginOtp(identifier: string, code: string): Promise<VerifyLoginOtpResult> {
   const destination = canonicalIdentifier(identifier)
@@ -229,15 +203,12 @@ export async function verifyLoginOtp(identifier: string, code: string): Promise<
   }
   if (!result.valid) return { success: false, error: result.error }
 
-  await db.verificationToken.deleteMany({ where: { identifier: usedKey } })
-  return { success: true }
+  const user = await db.user.findFirst({ where: { OR: [{ email: destination }, { phone: destination }], deletedAt: null } })
+  if (!user) return { success: false, error: "Account unavailable." }
+  const consumed = await db.verificationToken.deleteMany({ where: { identifier: usedKey, expires: { gt: new Date() } } })
+  if (consumed.count !== 1) return { success: false, error: "This code has already been used. Request another." }
+  return { success: true, proof: await issueLoginProof(user.id) }
 }
-
-// ============================= SIGNUP OTP =============================
-// Verifies the applicant actually controls the phone/email they're signing
-// up with, before any account exists. Successful verification issues a
-// short-lived proof token that registerUser() (lib/actions/auth.ts) must
-// be given — the client can't skip straight to account creation without it.
 
 export type SendSignupOtpResult =
   | {
@@ -250,11 +221,6 @@ export type SendSignupOtpResult =
     }
   | { success: false; error: string }
 
-/**
- * @param rawIdentifier the phone or email the applicant chose to verify with
- * @param fallbackEmail the address the same form collected, used only if the
- *   SMS provider refuses to send for us
- */
 export async function sendSignupOtp(rawIdentifier: string, fallbackEmail?: string): Promise<SendSignupOtpResult> {
   const destination = canonicalIdentifier(rawIdentifier)
   if (!destination) return { success: false, error: "Please enter a valid email or phone number." }
@@ -290,11 +256,6 @@ export async function sendSignupOtp(rawIdentifier: string, fallbackEmail?: strin
 
 export type VerifySignupOtpResult = { success: true; proof: string } | { success: false; error: string }
 
-/**
- * @param rawIdentifier where the code was actually SENT, which the caller is
- *   told by sendSignupOtp. Passing the originally-chosen phone number after
- *   a fallback to email would refuse a code we emailed ourselves.
- */
 export async function verifySignupOtp(rawIdentifier: string, code: string): Promise<VerifySignupOtpResult> {
   const destination = canonicalIdentifier(rawIdentifier)
   if (!destination) return { success: false, error: "Invalid verification code." }
@@ -310,26 +271,4 @@ export async function verifySignupOtp(rawIdentifier: string, code: string): Prom
   })
 
   return { success: true, proof }
-}
-
-/** Used by registerUser() — not exported to the client. Confirms `proof` is
- * a live, unexpired token issued for either the email or the phone being
- * registered, without the caller needing to say which one it verified. */
-export async function isSignupProofValid(email: string, phone: string, proof: string): Promise<boolean> {
-  const normalizedPhone = normalizeKenyanPhone(phone) ?? phone
-  const match = await db.verificationToken.findFirst({
-    where: {
-      token: proof,
-      expires: { gt: new Date() },
-      OR: [{ identifier: `signup-verified:${email.toLowerCase()}` }, { identifier: `signup-verified:${normalizedPhone}` }],
-    },
-  })
-  return Boolean(match)
-}
-
-export async function consumeSignupProof(email: string, phone: string, proof: string): Promise<void> {
-  const normalizedPhone = normalizeKenyanPhone(phone) ?? phone
-  await db.verificationToken.deleteMany({
-    where: { token: proof, OR: [{ identifier: `signup-verified:${email.toLowerCase()}` }, { identifier: `signup-verified:${normalizedPhone}` }] },
-  })
 }

@@ -2,8 +2,8 @@
 
 import { db } from "@/backend/db"
 import { requireSecretary } from "@/backend/actions/secretary-dashboard"
-import { logAdminAction } from "@/backend/actions/admin-dashboard"
-import { pushToUser } from "@/backend/actions/push"
+import { logAdminAction } from "@/backend/services/admin-audit-core"
+import { pushToUser } from "@/backend/services/push-core"
 
 export type SecretaryInvoice = {
   id: string

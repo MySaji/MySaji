@@ -1,3 +1,5 @@
+> Historical snapshot. For the current implementation and outstanding validation, see [Implementation status](IMPLEMENTATION-STATUS.md) and [Deployment](DEPLOYMENT.md).
+
 ﻿# SAJI feature evidence matrix
 
 9 October 2026. Source inspection at commit 3ad9644eedcb1749550ef55a87bb4565af6e636f plus existing local POS changes. This is a code inventory, not end-to-end acceptance testing. No feature is certified fully verified.

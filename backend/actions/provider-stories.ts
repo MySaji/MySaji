@@ -1,10 +1,14 @@
 "use server"
 
 import { z } from "zod"
+
 import { auth } from "@/backend/auth"
+
 import { db } from "@/backend/db"
+
 import { getOrCreateConversation } from "@/backend/actions/messages"
-import { pushToUser } from "@/backend/actions/push"
+
+import { pushToUser } from "@/backend/services/push-core"
 
 const STORY_LIFETIME_MS = 24 * 60 * 60 * 1000
 
@@ -62,11 +66,6 @@ export type StoryFeedGroup = {
   stories: StoryFeedItem[]
 }
 
-/** Real-time-ish 24h expiry (STORY_LIFETIME_MS), enforced here at read time
- * rather than via a fine-grained cron (this project's cron infra is
- * once-daily at finest — see `app/api/cron/expire-provider-stories/route.ts`
- * for the daily hard-delete cleanup, which exists for storage hygiene, not to
- * enforce the actual expiry window customers see). */
 export async function getActiveProviderStories(): Promise<StoryFeedGroup[]> {
   const session = await auth()
   const myId = session?.user?.id ?? "__none__"
@@ -116,14 +115,6 @@ export async function getActiveProviderStories(): Promise<StoryFeedGroup[]> {
 
 const markViewedSchema = z.object({ storyId: z.string().trim().min(1) })
 
-/**
- * Records that the signed-in user has now watched this status.
- *
- * Idempotent and deliberately quiet: re-watching is not an error, and a
- * failure here must not interrupt the viewer. Guests are ignored rather than
- * refused — there is nobody to record a view against, and the ring they see
- * is simply always green.
- */
 export async function markStoryViewed(input: unknown): Promise<{ success: boolean }> {
   const session = await auth()
   if (!session?.user?.id) return { success: false }
@@ -216,15 +207,4 @@ export async function replyToStory(input: unknown): Promise<ReplyToStoryResult> 
   await pushToUser(story.providerId, { title: "New reply to your post", body: content.slice(0, 100), url: messagesUrl }, "message")
 
   return { success: true, conversationId: convResult.conversationId }
-}
-
-/** Called by the daily cron (`app/api/cron/expire-provider-stories/route.ts`).
- * The 24h expiry itself is already enforced at read time by
- * `getActiveProviderStories`'s `createdAt` filter — this is storage hygiene,
- * deleting rows that are already invisible to everyone, not what makes them
- * actually expire. */
-export async function deleteExpiredProviderStories(): Promise<{ deleted: number }> {
-  const cutoff = new Date(Date.now() - STORY_LIFETIME_MS)
-  const result = await db.providerStatus.deleteMany({ where: { createdAt: { lte: cutoff } } })
-  return { deleted: result.count }
 }

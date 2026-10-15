@@ -73,8 +73,9 @@ export async function requireVerified(capability: Capability): Promise<GateResul
   try {
     const user = await db.user.findUnique({
       where: { id: session.user.id },
-      select: { verificationStatus: true },
+      select: { verificationStatus: true, isActive: true, deletedAt: true },
     })
+    if (!user?.isActive || user.deletedAt) return { ok: false, reason: "unauthenticated", capability, status: null, error: "This account cannot perform this action." }
     status = (user?.verificationStatus?.toLowerCase() as VerificationStatus) ?? null
   } catch {
     return {

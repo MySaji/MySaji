@@ -3,7 +3,7 @@
 import { z } from "zod"
 import { Prisma } from "@prisma/client"
 import { db } from "@/backend/db"
-import { requirePosPermission, recordPosAudit } from "@/backend/actions/pos-access"
+import { requirePosPermission, recordPosAudit } from "@/backend/services/pos-access-core"
 import {
   POS_EXPENSE_CATEGORIES, EXPENSE_CATEGORY_LABEL, type PosExpenseCategoryKey,
 } from "@/backend/domain/pos-expense-categories"

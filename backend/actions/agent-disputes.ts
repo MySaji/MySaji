@@ -3,8 +3,8 @@
 import { z } from "zod"
 import { db } from "@/backend/db"
 import { requireAgent } from "@/backend/actions/agent-dashboard"
-import { logAdminAction } from "@/backend/actions/admin-dashboard"
-import { pushToUser } from "@/backend/actions/push"
+import { logAdminAction } from "@/backend/services/admin-audit-core"
+import { pushToUser } from "@/backend/services/push-core"
 
 export type AgentDisputeStatus = "Open" | "In Review" | "Resolved" | "Escalated" | "Closed"
 

@@ -5,7 +5,7 @@ import { Prisma } from "@prisma/client"
 import { db } from "@/backend/db"
 import { parsePosConfig } from "@/backend/domain/pos-config"
 import { effectiveTraits } from "@/backend/domain/pos-profiles"
-import { requirePosPermission, recordPosAudit } from "@/backend/actions/pos-access"
+import { requirePosPermission, recordPosAudit } from "@/backend/services/pos-access-core"
 import { refusalFor } from "@/backend/domain/pos-permissions"
 import { recordStockMovement } from "@/backend/services/pos-ledger"
 

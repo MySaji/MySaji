@@ -3,8 +3,8 @@
 import { z } from "zod"
 import { auth } from "@/backend/auth"
 import { db } from "@/backend/db"
-import { logAdminAction } from "@/backend/actions/admin-dashboard"
-import { pushToUser } from "@/backend/actions/push"
+import { logAdminAction } from "@/backend/services/admin-audit-core"
+import { pushToUser } from "@/backend/services/push-core"
 
 // Same combined role gate as lib/actions/shop-upgrade-requests.ts — one
 // shared action file across Admin/Sub-Admin/Agent rather than three
