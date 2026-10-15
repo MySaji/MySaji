@@ -26,9 +26,9 @@ const SUPPORT_LINKS = [
 
 const DEFAULT_SETTINGS: PublicSiteSettings = {
   logoUrl: null,
-  supportEmail: "support@saji.app",
-  supportPhone: "+254 700 000 000",
-  address: "Nairobi, Kenya",
+  supportEmail: "",
+  supportPhone: "",
+  address: "",
   socialLinks: { facebook: "", twitter: "", instagram: "", linkedin: "" },
 }
 
@@ -39,7 +39,7 @@ export function Footer() {
     let cancelled = false
     getPublicSiteSettings().then((s) => {
       if (!cancelled) setSettings(s)
-    })
+    }).catch(() => {})
     return () => {
       cancelled = true
     }
@@ -118,22 +118,10 @@ export function Footer() {
           <div>
             <h3 className="font-semibold mb-4 text-foreground">Contact</h3>
             <ul className="space-y-3 text-sm text-muted-foreground">
-              <li className="flex items-start gap-2">
-                <Mail className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <a href={`mailto:${settings.supportEmail}`} className="hover:text-foreground transition-colors">
-                  {settings.supportEmail}
-                </a>
-              </li>
-              <li className="flex items-start gap-2">
-                <Phone className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <a href={`tel:${settings.supportPhone.replace(/[^+\d]/g, "")}`} className="hover:text-foreground transition-colors">
-                  {settings.supportPhone}
-                </a>
-              </li>
-              <li className="flex items-start gap-2">
-                <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <span>{settings.address}</span>
-              </li>
+              {settings.supportEmail && <li className="flex items-start gap-2"><Mail className="mt-0.5 h-4 w-4 shrink-0" /><a href={`mailto:${settings.supportEmail}`} className="hover:text-foreground">{settings.supportEmail}</a></li>}
+              {settings.supportPhone && <li className="flex items-start gap-2"><Phone className="mt-0.5 h-4 w-4 shrink-0" /><a href={`tel:${settings.supportPhone.replace(/[^+\d]/g, "")}`} className="hover:text-foreground">{settings.supportPhone}</a></li>}
+              {settings.address && <li className="flex items-start gap-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0" /><span>{settings.address}</span></li>}
+              <li><Link href="/knowledge/support" className="hover:text-foreground">How to get help</Link></li>
             </ul>
           </div>
         </div>

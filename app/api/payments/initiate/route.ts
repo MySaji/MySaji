@@ -1,3 +1,4 @@
+import type { InitiatePaymentResult } from "@/backend/services/payment-gateways"
 import { settleConfirmedPayment } from "@/backend/services/payment-settlement"
 import { payWithWallet } from "@/backend/services/wallet-payment"
 import { NextResponse } from "next/server"
@@ -59,9 +60,9 @@ export async function POST(req: Request) {
       const paypalReturnUrl = `${origin}${returnPath}?paypal=return`
       const paypalCancelUrl = `${origin}${returnPath}?paypal=cancel`
 
-      async function recordWalletPayment(requestId: string | undefined, simulated: boolean | undefined) {
+      async function recordWalletPayment(requestId: string | undefined, simulated: boolean | undefined, gateway: InitiatePaymentResult) {
         const payment = await db.payment.create({
-          data: { amount, currency: "KES", status: "PENDING", contextType: "WALLET_TOPUP", payerId: session!.user!.id, externalRef: requestId ?? null },
+          data: { amount, currency: "KES", status: "PENDING", contextType: "WALLET_TOPUP", payerId: session!.user!.id, externalRef: requestId ?? null, gatewayAmount: gateway.gatewayAmount, gatewayCurrency: gateway.gatewayCurrency },
         })
         if (simulated) await confirmWalletTopup(payment.id, WALLET_TOPUP_METHOD_LABEL[provider] ?? "your payment method")
         return payment
@@ -71,7 +72,7 @@ export async function POST(req: Request) {
         case "mpesa": {
           const res = await initiateMpesaPayment(phone, amount, "SAJI wallet top-up")
           if (res.success) {
-            const payment = await recordWalletPayment(res.requestId, res.simulated)
+            const payment = await recordWalletPayment(res.requestId, res.simulated, res)
             return NextResponse.json({ ...res, paymentId: payment.id })
           }
           return NextResponse.json(res)
@@ -79,7 +80,7 @@ export async function POST(req: Request) {
         case "paypal": {
           const res = await initiatePaypalPayment(amount, paypalReturnUrl, paypalCancelUrl)
           if (res.success) {
-            const payment = await recordWalletPayment(res.requestId, res.simulated)
+            const payment = await recordWalletPayment(res.requestId, res.simulated, res)
             return NextResponse.json({ ...res, paymentId: payment.id })
           }
           return NextResponse.json(res)
@@ -88,7 +89,7 @@ export async function POST(req: Request) {
         case "stripe": {
           const res = await createStripeCheckout(amount, successUrl, cancelUrl)
           if (res.success) {
-            const payment = await recordWalletPayment(res.requestId, res.simulated)
+            const payment = await recordWalletPayment(res.requestId, res.simulated, res)
             return NextResponse.json({ ...res, paymentId: payment.id })
           }
           return NextResponse.json(res)
@@ -114,9 +115,9 @@ export async function POST(req: Request) {
       const paypalReturnUrl = `${origin}${returnPath}?paypal=return`
       const paypalCancelUrl = `${origin}${returnPath}?paypal=cancel`
 
-      async function recordSubscriptionPayment(requestId: string | undefined, simulated: boolean | undefined) {
+      async function recordSubscriptionPayment(requestId: string | undefined, simulated: boolean | undefined, gateway: InitiatePaymentResult) {
         const payment = await db.payment.create({
-          data: { amount, currency: "KES", status: "PENDING", contextType: "SUBSCRIPTION", payerId: session!.user!.id, externalRef: requestId ?? null },
+          data: { amount, currency: "KES", status: "PENDING", contextType: "SUBSCRIPTION", payerId: session!.user!.id, externalRef: requestId ?? null, gatewayAmount: gateway.gatewayAmount, gatewayCurrency: gateway.gatewayCurrency },
         })
         if (simulated) {
           await db.payment.update({ where: { id: payment.id }, data: { status: "COMPLETED", paidAt: new Date() } })
@@ -137,7 +138,7 @@ export async function POST(req: Request) {
         case "mpesa": {
           const res = await initiateMpesaPayment(phone, amount, "SAJI Pro subscription")
           if (res.success) {
-            const payment = await recordSubscriptionPayment(res.requestId, res.simulated)
+            const payment = await recordSubscriptionPayment(res.requestId, res.simulated, res)
             return NextResponse.json({ ...res, paymentId: payment.id })
           }
           return NextResponse.json(res)
@@ -145,7 +146,7 @@ export async function POST(req: Request) {
         case "paypal": {
           const res = await initiatePaypalPayment(amount, paypalReturnUrl, paypalCancelUrl)
           if (res.success) {
-            const payment = await recordSubscriptionPayment(res.requestId, res.simulated)
+            const payment = await recordSubscriptionPayment(res.requestId, res.simulated, res)
             return NextResponse.json({ ...res, paymentId: payment.id })
           }
           return NextResponse.json(res)
@@ -154,7 +155,7 @@ export async function POST(req: Request) {
         case "stripe": {
           const res = await createStripeCheckout(amount, successUrl, cancelUrl)
           if (res.success) {
-            const payment = await recordSubscriptionPayment(res.requestId, res.simulated)
+            const payment = await recordSubscriptionPayment(res.requestId, res.simulated, res)
             return NextResponse.json({ ...res, paymentId: payment.id })
           }
           return NextResponse.json(res)
@@ -187,9 +188,9 @@ export async function POST(req: Request) {
       const paypalReturnUrl = `${origin}${returnPath}&paypal=return`
       const paypalCancelUrl = `${origin}${returnPath}&paypal=cancel`
 
-      async function recordRentalPayment(requestId: string | undefined, simulated: boolean | undefined) {
+      async function recordRentalPayment(requestId: string | undefined, simulated: boolean | undefined, gateway: InitiatePaymentResult) {
         const payment = await db.payment.create({
-          data: { amount, currency: "KES", status: "PENDING", contextType: "RENTAL", rentalBookingId: bookingId, payerId: session!.user!.id, externalRef: requestId ?? null },
+          data: { amount, currency: "KES", status: "PENDING", contextType: "RENTAL", rentalBookingId: bookingId, payerId: session!.user!.id, externalRef: requestId ?? null, gatewayAmount: gateway.gatewayAmount, gatewayCurrency: gateway.gatewayCurrency },
         })
         if (simulated) {
           await db.payment.update({ where: { id: payment.id }, data: { status: "COMPLETED", paidAt: new Date() } })
@@ -202,7 +203,7 @@ export async function POST(req: Request) {
         case "mpesa": {
           const res = await initiateMpesaPayment(phone, amount, `Rental: ${booking.offer.title}`)
           if (res.success) {
-            const payment = await recordRentalPayment(res.requestId, res.simulated)
+            const payment = await recordRentalPayment(res.requestId, res.simulated, res)
             return NextResponse.json({ ...res, paymentId: payment.id })
           }
           return NextResponse.json(res)
@@ -210,7 +211,7 @@ export async function POST(req: Request) {
         case "paypal": {
           const res = await initiatePaypalPayment(amount, paypalReturnUrl, paypalCancelUrl)
           if (res.success) {
-            const payment = await recordRentalPayment(res.requestId, res.simulated)
+            const payment = await recordRentalPayment(res.requestId, res.simulated, res)
             return NextResponse.json({ ...res, paymentId: payment.id })
           }
           return NextResponse.json(res)
@@ -219,7 +220,7 @@ export async function POST(req: Request) {
         case "stripe": {
           const res = await createStripeCheckout(amount, successUrl, cancelUrl)
           if (res.success) {
-            const payment = await recordRentalPayment(res.requestId, res.simulated)
+            const payment = await recordRentalPayment(res.requestId, res.simulated, res)
             return NextResponse.json({ ...res, paymentId: payment.id })
           }
           return NextResponse.json(res)
@@ -251,8 +252,8 @@ export async function POST(req: Request) {
     const paypalReturnUrl = `${origin}/customer/booking?paypal=return&jobId=${jobId}`
     const paypalCancelUrl = `${origin}/customer/booking?paypal=cancel&jobId=${jobId}`
 
-    async function recordPayment(requestId: string | undefined, simulated: boolean | undefined) {
-      await db.payment.create({ data: { amount, currency: "KES", status: "PENDING", contextType: "JOB", jobId, payerId: session!.user!.id, externalRef: requestId ?? null } })
+    async function recordPayment(requestId: string | undefined, simulated: boolean | undefined, gateway: InitiatePaymentResult) {
+      await db.payment.create({ data: { amount, currency: "KES", status: "PENDING", contextType: "JOB", jobId, payerId: session!.user!.id, externalRef: requestId ?? null, gatewayAmount: gateway.gatewayAmount, gatewayCurrency: gateway.gatewayCurrency } })
       if (simulated && requestId) await markPaymentCompleted(requestId)
     }
 
@@ -269,23 +270,23 @@ export async function POST(req: Request) {
       }
       case "mpesa": {
         const res = await initiateMpesaPayment(phone, amount)
-        if (res.success) await recordPayment(res.requestId, res.simulated)
+        if (res.success) await recordPayment(res.requestId, res.simulated, res)
         return NextResponse.json(res)
       }
       case "airtel": {
         const res = await initiateAirtelPayment(phone, amount)
-        if (res.success) await recordPayment(res.requestId, res.simulated)
+        if (res.success) await recordPayment(res.requestId, res.simulated, res)
         return NextResponse.json(res)
       }
       case "paypal": {
         const res = await initiatePaypalPayment(amount, paypalReturnUrl, paypalCancelUrl)
-        if (res.success) await recordPayment(res.requestId, res.simulated)
+        if (res.success) await recordPayment(res.requestId, res.simulated, res)
         return NextResponse.json(res)
       }
       case "card":
       case "stripe": {
         const res = await createStripeCheckout(amount, successUrl, cancelUrl)
-        if (res.success) await recordPayment(res.requestId, res.simulated)
+        if (res.success) await recordPayment(res.requestId, res.simulated, res)
         return NextResponse.json(res)
       }
       default:

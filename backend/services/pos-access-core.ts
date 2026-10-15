@@ -145,7 +145,7 @@ export async function resolvePosActor(staffId?: string | null): Promise<PosActor
   if (staffId) {
     const atTill = await db.posStaff.findFirst({
       where: { id: staffId, businessId, isActive: true },
-      select: { id: true, name: true, role: true, storeId: true, features: true, store: { select: { id: true, shopkeeperId: true } } },
+      select: { id: true, name: true, role: true, storeId: true, features: true, store: { select: { id: true, shopkeeperId: true, isActive: true } } },
     })
     if (!atTill || (role !== "OWNER" && atTill.id !== resolvedStaffId)) return null
     if (atTill) {
@@ -153,7 +153,10 @@ export async function resolvePosActor(staffId?: string | null): Promise<PosActor
       name = atTill.name
       role = atTill.role as PosRole
       seatFeatures = atTill.features
-      if (atTill.store) { storeId = atTill.store.id; shopkeeperId = atTill.store.shopkeeperId }
+      if (atTill.store) {
+        if (!atTill.store.isActive) return null
+        storeId = atTill.store.id; shopkeeperId = atTill.store.shopkeeperId
+      }
     }
   }
 

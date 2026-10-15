@@ -1,8 +1,11 @@
 import "server-only"
 
 import { db } from "@/backend/db"
+
 import { publicProductWhere } from "@/backend/domain/public-catalog"
+
 import { sendEmail } from "@/backend/services/email"
+
 import { wrapEmailLayout, emailButton, siteOrigin, emailBrand } from "@/backend/services/email-templates"
 
 const SETTING_KEY = "lastSubscriberDigestAt"
@@ -48,12 +51,6 @@ function priceHtml(p: DigestProduct): string {
   return `<span style="font-weight:700;color:#ffffff;">KES ${p.price.toLocaleString()}</span>`
 }
 
-// Product photos in this app are stored as inline base64 data URIs (no
-// object storage), and some run into multiple megabytes as a string — one
-// oversized photo could bloat the whole email. This caps any single image
-// at ~110KB of raw bytes (150,000 base64 chars) before it's allowed inline;
-// anything bigger silently falls back to the initial-letter placeholder
-// below rather than dragging the rest of the email down with it.
 const MAX_INLINE_IMAGE_CHARS = 150_000
 
 function safeImage(image: string | null): string | null {
@@ -87,11 +84,6 @@ function productCardHtml(p: DigestProduct, origin: string): string {
   `
 }
 
-// Grid caps at 6 cards per section (3 rows of 2) — enough to feel like a
-// real catalog spread without letting a big section's image weight (up to
-// ~110KB each, uncapped in count) push the total email size too high.
-// Anything past the cap is still real, just linked as a "+N more" instead
-// of embedded.
 const GRID_CAP = 6
 
 function sectionHtml(heading: string, products: DigestProduct[], origin: string): string {
@@ -143,16 +135,6 @@ export type SubscriberDigestResult = {
   trendingProductCount: number
 }
 
-/** Entry point for the weekly subscriber-digest cron. Unlike the per-user
- * digest (lib/actions/email-digest.ts), every subscriber gets the exact
- * same content, so the "since" window is tracked once globally via
- * PlatformSetting rather than per-row. Skips sending entirely if nothing
- * genuinely new/restocked happened — an empty "nothing happened" email is
- * exactly the kind of noise a newsletter shouldn't send. The "Trending Now"
- * section is only ever bonus content riding along on a real new/restocked
- * week, not a reason to send on its own — otherwise every single week would
- * always have "something" to send (there's almost always a top-rated
- * product), which defeats the point of the gate. */
 export async function runWeeklySubscriberDigest(): Promise<SubscriberDigestResult> {
   const since = await getLastDigestAt()
   const now = new Date()

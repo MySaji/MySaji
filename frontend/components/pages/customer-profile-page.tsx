@@ -154,7 +154,7 @@ export function CustomerProfilePage() {
               <div className="relative flex-shrink-0">
                 <div className="relative w-24 h-24 rounded-2xl bg-background shadow-lg flex items-center justify-center text-2xl font-bold text-primary overflow-hidden ring-4 ring-background">
                   {profile.avatar ? (
-                    // eslint-disable-next-line @next/next/no-img-element -- base64 data URLs aren't supported by next/image
+                    // Images use the configured unoptimized rendering policy -- base64 data URLs aren't supported by next/image
                     <img src={profile.avatar} alt="Profile" className="w-full h-full object-cover" />
                   ) : profile.name?.[0]}
                 </div>
@@ -249,7 +249,7 @@ export function CustomerProfilePage() {
             <div className="space-y-3">
               <div className="relative border border-border rounded-xl p-3">
                 <div className="relative w-full h-40 bg-muted rounded-lg flex items-center justify-center overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element -- base64 data URLs aren't supported by next/image */}
+                  {/* Images use the configured unoptimized rendering policy -- base64 data URLs aren't supported by next/image */}
                   <img src={uploadedFile} alt="ID" className="w-full h-full object-cover" />
                 </div>
                 <button onClick={() => { setUploadedFile(null); if (fileInputRef.current) fileInputRef.current.value = "" }} aria-label={t("common.delete")} className="absolute top-2 right-2 p-1.5 bg-destructive text-white rounded-lg shadow"><X className="w-3.5 h-3.5" /></button>

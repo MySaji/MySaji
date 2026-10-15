@@ -156,7 +156,7 @@ export function NewConversationModal({
                 >
                   <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-primary-foreground text-sm font-semibold flex-shrink-0">
                     {user.avatar ? (
-                      // eslint-disable-next-line @next/next/no-img-element
+                      // Images use the configured unoptimized rendering policy
                       <img src={user.avatar} alt={user.name} className="w-full h-full rounded-full object-cover" />
                     ) : (
                       user.name.charAt(0).toUpperCase()

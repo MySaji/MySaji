@@ -353,7 +353,7 @@ export default function TillProductsPage() {
                     there is not: a shop with no photographs should not be
                     shown four hundred placeholders. */}
                 {row.image ? (
-                  // eslint-disable-next-line @next/next/no-img-element
+                  // Images use the configured unoptimized rendering policy
                   <img
                     src={row.image}
                     alt=""
@@ -581,7 +581,7 @@ export default function TillProductsPage() {
                   className="h-11 rounded-xl text-sm"
                 />
                 {draft.image.trim().length > 0 && (
-                  // eslint-disable-next-line @next/next/no-img-element
+                  // Images use the configured unoptimized rendering policy
                   <img src={draft.image} alt="" className="w-11 h-11 rounded-xl object-cover bg-gray-100 dark:bg-gray-800 flex-shrink-0" />
                 )}
                 {draft.image.trim().length === 0 && (

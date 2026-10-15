@@ -75,8 +75,12 @@ class TransientAuthError extends CredentialsSignin {
 }
 
 const hasGoogleCredentials = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET)
+const canonicalAuthUrl = process.env.AUTH_URL ?? process.env.NEXTAUTH_URL
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  // next-auth pins request URLs to this explicit origin via reqWithEnvURL.
+  // Otherwise retain Auth.js's environment-specific host trust policy.
+  ...(canonicalAuthUrl ? { trustHost: true } : {}),
   adapter: PrismaAdapter(db),
   session: { strategy: "jwt" },
   pages: {

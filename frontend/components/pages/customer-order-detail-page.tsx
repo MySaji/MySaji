@@ -272,7 +272,7 @@ export function CustomerOrderDetailPage({ orderId }: { orderId: string }) {
                 <div className="flex gap-2 flex-wrap">
                   {photos.map((p, i) => (
                     <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden border border-border">
-                      {/* eslint-disable-next-line @next/next/no-img-element -- base64 data URL preview */}
+                      {/* Images use the configured unoptimized rendering policy -- base64 data URL preview */}
                       <img src={p} alt="" className="w-full h-full object-cover" />
                       <button
                         type="button"

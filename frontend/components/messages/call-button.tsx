@@ -78,7 +78,7 @@ export function CallButton({
                 <span className="absolute inset-0 animate-ping rounded-full bg-white/20" />
               )}
               {otherUserAvatar ? (
-                // eslint-disable-next-line @next/next/no-img-element -- base64 data URLs aren't supported by next/image
+                // Images use the configured unoptimized rendering policy -- base64 data URLs aren't supported by next/image
                 <img src={otherUserAvatar} alt="" className="relative h-28 w-28 rounded-full object-cover ring-4 ring-white/10" />
               ) : (
                 <div className="relative flex h-28 w-28 items-center justify-center rounded-full bg-white/10 text-4xl font-semibold ring-4 ring-white/10">

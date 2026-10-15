@@ -145,7 +145,9 @@ function kvRow(doc: jsPDF, label: string, value: string, x: number, y: number, l
   doc.text(label, x, y)
   doc.setFont("helvetica", "bold")
   doc.setTextColor(...DARK_TEXT)
-  doc.text(value, x + labelWidth, y)
+  const lines = doc.splitTextToSize(value, Math.max(60, PAGE_WIDTH - MARGIN - x - labelWidth)) as string[]
+  doc.text(lines, x + labelWidth, y)
+  return Math.max(14, lines.length * 12)
 }
 
 /** The "Payment Receipt" style (image 1) — one payment that may cover
@@ -216,13 +218,10 @@ function renderPaymentReceipt(doc: jsPDF, data: ReceiptPdfData, qr: string) {
   doc.text(data.customerName, MARGIN, y)
 
   let ry = leftTop
-  kvRow(doc, "Receipt No.", data.receiptNumber, rightColX, ry, 78)
-  ry += 14
-  kvRow(doc, "Date & Time", data.createdAt.toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" }), rightColX, ry, 78)
-  ry += 14
-  kvRow(doc, "Payment Method", data.paymentMethod ?? "Wallet", rightColX, ry, 78)
-  ry += 14
-  if (data.transactionRef) kvRow(doc, "Transaction ID", data.transactionRef, rightColX, ry, 78)
+  ry += kvRow(doc, "Receipt No.", data.receiptNumber, rightColX, ry, 78)
+  ry += kvRow(doc, "Date & Time", data.createdAt.toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" }), rightColX, ry, 78)
+  ry += kvRow(doc, "Payment Method", data.paymentMethod ?? "Wallet", rightColX, ry, 78)
+  if (data.transactionRef) ry += kvRow(doc, "Transaction ID", data.transactionRef, rightColX, ry, 78)
 
   y = Math.max(y, ry) + 24
   doc.setDrawColor(229, 231, 235)
@@ -425,13 +424,10 @@ function renderWalletReceipt(doc: jsPDF, data: ReceiptPdfData, qr: string) {
   doc.text(data.customerName, contentX, y)
 
   let ry = leftTop
-  kvRow(doc, "Receipt No.", data.receiptNumber, rightColX, ry, 78)
-  ry += 14
-  kvRow(doc, "Date & Time", data.createdAt.toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" }), rightColX, ry, 78)
-  ry += 14
-  kvRow(doc, isDeposit ? "Payment Method" : "Withdrawal Method", data.paymentMethod ?? "—", rightColX, ry, 78)
-  ry += 14
-  if (data.transactionRef) kvRow(doc, "Transaction ID", data.transactionRef, rightColX, ry, 78)
+  ry += kvRow(doc, "Receipt No.", data.receiptNumber, rightColX, ry, 78)
+  ry += kvRow(doc, "Date & Time", data.createdAt.toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" }), rightColX, ry, 78)
+  ry += kvRow(doc, isDeposit ? "Payment Method" : "Withdrawal Method", data.paymentMethod ?? "—", rightColX, ry, 78)
+  if (data.transactionRef) ry += kvRow(doc, "Transaction ID", data.transactionRef, rightColX, ry, 78)
 
   y = Math.max(y, ry) + 22
   doc.setDrawColor(229, 231, 235)
@@ -488,7 +484,7 @@ function drawVerifyFooter(doc: jsPDF, data: ReceiptPdfData, qr: string, y: numbe
   doc.setTextColor(...GRAY_TEXT)
   doc.text(`or visit: ${data.verifyUrl}`, PAGE_WIDTH / 2, y, { align: "center" })
   y += 12
-  doc.text(`Enter Receipt No. ${data.receiptNumber} or scan the QR code`, PAGE_WIDTH / 2, y, { align: "center" })
+  doc.text(doc.splitTextToSize(`Enter Receipt No. ${data.receiptNumber} or scan the QR code`, PAGE_WIDTH - MARGIN * 2), PAGE_WIDTH / 2, y, { align: "center" })
   y += 20
 
   doc.setDrawColor(229, 231, 235)

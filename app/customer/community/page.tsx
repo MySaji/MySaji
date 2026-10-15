@@ -560,7 +560,7 @@ export default function CommunityPage() {
                 {suggestedUsers.map((user) => (
                   <div key={user.id} className="flex items-center gap-3">
                     <div className="relative w-10 h-10 rounded-full overflow-hidden">
-                      {/* eslint-disable-next-line @next/next/no-img-element -- base64 data URLs aren't supported by next/image */}
+                      {/* Images use the configured unoptimized rendering policy -- base64 data URLs aren't supported by next/image */}
                       <img src={user.avatar || "/placeholder.svg"} alt={user.name} className="w-full h-full object-cover" />
                     </div>
                     <div className="flex-1 min-w-0">
