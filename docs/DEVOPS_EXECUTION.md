@@ -160,3 +160,12 @@ User-provided Vercel project record remains the exact intended apex target: CNAM
 See `docs/operations/OWNER_PROGRESS_UPDATE.md` for the shareable owner summary. Owner reports the server is up, Cloudflare is configured and repository setup is complete. This session independently confirmed `mysaji.com` resolves to Vercel IPv4 addresses 64.29.17.65 and 216.198.79.65 and returned HTTP/2 200 with `server: Vercel` at 17:47 UTC. The Vercel response sets Auth.js callback URL to `https://saji-3.vercel.app`, so production `AUTH_URL`/`NEXTAUTH_URL` need correction and redeployment. `www.mysaji.com` resolves to Cloudflare proxy addresses and returns HTTP 521; its record still needs to match the Vercel project instructions with proxy disabled. No Cloudflare or Vercel settings were changed from this session; local Vercel CLI/project linkage is absent.
 
 Local `origin` remains https://github.com/MySaji/MySaji.git. Local HEAD is `a4e1b2f`, while the last locally recorded `origin/main` is `98da6d5`; local worktree is clean. Thus the DevOps commit has not been pushed. Owner reports VPS is up; latest SSH attempt reaches port 22 but root public-key authentication is denied. No VPS inspection or changes.
+
+## Resume verification (2026-10-15 20:10 UTC)
+
+- Apex DNS now resolves directly to Vercel: `64.29.17.65` and `216.198.79.65`. HTTPS returned HTTP/2 200 with `server: Vercel`.
+- `https://mysaji.com/api/health` returned HTTP 200: `status: ok`, `database: ok`. This verifies the deployed health route/database connectivity only; it is not end-to-end feature or login validation.
+- Apex response still sets `__Secure-authjs.callback-url` to `https://saji-3.vercel.app`. Production Auth.js URL configuration and a fresh deployment remain required before sign-in can be considered verified.
+- `www.mysaji.com` resolves to Cloudflare proxy IPv4 addresses `104.21.63.208` and `172.67.150.93`, then returns HTTP/2 521. Use the exact `www` domain instruction from the Vercel project and keep the record DNS-only while validating. Do not change mail records.
+- SSH to `root@169.58.242.133` reaches the server but authentication fails with `Permission denied (publickey,password)`. No remote inspection or mutations were possible.
+- Local checkout was clean before this documentation update at `b5611fb`; last recorded `origin/main` is `98da6d5`. The two local commits (`a4e1b2f`, `b5611fb`) remain unpushed. No remote fetch/push was performed.
