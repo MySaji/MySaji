@@ -191,6 +191,14 @@ Local `origin` remains https://github.com/MySaji/MySaji.git. Local HEAD is `a4e1
 - Because installation is blocked, no reconciled-branch Prisma/type/lint/unit/build checks are claimed. Existing validation results apply only to the prior source baseline (`98da6d5`), not the fetched application revision (`7483f0a`).
 - User supplied a root password for an access attempt. It has not been used or stored because the host key `SHA256:9wav+1ZCnxR5owau2pZxRzRdNO9LbJeTW9+VrXNV71k` has not been compared with the Contabo VNC console. Wait for owner confirmation that the fingerprint matches before any password authentication. After verified access, rotate the shared root password after adding and testing named key-based access; never put credentials in this log.
 
+## How to verify the Contabo host fingerprint
+
+1. Sign in to `https://new.contabo.com`, open **Servers & Hosting → VPS/VDS**, select `vmi3668179`, then its **More (⋯) → Access → VNC Control** menu.
+2. If VNC is already enabled, retrieve the current VNC IP, port and VNC password. Open a third-party viewer such as TigerVNC and connect to `VNC_IP:VNC_PORT`. The Contabo panel supplies the VNC credentials; it does not host the VNC screen itself. VNC password is separate from the Linux root password.
+3. If VNC is disabled, enabling it requires a server reboot to take effect. Do not enable/reboot during this live-workload window without first arranging a maintenance window. Contabo's current VNC instructions: https://help.contabo.com/en/support/solutions/articles/103000407800-how-to-connect-to-your-server-using-vnc.
+4. At the Linux login prompt, sign in as `root` using the server password locally, then run `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`. Compare the output fingerprint with `SHA256:9wav+1ZCnxR5owau2pZxRzRdNO9LbJeTW9+VrXNV71k`.
+5. Report only whether it matches. Do not paste the root password, VNC password, private key, or recovery codes. If fingerprints differ, stop SSH/password authentication and investigate the host identity before onboarding a key.
+
 ## Fresh public-site check during reconciliation
 
 - Apex `mysaji.com` resolved to Vercel IPv4s `64.29.17.65` and `216.198.79.65`; HTTPS returned HTTP/2 200, and `/api/health` returned `status: ok`, `database: ok`.
