@@ -1,7 +1,7 @@
 {
-  "name": "SAJI - Marketplace",
-  "short_name": "SAJI",
-  "description": "Connect with trusted service providers",
+  "name": "MySaji — Shop • Work • Rent • Learn • Grow",
+  "short_name": "MySaji",
+  "description": "Services, shops, business tools and practical guides.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
@@ -26,13 +26,8 @@
       "type": "image/png"
     }
   ],
-  "categories": ["productivity", "business"],
-  "screenshots": [
-    {
-      "src": "/placeholder.svg",
-      "sizes": "540x720",
-      "type": "image/svg+xml",
-      "form_factor": "narrow"
-    }
+  "categories": [
+    "productivity",
+    "business"
   ]
 }

@@ -1,3 +1,5 @@
+import { pageMetadata } from "@/frontend/lib/seo"
+export const metadata = pageMetadata("/privacy", "Privacy policy", "Read how MySaji handles personal information and your privacy.")
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { getPublicLegalContent, getPublicSiteSettings } from "@/backend/actions/admin-settings"

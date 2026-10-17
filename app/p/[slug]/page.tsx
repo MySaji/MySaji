@@ -1,3 +1,4 @@
+import { pageMetadata } from "@/frontend/lib/seo"
 import { notFound } from "next/navigation"
 import type { Metadata } from "next"
 import { getStorefront } from "@/backend/actions/storefront"
@@ -17,10 +18,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!data) return { title: "Provider not found · SAJI" }
 
   const name = data.businessName || data.name
-  return {
-    title: `${name}${data.headline ? ` · ${data.headline}` : ""} · SAJI`,
-    description: data.bio?.slice(0, 160) ?? `${name} on SAJI`,
-  }
+  return pageMetadata(`/p/${encodeURIComponent(data.slug)}`, name, data.bio?.slice(0, 160) || `${name} on MySaji`)
+
 }
 
 const WORK_PREFERENCE = {
