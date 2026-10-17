@@ -1,7 +1,8 @@
 import type React from "react"
 import type { Metadata, Viewport } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
-import { Analytics } from "@vercel/analytics/next"
+import { Geist } from "next/font/google"
+import { AnalyticsConsent } from "@/frontend/components/analytics-consent"
+import { siteUrl } from "@/frontend/lib/seo"
 import { SessionProvider } from "next-auth/react"
 import { auth } from "@/backend/auth"
 import { ThemeProvider } from "@/frontend/components/theme-provider"
@@ -13,15 +14,17 @@ import { EmailSubscriptionPopup } from "@/frontend/components/email-subscription
 import "./globals.css"
 
 const _geist = Geist({ subsets: ["latin"] })
-const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "SAJI - Marketplace",
-  description:
-    "Connect with trusted service providers. SAJI connects you with verified professionals for all your service needs.",
-  applicationName: "SAJI",
-  creator: "SAJI Team",
-  keywords: ["marketplace", "services", "providers", "booking"],
+  metadataBase: new URL(siteUrl),
+  title: { default: "MySaji — Shop • Work • Rent • Learn • Grow", template: "%s | MySaji" },
+  description: "Explore MySaji services, shops, business tools and practical guides.",
+  applicationName: "MySaji",
+  robots: { index: false, follow: false },
+  verification: {
+    google: process.env.GOOGLE_SITE_VERIFICATION || undefined,
+    other: process.env.BING_SITE_VERIFICATION ? { "msvalidate.01": process.env.BING_SITE_VERIFICATION } : undefined,
+  },
   icons: {
     icon: [
       {
@@ -102,7 +105,7 @@ export default async function RootLayout({
             </LocalizationProvider>
           </SessionProvider>
         </ThemeProvider>
-        <Analytics />
+        <AnalyticsConsent />
       </body>
     </html>
   )

@@ -1,3 +1,6 @@
+import { pageMetadata } from "@/frontend/lib/seo"
+export const metadata = pageMetadata("/pos", "Saji Till", "Learn about Saji Till counter sales, stock records, receipts, offline sales and staff tools for your shop.")
+
 import Link from "next/link"
 import { auth } from "@/backend/auth"
 import { posDestination } from "@/backend/actions/pos-onboarding"

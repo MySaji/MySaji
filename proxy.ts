@@ -12,6 +12,8 @@ const EXEMPT_PATHS = ["/auth", "/maintenance"]
 export default auth(async (req) => {
   const { pathname } = req.nextUrl
 
+  if (pathname === "/sitemap.xml" || pathname === "/robots.txt") return NextResponse.next()
+
   if (pathname.startsWith("/api/") || EXEMPT_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
     return NextResponse.next()
   }

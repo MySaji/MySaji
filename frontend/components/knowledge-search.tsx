@@ -1,6 +1,7 @@
 "use client"
 import Link from "next/link"
-import { useEffect, useState } from "react"
+import { trackKnowledgeSearch } from "@/frontend/lib/analytics"
+import { useEffect, useRef, useState } from "react"
 import { ArrowUpRight, Search } from "lucide-react"
 import { GUIDES } from "@/backend/domain/knowledge"
 
@@ -11,7 +12,15 @@ export function KnowledgeSearch({ compact = false }: { compact?: boolean }) {
   const [category, setCategory] = useState("All topics")
   const categories = ["All topics", ...new Set(GUIDES.map(g => g.category))]
   const matches = GUIDES.filter(g => (category === "All topics" || g.category === category) && `${g.title} ${g.summary} ${g.audience} ${g.sections.map(s => s.body).join(" ")}`.toLowerCase().includes(query.trim().toLowerCase()))
-  return <div>
+  const previousSearch = useRef("")
+  useEffect(() => {
+    const term = query.trim()
+    if (!term) { previousSearch.current = ""; return }
+    if (term === previousSearch.current) return
+    const timer = setTimeout(() => { previousSearch.current = term; trackKnowledgeSearch(matches.length) }, 800)
+    return () => clearTimeout(timer)
+  }, [query, matches.length])
+  return <div data-clarity-mask="true">
     <label htmlFor={compact ? "home-guide-search" : "guide-search"} className="mb-3 block text-sm font-medium">What would you like to know?</label>
     <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-slate-900 shadow-sm"><Search className="h-5 w-5 shrink-0 text-blue-600" aria-hidden="true" /><input id={compact ? "home-guide-search" : "guide-search"} type="search" disabled={!ready} value={query} onChange={e => setQuery(e.target.value)} placeholder="Try payments, verification, offline sales…" className="w-full bg-transparent text-base outline-none" /></div>
     {!compact && <div className="my-6 flex flex-wrap gap-2" aria-label="Filter guides">{categories.map(c => <button key={c} disabled={!ready} onClick={() => setCategory(c)} aria-pressed={c === category} className={`rounded-full border px-4 py-2 text-sm transition ${c === category ? "border-blue-600 bg-blue-600 text-white" : "border-slate-200 bg-white text-slate-600 hover:border-blue-400"}`}>{c}</button>)}</div>}

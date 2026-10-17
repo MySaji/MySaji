@@ -1,3 +1,5 @@
+import { pageMetadata } from "@/frontend/lib/seo"
+export const metadata = pageMetadata("/terms", "Terms of service", "Read the terms governing use of MySaji and its services.")
 import Link from "next/link"
 import { ArrowLeft, AlertTriangle } from "lucide-react"
 import { getPublicLegalContent, getPublicSiteSettings } from "@/backend/actions/admin-settings"
