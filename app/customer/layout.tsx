@@ -170,7 +170,7 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
           >
             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
               {user?.avatar ? (
-                // eslint-disable-next-line @next/next/no-img-element -- base64 data URLs (locally-uploaded avatars) aren't supported by next/image
+                // Images use the configured unoptimized rendering policy -- base64 data URLs (locally-uploaded avatars) aren't supported by next/image
                 <img src={user.avatar} alt="" width={40} height={40} className="w-full h-full object-cover" />
               ) : (
                 <User className="w-5 h-5 text-primary" />
@@ -255,7 +255,7 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
                   <Link href="/customer/profile" className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted transition-colors">
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
                       {user?.avatar ? (
-                        // eslint-disable-next-line @next/next/no-img-element -- base64 data URLs (locally-uploaded avatars) aren't supported by next/image
+                        // Images use the configured unoptimized rendering policy -- base64 data URLs (locally-uploaded avatars) aren't supported by next/image
                         <img src={user.avatar} alt="" width={40} height={40} className="w-full h-full object-cover" />
                       ) : (
                         <User className="w-5 h-5 text-primary" />

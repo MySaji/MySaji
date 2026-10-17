@@ -708,7 +708,7 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
           </div>
           <div className="flex min-h-0 flex-1 items-center justify-center px-3 pb-6" onClick={(e) => e.stopPropagation()}>
             {openMedia.type === "IMAGE" ? (
-              /* eslint-disable-next-line @next/next/no-img-element -- data: URLs aren't supported by next/image */
+              /* Images use the configured unoptimized rendering policy -- data: URLs aren't supported by next/image */
               <img src={openMedia.attachmentUrl ?? undefined} alt={openMedia.content ?? ""} className="max-h-full max-w-full object-contain" />
             ) : (() => {
               const coords = parseLatLng(openMedia.content)
@@ -982,7 +982,7 @@ function MessageRow({
         {message.type === "TEXT" && <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{message.content}</p>}
         {message.type === "IMAGE" && (
           <button type="button" onClick={onOpenMedia} className="relative block" aria-label={message.content || t("chat.sharedAttachmentAlt")}>
-            {/* eslint-disable-next-line @next/next/no-img-element -- data: URLs aren't supported by next/image */}
+            {/* Images use the configured unoptimized rendering policy -- data: URLs aren't supported by next/image */}
             {/* Sized by the image, not by the bubble. With the bubble's own
                 padding and background removed there is nothing left to give
                 `w-full` a width to resolve against, so the photo collapsed to

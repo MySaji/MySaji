@@ -63,7 +63,7 @@ export default function VerifyReceiptPage() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && runSearch(query)}
-                placeholder="e.g. SAJ-20260806-83920"
+                placeholder="Paste the full reference from your receipt"
                 className="w-full pl-9 pr-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
               />
             </div>
@@ -107,7 +107,7 @@ export default function VerifyReceiptPage() {
                   {result.lineItems.map((item, i) => (
                     <div key={i} className="flex items-center justify-between text-xs">
                       <span className="text-gray-600 dark:text-gray-300">{item.label}{item.quantity > 1 ? ` × ${item.quantity}` : ""}</span>
-                      <span className="font-medium text-gray-900 dark:text-white">{formatMoney(item.amount, result.currency)}</span>
+                      <span className="min-w-0 break-all text-right font-medium text-gray-900 dark:text-white">{formatMoney(item.amount, result.currency)}</span>
                     </div>
                   ))}
                 </div>
@@ -143,9 +143,9 @@ export default function VerifyReceiptPage() {
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex items-start justify-between gap-4">
       <span className="text-muted-foreground">{label}</span>
-      <span className="font-medium text-gray-900 dark:text-white">{value}</span>
+      <span className="min-w-0 break-all text-right font-medium text-gray-900 dark:text-white">{value}</span>
     </div>
   )
 }

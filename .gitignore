@@ -49,3 +49,5 @@ scripts/.demo-presence-backup.json
 .artifacts/
 playwright-report/
 test-results/
+
+.pnpm-store/

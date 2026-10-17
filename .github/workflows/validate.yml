@@ -34,6 +34,9 @@ jobs:
       - run: pnpm exec prisma validate
       - run: pnpm exec prisma migrate deploy
       - run: pnpm lint
-      - run: pnpm typecheck
+      - - name: TypeScript typecheck
+  run: pnpm typecheck
+  env:
+    NODE_OPTIONS: --max-old-space-size=4096
       - run: pnpm test
       - run: pnpm build

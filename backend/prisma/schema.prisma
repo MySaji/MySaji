@@ -3124,6 +3124,8 @@ model Payment {
   failureReason    String?
   createdAt        DateTime           @default(now())
   paidAt           DateTime?
+  gatewayAmount    Decimal?           @db.Decimal(14, 2)
+  gatewayCurrency  String?
   settledAt        DateTime?
   refundedAt       DateTime?
 

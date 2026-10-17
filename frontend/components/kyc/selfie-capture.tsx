@@ -87,7 +87,7 @@ export function SelfieCapture({ value, onChange }: { value: string; onChange: (d
       <div>
         <p className="text-xs text-muted-foreground mb-1.5">Selfie</p>
         <div className="relative aspect-square w-full max-w-[240px] mx-auto rounded-2xl overflow-hidden border border-border bg-muted/40">
-          {/* eslint-disable-next-line @next/next/no-img-element -- base64 data URLs aren't supported by next/image */}
+          {/* Images use the configured unoptimized rendering policy -- base64 data URLs aren't supported by next/image */}
           <img src={value} alt="Selfie" className="w-full h-full object-cover" />
           <button
             type="button"

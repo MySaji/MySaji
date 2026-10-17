@@ -8,7 +8,7 @@ Next.js 16.4.1, React 19.3.1, TypeScript, Tailwind CSS 4, Prisma 6/PostgreSQL, a
 
 ## Public information
 
-The homepage introduces the platform and links to a searchable knowledge base at `/knowledge`. Fourteen guides cover getting started, customer bookings, providers, shops, distributors, payments, verification, POS, offline operation, disputes, messaging, teams, security, and support. Content lives in `backend/domain/knowledge.ts`.
+The homepage introduces the platform and links to a searchable knowledge base at `/knowledge`. Twenty-two guides cover getting started, customer bookings, providers, shops, distributors, payments, verification, POS, offline operation, disputes, messaging, teams, security, and support. Content lives in `backend/domain/knowledge.ts`.
 
 ## Development
 

@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test"
+import { GUIDES } from "../../backend/domain/knowledge"
 
 test("homepage introduces the platform and links to role guides", async ({ page }) => {
   await page.goto("/")
@@ -13,6 +14,7 @@ test("knowledge search, topic filters, and related articles work", async ({ page
   await page.getByRole("searchbox").fill("offline")
   await expect(page.getByRole("link", { name: /Keep selling when connectivity drops/ })).toBeVisible()
   await page.getByRole("searchbox").fill("zzzz-no-match")
+  await expect(page.getByRole("status")).toHaveText("0 guides found")
   await expect(page.getByText("No matching guides.", { exact: false })).toBeVisible()
   await page.getByRole("searchbox").fill("")
   await page.getByRole("button", { name: "Payments", exact: true }).click()
@@ -36,4 +38,14 @@ test("public pages fit a mobile viewport", async ({ page }) => {
 test("unknown guides return 404", async ({ page }) => {
   const response = await page.goto("/knowledge/does-not-exist")
   expect(response?.status()).toBe(404)
+})
+
+test("every handbook guide is reachable and renders its contents", async ({ page }) => {
+  test.setTimeout(90_000)
+  for (const guide of GUIDES) {
+    const response = await page.goto(`/knowledge/${guide.slug}`)
+    expect(response?.status(), guide.slug).toBe(200)
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(guide.title)
+    await expect(page.getByRole("navigation", { name: "Article contents" })).toBeVisible()
+  }
 })

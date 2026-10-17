@@ -21,6 +21,8 @@ The current font setup downloads fonts at build time. The build environment need
 
 ## New databases
 
+Run `node backend/scripts/verify-database.cjs` for a read-only connectivity, migration-history, payment-column, and spatial-object inventory. It never prints connection values or customer records.
+
 The tracked baseline creates the application's relational schema. Historical manual SQL is archived under `backend/prisma/manual/`; it must not be replayed in addition to the baseline.
 
 ```sh
@@ -41,7 +43,7 @@ Use `DIRECT_URL` for migration operations. `DATABASE_URL` may use the applicatio
 
 ## Gateway callbacks and jobs
 
-Use a stable HTTPS `CALLBACK_URL` matching the deployment. Configure M-Pesa and PayPal sandbox/production modes intentionally. Stripe needs its webhook secret. Verify callback amount, currency, duplicate delivery, failure, and timeout behavior using each provider's sandbox. Provisioned credentials alone do not establish successful settlement.
+Use a stable HTTPS `CALLBACK_URL` matching the deployment. Set the canonical `AUTH_URL` (or compatibility `NEXTAUTH_URL`) to the same deployment origin. SAJI trusts that explicitly pinned auth origin. Without one, Auth.js retains its host-trust policy; self-hosted reverse proxies may need `AUTH_TRUST_HOST=true` only when their forwarding headers are controlled. See [Auth.js deployment guidance](https://authjs.dev/getting-started/deployment). Configure M-Pesa and PayPal sandbox/production modes intentionally. Stripe needs its webhook secret. PayPal additionally needs an operationally approved `PAYPAL_KES_TO_USD_RATE`; the initiated gateway amount and currency are stored for capture verification. Legacy pending PayPal payments without these fields require manual reconciliation. Verify callback amount, currency, duplicate delivery, failure, and timeout behavior using each provider's sandbox. Provisioned credentials alone do not establish successful settlement.
 
 Vercel uses `vercel.json`. Self-hosted deployments need an external scheduler making authenticated requests with `Authorization: Bearer <CRON_SECRET>`:
 

@@ -90,7 +90,7 @@ export async function isMaintenanceModeActive(): Promise<boolean> {
   const now = Date.now()
   if (maintenanceCache && maintenanceCache.expiresAt > now) return maintenanceCache.value
 
-  const setting = await db.platformSetting.findUnique({ where: { key: "general" } })
+  const setting = await db.platformSetting.findUnique({ where: { key: "general" } }).catch(() => null)
   const stored = setting?.value as Partial<PlatformPreferences> | undefined
   const value = stored?.maintenanceMode ?? DEFAULT_PREFERENCES.maintenanceMode
   maintenanceCache = { value, expiresAt: now + MAINTENANCE_CACHE_TTL_MS }
@@ -201,9 +201,9 @@ export type ContactSettings = {
 }
 
 const DEFAULT_CONTACT: ContactSettings = {
-  supportEmail: "support@saji.app",
-  supportPhone: "+254 700 000 000",
-  address: "Nairobi, Kenya",
+  supportEmail: "",
+  supportPhone: "",
+  address: "",
   facebookUrl: "",
   twitterUrl: "",
   instagramUrl: "",

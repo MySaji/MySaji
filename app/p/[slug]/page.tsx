@@ -47,7 +47,7 @@ export default async function StorefrontPage({ params }: Props) {
               name, rating and stats below the fold on a small phone. */}
           <div className="flex items-start gap-4 sm:gap-5">
             {data.avatar ? (
-              // eslint-disable-next-line @next/next/no-img-element
+              // Images use the configured unoptimized rendering policy
               <img
                 src={data.avatar}
                 alt=""
