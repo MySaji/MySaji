@@ -58,7 +58,7 @@ export function Footer() {
   return (
     <footer className="border-t border-border bg-card mt-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-5 gap-y-8 mb-12 [&>div]:min-w-0 [overflow-wrap:anywhere]">
           {/* Brand */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
@@ -69,7 +69,7 @@ export function Footer() {
               Connecting you with trusted, verified service providers across Kenya.
             </p>
             {socials.length > 0 && (
-              <div className="flex items-center gap-2 pt-1">
+              <div className="flex flex-wrap items-center gap-2 pt-1">
                 {socials.map((s) => (
                   <a
                     key={s.key}
