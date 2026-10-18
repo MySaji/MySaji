@@ -1,8 +1,18 @@
+
 name: Validate SAJI
-on: [push, pull_request]
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
 jobs:
   checks:
     runs-on: ubuntu-latest
+
     env:
       DATABASE_URL: postgresql://saji:saji@localhost:5432/saji_ci
       SAJI_TEST_DATABASE_URL: postgresql://saji:saji@localhost:5432/saji_ci
@@ -10,6 +20,7 @@ jobs:
       AUTH_SECRET: ci-only-secret-not-for-deployment-0000000000
       NEXTAUTH_URL: http://localhost:3000
       CALLBACK_URL: http://localhost:3000
+
     services:
       postgres:
         image: postgis/postgis:16-3.5
@@ -17,26 +28,50 @@ jobs:
           POSTGRES_USER: saji
           POSTGRES_PASSWORD: saji
           POSTGRES_DB: saji_ci
-        ports: ["5432:5432"]
+        ports:
+          - 5432:5432
         options: >-
           --health-cmd "pg_isready -U saji -d saji_ci"
-          --health-interval 10s --health-timeout 5s --health-retries 5
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
         with:
           version: 11.15.1
-      - uses: actions/setup-node@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm exec prisma validate
-      - run: pnpm exec prisma migrate deploy
-      - run: pnpm lint
-      - - name: TypeScript typecheck
-  run: pnpm typecheck
-  env:
-    NODE_OPTIONS: --max-old-space-size=4096
-      - run: pnpm test
-      - run: pnpm build
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate Prisma schema
+        run: pnpm exec prisma validate
+
+      - name: Apply database migrations
+        run: pnpm exec prisma migrate deploy
+
+      - name: Run ESLint
+        run: pnpm lint
+
+      - name: TypeScript typecheck
+        run: pnpm typecheck
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+
+      - name: Run tests
+        run: pnpm test
+
+      - name: Build application
+        run: pnpm build
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096

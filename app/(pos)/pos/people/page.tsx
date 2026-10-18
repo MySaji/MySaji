@@ -111,6 +111,12 @@ export default function TillPeoplePage() {
         </p>
       </div>
 
+      <Card className="border-primary/20 bg-primary/5 p-5">
+        <h2 className="text-sm font-semibold">Employee portals & feature permissions</h2>
+        <p className="mt-1 text-xs text-muted-foreground">To give an employee their own login and choose exactly which POS features they can use, add them in Team. This page manages shared-counter PINs.</p>
+        <Link href="/pos/team" className="mt-3 inline-flex rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground">Add employee & choose portal features</Link>
+      </Card>
+
       {error && (
         <div className="rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 px-3 py-2.5 flex items-start gap-2">
           <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />

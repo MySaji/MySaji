@@ -19,10 +19,8 @@ import {
  * this page generates. A seat that is waiting says so, in words, with the
  * address it is waiting on.
  *
- * Features are shown as the role's set until the owner touches one. The
- * moment they do, the ticks become the whole truth and the screen says so,
- * because a list that silently also inherits from a role is impossible to
- * reason about later.
+ * New employees start without access. Role presets populate the selection;
+ * saving always stores the owner's exact selection for this employee.
  */
 
 const BLANK = {
@@ -33,7 +31,7 @@ const BLANK = {
   phone: "",
   storeId: "",
   features: [] as string[],
-  customised: false,
+  customised: true,
 }
 
 export default function TeamPage() {
@@ -66,8 +64,8 @@ export default function TeamPage() {
     setForm({
       id: m.id, name: m.name, role: m.role,
       email: m.email ?? "", phone: m.phone ?? "", storeId: m.storeId ?? "",
-      features: m.customised ? [...m.features] : [],
-      customised: m.customised,
+      features: [...m.features],
+      customised: true,
     })
   }
 
@@ -128,7 +126,7 @@ export default function TeamPage() {
           onClick={() => { setForm({ ...BLANK }); setError("") }}
           className="w-full h-12 rounded-xl bg-primary text-primary-foreground text-sm font-semibold flex items-center justify-center gap-1.5 active:scale-[0.98]"
         >
-          <Plus className="w-4 h-4" /> Add someone
+          <Plus className="w-4 h-4" /> Add employee & choose access
         </button>
       ) : (
         <Card className="p-4 rounded-2xl space-y-3">
@@ -141,12 +139,12 @@ export default function TeamPage() {
             placeholder="07..." />
 
           <div>
-            <span className="text-[11px] font-medium text-muted-foreground">What they do</span>
+            <span className="text-xs font-medium text-muted-foreground">Start with a role preset, then choose their features below</span>
             <div className="mt-1 grid grid-cols-2 gap-2">
               {view.roles.filter((r) => r.key !== "OWNER").map((r) => (
                 <button
                   key={r.key}
-                  onClick={() => setForm({ ...form, role: r.key })}
+                  onClick={() => setForm({ ...form, role: r.key, features: [...r.features], customised: true })}
                   className={"rounded-lg border p-2 text-left active:scale-[0.98] " +
                     (form.role === r.key ? "border-primary bg-primary/5" : "border-border")}
                 >
@@ -191,7 +189,8 @@ export default function TeamPage() {
           <div className="rounded-xl border border-border p-3">
             <div className="flex items-start justify-between gap-2">
               <div>
-                <p className="text-xs font-semibold text-foreground">What they can open</p>
+                <p className="text-sm font-semibold text-foreground">Choose this employee’s portal features</p>
+                <p className="mt-1 text-xs font-medium text-primary">{effective.length} features allowed</p>
                 <p className="mt-0.5 text-[10px] text-muted-foreground leading-relaxed">
                   {form.customised
                     ? "Set by hand. These ticks are exactly what they get, and the role no longer decides."
@@ -200,18 +199,31 @@ export default function TeamPage() {
               </div>
               {form.customised && (
                 <button
-                  onClick={() => setForm({ ...form, features: [], customised: false })}
+                  onClick={() => setForm({ ...form, features: [...roleFeatures], customised: true })}
                   className="h-8 px-2 rounded-lg border border-border text-[10px] font-semibold text-muted-foreground active:scale-95 flex-shrink-0"
                 >
-                  Use the role
+                  Reset to role preset
                 </button>
               )}
             </div>
 
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button type="button" onClick={() => setForm({ ...form, customised: true, features: [] })} className="rounded-lg border px-3 py-2 text-xs font-semibold">Clear all features</button>
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">Select each feature below. Unselected features are blocked in their portal. Clearing all features removes all feature access.</p>
+            {effective.length === 0 && <p role="status" className="mt-2 rounded-lg bg-amber-500/10 p-3 text-xs font-medium text-amber-700 dark:text-amber-400">No features selected. This employee will have no portal access until you grant features.</p>}
+
             <div className="mt-2 space-y-2.5">
               {view.catalogue.map((group) => (
                 <div key={group.group}>
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{group.group}</p>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-semibold text-muted-foreground">{group.group}</p>
+                    <button type="button" className="px-2 py-1 text-xs font-semibold text-primary" onClick={() => {
+                      const keys = group.items.map((item) => item.key)
+                      const allSelected = keys.every((key) => effective.includes(key))
+                      setForm({ ...form, customised: true, features: allSelected ? effective.filter((key) => !keys.includes(key as typeof keys[number])) : [...new Set([...effective, ...keys])] })
+                    }}>{group.items.every((item) => effective.includes(item.key)) ? "Remove group" : "Allow group"}</button>
+                  </div>
                   <div className="mt-1 grid sm:grid-cols-2 gap-1">
                     {group.items.map((item) => {
                       const on = effective.includes(item.key)
@@ -258,15 +270,15 @@ export default function TeamPage() {
                   email: form.email || null,
                   phone: form.phone || null,
                   storeId: form.storeId || null,
-                  features: form.customised ? form.features : [],
-                  customised: form.customised,
+                  features: [...effective],
+                  customised: true,
                 }))
                 if (ok) setForm(null)
               }}
               disabled={busy}
               className="flex-1 h-11 rounded-lg bg-primary text-primary-foreground text-sm font-semibold active:scale-[0.98] disabled:opacity-50"
             >
-              {busy ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "Save"}
+              {busy ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "Save employee & permissions"}
             </button>
             <button
               onClick={() => { setForm(null); setError("") }}
@@ -299,6 +311,13 @@ export default function TeamPage() {
                 {m.customised ? " · features set by hand" : ""}
                 {m.email ? " · " + m.email : m.phone ? " · " + m.phone : ""}
               </p>
+              <details className="mt-3 text-xs">
+                <summary className="cursor-pointer font-semibold text-primary">View allowed features ({m.features.length})</summary>
+                <ul className="mt-2 space-y-1 text-muted-foreground">
+                  {view.catalogue.flatMap((group) => group.items).filter((item) => m.features.includes(item.key)).map((item) => <li key={item.key}>{item.label}</li>)}
+                  {m.features.length === 0 && <li>No portal features allowed.</li>}
+                </ul>
+              </details>
               {/* The question this page exists to answer. */}
               {!m.claimedAt && m.isActive && (
                 <p className="mt-1 text-[11px] text-amber-600 dark:text-amber-400 leading-snug flex items-start gap-1">

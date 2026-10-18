@@ -7,8 +7,8 @@ import { decryptAccountNumber } from "@/backend/services/payment-method-crypto"
 export const mpesaTokenHash = (token: string) => crypto.createHash("sha256").update(token).digest("hex")
 export const mpesaBase = (env: string | null) => env === "production" ? "https://api.safaricom.co.ke" : "https://sandbox.safaricom.co.ke"
 export function mpesaPublicUrl() {
-  const url = new URL(process.env.NEXTAUTH_URL || "http://localhost:3000")
-  if (url.protocol !== "https:") throw Error("A public HTTPS NEXTAUTH_URL is required for M-Pesa callbacks.")
+  const url = new URL(process.env.MPESA_CALLBACK_ORIGIN || process.env.NEXTAUTH_URL || "http://localhost:3000")
+  if (url.protocol !== "https:" || url.hostname === "localhost" || url.hostname.endsWith(".localhost")) throw Error("Set MPESA_CALLBACK_ORIGIN to the public HTTPS deployment address before connecting M-Pesa.")
   return url.origin
 }
 export async function merchantToken(shop: { mpesaConsumerKey: string | null; mpesaConsumerSecret: string | null; mpesaEnv: string | null }) {

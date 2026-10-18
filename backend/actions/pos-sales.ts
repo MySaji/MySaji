@@ -832,6 +832,13 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
     return { success: true, data: await buildReceipt(till, already, already.items, already.payments, true, []) }
   }
 
+  const openShift = await db.tillSession.findFirst({
+    where: { shopkeeperId: till.shopkeeperId, closedAt: null },
+    orderBy: { openedAt: "desc" },
+    select: { id: true },
+  })
+  if (!openShift) return { success: false, error: "Open a shift before starting a sale." }
+
   // --- is this till paid up ------------------------------------------------
   //
   // Checked on the SERVER, not only in the UI, because a banner is a request
@@ -1532,12 +1539,6 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
     if (c) cashierName = c.name
   }
 
-  const openShift = await db.tillSession.findFirst({
-    where: { shopkeeperId: till.shopkeeperId, closedAt: null },
-    orderBy: { openedAt: "desc" },
-    select: { id: true },
-  })
-
   // --- write it, all or nothing -------------------------------------------
   const stockWarnings: string[] = []
 
@@ -1547,6 +1548,9 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
   for (let attempt = 0; attempt < 5; attempt++) {
     try {
       const result = await db.$transaction(async (tx) => {
+        // Lock the shift until this sale commits so it cannot close mid-sale.
+        const activeShift = await tx.$queryRaw<{ id: string }[]>`SELECT id FROM till_sessions WHERE id = ${openShift.id} AND "closedAt" IS NULL FOR UPDATE`
+        if (!activeShift.length) throw new PosSaleError("This shift has closed. Open a shift before starting a sale.")
         const last = await tx.posSale.findFirst({
           where: { shopkeeperId: till.shopkeeperId },
           orderBy: { saleNumber: "desc" },
@@ -1558,7 +1562,7 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
           data: {
             shopkeeperId: till.shopkeeperId,
             saleNumber: nextNumber,
-            tillSessionId: openShift?.id ?? null,
+            tillSessionId: openShift.id,
             cashierUserId: till.userId,
             cashierName,
             subtotal,

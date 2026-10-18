@@ -28,8 +28,22 @@ function catalogue() {
     "@/backend/actions/pos-mpesa": {}, "@/backend/services/etims-queue-core": {},
     "@/backend/actions/pos-billing-shop": {}, "@/backend/domain/pos-profiles": { effectiveTraits: () => [] },
   })
-  return { actions, requests }
+  return { actions, requests, db }
 }
+
+test("sales without an open shift stop before pricing or payment writes", async () => {
+  const { actions, requests, db } = catalogue()
+  db.posSale = { findUnique: async () => null }
+  db.tillSession = { findFirst: async query => {
+    assert.equal(query.where.shopkeeperId, "my-store")
+    assert.equal(query.where.closedAt, null)
+    return null
+  } }
+  const result = await actions.recordPosSale({ expectedShopId: "my-store", expectedUserId: "owner", idempotencyKey: "shift-test-123456", lines: [{ productId: "product", quantity: "1" }], payments: [{ method: "CASH", amount: 100 }] })
+  assert.equal(result.success, false)
+  assert.match(result.error, /open a shift/i)
+  assert.equal(requests.length, 0)
+})
 
 test("catalogue pagination stays scoped to the current store", async () => {
   const { actions, requests } = catalogue()

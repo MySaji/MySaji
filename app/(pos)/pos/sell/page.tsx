@@ -491,6 +491,7 @@ export default function TillPage() {
   }
 
   const addProduct = (product: TillProduct, variant?: TillVariant | null) => {
+    if (!state?.shift) { setError("Open a shift before starting a sale."); setShowShift(true); return }
     setError("")
 
     // A product sold in sizes cannot be added without one. If the scan
@@ -698,6 +699,7 @@ export default function TillPage() {
 
   // ---- submitting ---------------------------------------------------------
   const takePayment = async () => {
+    if (!state?.shift) { setError("Open a shift before starting a sale."); setShowShift(true); return }
     if (submitting.current) return
     submitting.current = true
     try {
@@ -1230,6 +1232,7 @@ export default function TillPage() {
       )}
 
       {/* ---- shift and takings bar ---------------------------------------- */}
+      {!state.shift && <div className="flex flex-wrap items-center justify-between gap-3 border-b border-amber-300 bg-amber-50 px-4 py-3 text-amber-950 dark:bg-amber-950 dark:text-amber-100"><div><p className="text-sm font-semibold">Open your shift to start selling</p><p className="text-xs">Record the opening cash before adding products or taking payment.</p></div><Button onClick={() => setShowShift(true)}>Open shift</Button></div>}
       <div className="sticky top-0 z-20 border-b border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-900/95 backdrop-blur px-3 py-2">
         {/* Connection, stated before anything else. A cashier must never
             have to infer it from a sale failing. */}
@@ -2384,7 +2387,7 @@ export default function TillPage() {
 
               <Button
                 onClick={takePayment}
-                disabled={busy || (shortBy > 0 && !(asDeposit && canDeposit && paid > 0)) || cart.length === 0 || (needsAgeCheck && !ageConfirmed)
+                disabled={!state.shift || busy || (shortBy > 0 && !(asDeposit && canDeposit && paid > 0)) || cart.length === 0 || (needsAgeCheck && !ageConfirmed)
                   || (needsRegister && buyer.name.trim().length < 2)}
                 className="w-full h-14 rounded-xl text-base font-bold"
               >
