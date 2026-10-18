@@ -12,6 +12,7 @@ import { AuthProvider } from "@/frontend/lib/auth-context"
 import { VerificationPromptProvider } from "@/frontend/lib/verification-prompt-context"
 import { EmailSubscriptionPopup } from "@/frontend/components/email-subscription-popup"
 import "./globals.css"
+import "./workspaces.css"
 
 const _geist = Geist({ subsets: ["latin"] })
 

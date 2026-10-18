@@ -15,7 +15,6 @@ import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 import { requestLoginOtp, verifyLoginOtp } from "@/backend/actions/otp"
 import { useOtpAutofill } from "@/frontend/lib/hooks/useOtpAutofill"
 import { AuthMobileHeader } from "@/frontend/components/auth/auth-mobile-header"
-import { AuthHeroIllustration } from "@/frontend/components/auth/auth-hero-illustration"
 
 const OTP_LENGTH = 6
 const RESEND_COOLDOWN_SECONDS = 25
@@ -96,33 +95,45 @@ function LoginContent() {
   })()
 
   const completeSignIn = async (proof: string) => {
-    setIsLoading(true)
-    const result = await login(identifier, password, proof)
-    setIsLoading(false)
-    if (!result.success) {
-      setError(result.error)
-      setStep("credentials")
-      return
+    try {
+      setIsLoading(true)
+      const result = await login(identifier, password, proof)
+      setIsLoading(false)
+      if (!result.success) {
+        setError(result.error)
+        setStep("credentials")
+        return
+      }
+      router.push(safeNext ?? ROLE_HOME_PATH[result.role])
+    } catch {
+      setError("Could not connect. Please try again.")
+    } finally {
+      setIsLoading(false)
     }
-    router.push(safeNext ?? ROLE_HOME_PATH[result.role])
   }
 
   const handleSubmitCredentials = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
-    if (!identifier || !password) { setError(t("authPage.errors.fillAllFields")); return }
-    setIsLoading(true)
-    const result = await requestLoginOtp(identifier, password)
-    setIsLoading(false)
-    if (!result.success) {
-      setError(result.error)
-      return
+    try {
+      e.preventDefault()
+      setError("")
+      if (!identifier || !password) { setError(t("authPage.errors.fillAllFields")); return }
+      setIsLoading(true)
+      const result = await requestLoginOtp(identifier, password)
+      setIsLoading(false)
+      if (!result.success) {
+        setError(result.error)
+        return
+      }
+      setOtpDestination(result.destination)
+      setOtpFellBackToEmail(result.fellBackToEmail)
+      setOtpDigits(Array(OTP_LENGTH).fill(""))
+      setResendCooldown(RESEND_COOLDOWN_SECONDS)
+      setStep("otp")
+    } catch {
+      setError("Could not connect. Please try again.")
+    } finally {
+      setIsLoading(false)
     }
-    setOtpDestination(result.destination)
-    setOtpFellBackToEmail(result.fellBackToEmail)
-    setOtpDigits(Array(OTP_LENGTH).fill(""))
-    setResendCooldown(RESEND_COOLDOWN_SECONDS)
-    setStep("otp")
   }
 
   const handleOtpChange = (index: number, value: string) => {
@@ -138,16 +149,22 @@ function LoginContent() {
   }
 
   const submitOtpCode = async (code: string) => {
-    if (code.length !== OTP_LENGTH) { setError(t("authPage.login.enterFullCode")); return }
-    setError("")
-    setIsLoading(true)
-    const result = await verifyLoginOtp(identifier, code)
-    if (!result.success) {
+    try {
+      if (code.length !== OTP_LENGTH) { setError(t("authPage.login.enterFullCode")); return }
+      setError("")
+      setIsLoading(true)
+      const result = await verifyLoginOtp(identifier, code)
+      if (!result.success) {
+        setIsLoading(false)
+        setError(result.error)
+        return
+      }
+      await completeSignIn(result.proof)
+    } catch {
+      setError("Could not connect. Please try again.")
+    } finally {
       setIsLoading(false)
-      setError(result.error)
-      return
     }
-    await completeSignIn(result.proof)
   }
 
   // Shared by paste and WebOTP autofill — fills every box at once (rather
@@ -178,33 +195,45 @@ function LoginContent() {
   const handleVerifyOtp = () => submitOtpCode(otpDigits.join(""))
 
   const handleResendOtp = async () => {
-    if (resendCooldown > 0) return
-    setError("")
-    setIsLoading(true)
-    const result = await requestLoginOtp(identifier, password)
-    setIsLoading(false)
-    if (!result.success) { setError(result.error); return }
-    setOtpDestination(result.destination)
-    setOtpFellBackToEmail(result.fellBackToEmail)
-    setOtpDigits(Array(OTP_LENGTH).fill(""))
-    setResendCooldown(RESEND_COOLDOWN_SECONDS)
-    otpInputRefs.current[0]?.focus()
+    try {
+      if (resendCooldown > 0) return
+      setError("")
+      setIsLoading(true)
+      const result = await requestLoginOtp(identifier, password)
+      setIsLoading(false)
+      if (!result.success) { setError(result.error); return }
+      setOtpDestination(result.destination)
+      setOtpFellBackToEmail(result.fellBackToEmail)
+      setOtpDigits(Array(OTP_LENGTH).fill(""))
+      setResendCooldown(RESEND_COOLDOWN_SECONDS)
+      otpInputRefs.current[0]?.focus()
+    } catch {
+      setError("Could not connect. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleGoogleLogin = async () => {
-    setIsLoading(true)
-    // Read by auth.ts's signIn callback once Google's redirect comes back,
-    // so a Google account with no existing SAJI account can be rejected
-    // with "sign up first" instead of silently creating one from the login
-    // button.
-    document.cookie = "oauth_intent=login; path=/; max-age=300; samesite=lax"
-    const result = await loginWithGoogle(ROLE_HOME_PATH.customer)
-    setIsLoading(false)
-    if (!result.success) {
-      setError(result.error)
-      return
+    try {
+      setIsLoading(true)
+      // Read by auth.ts's signIn callback once Google's redirect comes back,
+      // so a Google account with no existing SAJI account can be rejected
+      // with "sign up first" instead of silently creating one from the login
+      // button.
+      document.cookie = "oauth_intent=login; path=/; max-age=300; samesite=lax"
+      const result = await loginWithGoogle(ROLE_HOME_PATH.customer)
+      setIsLoading(false)
+      if (!result.success) {
+        setError(result.error)
+        return
+      }
+      window.location.href = result.url
+    } catch {
+      setError("Could not connect. Please try again.")
+    } finally {
+      setIsLoading(false)
     }
-    window.location.href = result.url
   }
 
   const handleAppleLogin = () => {
@@ -278,7 +307,7 @@ function LoginContent() {
                 </div>
                 <p className="text-xs text-muted-foreground">{t("authPage.tagline")}</p>
               </div>
-              <AuthHeroIllustration />
+
             </div>
           )}
 
@@ -297,7 +326,7 @@ function LoginContent() {
 
               {/* Error */}
               {error && (
-                <div className="mb-4 p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm">
+                <div role="alert" className="mb-4 p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm">
                   {error}
                 </div>
               )}
@@ -329,13 +358,13 @@ function LoginContent() {
                     {loginMethod === "email" ? (
                       <>
                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input id="credential" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="pl-9 pr-9 h-10 rounded-xl border-border bg-card" disabled={isLoading} />
+                        <Input autoComplete="username" id="credential" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="pl-9 pr-9 h-10 rounded-xl border-border bg-card" disabled={isLoading} />
                         {isEmailValid && <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500" />}
                       </>
                     ) : (
                       <>
                         <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input id="credential" type="tel" placeholder="+254700000000" value={phone} onChange={(e) => setPhone(e.target.value)} className="pl-9 h-10 rounded-xl border-border bg-card" disabled={isLoading} />
+                        <Input id="credential" type="tel" placeholder="0712 345 678" value={phone} onChange={(e) => setPhone(e.target.value)} className="pl-9 h-10 rounded-xl border-border bg-card" disabled={isLoading} />
                       </>
                     )}
                   </div>
@@ -346,8 +375,8 @@ function LoginContent() {
                   <label htmlFor="password" className="text-sm font-medium text-foreground mb-1.5 block">{t("auth.password")}</label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input id="password" type={showPassword ? "text" : "password"} placeholder={t("authPage.login.enterPassword")} value={password} onChange={(e) => setPassword(e.target.value)} className="pl-9 pr-9 h-10 rounded-xl border-border bg-card" disabled={isLoading} />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors" disabled={isLoading}>
+                    <Input autoComplete="current-password" id="password" type={showPassword ? "text" : "password"} placeholder={t("authPage.login.enterPassword")} value={password} onChange={(e) => setPassword(e.target.value)} className="pl-9 pr-9 h-10 rounded-xl border-border bg-card" disabled={isLoading} />
+                    <button type="button" aria-label={showPassword ? "Hide password" : "Show password"} onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors" disabled={isLoading}>
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>

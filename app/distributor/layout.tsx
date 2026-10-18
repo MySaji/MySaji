@@ -1,5 +1,7 @@
 "use client"
 
+import { WorkspaceTools } from "@/frontend/components/workspace-tools"
+
 import React from "react"
 
 import { useState, useRef, useEffect } from "react"
@@ -122,7 +124,7 @@ export default function DistributorLayout({ children }: { children: React.ReactN
     if (isCompanyNavLocked && pathname && !isExemptPath(pathname)) {
       router.replace("/distributor")
     }
-  }, [mounted, isLoading, isAuthenticated, user, isCompanyLocked, pathname, router])
+  }, [mounted, isLoading, isAuthenticated, user, isCompanyLocked, isCompanyNavLocked, pathname, router])
 
   useEffect(() => {
     if (!mounted || !isAuthenticated || user?.role !== "distributor") return
@@ -137,7 +139,6 @@ export default function DistributorLayout({ children }: { children: React.ReactN
         setCompanyVerified(account.isVerified)
       }
     })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mounted, isAuthenticated, user])
 
   const isActive = (path: string) => pathname === path || (path !== "/distributor" && pathname.startsWith(path + "/"))
@@ -202,7 +203,7 @@ export default function DistributorLayout({ children }: { children: React.ReactN
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div data-workspace="distributor" className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Upgrades this session's city-level IP position to a real GPS fix in
           the background. Renders nothing and blocks nothing — the feed has
           already been served from the IP origin by the time it runs. */}
@@ -456,6 +457,7 @@ export default function DistributorLayout({ children }: { children: React.ReactN
         {/* pb-36 / lg:pb-24 reserve the floating chat button's footprint as
             well as the bottom nav's; see app/customer/layout.tsx. */}
         <main className="flex-1 pb-36 lg:pb-24">
+          <WorkspaceTools name="Distributor workspace" />
           {isCompanyLocked && !pathname?.startsWith("/distributor/register") && (
             <div className="m-4 lg:m-6 mb-0">
               {rejectionReason ? (

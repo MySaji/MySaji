@@ -1,0 +1,17 @@
+﻿.authPages{background:#f5f8fd;font-family:Arial,Helvetica,sans-serif;color:#172b4d}
+.authPages>div{background:#f5f8fd}
+.authPages h1,.authPages h2{letter-spacing:-.04em;line-height:1.2}
+.authPages h2{font-size:clamp(26px,2.4vw,34px);font-weight:650}
+.authPages form{min-width:0}
+.authPages input:not([type=checkbox]):not([type=radio]),.authPages [data-slot=select-trigger]{min-height:48px;border-radius:9px}
+.authPages input:not([type=checkbox]):not([type=radio]){font-size:16px}
+.authPages textarea{min-height:110px}
+.authPages [data-slot=button]{min-height:44px;border-radius:9px}
+.authPages :global(.blur-3xl){display:none}
+.authPages :global(.bg-primary){background:#0647b5}
+.authPages :global(.text-primary){color:#0647b5}
+.authPages :global(.max-w-\[1360px\]){max-width:1600px;min-height:100dvh}
+.authPages label{font-size:13px;line-height:1.6}
+.authPages a:focus-visible,.authPages button:focus-visible{outline:3px solid #ff7900;outline-offset:3px}
+.authPages [role=alert]{line-height:1.7}
+@media(max-width:640px){.authPages h2{font-size:28px}.authPages :global(.grid-cols-3){gap:8px}.authPages :global(.max-w-\[420px\]){max-width:480px}}

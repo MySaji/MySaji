@@ -1,3 +1,4 @@
+import styles from "./auth-pages.module.css"
 import type React from "react"
 import type { Metadata } from "next"
 
@@ -11,5 +12,5 @@ export default function AuthLayout({
 }: {
   children: React.ReactNode
 }) {
-  return <div className="min-h-screen bg-background">{children}</div>
+  return <div className={styles.authPages}>{children}</div>
 }

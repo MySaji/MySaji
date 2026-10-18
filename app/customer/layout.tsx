@@ -1,5 +1,7 @@
 "use client"
 
+import { WorkspaceTools } from "@/frontend/components/workspace-tools"
+
 import React from "react"
 
 import { useState, useEffect, useRef } from "react"
@@ -126,7 +128,7 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div data-workspace="customer" className="min-h-screen bg-background">
       {/* Upgrades this session's city-level IP position to a real GPS fix in
           the background. Renders nothing and blocks nothing — the feed has
           already been served from the IP origin by the time it runs. */}
@@ -426,6 +428,7 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
             last card's action button, with about a third of it unreachable. On
             lg the button moves to bottom-6 at 64px tall, hence lg:pb-24. */}
         <main id="main-content" className="pb-36 lg:pb-24">
+          <WorkspaceTools name="MySaji customer workspace" />
           {openDisputes.length > 0 && (
             <div className="px-4 lg:px-6 pt-4">
               <DisputeBanner disputes={openDisputes} messagesBasePath="/customer/messages" />

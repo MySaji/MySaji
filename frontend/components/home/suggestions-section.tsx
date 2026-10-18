@@ -1,5 +1,7 @@
 "use client"
 
+import { useState } from "react"
+import { useAuthContext } from "@/frontend/lib/auth-context"
 import useSWR from "swr"
 import Link from "next/link"
 import Image from "next/image"
@@ -35,7 +37,10 @@ const TINT: Record<SuggestionKind, string> = {
 }
 
 export function SuggestionsSection() {
-  const { data, isLoading } = useSWR("home-suggestions", () => getHomeSuggestions({ limit: 10 }))
+  const { user } = useAuthContext()
+  const [filter, setFilter] = useState("all")
+  const { data, isLoading, mutate } = useSWR(user?.id ? ["home-suggestions", user.id] : null, () => getHomeSuggestions({ limit: 24 }))
+  const items = (data?.items ?? []).filter(item => filter === "all" || (filter === "familiar" ? ["REORDER", "SAVED", "VIEWED", "FROM_SHOP_YOU_USE"].includes(item.kind) : ["NEARBY_OPEN", "POPULAR_LOCAL"].includes(item.kind)))
 
   // Signed out, or nothing to go on. The page's ordinary browse sections
   // already cover that case, so this simply does not appear.
@@ -55,6 +60,7 @@ export function SuggestionsSection() {
         {isLoading && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
       </div>
 
+      <div className="mb-4 flex flex-wrap items-center gap-2">{[["all", "For you"], ["familiar", "Your recent interests"], ["nearby", "Local discoveries"]].map(([key, label]) => <button key={key} onClick={() => setFilter(key)} aria-pressed={filter === key} className={`rounded-lg border px-3 py-2 text-xs font-medium ${filter === key ? "border-primary bg-primary/5 text-primary" : "border-border text-muted-foreground"}`}>{label}</button>)}<button onClick={() => void mutate()} className="ml-auto px-3 py-2 text-xs font-semibold text-primary">Refresh suggestions</button></div>
       {isLoading ? (
         <div className="flex gap-3 overflow-hidden">
           {[0, 1, 2].map((i) => (
@@ -62,16 +68,16 @@ export function SuggestionsSection() {
           ))}
         </div>
       ) : (
-        <div className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-1">
-          {data!.items.map((s) => {
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          {items.map((s) => {
             const Icon = ICON[s.kind] ?? Sparkles
             return (
               <Link
                 key={s.id}
                 href={s.href}
-                className="w-[160px] flex-shrink-0 snap-start overflow-hidden rounded-xl border border-border bg-card transition-shadow hover:shadow-md"
+                className="min-w-0 overflow-hidden rounded-xl border border-border bg-card transition-shadow hover:shadow-md"
               >
-                <div className="relative h-20 w-full bg-muted">
+                <div className="relative h-32 sm:h-40 w-full bg-muted">
                   {s.image ? (
                     <Image src={s.image} alt="" fill sizes="160px" className="object-cover" />
                   ) : (
@@ -81,14 +87,14 @@ export function SuggestionsSection() {
                   )}
                 </div>
                 <div className="p-2.5">
-                  <p className="truncate text-xs font-semibold text-foreground">{s.title}</p>
+                  <p className="truncate text-sm font-semibold text-foreground">{s.title}</p>
                   {s.subtitle && (
-                    <p className="mt-0.5 truncate text-[10px] text-muted-foreground">{s.subtitle}</p>
+                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{s.subtitle}</p>
                   )}
                   {/* Two lines, never one: cutting "you ordered this from X
                       before" down to "you ordered this from" explains
                       nothing and looks broken. */}
-                  <p className={"mt-1 flex items-start gap-1 text-[10px] leading-snug " + (TINT[s.kind] ?? "text-muted-foreground")}>
+                  <p className={"mt-1 flex items-start gap-1 text-[11px] leading-snug " + (TINT[s.kind] ?? "text-muted-foreground")}>
                     <Icon className="mt-[1px] h-2.5 w-2.5 flex-shrink-0" />
                     <span className="line-clamp-2">{s.reason}</span>
                   </p>
@@ -98,6 +104,7 @@ export function SuggestionsSection() {
           })}
         </div>
       )}
+      {!isLoading && !items.length && <p className="rounded-xl border border-dashed border-border p-5 text-sm text-muted-foreground">No suggestions in this group yet. Try For you or explore the catalogue.</p>}
     </section>
   )
 }

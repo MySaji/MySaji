@@ -5,7 +5,7 @@ import { runWeeklySubscriberDigest } from "@/backend/services/subscriber-digest-
 import { db } from "@/backend/db"
 import { publicProductWhere } from "@/backend/domain/public-catalog"
 import { sendEmail } from "@/backend/services/email"
-import { wrapEmailLayout, emailButton, siteOrigin, emailBrand } from "@/backend/services/email-templates"
+import { wrapEmailLayout, escapeEmailText, emailButton, siteOrigin, emailBrand } from "@/backend/services/email-templates"
 
 const SETTING_KEY = "lastSubscriberDigestAt"
 
@@ -68,9 +68,9 @@ function productCardHtml(p: DigestProduct, origin: string): string {
   const productUrl = `${origin}/customer/products/${p.id}`
   const image = safeImage(p.image)
   const imageHtml = image
-    ? `<img src="${image}" width="260" height="150" alt="${p.name}" style="display:block;width:100%;height:150px;object-fit:cover;background:#f3f4f6;" />`
+    ? `<img src="${image}" width="260" height="150" alt="${escapeEmailText(p.name)}" style="display:block;width:100%;height:150px;object-fit:cover;background:#f3f4f6;" />`
     : `<div style="width:100%;height:150px;background:#f3f4f6;text-align:center;line-height:150px;">
-        <span style="font-size:34px;font-weight:800;color:#9ca3af;">${p.name.charAt(0).toUpperCase()}</span>
+        <span style="font-size:34px;font-weight:800;color:#9ca3af;">${escapeEmailText(p.name.charAt(0).toUpperCase())}</span>
       </div>`
 
   return `
@@ -79,8 +79,8 @@ function productCardHtml(p: DigestProduct, origin: string): string {
       <tr>
         <td style="background:${emailBrand.dark};padding:12px 14px;">
           <span style="display:inline-block;font-size:10px;font-weight:700;letter-spacing:0.02em;padding:2px 9px;border-radius:999px;margin-bottom:6px;${BADGE_STYLE[p.badge]}">${p.badge.toUpperCase()}</span>
-          <div style="font-weight:600;color:#ffffff;font-size:14px;margin:2px 0;">${p.name}</div>
-          <div style="color:#93a5c9;font-size:12px;margin-bottom:10px;">${p.shopName}</div>
+          <div style="font-weight:600;color:#ffffff;font-size:14px;margin:2px 0;">${escapeEmailText(p.name)}</div>
+          <div style="color:#93a5c9;font-size:12px;margin-bottom:10px;">${escapeEmailText(p.shopName)}</div>
           <div style="margin-bottom:12px;">${priceHtml(p)}</div>
           <a href="${productUrl}" style="display:inline-block;background:${emailBrand.gold};color:${emailBrand.goldText};padding:8px 14px;text-decoration:none;border-radius:6px;font-weight:700;font-size:12px;">Shop Now</a>
         </td>

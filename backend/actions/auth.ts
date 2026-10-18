@@ -7,6 +7,7 @@ import { db } from "@/backend/db"
 import { buildProviderSlug } from "@/backend/domain/provider-slug"
 import { hashPassword } from "@/backend/services/password"
 import { ROLE_APP_TO_DB } from "@/backend/services/role-map"
+import { wrapEmailLayout, otpCodeBlock } from "@/backend/services/email-templates"
 import { sendEmail } from "@/backend/services/email"
 import { checkRateLimit, getClientIp } from "@/backend/services/rate-limit"
 import { checkKycDuplicate, buildKycDedupeFields, KYC_DUPLICATE_ERROR } from "@/backend/services/kyc-duplicate-check"
@@ -365,7 +366,7 @@ export async function requestPasswordReset(input: unknown): Promise<RequestPassw
   const emailResult = await sendEmail({
     to: email,
     subject: "Your SAJI password reset code",
-    html: `<p>Your password reset code is <strong>${code}</strong>. It expires in 10 minutes. If you didn't request this, you can ignore this email.</p>`,
+    html: wrapEmailLayout({ title: "Reset your MySaji password", previewText: "Your password reset code expires in 10 minutes.", bodyHtml: `<p>Use this code to reset your password. It expires in 10 minutes.</p>${otpCodeBlock(code)}<p>If you did not request a password reset, ignore this message and keep your current password private.</p>` }),
   })
 
   if (emailResult.sent) return { success: true, emailed: true }

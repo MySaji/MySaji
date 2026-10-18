@@ -22,7 +22,7 @@ const POLL_INTERVAL_MS = 5000
  * (see components/floating-chat-button.tsx), or a full page (app/chatbot/
  * page.tsx, kept as a direct-link fallback). This component just fills
  * whatever box it's given. */
-export function ChatbotWidget({ onClose }: { onClose: () => void }) {
+export function ChatbotWidget({ onClose, initialPrompt = "" }: { onClose: () => void; initialPrompt?: string }) {
   const router = useRouter()
   const { user } = useAuthContext()
 
@@ -31,7 +31,8 @@ export function ChatbotWidget({ onClose }: { onClose: () => void }) {
   const [status, setStatus] = useState<"ACTIVE" | "ESCALATED" | "CLOSED">("ACTIVE")
   const [assignedStaffName, setAssignedStaffName] = useState<string | null>(null)
   const [messages, setMessages] = useState<ChatbotMessageItem[]>([])
-  const [inputValue, setInputValue] = useState("")
+  const [inputValue, setInputValue] = useState(initialPrompt)
+  useEffect(() => { if (initialPrompt) setInputValue(initialPrompt) }, [initialPrompt])
   const [isSending, setIsSending] = useState(false)
   const [sendError, setSendError] = useState("")
   const [isEscalating, setIsEscalating] = useState(false)

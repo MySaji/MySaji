@@ -1,5 +1,7 @@
 "use client"
 
+import { WorkspaceTools } from "@/frontend/components/workspace-tools"
+
 import type React from "react"
 
 import { useEffect, useState } from "react"
@@ -34,11 +36,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+    <div data-workspace="admin" className="flex h-screen bg-gray-50 dark:bg-gray-900">
       <AdminSidebar />
       <div className="flex flex-col flex-1 overflow-hidden">
         <AdminHeader />
         <main className="flex-1 overflow-auto pb-20 lg:pb-0">
+          <WorkspaceTools name="Administration" />
           <div className="container mx-auto p-4 lg:p-8">{children}</div>
         </main>
         <AdminMobileNav />
