@@ -1,7 +1,8 @@
 "use client"
 
-import { useEffect, useRef } from "react"
-import useSWR from "swr"
+import { useEffect, useRef, useState } from "react"
+import useSWR, { useSWRConfig } from "swr"
+import { useAuthContext } from "@/frontend/lib/auth-context"
 import {
   getNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead, deleteNotification,
   type NotificationItem,
@@ -18,12 +19,15 @@ import { playNotificationSound } from "@/frontend/lib/notification-sound"
 const UNREAD_COUNT_REFRESH_MS = 30000
 
 export function useNotificationBell(limit: number = 10, enabled: boolean = true) {
-  const { data: notificationsData, mutate: mutateNotifications } = useSWR(
-    enabled ? ["notifications", limit] : null,
-    ([, n]: [string, number]) => getNotifications(n),
+  const { user } = useAuthContext()
+  const { mutate: mutateCache } = useSWRConfig()
+  const [actionError, setActionError] = useState("")
+  const { data: notificationsData, mutate: mutateNotifications, error, isLoading } = useSWR(
+    enabled && user?.id ? ["notifications", limit, user.id] : null,
+    ([, n]: [string, number, string]) => getNotifications(n),
   )
   const { data: unreadCountData, mutate: mutateUnreadCount } = useSWR(
-    enabled ? "unread-notification-count" : null,
+    enabled && user?.id ? ["unread-notification-count", user.id] : null,
     getUnreadNotificationCount,
     { refreshInterval: UNREAD_COUNT_REFRESH_MS, revalidateOnFocus: true },
   )
@@ -39,18 +43,19 @@ export function useNotificationBell(limit: number = 10, enabled: boolean = true)
   // and a poll just found a genuinely new unread notification. Skips the
   // very first load (nothing "arrived", it was just already there) and
   // any decrease (marking things read).
-  const previousUnreadRef = useRef<number | null>(null)
+  const previousUnreadRef = useRef<{ userId: string; notifications: number; messages: number } | null>(null)
   useEffect(() => {
     if (unreadCountData === undefined) return
-    if (previousUnreadRef.current !== null && unreadCount > previousUnreadRef.current) {
+    if (previousUnreadRef.current && previousUnreadRef.current.userId === user?.id && (unreadCount > previousUnreadRef.current.notifications || unreadMessages > previousUnreadRef.current.messages)) {
       playNotificationSound()
+      void mutateNotifications()
     }
-    previousUnreadRef.current = unreadCount
-  }, [unreadCountData])
+    previousUnreadRef.current = user?.id ? { userId: user.id, notifications: unreadCount, messages: unreadMessages } : null
+  }, [unreadCountData, user?.id, unreadCount, unreadMessages, mutateNotifications])
 
   const refreshNotifications = () => {
-    mutateNotifications()
-    mutateUnreadCount()
+    void mutateCache(key => Array.isArray(key) && key[0] === "notifications" && key[2] === user?.id)
+    void mutateUnreadCount()
   }
 
   const markRead = async (notification: NotificationItem) => {
@@ -60,24 +65,36 @@ export function useNotificationBell(limit: number = 10, enabled: boolean = true)
       (current) => ({ notifications: Math.max(0, (current?.notifications ?? 1) - 1), messages: current?.messages ?? 0 }),
       { revalidate: false },
     )
+    setActionError("")
+    try {
     const result = await markNotificationRead({ id: notification.id })
-    if (!result.success) refreshNotifications()
+    if (!result.success) { setActionError(result.error); refreshNotifications() }
+    else refreshNotifications()
+    } catch { setActionError("This change could not be saved. Please try again."); refreshNotifications() }
   }
 
   const markAllRead = async () => {
     mutateNotifications((current) => current?.map((n) => ({ ...n, isRead: true })), { revalidate: false })
     // Marking notifications read must not clear the chat badge with them.
     mutateUnreadCount((current) => ({ notifications: 0, messages: current?.messages ?? 0 }), { revalidate: false })
+    setActionError("")
+    try {
     const result = await markAllNotificationsRead()
-    if (!result.success) refreshNotifications()
+    if (!result.success) { setActionError(result.error); refreshNotifications() }
+    else refreshNotifications()
+    } catch { setActionError("This change could not be saved. Please try again."); refreshNotifications() }
   }
 
   const remove = async (id: string) => {
     mutateNotifications((current) => current?.filter((n) => n.id !== id), { revalidate: false })
+    setActionError("")
+    try {
     const result = await deleteNotification({ id })
-    if (!result.success) refreshNotifications()
+    if (!result.success) { setActionError(result.error); refreshNotifications() }
+    else refreshNotifications()
+    } catch { setActionError("This change could not be saved. Please try again."); refreshNotifications() }
   }
 
   return {
-    unreadMessages, notifications, unreadCount, refreshNotifications, markRead, markAllRead, remove }
+    isLoading, error, actionError, unreadMessages, notifications, unreadCount, refreshNotifications, markRead, markAllRead, remove }
 }

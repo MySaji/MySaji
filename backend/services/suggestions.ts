@@ -35,6 +35,12 @@ import { describeDistance, NEIGHBOURHOOD_KM } from "@/backend/services/proximity
  */
 
 export type SuggestionKind =
+  /** Bought on a rhythm, and that rhythm says now. */
+  | "DUE_AGAIN"
+  /** Usually bought with something they just bought. */
+  | "GOES_WITH"
+  /** Saved or looked at while out of stock, and back on the shelf. */
+  | "BACK_IN_STOCK"
   | "REORDER"
   | "SAVED"
   | "VIEWED"
@@ -66,6 +72,14 @@ export type Suggestion = {
  * wide: a tap costs nothing and money costs money.
  */
 const WEIGHT: Record<SuggestionKind, number> = {
+  // Above a plain reorder: "you buy this every month and it has been five
+  // weeks" is a better answer than "you bought this once". The rhythm is
+  // evidence the customer themselves created, twice over.
+  DUE_AGAIN: 120,
+  // Above a saved item but below their own buying habits: it is a real
+  // signal, but it is other people's.
+  BACK_IN_STOCK: 85,
+  GOES_WITH: 60,
   REORDER: 100,
   SAVED: 70,
   FROM_SHOP_YOU_USE: 55,
@@ -119,6 +133,16 @@ export type SuggestionContext = {
   userId: string
   origin: Coordinates | null
   limit: number
+  /**
+   * Kinds this surface does not want.
+   *
+   * Explore is for finding something new, so the reorder-shaped cards are
+   * dropped there: a customer who went looking is not asking to be shown the
+   * cooking oil they already buy. Home keeps them, because that is exactly
+   * what home is for. The alternative, a second engine, would have meant two
+   * places to fix the same ranking bug.
+   */
+  exclude?: SuggestionKind[]
 }
 
 /**
@@ -163,7 +187,7 @@ export async function buildSuggestions(ctx: SuggestionContext): Promise<Suggesti
           select: {
             id: true, name: true, price: true, discountPrice: true, images: true, isActive: true,
             shopkeeper: { select: { shopName: true, listedOnMarketplace: true } },
-            inventory: { select: { currentStock: true } },
+            inventory: { select: { currentStock: true, lastRestockedAt: true } },
           },
         },
       },
@@ -183,6 +207,76 @@ export async function buildSuggestions(ctx: SuggestionContext): Promise<Suggesti
     if (seen.has(s.href)) return
     seen.add(s.href)
     out.push(s)
+  }
+
+  // NOTE ON ORDER: push() dedupes by href, so the FIRST block to claim a
+  // product owns its card. The rhythm signal therefore has to run before the
+  // plain reorder, or "you buy this every 30 days and it has been 40" loses
+  // to "you bought this before" and the stronger card never appears. It cost
+  // a confusing test failure to find; the weights say DUE_AGAIN outranks
+  // REORDER and the ordering here has to agree with them.
+
+  // ---- things bought on a rhythm, now due ---------------------------------
+  //
+  // The strongest signal the customer can generate, because they generated it
+  // more than once. Somebody who has bought cooking oil three times at
+  // roughly four-week intervals, five weeks ago, does not need to be told it
+  // exists: they need to be told it is due.
+  //
+  // TWO purchases is not a rhythm, it is a coincidence; three is the least
+  // that can establish an interval and a deviation from it. Anything shorter
+  // would turn "I bought this twice" into a confident claim about somebody's
+  // household, which is the kind of thing that makes a feed feel invented.
+  {
+    const byProduct = new Map<string, { at: Date; name: string; image: string | null; shopName: string }[]>()
+    for (const order of orders) {
+      for (const item of order.items) {
+        const product = item.product
+        if (!product || !product.isActive || !product.shopkeeper.listedOnMarketplace) continue
+        const list = byProduct.get(product.id) ?? []
+        list.push({
+          at: order.createdAt,
+          name: product.name,
+          image: product.images[0] ?? null,
+          shopName: product.shopkeeper.shopName,
+        })
+        byProduct.set(product.id, list)
+      }
+    }
+
+    const DAY = 86400000
+    for (const [productId, buys] of byProduct) {
+      if (buys.length < 3) continue
+      const times = buys.map((b) => b.at.getTime()).sort((a, b) => a - b)
+
+      const gaps: number[] = []
+      for (let i = 1; i < times.length; i++) gaps.push(times[i] - times[i - 1])
+      const averageGap = gaps.reduce((a, g) => a + g, 0) / gaps.length
+      // Under a week is not a shopping rhythm, it is a run of visits; over a
+      // year the interval says nothing useful about today.
+      if (averageGap < 7 * DAY || averageGap > 365 * DAY) continue
+
+      const sinceLast = Date.now() - times[times.length - 1]
+      // Only once they are actually near the mark. Nagging at half the
+      // interval is how a useful prompt becomes noise that gets ignored.
+      if (sinceLast < averageGap * 0.8) continue
+
+      const latest = buys[buys.length - 1]
+      const days = Math.round(sinceLast / DAY)
+      const every = Math.round(averageGap / DAY)
+      push({
+        id: "due-" + productId,
+        kind: "DUE_AGAIN",
+        title: latest.name,
+        subtitle: latest.shopName,
+        image: latest.image,
+        href: "/customer/products/" + productId,
+        reason: "You buy this about every " + every + " days. It has been " + days + ".",
+        // Further past due ranks higher, but capped: something six months
+        // overdue is probably no longer part of the household, not urgent.
+        score: WEIGHT.DUE_AGAIN * Math.min(1.5, sinceLast / averageGap),
+      })
+    }
   }
 
   // ---- bought before -----------------------------------------------------
@@ -212,6 +306,36 @@ export async function buildSuggestions(ctx: SuggestionContext): Promise<Suggesti
     if (!p || !p.isActive || !p.shopkeeper.listedOnMarketplace) continue
     const outOfStock = (p.inventory?.currentStock ?? 0) <= 0
     const onOffer = p.discountPrice != null && Number(p.discountPrice) < Number(p.price)
+
+    // Back on the shelf, rather than merely in stock.
+    //
+    // There is no history of "this was out of stock", so the evidence is a
+    // restock that happened AFTER they saved it: they saved something, the
+    // shop later took a delivery, and it is available now. That is a real
+    // event worth telling somebody about, and distinguishing it from "you
+    // saved this" matters because one is news and the other is a reminder.
+    const restockedAt = p.inventory?.lastRestockedAt ?? null
+    const FOURTEEN_DAYS = 14 * 86400000
+    const backInStock =
+      !outOfStock &&
+      !!restockedAt &&
+      restockedAt > w.createdAt &&
+      Date.now() - restockedAt.getTime() < FOURTEEN_DAYS
+
+    if (backInStock) {
+      push({
+        id: "restock-" + p.id,
+        kind: "BACK_IN_STOCK",
+        title: p.name,
+        subtitle: p.shopkeeper.shopName,
+        image: p.images[0] ?? null,
+        href: "/customer/products/" + p.id,
+        reason: "You saved this, and it is back on the shelf",
+        score: WEIGHT.BACK_IN_STOCK,
+      })
+      continue
+    }
+
     push({
       id: "saved-" + p.id,
       kind: "SAVED",
@@ -324,6 +448,71 @@ export async function buildSuggestions(ctx: SuggestionContext): Promise<Suggesti
     }
   }
 
+  // ---- what goes with what they just bought --------------------------------
+  //
+  // The one genuinely collaborative signal here: other people's baskets. Kept
+  // narrow on purpose, to the single most recent order, because "customers
+  // who bought X also bought Y" across a whole history degenerates into
+  // recommending the shop's best sellers to everybody, which POPULAR_LOCAL
+  // already does and says so honestly.
+  if (out.length < ctx.limit && orders.length > 0) {
+    const lastOrder = orders[0]
+    const seedIds = lastOrder.items
+      .map((i) => i.productId)
+      .filter((id): id is string => !!id)
+
+    if (seedIds.length > 0) {
+      const alsoIn = await db.orderItem.findMany({
+        where: {
+          order: { items: { some: { productId: { in: seedIds } } } },
+          productId: { notIn: seedIds },
+          product: { isActive: true, shopkeeper: { listedOnMarketplace: true } },
+        },
+        take: 40,
+        select: {
+          productId: true,
+          product: {
+            select: {
+              id: true, name: true, images: true,
+              shopkeeper: { select: { shopName: true } },
+            },
+          },
+        },
+      })
+
+      const tally = new Map<string, { count: number; name: string; image: string | null; shopName: string }>()
+      for (const row of alsoIn) {
+        if (!row.product) continue
+        const seen = tally.get(row.product.id)
+        if (seen) { seen.count++; continue }
+        tally.set(row.product.id, {
+          count: 1,
+          name: row.product.name,
+          image: row.product.images[0] ?? null,
+          shopName: row.product.shopkeeper.shopName,
+        })
+      }
+
+      const seedName = lastOrder.items.find((i) => i.product)?.product?.name
+      for (const [productId, info] of [...tally].sort((a, b) => b[1].count - a[1].count).slice(0, 4)) {
+        // One other basket is a coincidence, same as above.
+        if (info.count < 2) continue
+        push({
+          id: "with-" + productId,
+          kind: "GOES_WITH",
+          title: info.name,
+          subtitle: info.shopName,
+          image: info.image,
+          href: "/customer/products/" + productId,
+          reason: seedName
+            ? "Often bought with the " + seedName + " you ordered"
+            : "Often bought with your last order",
+          score: WEIGHT.GOES_WITH,
+        })
+      }
+    }
+  }
+
   // ---- what people around here are buying --------------------------------------
   //
   // The weakest signal, and last for that reason: it is about other people.
@@ -353,7 +542,10 @@ export async function buildSuggestions(ctx: SuggestionContext): Promise<Suggesti
     }
   }
 
-  return diversify(out.sort((a, b) => b.score - a.score), ctx.limit)
+  const wanted = ctx.exclude?.length
+    ? out.filter((o) => !ctx.exclude!.includes(o.kind))
+    : out
+  return diversify(wanted.sort((a, b) => b.score - a.score), ctx.limit)
 }
 
 /**

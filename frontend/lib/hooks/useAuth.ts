@@ -6,6 +6,7 @@ import { useSession, signIn as nextAuthSignIn, signOut as nextAuthSignOut, getSe
 import type { UserRole } from "@/backend/domain/types"
 import type { VerificationStatus } from "@/backend/services/verification-gate"
 import { clearSessionHeartbeat } from "@/frontend/lib/session-heartbeat"
+import { clearDevicePushSession } from "@/frontend/lib/device-push"
 
 export interface AuthUser {
   id: string
@@ -100,6 +101,7 @@ export function useAuth() {
 
   const logout = useCallback(async () => {
     suspendOfflineScope()
+    await Promise.race([clearDevicePushSession().catch(() => {}), new Promise(resolve => setTimeout(resolve, 3000))])
     await nextAuthSignOut({ redirect: false })
   }, [])
 

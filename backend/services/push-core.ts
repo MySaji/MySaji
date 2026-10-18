@@ -16,6 +16,7 @@ const CATEGORY_PREFERENCE_KEY: Partial<Record<string, keyof NotificationPreferen
 export async function pushToUser(userId: string, payload: PushPayload, category?: keyof typeof CATEGORY_PREFERENCE_KEY): Promise<void> {
   try {
     const user = await db.user.findUnique({ where: { id: userId } })
+    if (!user?.isActive || user.deletedAt) return
     const prefs = user?.notificationPreferences as Partial<NotificationPreferences> | null
     if (prefs?.pushNotifications === false) return
     const categoryKey = category ? CATEGORY_PREFERENCE_KEY[category] : undefined
@@ -26,7 +27,7 @@ export async function pushToUser(userId: string, payload: PushPayload, category?
 
     await Promise.all(
       subs.map(async (sub) => {
-        const result = await sendWebPush(sub, payload)
+        const result = await sendWebPush(sub, { ...payload, recipientId: userId })
         if (result.expired) {
           await db.pushSubscription.delete({ where: { id: sub.id } }).catch(() => {})
         }

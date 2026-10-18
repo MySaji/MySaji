@@ -1,6 +1,7 @@
 "use client"
 
 import { Suspense, useCallback, useEffect, useRef, useState, type ChangeEvent } from "react"
+import { MAX_CHAT_FILE_BYTES, validChatAttachment, type ChatSendType } from "@/backend/domain/chat-media"
 import { useSearchParams } from "next/navigation"
 import Image from "next/image"
 import {
@@ -12,6 +13,8 @@ import { Button } from "@/frontend/components/ui/button"
 import { Input } from "@/frontend/components/ui/input"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/frontend/components/ui/dropdown-menu"
 import { NewConversationModal } from "@/frontend/components/messages/new-conversation-modal"
+import { Dialog, DialogContent, DialogTitle } from "@/frontend/components/ui/dialog"
+import { NotificationPreferencesCard } from "@/frontend/components/settings/notification-preferences-card"
 import { CallButton } from "@/frontend/components/messages/call-button"
 import { VoiceMessagePlayer } from "@/frontend/components/messages/voice-message-player"
 import { StaticLocationMap } from "@/frontend/components/maps/static-location-map"
@@ -68,9 +71,22 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
   const [searchQuery, setSearchQuery] = useState("")
   const [filter, setFilter] = useState<Filter>("all")
   const [showNewChat, setShowNewChat] = useState(false)
+  const [notificationControls, setNotificationControls] = useState(false)
+  const [confirmClear, setConfirmClear] = useState(false)
+  const [clearing, setClearing] = useState(false)
   const [callAutoStart, setCallAutoStart] = useState<number | undefined>(undefined)
 
   const [messageInput, setMessageInput] = useState("")
+  const [sendError, setSendError] = useState("")
+  const [loadError, setLoadError] = useState("")
+  const [isSending, setIsSending] = useState(false)
+  const sendingRef = useRef(false)
+  const recordingStarting = useRef(false)
+  const drafts = useRef(new Map<string, string>())
+  const activeChatRef = useRef<string | null>(null)
+  activeChatRef.current = activeChat
+  const [pendingAttachment, setPendingAttachment] = useState<{ type: ChatSendType; name: string; url: string } | null>(null)
+  const [threadQuery, setThreadQuery] = useState("")
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [showAttachMenu, setShowAttachMenu] = useState(false)
   // The message being replied to, and the one held to act on. Only ever one
@@ -100,14 +116,18 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
   const [isRecording, setIsRecording] = useState(false)
   const [recordingTime, setRecordingTime] = useState(0)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const nearBottom = useRef(true)
+  const [newMessagesBelow, setNewMessagesBelow] = useState(false)
+  const fetchingConversations = useRef(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const imageInputRef = useRef<HTMLInputElement>(null)
+  const recordingStream = useRef<MediaStream | null>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
   const recordingTimeRef = useRef(0)
   const recordingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const { messages, mutateMessages, isLoadingMessages } = useConversationMessages(activeChat)
+  const { messages, mutateMessages, isLoadingMessages, messagesError } = useConversationMessages(activeChat)
 
   /**
    * Size the shell to the space actually left on screen, so the page itself
@@ -136,7 +156,7 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
           bottomChrome = Math.max(bottomChrome, nav.offsetHeight)
         }
       })
-      setShellHeight(Math.max(360, window.innerHeight - top - bottomChrome))
+      setShellHeight(Math.max(200, (window.visualViewport?.height || window.innerHeight) - top - bottomChrome))
     }
 
     measure()
@@ -165,10 +185,24 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
 
   const emojiMap: Record<string, string> = { thumbsup: "👍", heart: "❤️", fire: "🔥", star: "⭐", wave: "👋", clap: "👏", check: "✅", "100": "💯", sparkle: "✨", pray: "🙏", muscle: "💪", smile: "😊" }
 
-  const refreshConversations = useCallback(() => getConversations().then(setConversations), [])
+  const refreshConversations = useCallback(async () => {
+    if (fetchingConversations.current) return
+    fetchingConversations.current = true
+    try { setConversations(await getConversations()); setLoadError("") }
+    catch { setLoadError("Conversations could not be loaded. Refresh to try again.") }
+    finally { fetchingConversations.current = false }
+  }, [])
 
   useEffect(() => {
-    refreshConversations().finally(() => setIsLoading(false))
+    let cancelled = false, timer: ReturnType<typeof setTimeout>
+    const poll = async () => {
+      if (!document.hidden) await refreshConversations()
+      if (!cancelled) { setIsLoading(false); timer = setTimeout(poll, 10000) }
+    }
+    void poll()
+    const focus = () => { void refreshConversations() }
+    window.addEventListener("focus", focus)
+    return () => { cancelled = true; clearTimeout(timer); window.removeEventListener("focus", focus) }
   }, [refreshConversations])
 
   // Only fetched when the tab is actually opened — most sessions never look
@@ -199,7 +233,28 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams])
 
-  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }) }, [messages])
+  useEffect(() => {
+    if (threadQuery) return
+    if (nearBottom.current || messages[messages.length - 1]?.isMine) messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+    else setNewMessagesBelow(true)
+  }, [messages, threadQuery])
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("saji:chat-open", { detail: activeChat }))
+    nearBottom.current = true; setNewMessagesBelow(false)
+    setPendingAttachment(null); setSendError(""); setReplyTo(null); setMessageInput(activeChat ? drafts.current.get(activeChat) || "" : ""); setThreadQuery("")
+    recordingStream.current?.getTracks().forEach(track => track.stop())
+    const recorder = mediaRecorderRef.current
+    if (recorder && recorder.state !== "inactive") { recorder.onstop = null; recorder.stop(); recorder.stream.getTracks().forEach(track => track.stop()) }
+    if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current)
+    setIsRecording(false)
+  }, [activeChat])
+  useEffect(() => () => {
+    window.dispatchEvent(new CustomEvent("saji:chat-open", { detail: null }))
+    recordingStream.current?.getTracks().forEach(track => track.stop())
+    const recorder = mediaRecorderRef.current
+    if (recorder) { recorder.onstop = null; if (recorder.state !== "inactive") recorder.stop(); recorder.stream.getTracks().forEach(track => track.stop()) }
+    if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current)
+  }, [])
 
   // Whether this person is blocked is per-conversation, so it is re-read
   // whenever the open chat changes rather than being assumed from the last.
@@ -218,18 +273,22 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
 
   const resetFilters = () => { setSearchQuery(""); setFilter("all") }
 
-  const doSend = async (type: ChatMessage["type"], content?: string, attachmentUrl?: string) => {
-    if (!activeChat) return
-    // Captured before the await so a quote can't attach to a later message if
-    // the user starts another one while this is in flight.
+  const doSend = async (type: ChatSendType, content?: string, attachmentUrl?: string) => {
+    if (!activeChat || sendingRef.current) return false
+    const conversationId = activeChat
     const quotedId = replyTo?.id
-    setReplyTo(null)
-    setShowAttachMenu(false)
-    const result = await sendMessage({ conversationId: activeChat, type: type as any, content, attachmentUrl, replyToId: quotedId })
-    if (result.success) {
-      mutateMessages((prev) => [...(prev ?? []), result.message], { revalidate: false })
-      refreshConversations()
-    }
+    sendingRef.current = true; setIsSending(true); setSendError("")
+    try {
+      const result = await sendMessage({ conversationId, type, content, attachmentUrl, replyToId: quotedId })
+      if (!result.success) { if (activeChatRef.current === conversationId) setSendError(result.error); return false }
+      if (activeChatRef.current === conversationId) {
+        setReplyTo(null); setShowAttachMenu(false)
+        await mutateMessages((prev) => [...(prev ?? []).filter(message => message.id !== result.message.id), result.message], { revalidate: false })
+      }
+      void refreshConversations()
+      return true
+    } catch { if (activeChatRef.current === conversationId) setSendError("Delivery could not be confirmed. Your draft is kept. Check the thread before retrying."); return false }
+    finally { sendingRef.current = false; setIsSending(false) }
   }
 
   const handleDeleteConversation = async () => {
@@ -270,31 +329,27 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
 
   const handleSendText = async () => {
     const trimmed = messageInput.trim()
-    if (!trimmed || !activeChat) return
-    setMessageInput("")
-    setShowEmojiPicker(false)
-    await doSend("TEXT", trimmed)
+    if (!trimmed || !activeChat || isSending) return
+    const conversation = activeChat
+    if (await doSend("TEXT", trimmed) && activeChatRef.current === conversation) { drafts.current.delete(conversation); setMessageInput(current => current.trim() === trimmed ? "" : current); setShowEmojiPicker(false) }
   }
 
-  const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onloadend = () => doSend("IMAGE", file.name, reader.result as string)
-      reader.readAsDataURL(file)
+  const prepareFile = (file: File | undefined, type: "IMAGE" | "FILE") => {
+    if (!file) return
+    if (file.size > MAX_CHAT_FILE_BYTES) { setSendError("This file is too large. Choose a file up to 5 MB."); return }
+    const conversation = activeChat
+    const reader = new FileReader()
+    reader.onerror = () => setSendError("This file could not be read. Try selecting it again.")
+    reader.onload = () => {
+      if (activeChatRef.current !== conversation) return
+      const url = String(reader.result)
+      if (!validChatAttachment(type, url)) { setSendError("Unsupported file format. Choose a photo, PDF, Office document, ZIP or text file."); return }
+      setSendError(""); setShowAttachMenu(false); setPendingAttachment({ type, name: file.name, url })
     }
-    e.target.value = ""
+    reader.readAsDataURL(file)
   }
-
-  const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onloadend = () => doSend("FILE", `${file.name} (${(file.size / 1024).toFixed(1)} KB)`, reader.result as string)
-      reader.readAsDataURL(file)
-    }
-    e.target.value = ""
-  }
+  const handleImageUpload = (event: ChangeEvent<HTMLInputElement>) => { prepareFile(event.target.files?.[0], "IMAGE"); event.target.value = "" }
+  const handleFileUpload = (event: ChangeEvent<HTMLInputElement>) => { prepareFile(event.target.files?.[0], "FILE"); event.target.value = "" }
 
   const handleShareLocation = () => {
     if (!navigator.geolocation) return
@@ -305,22 +360,35 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
   }
 
   const handleStartRecording = async () => {
+    if (recordingStarting.current || isRecording || isSending) return
+    recordingStarting.current = true
     try {
+      if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") { setSendError("Voice notes need microphone support and HTTPS. Try a supported browser."); return }
+      const conversation = activeChat
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const mediaRecorder = new MediaRecorder(stream)
+      recordingStream.current = stream
+      if (activeChatRef.current !== conversation) { stream.getTracks().forEach(track => track.stop()); return }
+      const mimeType = ["audio/webm;codecs=opus", "audio/mp4", "audio/ogg;codecs=opus"].find(type => MediaRecorder.isTypeSupported(type))
+      const mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
       mediaRecorderRef.current = mediaRecorder
       audioChunksRef.current = []
       recordingTimeRef.current = 0
       setRecordingTime(0)
-      recordingIntervalRef.current = setInterval(() => { recordingTimeRef.current += 1; setRecordingTime(recordingTimeRef.current) }, 1000)
+      recordingIntervalRef.current = setInterval(() => { recordingTimeRef.current += 1; setRecordingTime(recordingTimeRef.current); if (recordingTimeRef.current >= 120) { mediaRecorder.stop(); setIsRecording(false) } }, 1000)
       mediaRecorder.ondataavailable = (event) => audioChunksRef.current.push(event.data)
+      mediaRecorder.onerror = () => { mediaRecorder.onstop = null; stream.getTracks().forEach(track => track.stop()); if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current); setIsRecording(false); setSendError("Voice recording failed. Please try again.") }
       mediaRecorder.onstop = () => {
         const minutes = Math.floor(recordingTimeRef.current / 60)
         const seconds = recordingTimeRef.current % 60
         const label = t("chat.voiceMessageLabel", { time: `${minutes}:${seconds.toString().padStart(2, "0")}` })
-        const blob = new Blob(audioChunksRef.current, { type: "audio/webm" })
+        const blob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType || "audio/webm" })
         const reader = new FileReader()
-        reader.onloadend = () => doSend("VOICE", label, reader.result as string)
+        reader.onloadend = () => {
+          if (activeChatRef.current !== conversation) return
+          const url = String(reader.result)
+          if (blob.size > MAX_CHAT_FILE_BYTES || !validChatAttachment("VOICE", url)) { setSendError("Voice note is too large or unsupported. Record a shorter note."); return }
+          setPendingAttachment({ type: "VOICE", name: label, url })
+        }
         reader.readAsDataURL(blob)
         stream.getTracks().forEach((track) => track.stop())
         if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current)
@@ -328,16 +396,24 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
       mediaRecorder.start()
       setIsRecording(true)
     } catch {
-      alert(t("chat.allowMicrophone"))
-    }
+      recordingStream.current?.getTracks().forEach(track => track.stop())
+      setSendError(t("chat.allowMicrophone"))
+    } finally { recordingStarting.current = false }
   }
-  const handleStopRecording = () => { mediaRecorderRef.current?.stop(); setIsRecording(false) }
+  const handleStopRecording = () => { if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop(); setIsRecording(false) }
+  const cancelRecording = () => {
+    recordingStream.current?.getTracks().forEach(track => track.stop())
+    const recorder = mediaRecorderRef.current
+    if (recorder) { recorder.onstop = null; if (recorder.state !== "inactive") recorder.stop(); recorder.stream.getTracks().forEach(track => track.stop()) }
+    if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current)
+    setIsRecording(false)
+  }
 
   const handleMenuAction = async (action: "mute" | "block" | "report" | "clear") => {
     if (!activeChat) return
     if (action === "clear") {
-      await clearConversation({ conversationId: activeChat })
-      mutateMessages([], { revalidate: false })
+      setSendError("")
+      setConfirmClear(true)
       return
     }
     if (action === "report") { setReportReason(""); setShowReport(true); return }
@@ -352,7 +428,7 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
       if (!result.success) setIsBlocked(!next)
       return
     }
-    alert(t("chat.notificationsMuted"))
+    setNotificationControls(true)
   }
 
   const handleSubmitReport = async () => {
@@ -379,7 +455,7 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
     <div
       ref={shellRef}
       style={shellHeight ? { height: shellHeight } : undefined}
-      className="-mb-36 flex w-full flex-col overflow-hidden bg-[#F4F5FB] dark:bg-slate-950 lg:-mb-24"
+      className="-mb-36 flex w-full flex-col overflow-hidden bg-[#f3f6fc] dark:bg-slate-950 lg:-mb-24"
     >
       {/* Page header — spans both panels. Hidden on a phone once a
           conversation is open: there the thread replaces the inbox rather
@@ -392,12 +468,14 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
             <h1 className="text-2xl font-extrabold tracking-tight text-foreground">{t("chat.title")}</h1>
             <p className="text-sm text-muted-foreground">{t("chat.subtitle")}</p>
           </div>
-          <Button onClick={() => setShowNewChat(true)} className="gap-1.5 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 px-4 text-white shadow-md hover:from-blue-700 hover:to-indigo-700">
+          <Button onClick={() => setShowNewChat(true)} className="gap-1.5 rounded-full bg-gradient-to-r from-blue-700 to-blue-700 px-4 text-white shadow-md hover:from-blue-700 hover:to-indigo-700">
             <Plus className="h-4 w-4" /> <span className="hidden sm:inline">{t("chat.newChat")}</span>
           </Button>
         </div>
       </div>
 
+      <Dialog open={notificationControls} onOpenChange={setNotificationControls}><DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl"><DialogTitle>Notification settings</DialogTitle><p className="text-sm text-muted-foreground">Account-wide categories and alerts for this device.</p><NotificationPreferencesCard /></DialogContent></Dialog>
+      <Dialog open={confirmClear} onOpenChange={open => { if (!clearing) setConfirmClear(open) }}><DialogContent><DialogTitle>Clear this conversation?</DialogTitle><p className="text-sm leading-7 text-muted-foreground">This removes its messages for both participants. The conversation remains available for new messages.</p>{sendError && <p role="alert" className="text-sm text-red-700">{sendError}</p>}<div className="flex gap-2"><Button variant="outline" disabled={clearing} onClick={() => setConfirmClear(false)}>Keep messages</Button><Button variant="destructive" disabled={clearing} onClick={async () => { if (!activeChat) return; setClearing(true); try { const result = await clearConversation({ conversationId: activeChat }); if (!result.success) { setSendError("Messages could not be cleared. Try again."); return } await mutateMessages([], { revalidate: false }); setConfirmClear(false); void refreshConversations() } catch { setSendError("Messages could not be cleared. Check your connection.") } finally { setClearing(false) } }}>{clearing ? "Clearing..." : "Clear messages"}</Button></div></DialogContent></Dialog>
       <div className="flex min-h-0 flex-1">
         {showNewChat ? (
           <NewConversationModal
@@ -430,7 +508,7 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
                   key={id}
                   onClick={() => setFilter(id)}
                   className={`flex-shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
-                    filter === id ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm" : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    filter === id ? "bg-gradient-to-r from-blue-700 to-blue-700 text-white shadow-sm" : "bg-muted text-muted-foreground hover:bg-muted/80"
                   }`}
                 >
                   {label}
@@ -440,6 +518,7 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
           </div>
 
           <div className="flex-1 overflow-y-auto">
+            {loadError && <div role="alert" className="p-4 text-sm text-red-700">{loadError}<button className="ml-2 underline" onClick={() => void refreshConversations()}>Refresh</button></div>}
             {filter === "calls" ? (
               calls.length === 0 ? (
                 <div className="p-8 text-center text-sm text-muted-foreground">{t("chat.noCalls")}</div>
@@ -497,11 +576,11 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
                   </div>
                 </div>
                 <div className="flex flex-shrink-0 items-center gap-1">
-                  <CallButton conversationId={activeChat} otherUserName={selectedChat.name} otherUserAvatar={selectedChat.avatar} autoStartToken={callAutoStart} />
+                  <CallButton conversationId={isBlocked ? null : activeChat} otherUserName={selectedChat.name} otherUserAvatar={selectedChat.avatar} autoStartToken={callAutoStart} />
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild><button aria-label={t("common.moreOptions")} className="rounded-lg p-2 hover:bg-muted"><MoreVertical className="h-4 w-4 text-muted-foreground" /></button></DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleMenuAction("mute")}>{t("chat.mute")}</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleMenuAction("mute")}>Notification settings</DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleMenuAction("block")}>{isBlocked ? t("chat.unblock") : t("chat.block")}</DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleMenuAction("clear")}>{t("chat.clearChat")}</DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleMenuAction("report")} className="text-red-600 dark:text-red-400">{t("chat.report")}</DropdownMenuItem>
@@ -510,7 +589,8 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto px-3 py-4 sm:px-4">
+              <div className="border-b bg-card px-3 py-2 sm:px-4"><input type="search" aria-label="Search this conversation" value={threadQuery} onChange={event => setThreadQuery(event.target.value)} placeholder="Search messages and files in this conversation" className="h-10 w-full rounded-lg border bg-background px-3 text-sm" /></div>
+              <div onScroll={event => { const element = event.currentTarget; nearBottom.current = element.scrollHeight - element.scrollTop - element.clientHeight < 120; if (nearBottom.current) setNewMessagesBelow(false) }} className="flex-1 overflow-y-auto px-3 py-4 sm:px-4">
                 <div className="mx-auto mb-4 flex max-w-md items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-300">
                   <Lock className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
                   <p>{t("chat.privateNotice")}</p>
@@ -520,7 +600,7 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
                   <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
                 ) : (
                   <MessageList
-                    messages={messages}
+                    messages={messages.filter(message => !threadQuery.trim() || message.content?.toLowerCase().includes(threadQuery.trim().toLowerCase()))}
                     t={t}
                     onReply={(m) => setReplyTo(m)}
                     onHold={(m) => openOverlay(setSelectedMessage, m)}
@@ -530,6 +610,7 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
                 <div ref={messagesEndRef} />
               </div>
 
+              {newMessagesBelow && <button className="mx-auto my-2 rounded-full border bg-blue-700 px-4 py-2 text-xs font-semibold text-white" onClick={() => { nearBottom.current = true; setNewMessagesBelow(false); messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }) }}>New messages - jump to latest</button>}
               {isBlocked ? (
                 <div className="flex-shrink-0 border-t border-border/60 bg-card p-4 text-center">
                   <p className="text-xs font-semibold text-foreground">{t("chat.blockedTitle", { name: selectedChat.name })}</p>
@@ -550,8 +631,10 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
                   </div>
                 )}
 
-                <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.zip,.txt" />
-                <input type="file" ref={imageInputRef} onChange={handleImageUpload} className="hidden" accept="image/*" />
+                {(sendError || messagesError) && <p role="alert" className="mb-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">{sendError || "Messages could not be refreshed. Your existing messages are kept."}</p>}
+                {pendingAttachment && <div className="mb-3 rounded-xl border bg-card p-3"><div className="flex items-center justify-between gap-3"><p className="min-w-0 truncate text-sm font-semibold">{pendingAttachment.name}</p><button disabled={isSending} onClick={() => setPendingAttachment(null)} aria-label="Remove attachment" className="p-2"><X size={16} /></button></div>{pendingAttachment.type === "IMAGE" && <Image src={pendingAttachment.url} alt="Attachment preview" width={160} height={120} unoptimized className="mt-2 max-h-32 rounded-lg object-contain" />}{pendingAttachment.type === "VOICE" && <audio src={pendingAttachment.url} controls className="mt-2 w-full" />}<p className="mt-2 text-xs text-muted-foreground">Preview before sending. Maximum attachment size: 5 MB.</p><Button disabled={isSending} className="mt-3" onClick={async () => { const attachment = pendingAttachment; if (await doSend(attachment.type, attachment.name, attachment.url)) setPendingAttachment(current => current === attachment ? null : current) }}>{isSending ? "Sending..." : "Send attachment"}</Button></div>}
+                <input type="file" aria-label="Choose a document" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.zip,.txt" />
+                <input type="file" aria-label="Choose a photo" ref={imageInputRef} onChange={handleImageUpload} className="hidden" accept="image/*" />
 
                 {/* What you're replying to, with a way out of it. */}
                 {replyTo && (
@@ -604,6 +687,7 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
                   <div className="flex items-center gap-3 rounded-full bg-red-50 px-4 py-2.5 dark:bg-red-900/20">
                     <div className="h-2.5 w-2.5 animate-pulse rounded-full bg-red-500" />
                     <span className="flex-1 text-sm font-medium text-red-600 dark:text-red-400">{t("chat.recording", { time: `${Math.floor(recordingTime / 60)}:${(recordingTime % 60).toString().padStart(2, "0")}` })}</span>
+                    <button onClick={cancelRecording} aria-label="Discard voice recording" className="p-2 text-red-700"><Trash2 size={18} /></button>
                     <button onClick={handleStopRecording} aria-label={t("chat.stopRecording")} className="rounded-full bg-red-500 p-2 text-white hover:bg-red-600"><Send className="h-4 w-4" /></button>
                   </div>
                 ) : (
@@ -617,17 +701,18 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
                       <Paperclip className={`h-5 w-5 ${showAttachMenu ? "text-blue-600" : "text-muted-foreground"}`} />
                     </button>
                     <Input
+                      aria-label="Write a message" maxLength={6000} disabled={isSending}
                       value={messageInput}
-                      onChange={(e) => setMessageInput(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && handleSendText()}
+                      onChange={(e) => { setMessageInput(e.target.value); if (activeChat) drafts.current.set(activeChat, e.target.value) }}
+                      onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) { e.preventDefault(); void handleSendText() } }}
                       placeholder={t("chat.typeMessage")}
                       className="h-9 flex-1 border-0 bg-transparent px-1 shadow-none focus-visible:ring-0"
                     />
                     <button onClick={() => { setShowEmojiPicker((v) => !v); setShowAttachMenu(false) }} aria-label={t("chat.toggleEmoji")} className="flex-shrink-0 rounded-full p-2 hover:bg-background"><Smile className="h-5 w-5 text-muted-foreground" /></button>
                     {messageInput.trim() ? (
-                      <button onClick={handleSendText} aria-label={t("chat.sendMessage")} className="flex-shrink-0 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 p-2.5 text-white shadow-md"><Send className="h-4 w-4" /></button>
+                      <button disabled={isSending} onClick={handleSendText} aria-label={t("chat.sendMessage")} className="flex-shrink-0 rounded-full bg-gradient-to-r from-blue-700 to-blue-700 p-2.5 text-white shadow-md"><Send className="h-4 w-4" /></button>
                     ) : (
-                      <button onClick={handleStartRecording} aria-label={t("chat.startRecording")} className="flex-shrink-0 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 p-2.5 text-white shadow-md"><Mic className="h-4 w-4" /></button>
+                      <button onClick={handleStartRecording} aria-label={t("chat.startRecording")} className="flex-shrink-0 rounded-full bg-gradient-to-r from-blue-700 to-blue-700 p-2.5 text-white shadow-md"><Mic className="h-4 w-4" /></button>
                     )}
                   </div>
                 )}
@@ -636,7 +721,7 @@ function ClassicChatContent({ showRoleFilter }: { showRoleFilter: boolean }) {
             </>
           ) : (
             <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-lg"><ShieldCheck className="h-7 w-7" /></div>
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-blue-700 to-blue-700 text-white shadow-lg"><ShieldCheck className="h-7 w-7" /></div>
               <p className="text-sm text-muted-foreground">{t("chat.selectConversationPrompt")}</p>
             </div>
           )}
@@ -999,10 +1084,10 @@ function MessageRow({
           </button>
         )}
         {message.type === "FILE" && (
-          <div className="flex items-center gap-2 rounded-lg bg-black/5 px-2.5 py-2 dark:bg-white/10">
+          <a href={message.attachmentUrl || undefined} download={message.content || "attachment"} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 rounded-lg bg-black/5 px-2.5 py-2 underline dark:bg-white/10">
             <FileIcon className="h-4 w-4 flex-shrink-0" />
             <p className="truncate text-sm font-medium">{message.content}</p>
-          </div>
+          </a>
         )}
         {message.type === "VOICE" && (
           <VoiceMessagePlayer

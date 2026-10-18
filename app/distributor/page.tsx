@@ -1,6 +1,9 @@
 "use client"
 
 import useSWR from "swr"
+import { useState } from "react"
+import { useAuthContext } from "@/frontend/lib/auth-context"
+import { WorkflowGuide, WorkspaceRecovery, WorkspaceRefresh } from "@/frontend/components/workspace-panels"
 import {
   Package, ShoppingCart, DollarSign, Warehouse,
   Plus, Eye, Clock, AlertCircle,
@@ -42,8 +45,11 @@ const STATUS_KEY: Record<string, "distributor.common.statusPending" | "distribut
 
 export default function DistributorDashboard() {
   const { t, tn, formatMoney } = useLocalization()
-  const { data, isLoading } = useSWR(
-    "distributor-dashboard", () => withTimeout(getDistributorDashboard(), DASHBOARD_FETCH_TIMEOUT_MS),
+  const { user } = useAuthContext()
+  const [updatedAt, setUpdatedAt] = useState<number>()
+  const { data, isLoading, error, mutate, isValidating } = useSWR(
+    user?.id ? ["distributor-dashboard", user.id] : null, () => withTimeout(getDistributorDashboard(), DASHBOARD_FETCH_TIMEOUT_MS),
+    { onSuccess: () => setUpdatedAt(Date.now()) },
   )
 
   const formatRelative = (iso: string): string => {
@@ -54,6 +60,8 @@ export default function DistributorDashboard() {
     if (hours < 24) return tn("distributor.dashboard.hoursAgo", hours)
     return tn("distributor.dashboard.daysAgo", Math.round(hours / 24))
   }
+
+  if (error || (!isLoading && !data)) return <WorkspaceRecovery title="Supply workspace unavailable" retry={() => void mutate()} busy={isValidating} />
 
   if (isLoading || !data) {
     return (
@@ -88,7 +96,9 @@ export default function DistributorDashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <WorkspaceRefresh refreshing={isValidating} updatedAt={updatedAt} refresh={() => void mutate()} />
+      <WorkflowGuide title="Supply workspace" steps={[{ title: "Review incoming orders", description: "Check quantities, customers and current order status." },{ title: "Manage fulfilment", description: "Keep the order record current as goods move through fulfilment." },{ title: "Monitor performance", description: "Use the dashboard and reports to review recorded activity." }]} />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {kpis.map((kpi, idx) => {
             const Icon = kpi.icon
             const isPositive = kpi.change !== null && kpi.change >= 0

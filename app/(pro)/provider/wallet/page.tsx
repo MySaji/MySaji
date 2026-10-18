@@ -1,5 +1,10 @@
 "use client"
 
+import { CustomerWalletPage } from "@/frontend/components/pages/customer-wallet-page"
+import { useAuthContext } from "@/frontend/lib/auth-context"
+import { WalletLedger } from "@/frontend/components/payment/wallet-ledger"
+import { WorkspaceRecovery, WorkspaceRefresh } from "@/frontend/components/workspace-panels"
+import { csvCell } from "@/frontend/lib/wallet-ledger"
 import { useEffect, useState } from "react"
 import { WalletTopupMethods } from "@/frontend/components/payment/wallet-topup-methods"
 import {
@@ -18,6 +23,11 @@ import { useGatedAction } from "@/frontend/lib/hooks/useGatedAction"
 import type { TranslationKey } from "@/backend/domain/i18n"
 
 export default function ProviderWalletPage() {
+  const { user } = useAuthContext()
+  return user?.role === "shopkeeper" ? <CustomerWalletPage returnPath="/provider/wallet" /> : <ProviderWalletContent />
+}
+
+function ProviderWalletContent() {
   const { handleGateFailure } = useGatedAction()
   const { t, formatMoney, currency } = useLocalization()
 
@@ -38,6 +48,9 @@ export default function ProviderWalletPage() {
   const [isWithdrawing, setIsWithdrawing] = useState(false)
 
   const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
+  const [updatedAt, setUpdatedAt] = useState<number>()
   const [summary, setSummary] = useState<ProviderWalletSummary>(null)
   /**
    * Settling the commission.
@@ -50,7 +63,12 @@ export default function ProviderWalletPage() {
    */
   const [settling, setSettling] = useState(false)
 
-  const refresh = () => getProviderWalletSummary().then(setSummary)
+  const refresh = async () => {
+    setRefreshing(true); setLoadError(false)
+    try { const result = await getProviderWalletSummary(); setSummary(result); setLoadError(!result); setUpdatedAt(Date.now()) }
+    catch { setLoadError(true) }
+    finally { setRefreshing(false); setIsLoading(false) }
+  }
 
   useEffect(() => {
     refresh().finally(() => setIsLoading(false))
@@ -73,8 +91,8 @@ export default function ProviderWalletPage() {
     }
 
     setIsWithdrawing(true)
+    try {
     const result = await requestProviderWithdrawal({ amount, method: withdrawMethod, details: withdrawDetails })
-    setIsWithdrawing(false)
     if (!result.success) {
       // A verification refusal opens the wizard rather than leaving the user
       // with a message and nowhere to act on it.
@@ -87,6 +105,8 @@ export default function ProviderWalletPage() {
     setWithdrawAmount("")
     setWithdrawDetails("")
     await refresh()
+    } catch { setWithdrawError("The request could not be confirmed. Refresh your wallet before trying again.") }
+    finally { setIsWithdrawing(false) }
   }
 
   const handleDownloadStatement = () => {
@@ -94,7 +114,7 @@ export default function ProviderWalletPage() {
     const headers = ["Date", "Description", "Amount", "Status"]
     const rows = summary.transactions.map((tx) => [new Date(tx.date).toLocaleString(), tx.title, `${tx.type === 'credit' ? '+' : '-'} ${formatMoney(tx.amount)}`, tx.status])
     const csvContent = [[`Transaction Statement - ${new Date().toLocaleDateString()}`], [], headers, ...rows]
-    const csv = csvContent.map((row) => row.map((cell) => `"${cell}"`).join(",")).join("\n")
+    const csv = csvContent.map((row) => row.map(csvCell).join(",")).join("\n")
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
     const link = document.createElement("a")
     link.setAttribute("href", URL.createObjectURL(blob))
@@ -104,6 +124,8 @@ export default function ProviderWalletPage() {
     link.click()
     document.body.removeChild(link)
   }
+
+  if (loadError) return <WorkspaceRecovery title="Wallet unavailable" retry={() => void refresh()} busy={refreshing} />
 
   if (isLoading || !summary) {
     return (
@@ -116,7 +138,7 @@ export default function ProviderWalletPage() {
   const selectedWithdrawMethod = withdrawMethods.find((item) => item.id === withdrawMethod)
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(135deg,_rgba(240,253,250,1),_rgba(248,250,252,1))] pb-6 dark:bg-[linear-gradient(135deg,_rgba(2,6,23,1),_rgba(15,23,42,1))]">
+    <div className="min-h-screen bg-background pb-6 dark:bg-background">
       {/* ---- commission owed ---------------------------------------------
           Above the balance, and only when there is something to say. A
           provider who cannot take the next job needs to learn it here rather
@@ -190,7 +212,7 @@ export default function ProviderWalletPage() {
         </div>
       )}
 
-      <div className="bg-gradient-to-br from-emerald-600 via-teal-600 to-sky-600 p-6 text-white lg:rounded-b-3xl">
+      <div className="bg-[#063b97] p-6 text-white lg:rounded-b-3xl">
         <div className="mx-auto max-w-5xl">
           <div className="mb-6 flex items-start justify-between gap-4">
             <div>
@@ -232,11 +254,12 @@ export default function ProviderWalletPage() {
         <Card className="mb-4 border-0 p-2 shadow-lg">
           <div className="flex gap-1">
             {(['overview', 'transactions', 'escrow'] as const).map((tab) => (
-              <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-1 rounded-lg px-4 py-2.5 text-xs font-medium transition-all ${activeTab === tab ? 'bg-emerald-600 text-white shadow-md' : 'text-muted-foreground hover:bg-muted'}`}>{tab === 'overview' ? t("provider.wallet.tabOverview") : tab === 'transactions' ? t("provider.wallet.tabTransactions") : t("provider.wallet.tabEscrow")}</button>
+              <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-1 rounded-lg px-4 py-2.5 text-xs font-medium transition-all ${activeTab === tab ? 'bg-blue-700 text-white shadow-md' : 'text-muted-foreground hover:bg-muted'}`}>{tab === 'overview' ? t("provider.wallet.tabOverview") : tab === 'transactions' ? t("provider.wallet.tabTransactions") : t("provider.wallet.tabEscrow")}</button>
             ))}
           </div>
         </Card>
 
+        <WorkspaceRefresh refreshing={refreshing} updatedAt={updatedAt} refresh={() => void refresh()} />
         {activeTab === 'overview' && (
           <div className="space-y-4">
             <Card className="border-0 p-5 shadow-sm">
@@ -304,40 +327,7 @@ export default function ProviderWalletPage() {
           </div>
         )}
 
-        {activeTab === 'transactions' && (
-          <div className="space-y-3">
-            <Card className="border-0 p-4 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex gap-2">
-                  <Button size="sm" variant="outline">{t("provider.wallet.filterAll")}</Button>
-                  <Button size="sm" variant="ghost">{t("provider.wallet.filterIncome")}</Button>
-                  <Button size="sm" variant="ghost">{t("provider.wallet.filterExpenses")}</Button>
-                </div>
-                <Button size="sm" variant="outline"><Filter className="mr-1 h-4 w-4" />{t("common.filter")}</Button>
-              </div>
-            </Card>
-            {summary.transactions.length === 0 && (
-              <Card className="border-0 p-8 text-center shadow-sm"><p className="text-xs text-muted-foreground">{t("provider.wallet.noTransactionsYet")}</p></Card>
-            )}
-            {summary.transactions.map((transaction) => (
-              <Card key={transaction.id} className="border-0 p-4 shadow-sm">
-                <div className="flex items-center gap-4">
-                  <div className={`flex h-12 w-12 items-center justify-center rounded-full ${transaction.type === 'credit' ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}>
-                    {transaction.type === 'credit' ? <ArrowDownLeft className="h-6 w-6 text-emerald-600 dark:text-emerald-400" /> : <ArrowUpRight className="h-6 w-6 text-red-600 dark:text-red-400" />}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-foreground">{transaction.title}</p>
-                    <p className="mt-1 text-[11px] text-muted-foreground">{new Date(transaction.date).toLocaleString()}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className={`text-base font-bold ${transaction.type === 'credit' ? 'text-emerald-600' : 'text-red-600'}`}>{transaction.type === 'credit' ? '+' : '-'}{formatCurrency(transaction.amount)}</p>
-                    <span className={`mt-1 inline-flex items-center gap-1 text-[11px] ${transaction.status === 'completed' ? 'text-emerald-600' : 'text-amber-600'}`}>{transaction.status === 'completed' ? <CheckCircle2 className="h-3 w-3" /> : <Clock className="h-3 w-3" />}{transaction.status}</span>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-        )}
+        {activeTab === 'transactions' && <WalletLedger entries={summary.transactions.map(entry => ({ id: entry.id, description: entry.title, amount: entry.type === "credit" ? Math.abs(entry.amount) : -Math.abs(entry.amount), status: entry.status, date: entry.date }))} />}
 
         {activeTab === 'escrow' && (
           <div className="space-y-4">
@@ -406,7 +396,7 @@ export default function ProviderWalletPage() {
 
             {withdrawError && <div className="flex items-start gap-2 rounded-lg bg-red-50 p-3 text-xs text-red-700 dark:bg-red-900/20 dark:text-red-400"><AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" /><span>{withdrawError}</span></div>}
 
-            <Button className="h-12 w-full bg-emerald-600 hover:bg-emerald-700" disabled={!withdrawAmount || !withdrawMethod || isWithdrawing} onClick={handleWithdraw}>
+            <Button className="h-12 w-full bg-blue-700 hover:bg-blue-800" disabled={!withdrawAmount || !withdrawMethod || isWithdrawing} onClick={handleWithdraw}>
               {isWithdrawing ? <Loader2 className="h-4 w-4 animate-spin" /> : t("provider.wallet.confirmWithdrawal")}
             </Button>
           </div>

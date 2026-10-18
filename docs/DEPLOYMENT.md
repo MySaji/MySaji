@@ -41,6 +41,94 @@ The settlement migration marks existing completed payments as settled so old sub
 
 Use `DIRECT_URL` for migration operations. `DATABASE_URL` may use the application pooler. Avoid `db push --accept-data-loss` in production. Create future changes with `prisma migrate dev` against a development database and deploy reviewed migrations with `migrate deploy`.
 
+## Going live on a custom domain (mysaji.com)
+
+Most of the application already derives its public address from configuration
+rather than hard-coding it: `frontend/lib/seo.ts`, `robots.ts`, `sitemap.ts`
+and the email templates all read `NEXT_PUBLIC_SITE_URL` and already fall back
+to `https://mysaji.com`. So going live is mainly a configuration change, with
+a short list of external consoles that must be told the same thing.
+
+The failure mode to watch for is a **partial** change: sign-in works, and then
+a password-reset email links to the old host, or Safaricom posts a callback
+into the void. Everything below points at one origin or none of it does.
+
+### 1. Environment variables
+
+Set all of these to the same origin, with `https://`, no trailing slash, and
+one consistent host (pick `https://mysaji.com` or `https://www.mysaji.com` and
+redirect the other at the DNS or hosting layer; do not serve both).
+
+| Variable | Why it exists |
+| --- | --- |
+| `NEXT_PUBLIC_SITE_URL` | Canonical URLs, `robots.txt`, `sitemap.xml`, Open Graph tags. Browser-visible. |
+| `AUTH_URL` | The origin Auth.js pins requests to. Setting it also turns on `trustHost`. |
+| `NEXTAUTH_URL` | Compatibility alias read where `AUTH_URL` is absent. Set both. |
+| `CALLBACK_URL` | Payment gateway callbacks, and the remote `<img>` in every email. |
+| `MPESA_CALLBACK_ORIGIN` | Where Safaricom posts STK results. Refuses anything that is not public HTTPS. |
+| `EMAIL_SITE_URL` | Only if email links must differ from the site, which is unusual. Leave unset otherwise. |
+
+`backend/services/pos-mpesa-core.ts` throws rather than guessing if the M-Pesa
+origin is still localhost, so a forgotten value fails loudly at the point of
+connecting a merchant instead of silently losing callbacks.
+
+### 2. External consoles
+
+These live outside the repository and are the usual cause of "it worked in
+staging":
+
+- **Google OAuth** — add `https://mysaji.com/api/auth/callback/google` to the
+  authorised redirect URIs, and `https://mysaji.com` to the authorised
+  JavaScript origins. Keep the old entries until the cutover is proven.
+- **Safaricom Daraja** — the callback URL registered for the shortcode must be
+  the new origin. Per-shop POS callbacks are built from
+  `MPESA_CALLBACK_ORIGIN` at request time, so those follow the variable; the
+  platform-level registration does not.
+- **PayPal** — return and cancel URLs, and the webhook endpoint.
+- **SMTP / sending domain** — SPF, DKIM and DMARC records for `mysaji.com`, or
+  mail from the new domain lands in spam. `SMTP_FROM` should be on the domain
+  you authorise.
+- **Sentry** — add the new origin to the project's allowed domains so events
+  are not rejected.
+- **Google Tag Manager** — the container is keyed by domain in most setups.
+
+### 3. DNS and hosting
+
+- `A`/`AAAA` or `CNAME` for the apex and `www`, pointed at the host.
+- TLS certificate covering both names.
+- One of the two redirects to the other, permanently. Serving the same content
+  on both splits sessions, because a cookie set on one host is not sent to the
+  other.
+- `vercel.json` pins `regions: ["fra1"]` next to the eu-central-1 database.
+  That is about latency, not the domain, and does not change here.
+
+### 4. Things inside the repository worth checking
+
+- `public/manifest.json` and `public/till-manifest.json` use **relative**
+  `start_url` and `scope`, so they need no change. Installed copies of the POS
+  on an old host keep their old scope, which is correct: they were installed
+  from a different origin.
+- The POS service worker at `public/pos/sw.js` claims `/pos/`, also relative.
+- Nothing in `app/`, `backend/` or `frontend/` hard-codes a host except the
+  `https://mysaji.com` defaults in `frontend/lib/seo.ts` and
+  `backend/services/email-templates.ts`, which are already the intended value.
+
+### 5. Proving it
+
+After deploying, from outside the network:
+
+```sh
+curl -sI https://mysaji.com | head -1                 # 200, and www redirects
+curl -s  https://mysaji.com/robots.txt | grep -i sitemap
+curl -s  https://mysaji.com/sitemap.xml | head -3     # URLs on the new host
+curl -sI https://mysaji.com/manifest.json | head -1
+```
+
+Then exercise, in order: sign in with Google; trigger a password-reset email
+and check the link host; take one real M-Pesa payment and confirm the callback
+arrives. A sandbox STK push that never calls back is the single most common
+symptom of a missed value here, and it is silent.
+
 ## Gateway callbacks and jobs
 
 Use a stable HTTPS `CALLBACK_URL` matching the deployment. Set the canonical `AUTH_URL` (or compatibility `NEXTAUTH_URL`) to the same deployment origin. SAJI trusts that explicitly pinned auth origin. Without one, Auth.js retains its host-trust policy; self-hosted reverse proxies may need `AUTH_TRUST_HOST=true` only when their forwarding headers are controlled. See [Auth.js deployment guidance](https://authjs.dev/getting-started/deployment). Configure M-Pesa and PayPal sandbox/production modes intentionally. Stripe needs its webhook secret. PayPal additionally needs an operationally approved `PAYPAL_KES_TO_USD_RATE`; the initiated gateway amount and currency are stored for capture verification. Legacy pending PayPal payments without these fields require manual reconciliation. Verify callback amount, currency, duplicate delivery, failure, and timeout behavior using each provider's sandbox. Provisioned credentials alone do not establish successful settlement.

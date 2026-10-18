@@ -335,7 +335,7 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
 
             {/* Right Side Actions */}
             <div className="flex flex-shrink-0 items-center gap-2">
-              <Link href="/customer/cart" className="relative">
+              <Link href="/customer/cart" aria-label="Shopping cart" className="relative">
                 <Button variant="ghost" size="icon" className="relative" aria-label={t("customer.layout.cart")}>
                   <ShoppingCart className="w-5 h-5" />
                   {cartCount > 0 && (

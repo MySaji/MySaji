@@ -40,6 +40,7 @@ import { revalidateCartCount } from "@/frontend/lib/hooks/useCartCount"
 import { createBooking, createEmergencyBooking } from "@/backend/actions/jobs"
 import { getEffectivePlatformPreferences } from "@/backend/actions/admin-settings"
 import { DirectPaymentNote } from "@/frontend/components/booking/direct-payment-note"
+import { SuggestionsSection } from "@/frontend/components/home/suggestions-section"
 import { getAddresses } from "@/backend/actions/addresses"
 import PaymentMethods from "@/frontend/components/payment/payment-methods"
 import { withTimeout, DASHBOARD_FETCH_TIMEOUT_MS } from "@/frontend/lib/swr-utils"
@@ -555,6 +556,15 @@ export function CustomerServicesPage() {
               </Link>
             </div>
           </div>
+        </div>
+
+        {/* Suggestions, before the category grid.
+            Explore is where somebody arrives without knowing what they want,
+            so the one row that already knows something about them earns the
+            position above a wall of categories. Tuned for discovery: the
+            habit-shaped cards belong on Home, not here. */}
+        <div className="mb-6">
+          <SuggestionsSection surface="explore" />
         </div>
 
         {/* Emergency Service Banner */}

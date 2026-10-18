@@ -19,7 +19,7 @@ export type WalletTransaction = {
   category: "payment" | "refund" | "withdrawal" | "deposit"
   description: string
   amount: number
-  status: "completed" | "pending"
+  status: "completed" | "pending" | "failed" | "reversed"
   createdAt: string
 }
 
@@ -60,9 +60,12 @@ export async function getWalletSummary(): Promise<WalletSummary> {
   const session = await auth()
   if (!session?.user?.id) return null
 
+  const account = await db.user.findUnique({ where: { id: session.user.id }, select: { isActive: true, deletedAt: true } })
+  if (!account?.isActive || account.deletedAt) return null
   const [wallet, paymentMethods, spentAgg, completedServices, escrowJobs] = await Promise.all([
-    db.wallet.findUnique({
+    db.wallet.upsert({
       where: { userId: session.user.id },
+      update: {}, create: { userId: session.user.id },
       include: { transactions: { orderBy: { createdAt: "desc" }, take: 20 } },
     }),
     db.paymentMethod.findMany({ where: { userId: session.user.id }, orderBy: { createdAt: "asc" } }),
@@ -87,7 +90,7 @@ export async function getWalletSummary(): Promise<WalletSummary> {
       category: categorizeTransaction(t.type, Number(t.amount)),
       description: t.description,
       amount: Number(t.amount),
-      status: t.status === "PENDING" ? "pending" : "completed",
+      status: t.status.toLowerCase() as "completed" | "pending" | "failed" | "reversed",
       createdAt: t.createdAt.toISOString(),
     })),
     paymentMethods: paymentMethods.map((p) => ({

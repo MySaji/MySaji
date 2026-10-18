@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef } from "react"
-import { Phone, PhoneOff, Mic, MicOff } from "lucide-react"
+import { Phone, PhoneOff, Mic, MicOff, Video, VideoOff } from "lucide-react"
 import { useVoiceCall } from "@/frontend/lib/hooks/useVoiceCall"
 
 function formatDuration(totalSeconds: number): string {
@@ -28,7 +28,11 @@ export function CallButton({
    * call UI without the user clicking this button first. */
   autoStartToken?: number
 }) {
-  const { callState, callDuration, error, isMuted, startCall, acceptCall, declineCall, endCall, toggleMute, remoteAudioRef } = useVoiceCall(conversationId)
+  const { callState, callDuration, error, isMuted, isVideo, cameraEnabled, localStream, remoteStream, startCall, acceptCall, declineCall, endCall, toggleMute, toggleCamera, remoteAudioRef } = useVoiceCall(conversationId)
+  const callPanel = useRef<HTMLDivElement>(null)
+  const localVideo = useRef<HTMLVideoElement>(null)
+  const remoteVideo = useRef<HTMLVideoElement>(null)
+  useEffect(() => { if (localVideo.current) localVideo.current.srcObject = localStream; if (remoteVideo.current) remoteVideo.current.srcObject = remoteStream }, [localStream, remoteStream, callState])
   const consumedTokenRef = useRef<number | undefined>(undefined)
 
   useEffect(() => {
@@ -38,6 +42,23 @@ export function CallButton({
   }, [conversationId, autoStartToken, startCall])
 
   const dialogOpen = callState !== "idle"
+  useEffect(() => {
+    if (!dialogOpen) return
+    const previous = document.activeElement as HTMLElement | null
+    const panel = callPanel.current
+    panel?.querySelector<HTMLButtonElement>("button")?.focus()
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") { event.preventDefault(); if (callState === "incoming") declineCall(); else endCall() }
+      if (event.key === "Tab" && panel) {
+        const buttons = [...panel.querySelectorAll<HTMLButtonElement>("button:not(:disabled)")]
+        const first = buttons[0], last = buttons[buttons.length - 1]
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
+      }
+    }
+    document.addEventListener("keydown", onKey)
+    return () => { document.removeEventListener("keydown", onKey); previous?.focus() }
+  }, [dialogOpen, callState, declineCall, endCall])
 
   return (
     <>
@@ -45,11 +66,13 @@ export function CallButton({
         onClick={() => conversationId && startCall()}
         disabled={!conversationId || callState !== "idle"}
         className="rounded-xl p-2 transition-colors hover:bg-muted disabled:opacity-40"
-        title="Call"
+        aria-label="Start audio call" title="Audio call"
       >
         <Phone className="h-4 w-4 text-muted-foreground" />
       </button>
 
+      <button onClick={() => void startCall(true)} disabled={!conversationId || callState !== "idle"} aria-label="Start video call" title="Video call" className="rounded-xl p-2 transition-colors hover:bg-muted disabled:opacity-40"><Video className="h-4 w-4 text-muted-foreground" /></button>
+      {error && !dialogOpen && <span role="alert" className="fixed left-4 right-4 top-20 z-[75] mx-auto max-w-lg rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 shadow-lg">{error}</span>}
       <audio ref={remoteAudioRef} autoPlay className="hidden" />
 
       {/* Full-screen call sheet rather than a small centred dialog. A call
@@ -58,19 +81,22 @@ export function CallButton({
           mistake for a message. Dark, edge to edge, with the answer/decline
           controls in the thumb zone. */}
       {dialogOpen && (
-        <div className="fixed inset-0 z-[70] flex flex-col bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 text-white">
+        <div ref={callPanel} role="dialog" aria-modal="true" aria-label={isVideo ? "Video call" : "Audio call"} className="fixed inset-0 z-[70] flex flex-col overflow-y-auto bg-[#071b3b] text-white">
           {/* Status line */}
           <div className="flex-shrink-0 pt-[max(2rem,env(safe-area-inset-top))] text-center">
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/50">
               {callState === "outgoing" && "Calling"}
               {callState === "incoming" && "Incoming call"}
               {callState === "connected" && "On call"}
+              {callState === "connecting" && "Connecting media"}
+              {isVideo && " - Video"}
               {callState === "ended" && "Call ended"}
             </p>
           </div>
 
+          {isVideo && (callState === "connected" || callState === "connecting" || callState === "outgoing") && <div className="relative mx-auto mt-5 min-h-40 w-[calc(100%-2rem)] max-w-4xl flex-1 overflow-hidden rounded-2xl bg-black"><video ref={remoteVideo} autoPlay playsInline muted className="absolute inset-0 h-full w-full object-contain" /><video ref={localVideo} autoPlay playsInline muted className="absolute bottom-3 right-3 h-28 w-24 rounded-xl border border-white/40 bg-slate-800 object-cover sm:h-40 sm:w-32" />{!remoteStream && <p className="absolute left-4 top-4 text-xs text-white/70">Waiting for the other camera...</p>}</div>}
           {/* Who, and for how long */}
-          <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-5 px-8">
+          <div className={`flex min-h-0 flex-col items-center justify-center gap-5 px-8 ${isVideo ? "py-5" : "flex-1"}`}>
             <div className="relative">
               {/* The pulse is only while it is actually ringing — a live call
                   showing an animation reads as "still connecting". */}
@@ -95,7 +121,7 @@ export function CallButton({
             </div>
 
             {error && (
-              <p className="max-w-xs rounded-xl bg-red-500/15 px-4 py-2 text-center text-xs text-red-300">{error}</p>
+              <p role="alert" className="max-w-xs rounded-xl bg-red-500/15 px-4 py-2 text-center text-xs text-red-300">{error}</p>
             )}
           </div>
 
@@ -106,12 +132,13 @@ export function CallButton({
                 <CallAction label="Decline" onClick={declineCall} className="bg-red-500 hover:bg-red-600">
                   <PhoneOff className="h-7 w-7" />
                 </CallAction>
-                <CallAction label="Accept" onClick={acceptCall} className="bg-emerald-500 hover:bg-emerald-600">
+                <CallAction label="Accept" onClick={() => void acceptCall()} className="bg-emerald-500 hover:bg-emerald-600">
                   <Phone className="h-7 w-7" />
                 </CallAction>
               </div>
             ) : callState === "ended" ? null : (
-              <div className="flex items-center justify-center gap-10">
+              <div className="flex items-center justify-center gap-6 sm:gap-10">
+                {isVideo && localStream && <CallAction label={cameraEnabled ? "Camera off" : "Camera on"} onClick={toggleCamera} className="bg-white/10 hover:bg-white/20">{cameraEnabled ? <Video size={24} /> : <VideoOff size={24} />}</CallAction>}
                 {callState === "connected" && (
                   <CallAction
                     label={isMuted ? "Unmute" : "Mute"}

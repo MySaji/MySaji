@@ -5,13 +5,16 @@ import { z } from "zod"
 import { auth } from "@/backend/auth"
 
 import { db } from "@/backend/db"
+import { after } from "next/server"
+import { pushToUser } from "@/backend/services/push-core"
+import { checkRateLimit } from "@/backend/services/rate-limit"
 
 export async function getVapidPublicKey(): Promise<string | null> {
-  return process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || null
+  return process.env.VAPID_PRIVATE_KEY ? process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || null : null
 }
 
 const subscribeSchema = z.object({
-  endpoint: z.string().url(),
+  endpoint: z.string().url().max(4096).refine(value => value.startsWith("https://")),
   keys: z.object({ p256dh: z.string().min(1), auth: z.string().min(1) }),
 })
 
@@ -49,4 +52,13 @@ export async function hasActivePushSubscription(): Promise<boolean> {
   if (!session?.user?.id) return false
   const count = await db.pushSubscription.count({ where: { userId: session.user.id } })
   return count > 0
+}
+
+export async function sendDeviceTestNotification(): Promise<PushActionResult> {
+  const session = await auth()
+  if (!session?.user?.id) return { success: false, error: "You must be signed in." }
+  const limit = await checkRateLimit(session.user.id, "push-device-test", 3, 60000)
+  if (!limit.allowed) return { success: false, error: "Please wait a minute before sending another test alert." }
+  after(() => pushToUser(session.user.id, { title: "MySaji device alerts", body: "Device notifications are connected. Your notification preferences still apply.", url: `/${session.user.role}/notifications`, tag: "saji-device-test" }))
+  return { success: true }
 }

@@ -1,3 +1,5 @@
+import { IncomingCallBanner } from "@/frontend/components/messages/incoming-call-banner"
+import { DevicePushSession } from "@/frontend/components/notifications/device-notifications"
 import type React from "react"
 import type { Metadata, Viewport } from "next"
 import { Geist } from "next/font/google"
@@ -93,6 +95,8 @@ export default async function RootLayout({
                     Inside AuthProvider because the wizard reads and refreshes
                     the session through useAuthContext. */}
                 <VerificationPromptProvider>
+                  <DevicePushSession />
+                  <IncomingCallBanner />
                   {children}
                   <EmailSubscriptionPopup />
                 </VerificationPromptProvider>

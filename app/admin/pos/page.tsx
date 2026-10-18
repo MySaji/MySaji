@@ -55,6 +55,7 @@ export default function AdminPosPage() {
   const [error, setError] = useState("")
   const [saved, setSaved] = useState("")
   const [query, setQuery] = useState("")
+  useEffect(() => { const search = new URLSearchParams(window.location.search).get("search"); if (search) setQuery(search.slice(0, 200)) }, [])
   const [filter, setFilter] = useState<string>("")
 
   const [enabled, setEnabled] = useState(false)

@@ -12,7 +12,7 @@ export type PlaceResult = { address: string; city: string | null; latitude: numb
  * exactly like this project's other optional integrations degrade. Scoped
  * to Kenya since SAJI is a Kenya-focused marketplace. */
 export function AddressAutocompleteInput({
-  value, onChange, onPlaceSelected, placeholder, className, disabled,
+  value, onChange, onPlaceSelected, placeholder, className, disabled, ariaLabel,
 }: {
   value: string
   onChange: (value: string) => void
@@ -20,6 +20,7 @@ export function AddressAutocompleteInput({
   placeholder?: string
   className?: string
   disabled?: boolean
+  ariaLabel?: string
 }) {
   const configured = isGoogleMapsConfigured()
   const { isLoaded } = useJsApiLoader({
@@ -46,6 +47,7 @@ export function AddressAutocompleteInput({
   if (!configured || !isLoaded) {
     return (
       <Input
+        aria-label={ariaLabel}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
@@ -62,6 +64,7 @@ export function AddressAutocompleteInput({
       options={{ componentRestrictions: { country: "ke" } }}
     >
       <Input
+        aria-label={ariaLabel}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}

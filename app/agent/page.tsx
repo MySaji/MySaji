@@ -1,6 +1,9 @@
 "use client"
 
 import useSWR from "swr"
+import { useState } from "react"
+import { useAuthContext } from "@/frontend/lib/auth-context"
+import { WorkflowGuide, WorkspaceRecovery, WorkspaceRefresh } from "@/frontend/components/workspace-panels"
 import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 import { AlertTriangle, Inbox, CheckCircle, TrendingUp, Download, Loader2 } from "lucide-react"
 import { Card } from "@/frontend/components/ui/card"
@@ -11,8 +14,11 @@ import { withTimeout, DASHBOARD_FETCH_TIMEOUT_MS } from "@/frontend/lib/swr-util
 
 export default function AgentDashboard() {
   const { t, formatMoney } = useLocalization()
-  const { data, isLoading } = useSWR(
-    "agent-dashboard", () => withTimeout(getAgentDashboard(), DASHBOARD_FETCH_TIMEOUT_MS),
+  const { user } = useAuthContext()
+  const [updatedAt, setUpdatedAt] = useState<number>()
+  const { data, isLoading, error, mutate, isValidating } = useSWR(
+    user?.id ? ["agent-dashboard", user.id] : null, () => withTimeout(getAgentDashboard(), DASHBOARD_FETCH_TIMEOUT_MS),
+    { onSuccess: () => setUpdatedAt(Date.now()) },
   )
 
   const ACTION_LABEL: Record<string, string> = {
@@ -31,6 +37,8 @@ export default function AgentDashboard() {
     a.click()
     window.URL.revokeObjectURL(url)
   }
+
+  if (error || (!isLoading && !data)) return <WorkspaceRecovery title="Case management unavailable" retry={() => void mutate()} busy={isValidating} />
 
   if (isLoading || !data) {
     return (
@@ -67,6 +75,8 @@ export default function AgentDashboard() {
         </Button>
       </div>
 
+      <WorkspaceRefresh refreshing={isValidating} updatedAt={updatedAt} refresh={() => void mutate()} />
+      <WorkflowGuide title="Case management" steps={[{ title: "Review the queue", description: "Check open and available cases in your assigned workspace." },{ title: "Gather the facts", description: "Review the case record and communicate with the people involved." },{ title: "Record the outcome", description: "Use the case actions to keep the resolution history complete." }]} />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat, idx) => {
           const Icon = stat.icon

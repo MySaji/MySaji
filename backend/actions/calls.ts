@@ -1,15 +1,18 @@
 "use server"
 
 import { z } from "zod"
+import { after } from "next/server"
 import type { Prisma } from "@prisma/client"
 import { auth } from "@/backend/auth"
 import { db } from "@/backend/db"
+import { pushToUser } from "@/backend/services/push-core"
+import { ROLE_DB_TO_APP } from "@/backend/services/role-map"
 
 /** How long an unconsumed signal stays "live" for a poller to pick up.
  * Call setup only ever needs the last few seconds of signals — this also
  * doubles as a lower bound on how quickly a genuinely stale/abandoned
  * offer stops appearing as "incoming" to a client that reconnects late. */
-const SIGNAL_WINDOW_MS = 30_000
+const SIGNAL_WINDOW_MS = 90_000
 
 async function requireParticipant(conversationId: string, userId: string) {
   const conversation = await db.conversation.findUnique({ where: { id: conversationId } })
@@ -19,12 +22,12 @@ async function requireParticipant(conversationId: string, userId: string) {
   return conversation
 }
 
-const signalTypeSchema = z.enum(["offer", "answer", "ice-candidate", "hangup", "reject"])
+const signalTypeSchema = z.enum(["offer", "answer", "ice-candidate", "hangup", "reject", "connected"])
 
 const sendSignalSchema = z.object({
   conversationId: z.string().trim().min(1),
   type: signalTypeSchema,
-  payload: z.any(),
+  payload: z.record(z.unknown()).refine(value => JSON.stringify(value).length <= 64000, "Signal is too large"),
 })
 
 export type CallActionResult = { success: true } | { success: false; error: string }
@@ -46,6 +49,16 @@ export async function sendCallSignal(input: unknown): Promise<CallActionResult> 
   if (!conversation) return { success: false, error: "Conversation not found." }
 
   const toUserId = conversation.participantAId === session.user.id ? conversation.participantBId : conversation.participantAId
+  const [sender, recipient, blocked] = await Promise.all([
+    db.user.findUnique({ where: { id: session.user.id }, select: { isActive: true, deletedAt: true } }),
+    db.user.findUnique({ where: { id: toUserId }, select: { role: true, isActive: true, deletedAt: true } }),
+    db.chatBlock.findFirst({ where: { OR: [{ blockerId: session.user.id, blockedId: toUserId }, { blockerId: toUserId, blockedId: session.user.id }] } }),
+  ])
+  if (!sender?.isActive || sender.deletedAt || !recipient?.isActive || recipient.deletedAt || blocked) return { success: false, error: "This call is unavailable." }
+  if (type === "offer" && typeof payload.callId === "string") {
+    const duplicate = await db.callSignal.findFirst({ where: { conversationId, fromUserId: session.user.id, type: "offer", payload: { path: ["callId"], equals: payload.callId }, createdAt: { gt: new Date(Date.now() - SIGNAL_WINDOW_MS) } } })
+    if (duplicate) return { success: true }
+  }
 
   await db.callSignal.create({
     data: {
@@ -72,14 +85,15 @@ export async function sendCallSignal(input: unknown): Promise<CallActionResult> 
       select: { id: true },
     })
     // Re-offers during setup are the same call, not a second one.
-    if (!recent) {
+    if (typeof payload.callId === "string" || !recent) {
       await db.callLog.create({
         data: { conversationId, callerId: session.user.id, calleeId: toUserId, outcome: "MISSED", durationSeconds: 0 },
       }).catch(() => {})
     }
+    after(() => pushToUser(toUserId, { title: payload?.video ? "Incoming video call" : "Incoming audio call", body: `${session.user.name || "A MySaji contact"} is calling. Open MySaji to answer.`, url: `/${ROLE_DB_TO_APP[recipient.role]}/messages?conversation=${encodeURIComponent(conversationId)}`, tag: `call-${conversationId}` }, "message"))
   }
 
-  if (type === "answer" || type === "hangup" || type === "reject") {
+  if (type === "answer" || type === "hangup" || type === "reject" || type === "connected") {
     const info = (payload ?? {}) as { durationSeconds?: number; wasConnected?: boolean }
     const open = await db.callLog.findFirst({
       where: { conversationId, createdAt: { gt: new Date(Date.now() - 60 * 60 * 1000) } },
@@ -87,11 +101,11 @@ export async function sendCallSignal(input: unknown): Promise<CallActionResult> 
       select: { id: true, outcome: true, answeredAt: true },
     })
     if (open) {
-      // An answer proves it connected; a hangup carries the duration; a
-      // reject means the callee turned it down. A hangup after an answer
-      // must not downgrade COMPLETED back to MISSED.
+      // Accepting an offer is not proof that media connected. Only the
+      // peer-connection confirmation or a connected hangup completes it.
       const outcome =
-        type === "answer" ? "COMPLETED"
+        type === "connected" ? "COMPLETED"
+        : type === "answer" ? open.outcome
         : type === "reject" ? (open.outcome === "COMPLETED" ? "COMPLETED" : "DECLINED")
         : info.wasConnected || open.outcome === "COMPLETED" ? "COMPLETED"
         : open.outcome
@@ -108,7 +122,7 @@ export async function sendCallSignal(input: unknown): Promise<CallActionResult> 
         where: { id: open.id },
         data: {
           outcome,
-          ...(type === "answer" && !open.answeredAt ? { answeredAt: new Date() } : {}),
+          ...(type === "connected" && !open.answeredAt ? { answeredAt: new Date() } : {}),
           ...(duration != null && duration > 0 ? { durationSeconds: duration } : {}),
         },
       }).catch(() => {})
@@ -142,15 +156,36 @@ export async function getCallSignals(conversationId: string): Promise<CallSignal
       createdAt: { gt: new Date(Date.now() - SIGNAL_WINDOW_MS) },
     },
     orderBy: { createdAt: "asc" },
+    take: 1000,
   })
+  const terminal = await db.callSignal.findMany({ where: { conversationId, type: { in: ["answer", "hangup", "reject"] }, createdAt: { gt: new Date(Date.now() - SIGNAL_WINDOW_MS) } } })
 
-  return signals.map((s) => ({
+  return signals.filter(signal => {
+    if (signal.type !== "offer") return true
+    const id = (signal.payload as { callId?: string })?.callId
+    return !terminal.some(later => later.createdAt >= signal.createdAt && (!id || (later.payload as { callId?: string })?.callId === id))
+  }).map((s) => ({
     id: s.id,
     fromUserId: s.fromUserId,
     type: s.type,
     payload: s.payload,
     createdAt: s.createdAt.toISOString(),
   }))
+}
+
+export async function getIncomingCall(): Promise<{ conversationId: string; signalId: string; name: string; video: boolean } | null> {
+  const session = await auth()
+  if (!session?.user?.id) return null
+  const offers = await db.callSignal.findMany({ where: { toUserId: session.user.id, type: "offer", createdAt: { gt: new Date(Date.now() - 60000) }, conversation: { OR: [{ participantAId: session.user.id }, { participantBId: session.user.id }] } }, orderBy: { createdAt: "desc" }, take: 5 })
+  for (const offer of offers) {
+    const payload = offer.payload as { callId?: string; video?: boolean }
+    const terminal = await db.callSignal.findMany({ where: { conversationId: offer.conversationId, type: { in: ["answer", "hangup", "reject"] }, createdAt: { gte: offer.createdAt } }, select: { payload: true } })
+    if (terminal.some(item => !payload?.callId || (item.payload as { callId?: string })?.callId === payload.callId)) continue
+    const sender = await db.user.findUnique({ where: { id: offer.fromUserId }, select: { name: true, isActive: true, deletedAt: true } })
+    if (!sender?.isActive || sender.deletedAt) continue
+    return { conversationId: offer.conversationId, signalId: offer.id, name: sender.name || "MySaji contact", video: !!payload?.video }
+  }
+  return null
 }
 
 const logCallSchema = z.object({
@@ -246,5 +281,6 @@ export async function clearCallSignals(conversationId: string): Promise<void> {
   if (!session?.user?.id) return
   const conversation = await requireParticipant(conversationId, session.user.id)
   if (!conversation) return
-  await db.callSignal.deleteMany({ where: { conversationId } })
+  // Preserve fresh hangups/answers until the other participant has polled.
+  await db.callSignal.deleteMany({ where: { conversationId, toUserId: session.user.id, createdAt: { lt: new Date(Date.now() - SIGNAL_WINDOW_MS) } } })
 }

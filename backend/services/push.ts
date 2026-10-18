@@ -15,7 +15,7 @@ function ensureConfigured() {
   configured = true
 }
 
-export type PushPayload = { title: string; body: string; url?: string }
+export type PushPayload = { title: string; body: string; url?: string; recipientId?: string; tag?: string }
 
 /** Sends a real Web Push notification to one subscription. Silently no-ops
  * if VAPID isn't configured (self-generated keys, so this only happens if

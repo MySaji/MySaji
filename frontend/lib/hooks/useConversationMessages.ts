@@ -1,6 +1,7 @@
 "use client"
 
 import useSWR from "swr"
+import { useAuthContext } from "@/frontend/lib/auth-context"
 import { getMessages, type ChatMessage } from "@/backend/actions/messages"
 
 // Every portal's Messages page duplicated the same flat setInterval(5000)
@@ -11,12 +12,13 @@ import { getMessages, type ChatMessage } from "@/backend/actions/messages"
 const MESSAGE_POLL_MS = 5000
 
 export function useConversationMessages(conversationId: string | null) {
-  const { data, mutate, isLoading } = useSWR(
-    conversationId ? ["messages", conversationId] : null,
-    ([, id]: [string, string]) => getMessages(id),
+  const { user } = useAuthContext()
+  const { data, mutate, isLoading, error } = useSWR(
+    conversationId && user?.id ? ["messages", conversationId, user.id] : null,
+    ([, id]: [string, string, string]) => getMessages(id),
     { refreshInterval: MESSAGE_POLL_MS, revalidateOnFocus: true },
   )
-  return { messages: data ?? [], mutateMessages: mutate, isLoadingMessages: isLoading }
+  return { messages: data ?? [], mutateMessages: mutate, isLoadingMessages: isLoading, messagesError: error }
 }
 
 export type { ChatMessage }

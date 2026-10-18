@@ -31,11 +31,13 @@ export type CartLine =
       price: number
       image: string | null
       shop: string
+      shopId?: string
       quantity: number
       stock: number
       shopIsOpen: boolean
       shopNextOpeningLabel: string | null
       shopDeliveryFee: number
+      deliveryError?: string | null
       shopIsOnVacation: boolean
       shopVacationNote: string | null
     }
@@ -75,9 +77,11 @@ async function requireCustomerId(): Promise<string | null> {
 /** The Smart Cart — one list holding both Product lines (existing) and
  * Service lines (new), so checkout() below can split a single payment into
  * per-shopkeeper Orders AND per-provider Jobs in one pass. */
-export async function getCart(): Promise<CartLine[]> {
+export async function getCart(destinationInput?: { latitude: number; longitude: number }): Promise<CartLine[]> {
   const customerId = await requireCustomerId()
   if (!customerId) return []
+  const destination = destinationInput && typeof destinationInput === "object"
+    ? toCoordinates(destinationInput.latitude, destinationInput.longitude) : null
 
   const items = await db.cartItem.findMany({
     where: { customerId },
@@ -94,6 +98,8 @@ export async function getCart(): Promise<CartLine[]> {
     if (item.product) {
       const { openingTime, closingTime } = resolveShopHoursForToday(item.product.shopkeeper)
       const shopIsOpen = isShopCurrentlyOpen(openingTime, closingTime)
+      const shop = item.product.shopkeeper
+      const delivery = quoteDelivery({ radiusKm: shop.deliveryRadiusKm != null ? Number(shop.deliveryRadiusKm) : null, flatFee: Number(shop.deliveryFee), perKm: Number(shop.deliveryFeePerKm) }, toCoordinates(shop.latitude, shop.longitude), destination)
       return {
         kind: "product",
         productId: item.productId!,
@@ -101,11 +107,13 @@ export async function getCart(): Promise<CartLine[]> {
         price: Number(item.product.discountPrice ?? item.product.price),
         image: item.product.images[0] ?? null,
         shop: item.product.shopkeeper.shopName,
+        shopId: item.product.shopkeeperId,
         quantity: item.quantity,
         stock: item.product.inventory ? Math.max(item.product.inventory.currentStock - item.product.inventory.reservedStock, 0) : 0,
         shopIsOpen,
         shopNextOpeningLabel: shopIsOpen ? null : getNextOpeningLabel(item.product.shopkeeper),
-        shopDeliveryFee: Number(item.product.shopkeeper.deliveryFee),
+        shopDeliveryFee: delivery.deliverable ? delivery.fee : Number(shop.deliveryFee),
+        deliveryError: delivery.deliverable ? null : outOfRangeMessage(shop.shopName, delivery),
         shopIsOnVacation: item.product.shopkeeper.isOnVacation,
         shopVacationNote: item.product.shopkeeper.vacationNote,
       }
@@ -398,6 +406,7 @@ const checkoutSchema = z.object({
   shippingPhone: z.string().trim().min(7, "Enter a valid phone number"),
   notes: z.string().trim().optional(),
   promoCode: z.string().trim().optional(),
+  expectedTotal: z.number().finite().nonnegative().optional(),
 })
 
 // Fallback only for the rare case a shop's own deliveryFee somehow isn't
@@ -406,7 +415,7 @@ const checkoutSchema = z.object({
 // app/shopkeeper/settings, so this constant is not the source of truth anymore.
 const DEFAULT_SHIPPING_COST = 500
 
-export type CheckoutResult = { success: true; orderIds: string[]; jobIds: string[] } | { success: false; error: string }
+export type CheckoutResult = { success: true; orderIds: string[]; jobIds: string[]; totalAmount: number } | { success: false; error: string }
 
 /**
  * The Checkout Splitter: one customer payment (a single wallet debit) fans
@@ -577,6 +586,9 @@ export async function checkout(input: unknown): Promise<CheckoutResult> {
   }
   const discountAmount = promo?.discountAmount ?? 0
   const grandTotal = productsSubtotal + shippingTotal - discountAmount + servicesSubtotal + offersSubtotal
+  if (parsed.data.expectedTotal != null && Math.abs(parsed.data.expectedTotal - grandTotal) > 0.005) {
+    return { success: false, error: "Your cart total changed. Refresh the cart and review the updated total before paying. No payment was taken." }
+  }
   const partsSummary = [
     byShop.size > 0 ? `${byShop.size} shop${byShop.size > 1 ? "s" : ""}` : null,
     serviceItems.length > 0 ? `${serviceItems.length} service${serviceItems.length > 1 ? "s" : ""}` : null,
@@ -976,5 +988,5 @@ export async function checkout(input: unknown): Promise<CheckoutResult> {
     totalAmount: grandTotal,
   })
 
-  return { success: true, orderIds, jobIds }
+  return { success: true, orderIds, jobIds, totalAmount: grandTotal }
 }

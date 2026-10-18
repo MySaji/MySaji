@@ -1,5 +1,6 @@
 "use client"
 import Link from "next/link"
+import dynamic from "next/dynamic"
 import { useState, useMemo } from "react"
 import useSWR from "swr"
 import {
@@ -39,6 +40,7 @@ function formatRelative(
 }
 
 const CURRENT_YEAR = new Date().getFullYear()
+const AdminOperationsMap = dynamic(() => import("@/frontend/components/maps/admin-operations-map"), { ssr: false, loading: () => <Card className="p-8 text-sm text-muted-foreground">Preparing operations map...</Card> })
 
 export default function AdminDashboard() {
   const { t, tn, formatMoney } = useLocalization()
@@ -224,6 +226,8 @@ export default function AdminDashboard() {
           </div>
         </Card>
       </div>
+
+      <AdminOperationsMap />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="p-6 border-0 shadow-lg">

@@ -5,8 +5,10 @@ import { useAuthContext } from "@/frontend/lib/auth-context"
 import useSWR from "swr"
 import Link from "next/link"
 import Image from "next/image"
-import { Sparkles, Loader2, MapPin, RotateCcw, Heart, Eye, Store, TrendingUp } from "lucide-react"
-import { getHomeSuggestions } from "@/backend/actions/suggestions"
+import {
+  Blocks, CalendarClock, Eye, Heart, Loader2, MapPin, PackageCheck, RotateCcw, Sparkles, Store, TrendingUp,
+} from "lucide-react"
+import { getHomeSuggestions, getExploreSuggestions } from "@/backend/actions/suggestions"
 import type { SuggestionKind } from "@/backend/services/suggestions"
 
 /**
@@ -19,6 +21,9 @@ import type { SuggestionKind } from "@/backend/services/suggestions"
  */
 
 const ICON: Record<SuggestionKind, typeof RotateCcw> = {
+  DUE_AGAIN: CalendarClock,
+  GOES_WITH: Blocks,
+  BACK_IN_STOCK: PackageCheck,
   REORDER: RotateCcw,
   SAVED: Heart,
   VIEWED: Eye,
@@ -28,6 +33,9 @@ const ICON: Record<SuggestionKind, typeof RotateCcw> = {
 }
 
 const TINT: Record<SuggestionKind, string> = {
+  DUE_AGAIN: "text-emerald-700 dark:text-emerald-300",
+  GOES_WITH: "text-indigo-600 dark:text-indigo-400",
+  BACK_IN_STOCK: "text-teal-600 dark:text-teal-400",
   REORDER: "text-emerald-600 dark:text-emerald-400",
   SAVED: "text-rose-500 dark:text-rose-400",
   VIEWED: "text-sky-600 dark:text-sky-400",
@@ -36,11 +44,24 @@ const TINT: Record<SuggestionKind, string> = {
   POPULAR_LOCAL: "text-muted-foreground",
 }
 
-export function SuggestionsSection() {
+/**
+ * `surface` decides which engine call is made, and nothing else.
+ *
+ * Home asks for everything; Explore asks for the discovery half, because
+ * somebody who went looking for something new did not come to be shown the
+ * cooking oil they buy every month. Both render identically: one component,
+ * so a fix to a card is a fix on both pages.
+ */
+export function SuggestionsSection({ surface = "home" }: { surface?: "home" | "explore" }) {
   const { user } = useAuthContext()
   const [filter, setFilter] = useState("all")
-  const { data, isLoading, mutate } = useSWR(user?.id ? ["home-suggestions", user.id] : null, () => getHomeSuggestions({ limit: 24 }))
-  const items = (data?.items ?? []).filter(item => filter === "all" || (filter === "familiar" ? ["REORDER", "SAVED", "VIEWED", "FROM_SHOP_YOU_USE"].includes(item.kind) : ["NEARBY_OPEN", "POPULAR_LOCAL"].includes(item.kind)))
+  const { data, isLoading, mutate } = useSWR(
+    user?.id ? [surface + "-suggestions", user.id] : null,
+    () => (surface === "explore"
+      ? getExploreSuggestions({ limit: 24 })
+      : getHomeSuggestions({ limit: 24 })),
+  )
+  const items = (data?.items ?? []).filter(item => filter === "all" || (filter === "familiar" ? ["DUE_AGAIN", "REORDER", "SAVED", "VIEWED", "FROM_SHOP_YOU_USE", "BACK_IN_STOCK"].includes(item.kind) : ["NEARBY_OPEN", "POPULAR_LOCAL", "GOES_WITH"].includes(item.kind)))
 
   // Signed out, or nothing to go on. The page's ordinary browse sections
   // already cover that case, so this simply does not appear.
@@ -55,7 +76,11 @@ export function SuggestionsSection() {
             flicker that also tells the customer two different things about
             the same row. */}
         <h2 className="text-base font-bold text-foreground">
-          {isLoading ? "Suggestions" : data?.personalised ? "Picked for you" : "Worth a look"}
+          {isLoading
+            ? "Suggestions"
+            : surface === "explore"
+              ? (data?.personalised ? "Worth exploring" : "Popular right now")
+              : (data?.personalised ? "Picked for you" : "Worth a look")}
         </h2>
         {isLoading && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
       </div>
