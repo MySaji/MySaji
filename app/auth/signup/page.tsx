@@ -8,7 +8,7 @@ import { Button } from "@/frontend/components/ui/button"
 import { Input } from "@/frontend/components/ui/input"
 import { useAuthContext } from "@/frontend/lib/auth-context"
 import {
-  Mail, Lock, User, ArrowRight, Eye, EyeOff, Apple, ArrowLeft, Sparkles, Shield, Clock, Phone,
+  Mail, Lock, User, ArrowRight, Eye, EyeOff, Apple, ArrowLeft, Shield, Phone,
   HardHat, Store, Building2, Loader2, ShieldCheck, CheckCircle2, Circle, Check,
   Wrench, Package, Laptop, GraduationCap, Briefcase, Users, Crown,
   Calculator, Lock as LockIcon, Search,
@@ -22,6 +22,7 @@ import { useOtpAutofill } from "@/frontend/lib/hooks/useOtpAutofill"
 import { BrandLogo } from "@/frontend/components/brand-logo"
 import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 import type { TranslationKey } from "@/backend/domain/i18n"
+import { AuthWelcomePanel, AuthJourney } from "@/frontend/components/auth/auth-welcome-panel"
 import { AuthMobileHeader } from "@/frontend/components/auth/auth-mobile-header"
 import {
   PRO_BUSINESS_TYPES, PRO_BUSINESS_TYPE_META, isTypeSelectable, hasPos,
@@ -408,52 +409,17 @@ export default function SignupPage() {
   const stepIndex = STEP_ORDER.indexOf(step)
 
   return (
-    <div className="min-h-screen flex justify-center bg-muted/20">
-    <div className="flex w-full max-w-[1360px] bg-background">
-      {/* Left Panel */}
-      <div className="hidden lg:flex lg:w-[480px] xl:w-[520px] flex-col relative overflow-hidden bg-primary text-primary-foreground p-10">
-        <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full bg-white/5 blur-3xl" />
-        <div className="absolute -bottom-32 -left-20 w-96 h-96 rounded-full bg-white/5 blur-3xl" />
-
-        <div className="relative z-10 flex items-center gap-3">
-          <BrandLogo size="large" variant="translucent" />
-          <span className="text-xl font-bold tracking-tight">SAJI</span>
-        </div>
-
-        <div className="relative z-10 flex-1 flex flex-col justify-center gap-12">
-          <div>
-            <h1 className="text-3xl font-bold leading-tight mb-3">{t("authPage.signup.joinToday")}</h1>
-            <p className="text-white/70 text-sm leading-relaxed max-w-xs">{t("authPage.signup.joinTodaySubtitle")}</p>
-          </div>
-
-          <div className="space-y-5">
-            {[
-              { icon: Sparkles, title: t("authPage.signup.feature1Title"), desc: t("authPage.signup.feature1Desc") },
-              { icon: Shield, title: t("authPage.signup.feature2Title"), desc: t("authPage.signup.feature2Desc") },
-              { icon: Clock, title: t("authPage.signup.feature3Title"), desc: t("authPage.signup.feature3Desc") },
-            ].map((item) => (
-              <div key={item.title} className="flex items-start gap-3">
-                <div className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
-                  <item.icon className="w-4 h-4" />
-                </div>
-                <div>
-                  <p className="font-semibold text-sm">{item.title}</p>
-                  <p className="text-white/60 text-xs">{item.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <p className="relative z-10 text-white/40 text-xs">&copy; {new Date().getFullYear()} SAJI. {t("authPage.login.allRightsReserved")}</p>
-      </div>
+    <div className="auth-screen min-h-screen">
+    <div className="auth-frame">
+      <AuthWelcomePanel mode="signup" />
 
       {/* Right Panel */}
-      <div className="flex-1 flex items-center justify-center px-4 py-8 sm:px-8 relative overflow-hidden">
+      <div className="auth-form-panel">
         <div className="hidden lg:block absolute -top-24 -right-24 w-72 h-72 rounded-full bg-primary/5 blur-3xl" />
         <div className="hidden lg:block absolute -bottom-24 -left-16 w-72 h-72 rounded-full bg-primary/5 blur-3xl" />
-        <div className="w-full max-w-[420px] relative z-10">
+        <div className="auth-form-card">
           <AuthMobileHeader showBack={step === "role"} />
+          <AuthJourney mode="signup" step={step} />
 
           {step === "role" && (
             <div className="flex items-start justify-between gap-3 mb-6 lg:hidden">
@@ -797,7 +763,7 @@ export default function SignupPage() {
                 <span className="text-xs text-muted-foreground font-medium">{t("authPage.orContinueWith")}</span>
                 <div className="flex-1 h-px bg-border" />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3">
                 <Button type="button" onClick={handleGoogleSignup} disabled={isLoading} variant="outline" className="h-10 rounded-xl bg-card gap-2 text-xs sm:text-sm font-medium px-2">
                   <svg width="16" height="16" viewBox="0 0 48 48" className="flex-shrink-0"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.64-.15-3.21-.43-4.73H24v9.01h12.4c-.54 2.91-2.18 5.38-4.65 7.04l7.2 5.59c4.21-3.88 6.65-9.6 6.65-16.91z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24s.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.9-5.81l-7.2-5.59c-2 1.35-4.56 2.15-8.7 2.15-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
                   <span className="truncate">{t("authPage.continueWithGoogle")}</span>

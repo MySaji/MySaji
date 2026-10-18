@@ -24,3 +24,15 @@ Emails share a responsive table-based blue/orange layout, preheader, verificatio
 ## Release review still required
 
 The common design applies across portal routes; individual page content has not all been rebuilt or manually audited. Live customer-to-provider booking, messaging, fulfilment, payment and staff-assignment scenarios need acceptance testing with deployment accounts. Browser checks used fixtures, not production accounts or live AI requests. Gmail/Outlook inbox delivery and assistive-technology audits remain release checks. Government approval or formal compliance certification requires an independent review against the applicable requirements.
+
+## Authentication and workflow follow-up
+
+Login and signup now have a new shared responsive frame, an interactive Customer/Saji Pro benefits panel, visible step labels, and a wider form container. Social sign-in buttons stack on narrow phones so their labels remain readable. Existing verification, registration roles and authentication actions are retained.
+
+Customer and Pro workspace tools include a workflow dialog with up to six pinnable shortcuts. Links are intersected with rendered navigation; saved links are checked against available navigation again when reopened. Shortcuts are local to the browser, contain only page paths, and do not grant access. Full-height messaging pages retain their existing layout.
+
+Customer orders add search across item, shop and order number, status filters, date/value sorting, real order summary counts, clear filters, and refresh/error recovery. Saji Pro quotes add a workflow guide, a wider accessible quote dialog, removable line items, running totals, validation and save/send feedback.
+
+The public newsletter popup and footer share one consent-based subscription form using the existing `/api/subscribers` endpoint. Submission errors remain retryable; success stays visible, even when browser storage is blocked. The floating subscription button is hidden after either form succeeds and excluded from authentication and portal routes. No welcome-email delivery is promised by the UI because the endpoint sends it on a best-effort basis.
+
+Follow-up browser checks cover the responsive auth design, Customer signup verification-to-login handoff, Customer/Pro shortcut pinning and persistence, and newsletter failure/retry/success with intercepted requests. No live account or newsletter records were created. Local database connectivity was unavailable during this pass; live subscription persistence and delivery remain unverified.

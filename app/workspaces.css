@@ -26,3 +26,8 @@
 @media(min-width:1280px){[data-workspace] main>div.container{max-width:1600px}}
 @media(max-width:640px){[data-workspace] main [data-slot=input],[data-workspace] main textarea{font-size:16px}[data-workspace] main h1{font-size:26px}[data-workspace] main td,[data-workspace] main th{padding:11px 12px}[data-workspace] .workspace-tools{gap:7px;padding:10px 16px}[data-workspace] .workspace-tools>span{width:100%;font-size:10px}[data-workspace] .workspace-tools kbd{display:none}}
 [data-workspace] aside[class*="from-"]{background-color:#073b98}
+[data-workspace="customer"] .workspace-tools,[data-workspace="pro"] .workspace-tools{gap:8px;padding:12px 20px;background:#f8faff}
+[data-workspace="customer"] .workspace-tools button,[data-workspace="customer"] .workspace-tools a,[data-workspace="pro"] .workspace-tools button,[data-workspace="pro"] .workspace-tools a{min-height:44px;font-size:12px;padding:9px 12px}
+[data-workspace="customer"] main input,[data-workspace="pro"] main input{min-width:0}
+@media(max-width:640px){[data-workspace="customer"] .workspace-tools,[data-workspace="pro"] .workspace-tools{padding:10px 16px;gap:6px}[data-workspace="customer"] .workspace-tools>span,[data-workspace="pro"] .workspace-tools>span{font-size:12px}[data-workspace="customer"] .workspace-tools button,[data-workspace="customer"] .workspace-tools a,[data-workspace="pro"] .workspace-tools button,[data-workspace="pro"] .workspace-tools a{font-size:11px;padding:8px 10px}}
+.dark [data-workspace="customer"] .workspace-tools,.dark [data-workspace="pro"] .workspace-tools{background:#142033}

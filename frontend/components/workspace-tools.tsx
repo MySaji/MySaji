@@ -1,10 +1,11 @@
-﻿"use client"
+"use client"
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { ArrowUpRight, BookOpen, Copy, Search } from "lucide-react"
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/frontend/components/ui/dialog"
+import { WorkspaceFlow } from "@/frontend/components/workspace-flow"
 import { Input } from "@/frontend/components/ui/input"
 
 export function WorkspaceTools({ name }: { name: string }) {
@@ -35,7 +36,7 @@ export function WorkspaceTools({ name }: { name: string }) {
   // Full-height conversations keep their composer space; Ctrl K still works.
   if (pathname.endsWith("/messages")) return null
   return <>
-    <div className="workspace-tools"><span>{name}</span><button onClick={show}><Search size={14} />Find a page <kbd>Ctrl K</kbd></button><button onClick={async () => { try { await navigator.clipboard.writeText(window.location.href); setCopied(true); setCopyError(false) } catch { setCopyError(true) } }}><Copy size={14} />{copied ? "Link copied" : "Copy page link"}</button><Link href="/knowledge" target="_blank" rel="noopener noreferrer"><BookOpen size={14} />Guides</Link>{copyError && <span role="status">Copy the address from your browser’s address bar.</span>}</div>
+    <div className="workspace-tools"><span>{name}</span><WorkspaceFlow /><button onClick={show}><Search size={14} />Find a page <kbd>Ctrl K</kbd></button><button onClick={async () => { try { await navigator.clipboard.writeText(window.location.href); setCopied(true); setCopyError(false) } catch { setCopyError(true) } }}><Copy size={14} />{copied ? "Link copied" : "Copy page link"}</button><Link href="/knowledge" target="_blank" rel="noopener noreferrer"><BookOpen size={14} />Guides</Link>{copyError && <span role="status">Copy the address from your browser’s address bar.</span>}</div>
     <Dialog open={open} onOpenChange={setOpen}><DialogContent><DialogTitle>Find a page in {name}</DialogTitle><DialogDescription>Search the pages available in your workspace navigation.</DialogDescription><Input aria-label="Search workspace pages" placeholder="Try orders, messages or reports" value={query} onChange={event => setQuery(event.target.value)} /><div className="max-h-[55dvh] space-y-1 overflow-y-auto">{links.filter(link => link.label.toLowerCase().includes(query.toLowerCase())).map(link => <Link key={link.href} href={link.href} onClick={() => setOpen(false)} className="flex min-h-11 items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm hover:bg-muted">{link.label}<ArrowUpRight size={15} /></Link>)}{!links.some(link => link.label.toLowerCase().includes(query.toLowerCase())) && <p className="p-4 text-sm text-muted-foreground">No matching page. Try another name.</p>}</div></DialogContent></Dialog>
   </>
 }

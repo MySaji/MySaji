@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { Mail, MapPin, Phone, Facebook, Twitter, Instagram, Linkedin } from "lucide-react"
+import { NewsletterForm } from "@/frontend/components/newsletter-form"
 import { BrandLogo } from "@/frontend/components/brand-logo"
 import { getPublicSiteSettings, type PublicSiteSettings } from "@/backend/actions/admin-settings"
 
@@ -45,7 +46,7 @@ export function Footer() {
     }
   }, [])
 
-  // Each platform's own brand color instead of a generic muted circle —
+  // Each platform's own brand color instead of a generic muted circle â€”
   // Instagram's is a gradient since that's its actual brand mark, not a
   // single flat color.
   const socials = [
@@ -126,6 +127,10 @@ export function Footer() {
           </div>
         </div>
 
+        <section aria-labelledby="footer-newsletter" className="mb-10 grid gap-6 rounded-2xl border border-blue-100 bg-blue-50/50 p-5 sm:p-8 lg:grid-cols-2 lg:gap-12">
+          <div><p className="mb-2 text-xs font-bold tracking-widest text-orange-600">STAY CONNECTED</p><h3 id="footer-newsletter" className="text-2xl font-semibold tracking-tight">A little MySaji in your inbox.</h3><p className="mt-3 max-w-md text-sm leading-7 text-muted-foreground">Discover new products, marketplace updates and useful finds. Choose to hear from us and unsubscribe whenever you like.</p></div>
+          <NewsletterForm />
+        </section>
         {/* Bottom Bar */}
         <div className="pt-8 border-t border-border">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-muted-foreground">

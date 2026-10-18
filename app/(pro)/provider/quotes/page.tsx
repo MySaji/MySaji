@@ -6,7 +6,7 @@ import { Card } from "@/frontend/components/ui/card"
 import { Button } from "@/frontend/components/ui/button"
 import { Input } from "@/frontend/components/ui/input"
 import { Textarea } from "@/frontend/components/ui/textarea"
-import { Dialog, DialogContent } from "@/frontend/components/ui/dialog"
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/frontend/components/ui/dialog"
 import {
   getProviderQuotes, getBillingClientOptions, createProviderQuote, sendProviderQuote,
   type ProviderQuote, type BillingClientOption,
@@ -41,6 +41,9 @@ export default function QuotesPage() {
   const [expandedQuote, setExpandedQuote] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [formError, setFormError] = useState("")
+  const [pageError, setPageError] = useState("")
+  const [sending, setSending] = useState<string | null>(null)
+  const [notice, setNotice] = useState("")
 
   const [newQuote, setNewQuote] = useState({
     jobTitle: "", customerId: "", description: "", validDays: 14,
@@ -50,7 +53,7 @@ export default function QuotesPage() {
   const refresh = () => getProviderQuotes().then(setQuotes)
 
   useEffect(() => {
-    Promise.all([refresh(), getBillingClientOptions().then(setClients)]).finally(() => setIsLoading(false))
+    Promise.all([refresh(), getBillingClientOptions().then(setClients)]).catch(() => setPageError("We could not load your quotes. Please try again.")).finally(() => setIsLoading(false))
   }, [])
 
   const filtered = quotes
@@ -66,8 +69,11 @@ export default function QuotesPage() {
   }
 
   const handleCreate = async () => {
+    if (isSaving) return
+    if (newQuote.items.some(item => !item.desc.trim() || !Number.isFinite(item.qty) || item.qty <= 0 || !Number.isFinite(item.rate) || item.rate < 0)) { setFormError("Add a description, a positive quantity and a valid rate for every item."); return }
     setIsSaving(true)
     setFormError("")
+    try {
     const result = await createProviderQuote({
       jobTitle: newQuote.jobTitle,
       customerId: newQuote.customerId,
@@ -76,13 +82,24 @@ export default function QuotesPage() {
       notes: newQuote.notes || undefined,
       items: newQuote.items.map(i => ({ description: i.desc, quantity: i.qty, rate: i.rate })),
     })
-    setIsSaving(false)
     if (!result.success) { setFormError(result.error); return }
     setShowCreate(false)
     await refresh()
+    } catch { setFormError("Your quote could not be saved. Please check your connection and try again.") }
+    finally { setIsSaving(false) }
   }
 
-  const sendQuote = async (id: string) => { await sendProviderQuote({ id }); await refresh() }
+  const sendQuote = async (id: string) => {
+    if (sending) return
+    setSending(id); setPageError(""); setNotice("")
+    try {
+      const result = await sendProviderQuote({ id })
+      if (!result.success) { setPageError(result.error); return }
+      setNotice("Quote sent to your customer.")
+      await refresh()
+    } catch { setPageError("We could not confirm that the quote was sent. Refresh before trying again.") }
+    finally { setSending(null) }
+  }
 
   if (isLoading) {
     return (
@@ -102,6 +119,9 @@ export default function QuotesPage() {
         <Button onClick={openCreate} className="rounded-xl" disabled={clients.length === 0}><Plus className="w-4 h-4 mr-2" />{t("provider.quotes.newQuote")}</Button>
       </div>
 
+      {pageError && <div role="alert" className="rounded-xl border border-red-200 p-4 text-sm text-red-700">{pageError}<button className="ml-3 underline" onClick={async () => { try { await Promise.all([refresh(), getBillingClientOptions().then(setClients)]); setPageError("") } catch { setPageError("Still unable to connect. Please try again.") } }}>Refresh</button></div>}
+      {notice && <p role="status" className="rounded-xl bg-blue-50 p-4 text-sm text-blue-900">{notice}</p>}
+      <section className="grid gap-4 rounded-2xl border border-blue-100 bg-blue-50/50 p-5 sm:grid-cols-3" aria-label="Quote workflow">{[{ title: "1. Agree the scope", text: "Describe the work and itemise the quantities and rates." }, { title: "2. Send for review", text: "Save a draft, check the totals, then send it to your customer." }, { title: "3. Follow the response", text: "Track sent and accepted quotes using the status filters below." }].map(item => <div key={item.title}><h2 className="text-sm font-semibold">{item.title}</h2><p className="mt-2 text-xs leading-6 text-muted-foreground">{item.text}</p></div>)}</section>
       {/* Stats */}
       <div className="grid grid-cols-4 gap-3">
         {[
@@ -178,7 +198,7 @@ export default function QuotesPage() {
                 <p className="text-[10px] text-muted-foreground">{t("provider.quotes.validUntil", { date: new Date(quote.validUntil).toLocaleDateString() })}</p>
                 {quote.notes && <p className="text-[10px] text-muted-foreground italic bg-muted/30 p-2 rounded-lg">{quote.notes}</p>}
                 {quote.status === "draft" && (
-                  <Button onClick={() => sendQuote(quote.id)} size="sm" className="rounded-lg"><Send className="w-3 h-3 mr-1" />{t("provider.quotes.sendToClient")}</Button>
+                  <Button disabled={sending !== null} onClick={() => sendQuote(quote.id)} size="sm" className="rounded-lg"><Send className="w-3 h-3 mr-1" />{t("provider.quotes.sendToClient")}</Button>
                 )}
               </div>
             )}
@@ -188,33 +208,35 @@ export default function QuotesPage() {
 
       {/* Create Quote Dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent className="max-w-md rounded-xl max-h-[85vh] overflow-y-auto" showCloseButton={false}>
+        <DialogContent className="sm:max-w-2xl rounded-xl max-h-[85vh] overflow-y-auto" showCloseButton={false}>
           <div className="space-y-4">
-            <h2 className="text-base font-bold text-foreground">{t("provider.quotes.createNewQuoteTitle")}</h2>
-            <Input value={newQuote.jobTitle} onChange={(e) => setNewQuote(p => ({ ...p, jobTitle: e.target.value }))} placeholder={t("provider.quotes.jobTitlePlaceholder")} className="rounded-lg bg-card border-border" />
+            <DialogTitle className="text-lg font-bold text-foreground">{t("provider.quotes.createNewQuoteTitle")}</DialogTitle><DialogDescription>Itemise your work and check the total before sending it to your customer.</DialogDescription>
+            <Input aria-label="Quote title" value={newQuote.jobTitle} onChange={(e) => setNewQuote(p => ({ ...p, jobTitle: e.target.value }))} placeholder={t("provider.quotes.jobTitlePlaceholder")} className="rounded-lg bg-card border-border" />
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">{t("provider.quotes.clientLabel")}</label>
-              <select value={newQuote.customerId} onChange={(e) => setNewQuote(p => ({ ...p, customerId: e.target.value }))} className="w-full h-9 rounded-lg bg-card border border-border text-xs text-foreground px-2">
+              <select aria-label="Customer" value={newQuote.customerId} onChange={(e) => setNewQuote(p => ({ ...p, customerId: e.target.value }))} className="w-full h-9 rounded-lg bg-card border border-border text-xs text-foreground px-2">
                 {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
-            <Textarea value={newQuote.description} onChange={(e) => setNewQuote(p => ({ ...p, description: e.target.value }))} placeholder={t("provider.quotes.descriptionPlaceholder")} className="rounded-lg bg-card border-border min-h-[60px]" />
+            <Textarea aria-label="Scope of work" value={newQuote.description} onChange={(e) => setNewQuote(p => ({ ...p, description: e.target.value }))} placeholder={t("provider.quotes.descriptionPlaceholder")} className="rounded-lg bg-card border-border min-h-[60px]" />
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">{t("provider.quotes.validForDaysLabel")}</label>
-              <Input type="number" value={newQuote.validDays} onChange={(e) => setNewQuote(p => ({ ...p, validDays: Number(e.target.value) }))} className="rounded-lg bg-card border-border" />
+              <Input aria-label="Quote validity in days" type="number" min={1} max={365} value={newQuote.validDays} onChange={(e) => setNewQuote(p => ({ ...p, validDays: Number(e.target.value) }))} className="rounded-lg bg-card border-border" />
             </div>
             <div>
               <div className="flex items-center justify-between mb-2"><label className="text-xs text-muted-foreground">{t("provider.quotes.itemsLabel")}</label><button onClick={addItem} className="text-[11px] text-primary font-medium">{t("provider.quotes.addButton")}</button></div>
               {newQuote.items.map((item, idx) => (
-                <div key={idx} className="flex gap-2 mb-2">
-                  <Input value={item.desc} onChange={(e) => setNewQuote(p => ({ ...p, items: p.items.map((it, i) => i === idx ? { ...it, desc: e.target.value } : it) }))} placeholder={t("provider.quotes.itemPlaceholder")} className="flex-1 rounded-lg bg-card border-border text-xs" />
-                  <Input type="number" value={item.qty} onChange={(e) => setNewQuote(p => ({ ...p, items: p.items.map((it, i) => i === idx ? { ...it, qty: Number(e.target.value) } : it) }))} className="w-14 rounded-lg bg-card border-border text-xs" />
-                  <Input type="number" value={item.rate || ""} onChange={(e) => setNewQuote(p => ({ ...p, items: p.items.map((it, i) => i === idx ? { ...it, rate: Number(e.target.value) } : it) }))} placeholder={t("provider.quotes.ratePlaceholder")} className="w-20 rounded-lg bg-card border-border text-xs" />
+                <div key={idx} className="mb-3 grid grid-cols-2 gap-2 rounded-xl border bg-muted/20 p-3 sm:grid-cols-[1fr_80px_100px_auto]">
+                  <Input aria-label={`Item ${idx + 1} description`} value={item.desc} onChange={(e) => setNewQuote(p => ({ ...p, items: p.items.map((it, i) => i === idx ? { ...it, desc: e.target.value } : it) }))} placeholder={t("provider.quotes.itemPlaceholder")} className="col-span-2 min-w-0 rounded-lg bg-card border-border text-sm sm:col-span-1" />
+                  <Input aria-label={`Item ${idx + 1} quantity`} type="number" min={0.01} step="any" value={item.qty} onChange={(e) => setNewQuote(p => ({ ...p, items: p.items.map((it, i) => i === idx ? { ...it, qty: Number(e.target.value) } : it) }))} className="w-full rounded-lg bg-card border-border text-sm" />
+                  <Input aria-label={`Item ${idx + 1} rate`} type="number" min={0} step="0.01" value={item.rate || ""} onChange={(e) => setNewQuote(p => ({ ...p, items: p.items.map((it, i) => i === idx ? { ...it, rate: Number(e.target.value) } : it) }))} placeholder={t("provider.quotes.ratePlaceholder")} className="w-full rounded-lg bg-card border-border text-sm" />
+                  <button type="button" disabled={newQuote.items.length === 1} onClick={() => setNewQuote(previous => ({ ...previous, items: previous.items.filter((_, index) => index !== idx) }))} aria-label={`Remove item ${idx + 1}`} className="min-h-11 text-xs text-destructive underline disabled:opacity-30">Remove</button>
                 </div>
               ))}
+              <div className="flex items-center justify-between rounded-lg bg-blue-50 p-4 text-blue-950"><span className="text-sm font-semibold">Quote total</span><strong>{formatMoney(newQuote.items.reduce((sum, item) => sum + (Number.isFinite(item.qty * item.rate) ? item.qty * item.rate : 0), 0))}</strong></div>
             </div>
-            <Textarea value={newQuote.notes} onChange={(e) => setNewQuote(p => ({ ...p, notes: e.target.value }))} placeholder={t("provider.quotes.notesPlaceholder")} className="rounded-lg bg-card border-border min-h-[50px]" />
-            {formError && <p className="text-xs text-red-600">{formError}</p>}
+            <Textarea aria-label="Additional notes" value={newQuote.notes} onChange={(e) => setNewQuote(p => ({ ...p, notes: e.target.value }))} placeholder={t("provider.quotes.notesPlaceholder")} className="rounded-lg bg-card border-border min-h-[50px]" />
+            {formError && <p role="alert" className="text-sm text-red-600">{formError}</p>}
             <div className="flex gap-2 pt-2">
               <Button variant="outline" onClick={() => setShowCreate(false)} className="flex-1 rounded-xl" disabled={isSaving}>{t("common.cancel")}</Button>
               <Button onClick={handleCreate} disabled={!newQuote.jobTitle.trim() || !newQuote.customerId || isSaving} className="flex-1 rounded-xl">
