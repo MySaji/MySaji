@@ -4732,6 +4732,44 @@ model PosSaleItem {
 
 /// One tender against one sale. Only needed for SPLIT payments, but every
 /// sale gets rows so a day's takings can be summed by method from one table.
+model PosMpesaConnection {
+  id String @id @default(cuid())
+  shopkeeperId String @unique
+  shortcode String
+  environment String
+  tokenHash String @unique
+  tokenCiphertext String
+  registeredAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@map("pos_mpesa_connections")
+}
+
+model PosMpesaTransaction {
+  id String @id @default(cuid())
+  shopkeeperId String
+  shortcode String
+  environment String
+  source String
+  status String @default("PENDING")
+  amount Decimal @db.Decimal(14, 2)
+  phone String?
+  payerName String?
+  accountReference String?
+  checkoutId String? @unique
+  receipt String?
+  callbackTokenHash String? @unique
+  consumedSaleId String?
+  resultDescription String?
+  confirmedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([environment, shortcode, receipt])
+  @@index([shopkeeperId, environment, status, createdAt])
+  @@index([consumedSaleId])
+  @@map("pos_mpesa_transactions")
+}
+
 model PosPayment {
   id        String           @id @default(cuid())
   saleId    String

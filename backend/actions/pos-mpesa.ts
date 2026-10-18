@@ -1,7 +1,11 @@
 "use server"
 
+import type { PosPermission } from "@/backend/domain/pos-permissions"
+import { checkRateLimit } from "@/backend/services/rate-limit"
+import { mpesaPublicUrl, mpesaTokenHash } from "@/backend/services/pos-mpesa-core"
 import { z } from "zod"
 import crypto from "crypto"
+import { resolvePosActor } from "@/backend/services/pos-access-core"
 import { auth } from "@/backend/auth"
 import { db } from "@/backend/db"
 import { posShopIdFor } from "@/backend/services/pos-tenant"
@@ -66,7 +70,9 @@ function platformDemoAvailable(): boolean {
   )
 }
 
-async function requireShop() {
+async function requireShop(permissions: PosPermission[] = ["till.sell", "payment.settings"]) {
+  const actor = await resolvePosActor()
+  if (!actor || !permissions.some(permission => actor.can(permission))) return null
   const session = await auth()
   if (!session?.user?.id) return null
   if (session.user.role !== "provider" && session.user.role !== "shopkeeper") return null
@@ -138,7 +144,7 @@ const saveSchema = z.object({
 })
 
 export async function saveShopMpesa(input: unknown): Promise<SaveMpesaResult> {
-  const shop = await requireShop()
+  const shop = await requireShop(["payment.settings"])
   if (!shop) return { success: false, error: "There is no till on this account." }
   const parsed = saveSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
@@ -203,7 +209,7 @@ export async function saveShopMpesa(input: unknown): Promise<SaveMpesaResult> {
   }
 
   await db.shopkeeperProfile.update({ where: { id: shop.id }, data })
-  const again = await requireShop()
+  const again = await requireShop(["payment.settings"])
   return { success: true, config: describe(again!) }
 }
 
@@ -256,7 +262,7 @@ const promptSchema = z.object({
  * would let a customer walk out on a cancelled prompt.
  */
 export async function promptCustomerPayment(input: unknown): Promise<PromptResult> {
-  const shop = await requireShop()
+  const shop = await requireShop(["till.sell"])
   if (!shop) return { success: false, error: "There is no till on this account." }
   const parsed = promptSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: "Enter the customer's phone number and the amount." }
@@ -266,6 +272,8 @@ export async function promptCustomerPayment(input: unknown): Promise<PromptResul
 
   const phone = normalizePhone(parsed.data.phone)
   if (!phone) return { success: false, error: "That does not look like a Kenyan phone number." }
+  const limit = await checkRateLimit(`pos-stk:${shop.id}:${phone}`, "mpesa-prompt", 5, 60000)
+  if (!limit.allowed) return { success: false, error: "Too many prompts sent to this phone. Wait a minute and check the inbox before retrying." }
 
   // The shop's own app, or the platform's sandbox where they are still
   // trying it out. Which one is in use decides the shortcode too, because
@@ -303,9 +311,13 @@ export async function promptCustomerPayment(input: unknown): Promise<PromptResul
   // Whole shillings: Daraja rejects decimals, and rounding UP would charge
   // the customer more than the receipt says.
   const amount = Math.floor(parsed.data.amount)
+  if (amount !== parsed.data.amount) return { success: false, error: "M-Pesa prompts require a whole-shilling amount. Use a direct payment or split the remaining cents with another method." }
   if (amount < 1) return { success: false, error: "The amount is too small to send a prompt for." }
 
   try {
+    const origin = mpesaPublicUrl()
+    const callbackSecret = crypto.randomBytes(32).toString("hex")
+    const pending = await db.posMpesaTransaction.create({ data: { shopkeeperId: shop.id, shortcode, environment: cfg.env, source: "STK", status: "PENDING", amount, phone, accountReference: parsed.data.reference || shop.mpesaAccountRef, callbackTokenHash: mpesaTokenHash(callbackSecret) } })
     const res = await fetch(base + "/mpesa/stkpush/v1/processrequest", {
       method: "POST",
       headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
@@ -319,7 +331,7 @@ export async function promptCustomerPayment(input: unknown): Promise<PromptResul
         PartyA: phone,
         PartyB: shortcode,
         PhoneNumber: phone,
-        CallBackURL: (process.env.NEXTAUTH_URL || "https://example.invalid").replace(/\/+$/, "") + "/api/mpesa/pos-callback",
+        CallBackURL: `${origin}/api/mpesa/pos/stk/${callbackSecret}`,
         AccountReference: (parsed.data.reference || shop.mpesaAccountRef || shop.shopName).slice(0, 12),
         TransactionDesc: "Payment",
       }),
@@ -330,8 +342,12 @@ export async function promptCustomerPayment(input: unknown): Promise<PromptResul
       // PhoneNumber", "Wrong credentials"), unlike the generic 403 the SMS
       // product returns.
       const why = data?.errorMessage || data?.ResponseDescription || "Safaricom would not send the prompt."
+      await db.posMpesaTransaction.updateMany({ where: { id: pending.id, status: "PENDING" }, data: { status: "FAILED", resultDescription: String(why).slice(0, 160) } })
       return { success: false, error: String(why).slice(0, 160) }
     }
+    const accepted = await db.posMpesaTransaction.findUnique({ where: { callbackTokenHash: mpesaTokenHash(callbackSecret) } })
+    if (!accepted || (accepted.checkoutId && accepted.checkoutId !== String(data.CheckoutRequestID))) return { success: false, error: "The provider returned a conflicting prompt reference. Review the payments inbox before retrying." }
+    await db.posMpesaTransaction.update({ where: { id: accepted.id }, data: { checkoutId: String(data.CheckoutRequestID) } })
     return { success: true, checkoutId: String(data.CheckoutRequestID), phone }
   } catch {
     return { success: false, error: "Could not reach Safaricom. Check the connection and try again." }
@@ -340,7 +356,7 @@ export async function promptCustomerPayment(input: unknown): Promise<PromptResul
 
 export type PromptStatus =
   | { state: "pending" }
-  | { state: "paid"; receipt: string | null }
+  | { state: "paid"; receipt: string; transactionId: string; amount: number }
   | { state: "failed"; reason: string }
 
 /**
@@ -351,62 +367,19 @@ export type PromptStatus =
  * waiting for a PIN.
  */
 export async function checkPromptStatus(input: unknown): Promise<PromptStatus> {
-  const shop = await requireShop()
+  const shop = await requireShop(["till.sell"])
   if (!shop) return { state: "failed", reason: "There is no till on this account." }
   const parsed = z.object({ checkoutId: z.string().trim().min(1).max(80) }).safeParse(input)
   if (!parsed.success) return { state: "failed", reason: "Nothing to check." }
 
   const cfg = describe(shop)
-  const key = cfg.usingDemoCreds
-    ? process.env.MPESA_CONSUMER_KEY ?? null
-    : shop.mpesaConsumerKey ? decryptAccountNumber(shop.mpesaConsumerKey) : null
-  const secret = cfg.usingDemoCreds
-    ? process.env.MPESA_CONSUMER_SECRET ?? null
-    : shop.mpesaConsumerSecret ? decryptAccountNumber(shop.mpesaConsumerSecret) : null
-  const passkey = cfg.usingDemoCreds
-    ? process.env.MPESA_PASSKEY ?? null
-    : shop.mpesaPasskey ? decryptAccountNumber(shop.mpesaPasskey) : null
-  const queryShortcode = cfg.usingDemoCreds ? process.env.MPESA_SHORTCODE ?? "" : shop.mpesaShortcode ?? ""
-  if (!key || !secret || !passkey || !queryShortcode) return { state: "failed", reason: "API details unavailable." }
+  const row = await db.posMpesaTransaction.findFirst({ where: { shopkeeperId: shop.id, environment: cfg.env, checkoutId: parsed.data.checkoutId, shortcode: cfg.usingDemoCreds ? process.env.MPESA_SHORTCODE ?? "" : shop.mpesaShortcode ?? "" } })
+  if (!row) return { state: "failed", reason: "This prompt does not belong to this store." }
+  if (row.consumedSaleId) return { state: "failed", reason: "This payment has already been used for a sale. Review its receipt in the payments inbox." }
+  if (row.status === "PAID" && row.receipt) return { state: "paid", receipt: row.receipt, transactionId: row.id, amount: Number(row.amount) }
+  if (row.status === "FAILED") return { state: "failed", reason: row.resultDescription || "The prompt was not paid." }
+  return { state: "pending" }
 
-  const base = darajaBase(cfg.env)
-  const token = await darajaToken(base, key, secret)
-  if (!token) return { state: "pending" }
-
-  const ts = new Date().toISOString().replace(/[-:TZ.]/g, "").slice(0, 14)
-  const password = Buffer.from(queryShortcode + passkey + ts).toString("base64")
-
-  try {
-    const res = await fetch(base + "/mpesa/stkpushquery/v1/query", {
-      method: "POST",
-      headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
-      cache: "no-store",
-      body: JSON.stringify({
-        BusinessShortCode: queryShortcode,
-        Password: password,
-        Timestamp: ts,
-        CheckoutRequestID: parsed.data.checkoutId,
-      }),
-    })
-    const data = await res.json()
-
-    // 500.001.1001 means the subscriber has not answered yet. It is an error
-    // shaped response for an entirely normal state, so it must not be shown
-    // to a cashier as a failure.
-    if (data?.errorCode === "500.001.1001") return { state: "pending" }
-
-    const code = String(data?.ResultCode ?? "")
-    if (code === "0") {
-      return { state: "paid", receipt: data?.MpesaReceiptNumber ? String(data.MpesaReceiptNumber) : null }
-    }
-    if (code === "1032") return { state: "failed", reason: "The customer cancelled the prompt." }
-    if (code === "1037") return { state: "failed", reason: "The phone did not respond. Try again." }
-    if (code === "1") return { state: "failed", reason: "Not enough money in the customer's M-Pesa." }
-    if (code === "") return { state: "pending" }
-    return { state: "failed", reason: String(data?.ResultDesc || "The payment did not go through.").slice(0, 160) }
-  } catch {
-    return { state: "pending" }
-  }
 }
 
 /** A short unique reference for one prompt, so the customer sees something recognisable. */

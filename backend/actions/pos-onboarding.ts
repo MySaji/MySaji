@@ -9,7 +9,7 @@ import { provisionPos } from "@/backend/services/pos-provision"
 import { isSignupProofValid, consumeSignupProof } from "@/backend/services/signup-proof"
 import { checkRateLimit } from "@/backend/services/rate-limit"
 import { resolvePosProfile } from "@/backend/domain/pos-profiles"
-import { recordPosAudit } from "@/backend/services/pos-access-core"
+import { recordPosAudit, resolvePosActor } from "@/backend/services/pos-access-core"
 import { ONBOARDING_STEPS, type OnboardingStep } from "@/backend/domain/pos-onboarding-steps"
 
 /**
@@ -218,13 +218,8 @@ export async function posDestination(): Promise<string> {
   // An owner mid-wizard resumes it; a finished one goes to work.
   if (business) return business.setupCompletedAt ? "/pos/home" : "/pos/setup"
 
-  // Staff on somebody else's till. The register is where they are needed,
-  // and the home page is mostly things their role cannot open.
-  const seat = await db.posStaff.findFirst({
-    where: { userId: session.user.id, isActive: true },
-    select: { id: true },
-  })
-  if (seat) return "/pos/sell"
+  const actor = await resolvePosActor()
+  if (actor) return actor.can("till.sell") ? "/pos/sell" : actor.can("stock.view") ? "/pos/stock" : actor.can("product.view") ? "/pos/products" : actor.can("report.sales") ? "/pos/reports" : "/pos/home"
 
   // Signed in to SAJI with no till of any kind.
   return "/pos/signup"

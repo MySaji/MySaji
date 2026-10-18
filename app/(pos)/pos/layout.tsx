@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next"
+import { TillInstallProvider } from "@/frontend/components/pos/install-provider"
 
 /**
  * Exists only to give the till its own web app manifest.
@@ -15,7 +16,17 @@ import type { Metadata, Viewport } from "next"
  * layout is here.
  */
 export const metadata: Metadata = {
-  title: "Till",
+  title: "Saji Till — POS",
+  applicationName: "Saji Till",
+  appleWebApp: { capable: true, title: "Saji Till", statusBarStyle: "black-translucent" },
+  icons: {
+    icon: [
+      { url: "/pos/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/pos/favicon-48.png", sizes: "48x48", type: "image/png" },
+    ],
+    shortcut: "/pos/favicon.ico",
+    apple: "/pos/icon-192.png",
+  },
   manifest: "/till-manifest.json",
 }
 
@@ -33,5 +44,5 @@ export const viewport: Viewport = {
 }
 
 export default function TillLayout({ children }: { children: React.ReactNode }) {
-  return children
+  return <TillInstallProvider>{children}</TillInstallProvider>
 }

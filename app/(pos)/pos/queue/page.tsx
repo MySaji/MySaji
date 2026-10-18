@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { WorkspaceHeading } from "@/frontend/components/pos/workspace-ui"
 import { useState } from "react"
 import {
   ArrowLeft, CloudOff, RefreshCw, AlertTriangle, Check, Trash2, Loader2, Info,
@@ -39,13 +40,13 @@ export default function TillQueuePage() {
   const doDiscard = async (key: string) => { setBusyKey(key); await offline.discard(key); setBusyKey(null); setConfirmDiscard(null) }
 
   return (
-    <div className="p-3 max-w-2xl mx-auto space-y-3 pb-24">
+    <div className="p-4 md:p-6 xl:p-8 w-full min-w-0 space-y-5 pb-12">
       <Link href="/pos/sell" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 dark:hover:text-white active:scale-95 transition-transform">
         <ArrowLeft className="w-4 h-4" /> Till
       </Link>
 
       <div>
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white">Sales on this device</h1>
+        <WorkspaceHeading title="Sales on this device" />
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
           A sale rung up without a connection is kept here until the server has it. Nothing is
           lost by closing the till or the browser.

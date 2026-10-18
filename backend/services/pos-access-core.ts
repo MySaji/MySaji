@@ -76,7 +76,7 @@ export async function resolvePosActor(staffId?: string | null): Promise<PosActor
       select: {
         id: true, name: true, role: true, storeId: true, features: true,
         business: { select: { id: true, name: true } },
-        store: { select: { id: true, shopkeeperId: true } },
+        store: { select: { id: true, shopkeeperId: true, isActive: true } },
       },
     })
 
@@ -103,23 +103,24 @@ export async function resolvePosActor(staffId?: string | null): Promise<PosActor
           select: { id: true },
         })
         if (waiting) {
-          await db.posStaff.update({
-            where: { id: waiting.id },
+          const claimed = await db.posStaff.updateMany({
+            where: { id: waiting.id, userId: null, isActive: true },
             data: { userId, claimedAt: new Date() },
           })
+          if (claimed.count !== 1) return null
           seat = await db.posStaff.findFirst({
-            where: { id: waiting.id },
+            where: { id: waiting.id, userId, isActive: true },
             select: {
               id: true, name: true, role: true, storeId: true, features: true,
               business: { select: { id: true, name: true } },
-              store: { select: { id: true, shopkeeperId: true } },
+              store: { select: { id: true, shopkeeperId: true, isActive: true } },
             },
           })
         }
       }
     }
 
-    if (!seat) return null
+    if (!seat || (seat.store && seat.store.isActive === false)) return null
     businessId = seat.business.id
     businessName = seat.business.name
     role = seat.role as PosRole

@@ -397,3 +397,15 @@ html[data-till-kiosk="on"] [data-pro-chrome="topbar"] {
 html[data-till-kiosk="on"] [data-pro-chrome="main"] {
   padding-left: 0 !important;
 }
+
+/* Store branding stays inside Till; operational warning/success colours remain semantic. */
+[data-till-theme] :is(.bg-blue-500, .bg-blue-600).text-white {
+  color: var(--primary-foreground);
+}
+[data-till-theme] :is(.text-blue-500, .text-blue-600, .text-blue-700) {
+  color: var(--till-ink);
+}
+.dark [data-till-theme] :is(.text-blue-400, .text-blue-500, .text-blue-600, .text-blue-700) {
+  color: var(--till-accent);
+}
+[data-till-theme] input[type="checkbox"] { accent-color: var(--primary); }

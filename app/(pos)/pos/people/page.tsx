@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import { WorkspaceHeading, PosCard as Card } from "@/frontend/components/pos/workspace-ui"
 import {
   ArrowLeft, AlertTriangle, Check, Loader2, Plus, ShieldCheck, User, UserCheck, UserMinus, X,
 } from "lucide-react"
-import { Card } from "@/frontend/components/ui/card"
 import { Button } from "@/frontend/components/ui/button"
 import { Input } from "@/frontend/components/ui/input"
 import {
@@ -94,7 +94,7 @@ export default function TillPeoplePage() {
   const managers = rows.filter((c) => c.isActive && c.role === "manager").length
 
   return (
-    <div className="p-4 max-w-2xl mx-auto space-y-3 pb-24">
+    <div className="p-4 md:p-6 xl:p-8 w-full min-w-0 space-y-5 pb-12">
       <div className="flex items-center gap-2">
         <Link
           href="/pos/settings"
@@ -104,7 +104,7 @@ export default function TillPeoplePage() {
         </Link>
       </div>
       <div>
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white">Who works the till</h1>
+        <WorkspaceHeading title="Who works the till" />
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
           Give each person a PIN and their name goes on every sale they ring up. They do not
           need a SAJI account, an email address or a password.

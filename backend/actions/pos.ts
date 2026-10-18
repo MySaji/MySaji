@@ -185,6 +185,10 @@ export async function setPosTraits(input: unknown): Promise<PosActionResult> {
 export async function updatePosConfig(input: unknown): Promise<PosActionResult> {
   const permission = await requirePosPermission("settings.store")
   if (!permission.ok) return { success: false, error: permission.error }
+  if (typeof input !== "object" || input === null || Array.isArray(input)) return { success: false, error: "Invalid settings" }
+  if (Object.hasOwn(input, "primaryColor") && permission.actor.role !== "OWNER") {
+    return { success: false, error: "Only the POS owner can change the Till theme colour." }
+  }
   const shop = await resolveMyShop()
   if (!shop) return { success: false, error: "You do not have a shop on this account." }
   if (!shop.posEnabled) return { success: false, error: "The till is not switched on for this shop." }

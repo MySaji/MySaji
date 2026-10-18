@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
 import {
   Store, Loader2, AlertTriangle, ArrowRight, ArrowLeft, ShieldCheck, Check,
@@ -9,6 +9,7 @@ import {
 import { Button } from "@/frontend/components/ui/button"
 import { Input } from "@/frontend/components/ui/input"
 import { sendSignupOtp, verifySignupOtp } from "@/backend/actions/otp"
+import { createPosEmployeeAccount } from "@/backend/actions/pos-employee"
 import { createPosAccount } from "@/backend/actions/pos-onboarding"
 import { useAuthContext } from "@/frontend/lib/auth-context"
 
@@ -33,6 +34,7 @@ type Step = "details" | "code" | "password"
 
 export default function PosSignupPage() {
   const router = useRouter()
+  const employee = usePathname() === "/pos/employee"
   const { login } = useAuthContext()
   const [step, setStep] = useState<Step>("details")
   const [busy, setBusy] = useState(false)
@@ -61,15 +63,15 @@ export default function PosSignupPage() {
   }
 
   const sendCode = async () => {
-    if (businessName.trim().length < 2) { setError("What is the shop called?"); return }
+    if (!employee && businessName.trim().length < 2) { setError("What is the shop called?"); return }
     if (name.trim().length < 2) { setError("Your name, so receipts can say who served."); return }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError("That email does not look right."); return }
-    if (!/^\d{9,15}$/.test(phone.replace(/^\+/, ""))) { setError("That phone number does not look right."); return }
+    if (!employee && !/^\d{9,15}$/.test(phone.replace(/^\+/, ""))) { setError("That phone number does not look right."); return }
 
     setBusy(true); setError("")
     // Sent to the phone, falling back to the email this form already has.
     // The server decides which, and tells us which it used.
-    const r = await sendSignupOtp(phone, email)
+    const r = await sendSignupOtp(employee ? email.trim().toLowerCase() : phone, employee ? undefined : email)
     setBusy(false)
     if (!r.success) { setError(r.error); return }
     setSentTo(r.destination)
@@ -94,7 +96,7 @@ export default function PosSignupPage() {
     if (!agree) { setError("Please agree to the terms to continue."); return }
 
     setBusy(true); setError("")
-    const r = await createPosAccount({
+    const r = await (employee ? createPosEmployeeAccount : createPosAccount)({
       name, email, phone, password, agreeTerms: true,
       verificationProof: proof, businessName,
     })
@@ -144,16 +146,16 @@ export default function PosSignupPage() {
         {/* ---------- 1. who and what ---------- */}
         {step === "details" && (
           <div className="mt-5">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Set up your till</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{employee ? "Activate employee access" : "Set up your till"}</h1>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-              Four things now, and you can be selling in a few minutes.
+              {employee ? "Verify the email your employer added to Team, then create your own password. Your employer controls your store, role and features." : "Four things now, and you can be selling in a few minutes."}
             </p>
 
             {/* An employee who lands here would otherwise create a second,
                 empty business of their own and wonder why none of their
                 employer's products are in it. Said at the top, before they
                 start typing, because after four fields it is too late. */}
-            <div className="mt-4 rounded-xl border border-border bg-muted/50 p-3">
+            {!employee && <div className="mt-4 rounded-xl border border-border bg-muted/50 p-3">
               <p className="text-xs font-semibold text-foreground">Were you added by your employer?</p>
               <p className="mt-0.5 text-[11px] text-muted-foreground leading-relaxed">
                 Do not set up a till here. Sign in with the email or phone your
@@ -161,26 +163,26 @@ export default function PosSignupPage() {
                 automatically.
               </p>
               <Link
-                href="/pos/login"
+                href="/pos/employee"
                 className="mt-2 inline-flex h-9 px-3 rounded-lg bg-background border border-border text-xs font-semibold text-foreground items-center active:scale-95"
               >
-                Sign in instead
+                Activate employee access
               </Link>
-            </div>
+            </div>}
 
             <div className="mt-5 space-y-3">
-              <Field label="What is the shop called?" hint="This goes on your receipts.">
+              {!employee && <>              <Field label="What is the shop called?" hint="This goes on your receipts.">
                 <Input value={businessName} onChange={(e) => setBusinessName(e.target.value)} placeholder="Mama Njeri Supermarket" className="h-12 rounded-xl text-base" />
-              </Field>
+              </Field></>}
               <Field label="Your name">
                 <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Njeri Kamau" className="h-12 rounded-xl text-base" autoComplete="name" />
               </Field>
-              <Field label="Phone number" hint="We send a code here to check it is you.">
+              {!employee && <>              <Field label="Phone number" hint="We send a code here to check it is you.">
                 <div className="flex items-center gap-2">
                   <span className="h-12 px-3 rounded-xl border border-gray-200 dark:border-gray-700 inline-flex items-center text-sm text-gray-500 flex-shrink-0">+254</span>
                   <Input value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 12))} inputMode="tel" placeholder="712345678" className="h-12 rounded-xl text-base tabular-nums" />
                 </div>
-              </Field>
+              </Field></>}
               <Field label="Email">
                 <Input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="you@example.com" className="h-12 rounded-xl text-base" autoComplete="email" />
               </Field>
@@ -257,7 +259,7 @@ export default function PosSignupPage() {
           <div className="mt-5">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Choose a password</h1>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-              This is for you, the owner. Your staff will use short PINs at the till instead.
+              {employee ? "After activation, sign in to Till with your verified email and password." : "Owners create a business here. Employees activate their own access from the employee signup page."}
             </p>
 
             <div className="mt-5 space-y-3">
@@ -284,12 +286,12 @@ export default function PosSignupPage() {
             </label>
 
             <Button onClick={finish} disabled={busy} className="mt-5 w-full h-12 rounded-xl font-semibold">
-              {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : "Create my till"}
+              {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : employee ? "Activate my employee account" : "Create my till"}
             </Button>
 
             <p className="mt-4 flex items-start gap-1.5 text-[11px] text-gray-500 dark:text-gray-400 leading-snug">
               <ShieldCheck className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
-              Your sales and stock belong to you. Nobody at Saji can read your password.
+              {employee ? "Your employer sets your permissions. Keep your password and verification codes private." : "Your sales and stock belong to you. Nobody at Saji can read your password."}
             </p>
           </div>
         )}

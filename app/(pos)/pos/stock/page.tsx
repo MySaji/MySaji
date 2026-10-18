@@ -2,14 +2,17 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
+import { WorkspaceHeading, PosCard as Card } from "@/frontend/components/pos/workspace-ui"
 import {
   ArrowLeft, Loader2, Search, Package, AlertTriangle, Plus,
   ClipboardCheck, Trash2, X, History, Check, Boxes, Calculator, Shapes, RotateCcw, CalendarClock,
   ShieldAlert, Puzzle, Fingerprint,
 } from "lucide-react"
+import { getPosWhoAmI } from "@/backend/actions/pos-access"
+import { RowActions } from "@/frontend/components/pos/row-actions"
+import { ManagementTable } from "@/frontend/components/pos/management-table"
 import { ScanButton } from "@/frontend/components/pos/barcode-scanner"
 import { setProductBarcode } from "@/backend/actions/pos-stock"
-import { Card } from "@/frontend/components/ui/card"
 import { Button } from "@/frontend/components/ui/button"
 import { Input } from "@/frontend/components/ui/input"
 import {
@@ -66,10 +69,11 @@ type Sheet =
   | null
 
 export default function StockPage() {
+  const [canDelete, setCanDelete] = useState(false)
   const [view, setView] = useState<StockView>(null)
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState("")
-  const [filter, setFilter] = useState<"all" | "low" | "out">("all")
+  const [filter, setFilter] = useState<"all" | "low" | "out" | "expiry" | "drift">("all")
   const [sheet, setSheet] = useState<Sheet>(null)
   const [movements, setMovements] = useState<MovementRow[] | null>(null)
   const [amount, setAmount] = useState("")
@@ -97,6 +101,8 @@ export default function StockPage() {
 
   const reload = () => getStockView().then(setView)
 
+  useEffect(() => { getPosWhoAmI().then(actor => setCanDelete(actor?.permissions.includes("product.edit") ?? false)).catch(() => setCanDelete(false)) }, [])
+
   useEffect(() => { reload().finally(() => setLoading(false)) }, [])
 
   const rows = useMemo(() => {
@@ -105,6 +111,8 @@ export default function StockPage() {
     return view.rows.filter((r) => {
       if (filter === "low" && !r.isLow) return false
       if (filter === "out" && r.onHand > 0) return false
+      if (filter === "expiry" && !r.batches.some(batch => batch.onHand > 0 && (batch.expired || batch.expiringSoon))) return false
+      if (filter === "drift" && !r.drifted) return false
       if (!q) return true
       return r.name.toLowerCase().includes(q) || r.sku.toLowerCase().includes(q) || (r.barcode ?? "").includes(q)
     })
@@ -315,11 +323,11 @@ export default function StockPage() {
 
   if (!view) {
     return (
-      <div className="p-4 max-w-2xl mx-auto">
+      <div className="p-4 w-full min-w-0">
         <Card className="p-6 text-center rounded-2xl">
           <Calculator className="w-10 h-10 mx-auto text-gray-300 dark:text-gray-600" />
           <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">There is no till on this account.</p>
-          <Link href="/provider/business-types"><Button variant="outline" className="mt-4 h-10 rounded-xl">My Business</Button></Link>
+          <Link href="/pos/setup"><Button variant="outline" className="mt-4 h-10 rounded-xl">Set up your POS</Button></Link>
         </Card>
       </div>
     )
@@ -328,7 +336,8 @@ export default function StockPage() {
   const s = view.summary
 
   return (
-    <div className="p-3 max-w-3xl mx-auto space-y-3 pb-24">
+    <div className="p-4 md:p-6 xl:p-8 w-full min-w-0 space-y-5 pb-12">
+      <div className="rounded-2xl border border-border bg-background p-5 md:p-6"><WorkspaceHeading title="Inventory" /><p className="mt-3 text-xs leading-relaxed text-muted-foreground">Keep stock movements, quantities and replenishment under control.</p></div>
       <Link href="/pos/sell" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 dark:hover:text-white active:scale-95 transition-transform">
         <ArrowLeft className="w-4 h-4" /> Till
       </Link>
@@ -412,6 +421,8 @@ export default function StockPage() {
         </Card>
       )}
 
+      <section className="grid gap-3 lg:grid-cols-3" aria-label="Inventory operations"><div className="rounded-2xl border border-border bg-blue-50/40 p-5 dark:bg-blue-950/20"><p className="text-[10px] font-semibold uppercase tracking-wider text-blue-600">Replenishment review</p><p className="mt-2 text-2xl font-semibold">{view.rows.filter(row => row.onHand <= row.lowStockThreshold).length} <span className="text-xs font-normal text-muted-foreground">items at reorder level</span></p><p className="mt-2 text-[11px] text-muted-foreground">Review thresholds before ordering. Different units are kept separate.</p><button onClick={() => setFilter("low")} className="mt-3 text-xs font-semibold text-primary">Review low stock</button></div><Link href="/pos/stocktake" className="rounded-2xl border border-border bg-background p-5 hover:border-primary"><ClipboardCheck className="h-5 w-5 text-primary" /><h2 className="mt-3 text-sm font-semibold">Run a stocktake</h2><p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">Count your shelves in a dedicated session and reconcile differences with the ledger.</p></Link><Link href="/pos/purchasing" className="rounded-2xl border border-border bg-background p-5 hover:border-primary"><Boxes className="h-5 w-5 text-primary" /><h2 className="mt-3 text-sm font-semibold">Supplier purchasing</h2><p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">Manage supplier orders and receiving. Use row actions below for individual deliveries.</p></Link></section>
+
       {/* ---- search and filters ------------------------------------------ */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
@@ -423,8 +434,8 @@ export default function StockPage() {
           autoComplete="off"
         />
       </div>
-      <div className="flex gap-1.5">
-        {([["all", "All"], ["low", "Running low"], ["out", "Out of stock"]] as const).map(([key, label]) => (
+      <div className="flex flex-wrap gap-1.5">
+        {([["all", "All"], ["low", "Running low"], ["out", "Out of stock"], ["expiry", "Expiry review"], ["drift", "Ledger mismatches"]] as const).map(([key, label]) => (
           <button
             key={key}
             onClick={() => setFilter(key)}
@@ -448,12 +459,13 @@ export default function StockPage() {
             {view.rows.length === 0 ? "Your catalogue is empty." : "Nothing matches that."}
           </p>
           {view.rows.length === 0 && (
-            <Link href="/shopkeeper/products">
+            <Link href="/pos/products">
               <Button variant="outline" size="sm" className="mt-3 h-9 rounded-lg text-xs">Add products</Button>
             </Link>
           )}
         </Card>
       ) : (
+        <ManagementTable canDelete={canDelete} onDeleted={reload} kind="inventory" rows={rows.map(row => ({ id: row.productId, name: row.name, code: row.sku, quantity: row.onHand, price: row.stockValue, status: row.onHand <= 0 ? "Out of stock" : row.isLow ? "Reorder" : "In stock", detail: `Reorder level: ${row.lowStockThreshold} ${row.unit}${row.drifted ? " / Ledger mismatch" : ""}`, actions: <><button onClick={() => void openSheet("receive", row)}>Receive</button><button onClick={() => void openSheet("count", row)}>Count</button><button onClick={() => void openSheet("history", row)}>History</button><button onClick={() => void openSheet("options", row)}>Options</button>{row.tracksBatches && <button onClick={() => void openSheet("batches", row)}>Batches</button>}{s.tracksSerials && <button onClick={() => void openSheet("serials", row)}>Serials</button>}{s.canRecordWastage && <button onClick={() => void openSheet("waste", row)}>Wastage</button>}</> }))}>
         <div className="space-y-1.5">
           {rows.map((r) => (
             <div
@@ -547,6 +559,7 @@ export default function StockPage() {
               )}
 
               <div className="mt-2 flex flex-wrap gap-1.5">
+                    <RowActions name={r.name}>
                 {s.tracksSerials && (
                   <SmallButton onClick={() => void openSheet("serials", r)} icon={Fingerprint}>
                     {r.tracksSerials ? "Units (" + r.serialsInStock + ")" : "Add units"}
@@ -586,10 +599,12 @@ export default function StockPage() {
                 {s.canRecordWastage && (
                   <SmallButton onClick={() => openSheet("waste", r)} icon={Trash2}>Loss</SmallButton>
                 )}
+                    </RowActions>
               </div>
             </div>
           ))}
         </div>
+        </ManagementTable>
       )}
 
       {/* ---- sheet --------------------------------------------------------- */}
@@ -1171,12 +1186,12 @@ function Stat({ label, value, note, tone }: { label: string; value: string; note
 }
 
 function SmallButton({
-  onClick, icon: Icon, children,
-}: { onClick: () => void; icon: typeof Boxes; children: React.ReactNode }) {
+  icon: Icon, children, className, ...props
+}: React.ComponentProps<"button"> & { icon: typeof Boxes }) {
   return (
     <button
-      onClick={onClick}
-      className="h-8 px-2.5 rounded-lg border border-gray-200 dark:border-gray-700 text-[11px] font-medium text-gray-600 dark:text-gray-300 inline-flex items-center gap-1 active:scale-95 transition-transform"
+      {...props}
+      className={className ?? "h-8 px-2.5 rounded-lg border border-gray-200 dark:border-gray-700 text-[11px] font-medium text-gray-600 dark:text-gray-300 inline-flex items-center gap-1 active:scale-95 transition-transform"}
     >
       <Icon className="w-3 h-3" /> {children}
     </button>

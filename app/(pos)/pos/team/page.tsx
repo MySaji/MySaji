@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import { WorkspaceHeading, PosCard as Card } from "@/frontend/components/pos/workspace-ui"
 import {
   ArrowLeft, Loader2, Plus, Users, AlertTriangle, Check, X, Clock, ShieldCheck,
 } from "lucide-react"
-import { Card } from "@/frontend/components/ui/card"
 import {
   getTeam, saveTeamMember, setTeamMemberActive,
   type TeamView, type TeamMemberRow,
@@ -41,6 +41,7 @@ export default function TeamPage() {
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState("")
+  const [copied, setCopied] = useState(false)
   const [form, setForm] = useState<typeof BLANK | null>(null)
 
   const refresh = async () => setView(await getTeam())
@@ -51,11 +52,13 @@ export default function TeamPage() {
 
   const run = async (fn: () => Promise<{ success: boolean; error?: string }>) => {
     setBusy(true); setError("")
-    const r = await fn()
-    setBusy(false)
-    if (!r.success) { setError(r.error ?? "That did not work."); return false }
-    await refresh()
-    return true
+    try {
+      const r = await fn()
+      if (!r.success) { setError(r.error ?? "That did not work."); return false }
+      await refresh()
+      return true
+    } catch { setError("Could not update the team. Refresh and retry."); return false }
+    finally { setBusy(false) }
   }
 
   const edit = (m: TeamMemberRow) => {
@@ -78,7 +81,7 @@ export default function TeamPage() {
 
   if (!view) {
     return (
-      <div className="p-4 max-w-3xl mx-auto">
+      <div className="p-4 w-full min-w-0">
         <Card className="p-6 rounded-2xl text-center">
           <ShieldCheck className="w-8 h-8 mx-auto text-muted-foreground/40" />
           <p className="mt-2 text-sm font-semibold text-foreground">Not your business to manage</p>
@@ -90,10 +93,10 @@ export default function TeamPage() {
 
   /** What this form currently grants, for the preview under the ticks. */
   const roleFeatures = view.roles.find((r) => r.key === form?.role)?.features ?? []
-  const effective = form && form.features.length > 0 ? form.features : roleFeatures
+  const effective = form && form.customised ? form.features : roleFeatures
 
   return (
-    <div className="p-4 max-w-3xl mx-auto space-y-3 pb-24">
+    <div className="p-4 md:p-6 xl:p-8 w-full min-w-0 space-y-5 pb-12">
       <Link
         href="/pos/home"
         className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1 h-9 -ml-1 px-1 rounded-lg active:scale-95"
@@ -102,7 +105,7 @@ export default function TeamPage() {
       </Link>
 
       <div>
-        <h1 className="text-xl font-bold text-foreground">Your team</h1>
+        <WorkspaceHeading title="Your team" />
         <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
           People with their own sign-in. Add them with the email or phone they
           already use, pick what they may open, and they are in the next time
@@ -111,6 +114,8 @@ export default function TeamPage() {
         </p>
       </div>
 
+      <Card className="p-5 space-y-3"><h2 className="text-sm font-semibold">How employees sign in</h2><ol className="list-decimal pl-5 space-y-2 text-xs leading-relaxed text-muted-foreground"><li>The owner adds the employee with their email, role, branch and allowed features below.</li><li>New employees open <Link href="/pos/employee" className="font-semibold text-primary">Employee signup</Link>, verify that email and create a password. They do not create a business.</li><li>Employees with an existing account use <Link href="/pos/login" className="font-semibold text-primary">Till sign-in</Link>. Their assigned workspace opens after sign-in.</li><li>The owner can change permissions or switch off access from this page.</li></ol><button onClick={async () => { try { await navigator.clipboard.writeText(`${window.location.origin}/pos/employee`); setError(""); setCopied(true) } catch { setError("Employee signup address: " + window.location.origin + "/pos/employee") } }} className="text-xs font-semibold text-primary">{copied ? "Employee signup link copied" : "Copy employee signup link"}</button><p className="text-[11px] text-muted-foreground">Use an email for first-time employee signup. Phone-only seats require an existing account. Accountant is the report/auditor role; Stock controller handles products and inventory. Counter PINs are for shared tills already signed in by the shop.</p></Card>
+
       {error && (
         <div className="rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 px-3 py-2.5 flex items-start gap-2">
           <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
@@ -118,7 +123,7 @@ export default function TeamPage() {
         </div>
       )}
 
-      {!form ? (
+      {view.canManage && (!form ? (
         <button
           onClick={() => { setForm({ ...BLANK }); setError("") }}
           className="w-full h-12 rounded-xl bg-primary text-primary-foreground text-sm font-semibold flex items-center justify-center gap-1.5 active:scale-[0.98]"
@@ -152,6 +157,8 @@ export default function TeamPage() {
             </div>
           </div>
 
+          <button type="button" onClick={() => setForm({ ...form, role: "ACCOUNTANT", customised: true, features: ["report.sales", "report.margin", "report.stock", "audit.view", "product.view", "stock.view", "purchase.view"] })} className="rounded-xl border border-border px-4 py-3 text-xs font-semibold text-primary">Use read-only auditor permissions</button>
+
           {view.stores.length > 1 && (
             <div>
               <span className="text-[11px] font-medium text-muted-foreground">Which branch</span>
@@ -161,7 +168,7 @@ export default function TeamPage() {
                   className={"h-9 px-3 rounded-lg text-xs font-semibold active:scale-95 " +
                     (form.storeId === "" ? "bg-primary text-primary-foreground" : "border border-border text-foreground")}
                 >
-                  All branches
+                  Business default branch
                 </button>
                 {view.stores.map((s) => (
                   <button
@@ -186,14 +193,14 @@ export default function TeamPage() {
               <div>
                 <p className="text-xs font-semibold text-foreground">What they can open</p>
                 <p className="mt-0.5 text-[10px] text-muted-foreground leading-relaxed">
-                  {form.features.length > 0
+                  {form.customised
                     ? "Set by hand. These ticks are exactly what they get, and the role no longer decides."
                     : "Whatever the role above says. Tick anything to decide it yourself."}
                 </p>
               </div>
-              {form.features.length > 0 && (
+              {form.customised && (
                 <button
-                  onClick={() => setForm({ ...form, features: [] })}
+                  onClick={() => setForm({ ...form, features: [], customised: false })}
                   className="h-8 px-2 rounded-lg border border-border text-[10px] font-semibold text-muted-foreground active:scale-95 flex-shrink-0"
                 >
                   Use the role
@@ -211,14 +218,16 @@ export default function TeamPage() {
                       return (
                         <button
                           key={item.key}
+                          role="switch"
+                          aria-checked={on}
                           onClick={() => {
                             // First tick turns the role's set into the starting
                             // point, so nothing silently disappears.
-                            const base = form.features.length > 0 ? form.features : [...roleFeatures]
+                            const base = form.customised ? form.features : [...roleFeatures]
                             const next = base.includes(item.key)
                               ? base.filter((k) => k !== item.key)
                               : [...base, item.key]
-                            setForm({ ...form, features: next })
+                            setForm({ ...form, features: next, customised: true })
                           }}
                           className={"flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-left active:scale-[0.98] " +
                             (on ? "bg-primary/10" : "hover:bg-muted")}
@@ -249,7 +258,8 @@ export default function TeamPage() {
                   email: form.email || null,
                   phone: form.phone || null,
                   storeId: form.storeId || null,
-                  features: form.features,
+                  features: form.customised ? form.features : [],
+                  customised: form.customised,
                 }))
                 if (ok) setForm(null)
               }}
@@ -266,7 +276,7 @@ export default function TeamPage() {
             </button>
           </div>
         </Card>
-      )}
+      ))}
 
       {view.members.length === 0 && !form && (
         <Card className="p-6 rounded-2xl text-center">
@@ -275,6 +285,7 @@ export default function TeamPage() {
         </Card>
       )}
 
+      <div className="grid items-start gap-4 xl:grid-cols-2">
       {view.members.map((m) => (
         <Card key={m.id} className="p-4 rounded-2xl">
           <div className="flex items-start justify-between gap-3">
@@ -300,7 +311,7 @@ export default function TeamPage() {
                 <p className="mt-1 text-[11px] text-muted-foreground">Access switched off</p>
               )}
             </div>
-            <div className="flex gap-1 flex-shrink-0">
+            {view.canManage && <div className="flex gap-1 flex-shrink-0">
               <button
                 onClick={() => edit(m)}
                 className="h-9 px-2.5 rounded-lg border border-border text-[11px] font-semibold text-foreground active:scale-95"
@@ -317,10 +328,11 @@ export default function TeamPage() {
                   {m.isActive ? <X className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5" />}
                 </button>
               )}
-            </div>
+            </div>}
           </div>
         </Card>
       ))}
+      </div>
     </div>
   )
 }

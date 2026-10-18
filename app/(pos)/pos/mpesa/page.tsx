@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import { WorkspaceHeading, PosCard as Card } from "@/frontend/components/pos/workspace-ui"
 import {
   ArrowLeft, AlertTriangle, Check, Loader2, Smartphone, ChevronDown, ChevronRight, ShieldCheck,
 } from "lucide-react"
-import { Card } from "@/frontend/components/ui/card"
 import { Button } from "@/frontend/components/ui/button"
 import { Input } from "@/frontend/components/ui/input"
 import { getShopMpesa, saveShopMpesa } from "@/backend/actions/pos-mpesa"
@@ -77,7 +77,7 @@ export default function TillMpesaPage() {
 
   if (!cfg) {
     return (
-      <div className="p-4 max-w-2xl mx-auto">
+      <div className="p-4 w-full min-w-0">
         <Card className="p-6 text-center rounded-2xl">
           <Smartphone className="w-10 h-10 mx-auto text-gray-300 dark:text-gray-600" />
           <h1 className="mt-3 text-lg font-bold text-gray-900 dark:text-white">No till on this account</h1>
@@ -87,7 +87,7 @@ export default function TillMpesaPage() {
   }
 
   return (
-    <div className="p-4 max-w-2xl mx-auto space-y-3 pb-24">
+    <div className="p-4 md:p-6 xl:p-8 w-full min-w-0 space-y-5 pb-12">
       <div className="flex items-center gap-2">
         <Link
           href="/pos/settings"
@@ -97,13 +97,14 @@ export default function TillMpesaPage() {
         </Link>
       </div>
       <div>
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white">Taking M-Pesa</h1>
+        <WorkspaceHeading title="Taking M-Pesa" />
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
           Money goes straight into your own M-Pesa. SAJI never holds it and never takes a cut
           of what you ring up at the counter.
         </p>
       </div>
 
+      <Link href="/pos/payments" className="block rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-sm font-semibold text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300">Open payments inbox & connect direct Paybill notifications<small className="mt-2 block text-xs font-normal">Cashiers can select received payments at checkout. Confirmed exact-amount prompts complete checkout and print automatically.</small></Link>
       {error && (
         <div className="rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 px-3 py-2.5 flex items-start gap-2">
           <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />

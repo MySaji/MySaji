@@ -62,6 +62,7 @@ export type TeamMemberRow = {
 }
 
 export type TeamView = {
+  canManage: boolean
   members: TeamMemberRow[]
   /** Every feature that can be granted, grouped for a screen. */
   catalogue: { group: string; items: { key: PosPermission; label: string }[] }[]
@@ -147,6 +148,7 @@ export async function getTeam(staffId?: string | null): Promise<TeamView | null>
   })).filter((g2) => g2.items.length > 0)
 
   return {
+    canManage: g.actor.role === "OWNER",
     members: members.map((m) => ({
       id: m.id,
       name: m.name,
@@ -159,7 +161,7 @@ export async function getTeam(staffId?: string | null): Promise<TeamView | null>
       claimedAt: m.claimedAt?.toISOString() ?? null,
       customised: m.features.length > 0,
       features: (m.features.length > 0
-        ? (m.features as PosPermission[])
+        ? POS_PERMISSIONS.filter(p => m.features.includes(p))
         : [...POS_ROLE_PERMISSIONS[m.role as PosRole]]),
       isOwnerSeat: !!business && m.userId === business.ownerUserId,
     })),
@@ -185,6 +187,7 @@ const memberSchema = z.object({
   storeId: z.string().trim().optional().nullable(),
   /** Empty means "use the role". */
   features: z.array(z.enum(POS_PERMISSIONS)).optional(),
+  customised: z.boolean().optional(),
   staffId: z.string().optional().nullable(),
 })
 
@@ -197,6 +200,8 @@ export async function saveTeamMember(input: unknown): Promise<TeamResult> {
 
   const g = await gate("staff.manage", d.staffId)
   if (!g.ok) return { success: false, error: g.error }
+
+  if (g.actor.role !== "OWNER") return { success: false, error: "Only the POS owner can change employee access." }
 
   const email = (d.email || "").trim().toLowerCase() || null
   const phone = (d.phone || "").trim() || null
@@ -236,7 +241,7 @@ export async function saveTeamMember(input: unknown): Promise<TeamResult> {
     email,
     phone,
     storeId: d.storeId || null,
-    features: d.features ?? [],
+    features: d.customised && !d.features?.length ? ["__NONE__"] : d.features ?? [],
   }
 
   if (d.id) {
@@ -290,6 +295,8 @@ export async function setTeamMemberActive(
 ): Promise<TeamResult> {
   const g = await gate("staff.manage", input.staffId)
   if (!g.ok) return { success: false, error: g.error }
+
+  if (g.actor.role !== "OWNER") return { success: false, error: "Only the POS owner can change employee access." }
 
   const member = await db.posStaff.findFirst({
     where: { id: input.id, businessId: g.actor.businessId },

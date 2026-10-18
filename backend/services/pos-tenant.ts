@@ -69,6 +69,7 @@ export async function posShopIdFor(userId: string): Promise<string | null> {
     },
   })
   if (seat) {
+    if (seat.store && !seat.store.isActive) return null
     if (seat.store?.isActive) return seat.store.shopkeeperId
     // A seat with no store of its own falls back to the business's first,
     // which is what a staff member posted "to the business" means.

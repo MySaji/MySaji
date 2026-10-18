@@ -10,17 +10,7 @@ import { useAuthContext } from "@/frontend/lib/auth-context"
 import { requestLoginOtp, verifyLoginOtp } from "@/backend/actions/otp"
 import { posDestination } from "@/backend/actions/pos-onboarding"
 
-/**
- * Signing in to a till.
- *
- * WHO THIS IS FOR
- *
- * The owner, and any manager given a login. It is NOT how a cashier gets to
- * work: they use a PIN on a device the shop already signed in, which is the
- * whole point of the PIN. A cashier arriving at this page has come the wrong
- * way, so it says so rather than letting them stall on a password they were
- * never given.
- */
+/** Owners and employees use individual accounts; shared counters can also use PINs. */
 
 const OTP_LENGTH = 6
 
@@ -124,11 +114,11 @@ export default function PosLoginPage() {
             <div className="mt-5 rounded-xl border border-gray-200 dark:border-gray-700 p-3">
               <p className="text-xs font-semibold text-gray-900 dark:text-white">Working the counter?</p>
               <p className="mt-0.5 text-[11px] text-gray-500 dark:text-gray-400 leading-snug">
-                Cashiers do not sign in here. Open the till on the shop&apos;s own device and enter
-                your PIN.
+                Employees can sign in here using their own account. New employee? Activate your access first. A counter PIN is an alternative on a device already signed in by the shop.
               </p>
             </div>
 
+            <Link href="/pos/employee" className="mt-4 block text-center text-sm font-semibold text-primary">Employee first-time signup</Link>
             <p className="mt-5 text-center text-xs text-gray-500 dark:text-gray-400">
               No till yet?{" "}
               <Link href="/pos/signup" className="font-semibold text-primary">Set one up</Link>

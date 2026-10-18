@@ -16,15 +16,12 @@ import "./globals.css"
 const _geist = Geist({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
-  title: { default: "MySaji — Shop • Work • Rent • Learn • Grow", template: "%s | MySaji" },
-  description: "Explore MySaji services, shops, business tools and practical guides.",
-  applicationName: "MySaji",
-  robots: { index: false, follow: false },
-  verification: {
-    google: process.env.GOOGLE_SITE_VERIFICATION || undefined,
-    other: process.env.BING_SITE_VERIFICATION ? { "msvalidate.01": process.env.BING_SITE_VERIFICATION } : undefined,
-  },
+  title: "SAJI - Marketplace",
+  description:
+    "Connect with trusted service providers. SAJI connects you with verified professionals for all your service needs.",
+  applicationName: "SAJI",
+  creator: "SAJI Team",
+  keywords: ["marketplace", "services", "providers", "booking"],
   icons: {
     icon: [
       {
@@ -78,9 +75,6 @@ export default async function RootLayout({
     <html lang={session?.user?.language ?? "en"} suppressHydrationWarning>
       <head>
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="SAJI" />
       </head>
       <body className={`font-sans antialiased ${_geist.className}`}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} themes={["light", "dark"]} disableTransitionOnChange>

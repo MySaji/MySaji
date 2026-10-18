@@ -11,7 +11,9 @@ export type RateLimitResult = { allowed: true } | { allowed: false; retryAfterSe
 export async function checkRateLimit(identifier: string, action: string, maxAttempts: number, windowMs: number): Promise<RateLimitResult> {
   return db.$transaction(async tx => {
     // Serialize only this bucket across all application instances.
-    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${action}), hashtext(${identifier}))`
+    // PostgreSQL returns void for this function; Prisma needs a supported
+    // result type even though we only need the lock's side effect.
+    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${action}), hashtext(${identifier}))::text AS lock_result`
     const windowStart = new Date(Date.now() - windowMs)
     const recentAttempts = await tx.rateLimitAttempt.findMany({
       where: { identifier, action, createdAt: { gte: windowStart } },

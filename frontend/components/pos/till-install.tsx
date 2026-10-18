@@ -3,50 +3,16 @@
 import { useEffect, useState } from "react"
 import { MonitorDown, X, Share, Plus, Info } from "lucide-react"
 
-/**
- * Installing the till as an app on the counter machine.
- *
- * This is the "downloadable tool of its own" in its honest form. Installing
- * gives a real icon on the desktop or home screen that opens straight into
- * the register, in its own window with no browser chrome, under its own
- * manifest — so from the shopkeeper's side it is an app, not a bookmark.
- *
- * It is NOT a native binary, and it does NOT work offline yet. Both of those
- * are stated on the card rather than left to be discovered, because a till
- * that a shopkeeper believes works without a connection is a till that loses
- * them a morning's takings the first time the line drops.
- *
- * Three cases, because the platforms genuinely differ:
- *  - Chrome, Edge, Android: beforeinstallprompt fires, so there is a button.
- *  - iOS Safari: no prompt API at all, so it has to be instructions.
- *  - Already installed: nothing, because offering to install an app you are
- *    currently running inside reads as broken.
- */
-
-type InstallPromptEvent = Event & {
-  prompt: () => Promise<void>
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>
-}
+import { useTillInstall } from "@/frontend/components/pos/install-provider"
 
 const DISMISS_KEY = "saji-till-install-dismissed"
 
 export function TillInstall() {
-  const [prompt, setPrompt] = useState<InstallPromptEvent | null>(null)
-  const [standalone, setStandalone] = useState(true)   // assume installed until proven otherwise, so it never flashes
+  const { available, standalone, isIos, install } = useTillInstall()
   const [dismissed, setDismissed] = useState(true)
-  const [isIos, setIsIos] = useState(false)
   const [showIosHelp, setShowIosHelp] = useState(false)
 
   useEffect(() => {
-    const running =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      // iOS Safari does not report display-mode, only this non-standard flag.
-      (window.navigator as unknown as { standalone?: boolean }).standalone === true
-    setStandalone(running)
-
-    const ua = window.navigator.userAgent
-    setIsIos(/iPad|iPhone|iPod/.test(ua) && !/CriOS|FxiOS/.test(ua))
-
     try {
       setDismissed(localStorage.getItem(DISMISS_KEY) === "1")
     } catch {
@@ -56,39 +22,6 @@ export function TillInstall() {
       setDismissed(false)
     }
 
-    const onPrompt = (e: Event) => {
-      // Chrome shows its own mini-infobar otherwise, which is easy to miss
-      // and cannot be re-triggered. Holding the event lets the till offer it
-      // where the shopkeeper is actually looking.
-      e.preventDefault()
-      setPrompt(e as InstallPromptEvent)
-    }
-    window.addEventListener("beforeinstallprompt", onPrompt)
-    window.addEventListener("appinstalled", () => { setPrompt(null); setStandalone(true) })
-
-    // Registering the worker is what makes the install offer appear at all.
-    // Scope "/provider/" rather than "/", so it cannot displace the app-wide
-    // push worker, and rather than "/pos/", which would not have
-    // covered the till page itself — see the note in public/pos/sw.js.
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker
-        .register("/pos/sw.js", { scope: "/pos/" })
-        .then(() => navigator.serviceWorker.ready)
-        .then((reg) => {
-          // Ask it to sweep now that the page has loaded. The worker sees no
-          // fetches on the load it was registered during, so without this a
-          // till installed and taken offline the same morning would have the
-          // page saved and none of the code that makes it a till.
-          reg.active?.postMessage("precache")
-        })
-        .catch(() => {
-          // Not fatal: the till works as a normal page, it just cannot be
-          // installed. Nothing is shown about it, because a shopkeeper can
-          // do nothing with that information.
-        })
-    }
-
-    return () => window.removeEventListener("beforeinstallprompt", onPrompt)
   }, [])
 
   const dismiss = () => {
@@ -96,17 +29,9 @@ export function TillInstall() {
     try { localStorage.setItem(DISMISS_KEY, "1") } catch { /* nothing to do */ }
   }
 
-  const install = async () => {
-    if (!prompt) return
-    await prompt.prompt()
-    const { outcome } = await prompt.userChoice
-    setPrompt(null)
-    if (outcome === "accepted") setStandalone(true)
-  }
-
   if (standalone || dismissed) return null
   // Nothing to offer: not iOS, and the browser never said it could install.
-  if (!prompt && !isIos) return null
+  if (!available && !isIos) return null
 
   return (
     <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3">
@@ -123,7 +48,7 @@ export function TillInstall() {
 
           {!showIosHelp && (
             <div className="mt-2 flex items-center gap-2">
-              {prompt ? (
+              {available ? (
                 <button
                   onClick={install}
                   className="h-9 px-3 rounded-lg bg-primary text-primary-foreground text-[11px] font-semibold active:scale-95 transition-transform"
@@ -159,8 +84,7 @@ export function TillInstall() {
           {/* The limit, said up front rather than discovered at the counter. */}
           <p className="mt-2 flex items-start gap-1.5 text-[10px] text-gray-400 dark:text-gray-500 leading-snug">
             <Info className="w-3 h-3 mt-0.5 flex-shrink-0" />
-            It still needs an internet connection to ring up a sale. Working without one is
-            being built next.
+            Open the till online once to prepare this device. Offline sales use its saved catalogue and sync when the connection returns.
           </p>
         </div>
         <button

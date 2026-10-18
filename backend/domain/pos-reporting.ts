@@ -29,3 +29,17 @@ export function reportRangeStart(range: ReportRange, now: Date = new Date()): Da
   if (range === "30d") d.setDate(d.getDate() - 29)
   return d
 }
+
+/** Calendar slots follow the UTC day keys returned by the report action. */
+export function reportTrend(rows: { day: string; amount: number; count: number }[], from: string, to: string) {
+  const start = new Date(from.slice(0, 10) + "T00:00:00Z")
+  const end = new Date(to.slice(0, 10) + "T00:00:00Z")
+  if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime())) return []
+  const byDay = new Map(rows.map(row => [row.day, row]))
+  const result: { day: string; amount: number; count: number; label: string }[] = []
+  for (const cursor = new Date(start); cursor <= end && result.length < 32; cursor.setUTCDate(cursor.getUTCDate() + 1)) {
+    const day = cursor.toISOString().slice(0, 10)
+    result.push({ day, amount: 0, count: 0, ...byDay.get(day), label: cursor.toLocaleDateString("en-KE", { day: "numeric", month: "short", timeZone: "UTC" }) })
+  }
+  return result
+}

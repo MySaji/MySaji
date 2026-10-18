@@ -113,9 +113,12 @@ export async function getCustomers(input?: unknown): Promise<CustomerRow[]> {
   const parsed = z.object({
     query: z.string().trim().max(60).optional(),
     limit: z.number().int().min(1).max(200).optional(),
+    offset: z.number().int().min(0).max(1000000).optional(),
     staffId: z.string().trim().max(60).optional(),
   }).safeParse(input ?? {})
-  const q = parsed.success ? parsed.data.query?.trim() : undefined
+  if (!parsed.success) return []
+  const q = parsed.data.query?.trim()
+  const phone = q ? normalize(q) : null
   const g = await gate("product.view", parsed.success ? parsed.data.staffId : undefined)
   if (!g.ok) return []
 
@@ -124,10 +127,11 @@ export async function getCustomers(input?: unknown): Promise<CustomerRow[]> {
     where: {
       shopkeeperId: g.shopkeeperId,
       ...(q
-        ? { OR: [{ name: { contains: q, mode: "insensitive" } }, { phone: { contains: q } }] }
+        ? { OR: [{ name: { contains: q, mode: "insensitive" } }, { email: { contains: q, mode: "insensitive" } }, { phone: { contains: phone ?? q } }] }
         : {}),
     },
-    orderBy: [{ isActive: "desc" }, { lastSeenAt: { sort: "desc", nulls: "last" } }],
+    orderBy: [{ isActive: "desc" }, { lastSeenAt: { sort: "desc", nulls: "last" } }, { id: "asc" }],
+    skip: parsed.data.offset ?? 0,
     take: parsed.success ? parsed.data.limit ?? 100 : 100,
   })
 

@@ -1,10 +1,13 @@
 "use client"
 
+import { useEffect, useState } from "react"
+import { getPosWhoAmI, type PosWhoAmI } from "@/backend/actions/pos-access"
+import { canOpenPosPage } from "@/frontend/lib/pos-navigation"
+import { RegisterNavigation } from "@/frontend/components/pos/register-workspace"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
-import {
-  ShoppingCart, LayoutDashboard, Package, Boxes, Users, BarChart3, Settings,
-} from "lucide-react"
+import { ShoppingCart } from "lucide-react"
+import { PosThemeProvider } from "@/frontend/components/pos/theme-provider"
 
 /**
  * The POS, as its own application.
@@ -33,89 +36,42 @@ import {
  */
 
 /** Paths that are not the application: read before anybody has a till. */
-const PUBLIC = ["/pos", "/pos/login", "/pos/signup", "/pos/setup", "/pos/contact"]
+const PUBLIC = ["/pos", "/pos/login", "/pos/signup", "/pos/employee", "/pos/setup", "/pos/contact"]
 
 /** The register, and the kitchen screen, own their whole window. */
 const FULL_BLEED = ["/pos/sell", "/pos/kitchen"]
 
-const NAV = [
-  { href: "/pos/home", label: "Home", icon: LayoutDashboard },
-  { href: "/pos/sell", label: "Sell", icon: ShoppingCart },
-  { href: "/pos/products", label: "Products", icon: Package },
-  { href: "/pos/stock", label: "Stock", icon: Boxes },
-  { href: "/pos/customers", label: "Customers", icon: Users },
-  { href: "/pos/reports", label: "Reports", icon: BarChart3 },
-  { href: "/pos/settings", label: "Settings", icon: Settings },
-]
+
 
 export default function PosLayout({ children }: { children: React.ReactNode }) {
+  return <PosThemeProvider><PosShell>{children}</PosShell></PosThemeProvider>
+}
+
+function PosShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? ""
+
+  const [actor, setActor] = useState<PosWhoAmI | null>(null)
+  useEffect(() => {
+    if (PUBLIC.includes(pathname) || FULL_BLEED.includes(pathname)) return
+    let cancelled = false
+    getPosWhoAmI().then((value) => { if (!cancelled) setActor(value) }).catch(() => { if (!cancelled) setActor(null) })
+    return () => { cancelled = true }
+  }, [pathname])
 
   if (PUBLIC.includes(pathname) || FULL_BLEED.includes(pathname)) {
     return <>{children}</>
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* One bar, naming the product and nothing else. No notifications, no
-          messages, no create button: a counter has one job. */}
-      <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
-        <div className="flex items-center gap-2 px-3 h-12 max-w-[1600px] mx-auto">
-          <Link href="/pos/home" className="font-bold text-sm text-foreground shrink-0">
-            SAJI <span className="text-primary">Till</span>
-          </Link>
-
-          {/* Desktop navigation. On a phone this is the bottom bar instead,
-              because a cashier holds the phone one-handed. */}
-          <nav className="hidden md:flex items-center gap-0.5 ml-4 overflow-x-auto">
-            {NAV.map((item) => {
-              const active = pathname === item.href || pathname.startsWith(item.href + "/")
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={"h-9 px-3 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 transition-colors " +
-                    (active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted")}
-                >
-                  <item.icon className="w-3.5 h-3.5" />
-                  {item.label}
-                </Link>
-              )
-            })}
-          </nav>
-
-          <Link
-            href="/pos/sell"
-            className="ml-auto h-9 px-3 rounded-lg bg-primary text-primary-foreground text-xs font-semibold inline-flex items-center gap-1.5 active:scale-95 shrink-0"
-          >
-            <ShoppingCart className="w-3.5 h-3.5" /> Sell
-          </Link>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 lg:pl-20">
+      <RegisterNavigation actor={actor} />
+      <header className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur">
+        <div className="flex min-h-16 w-full items-center justify-between gap-3 px-4 md:px-6">
+          <div className="min-w-0"><Link href="/pos/home" className="block truncate text-sm font-semibold">{actor?.businessName ?? "Saji Till"}</Link><p className="mt-0.5 text-[11px] text-muted-foreground">{actor ? `${actor.name} · ${actor.roleLabel}` : "Point of sale workspace"}</p></div>
+          {actor?.permissions.includes("till.sell") && <Link href="/pos/sell" className="inline-flex h-10 shrink-0 items-center gap-2 rounded-xl bg-blue-600 px-4 text-xs font-semibold text-white hover:bg-blue-700"><ShoppingCart className="h-4 w-4" />New sale</Link>}
         </div>
       </header>
-
-      <main className="max-w-[1600px] mx-auto pb-20 md:pb-0">{children}</main>
-
-      {/* Phone navigation. Five, not seven: the two that do not fit are
-          reachable from Home, and a bottom bar people mis-tap is worse than a
-          shorter one. */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border bg-background/95 backdrop-blur">
-        <div className="grid grid-cols-5">
-          {NAV.filter((n) => n.label !== "Customers" && n.label !== "Stock").map((item) => {
-            const active = pathname === item.href || pathname.startsWith(item.href + "/")
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={"flex flex-col items-center justify-center gap-0.5 h-14 text-[10px] font-medium " +
-                  (active ? "text-primary" : "text-muted-foreground")}
-              >
-                <item.icon className="w-5 h-5" />
-                {item.label}
-              </Link>
-            )
-          })}
-        </div>
-      </nav>
+      <main className="w-full min-w-0">{actor && !canOpenPosPage(pathname, actor.permissions) ? <div className="m-6 rounded-2xl border border-border bg-background p-8"><h1 className="text-xl font-semibold">Access restricted</h1><p className="mt-3 text-sm text-muted-foreground">Your owner has not enabled this feature for your account.</p><Link href="/pos/home" className="mt-4 inline-block text-sm font-semibold text-primary">Return to your workspace</Link></div> : children}</main>
     </div>
   )
 }

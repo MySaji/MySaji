@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import { WorkspaceHeading, PosCard as Card } from "@/frontend/components/pos/workspace-ui"
 import {
   ArrowLeft, Loader2, Plus, Tag, Users, AlertTriangle, Power,
 } from "lucide-react"
-import { Card } from "@/frontend/components/ui/card"
 import {
   getPromotions, createPromotion, setPromotionActive,
   getPriceLists, createPriceList,
@@ -78,7 +78,7 @@ export default function PricingPage() {
   }
 
   return (
-    <div className="p-4 max-w-3xl mx-auto space-y-3 pb-24">
+    <div className="p-4 md:p-6 xl:p-8 w-full min-w-0 space-y-5 pb-12">
       <Link
         href="/pos/sell"
         className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1 h-9 -ml-1 px-1 rounded-lg active:scale-95"
@@ -87,7 +87,7 @@ export default function PricingPage() {
       </Link>
 
       <div>
-        <h1 className="text-xl font-bold text-foreground">Prices and offers</h1>
+        <WorkspaceHeading title="Prices and offers" />
         <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
           Offers apply themselves at the till: nobody types a code and the cashier
           does not have to remember. A price list is what one customer pays,

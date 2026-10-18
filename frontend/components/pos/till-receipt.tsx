@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Check, AlertTriangle, RotateCcw, Printer, Loader2 } from "lucide-react"
+import { receiptVat } from "@/backend/domain/pos-receipt-details"
 import type { Receipt } from "@/backend/actions/pos-sales"
 import {
   printReceipt, autoPrintEnabled, setAutoPrint, type PrintableReceipt,
@@ -47,6 +48,8 @@ function toPrintable(receipt: Receipt, payTo: string | null, copyLabel: string |
     occurredAt: receipt.occurredAt,
     cashierName: receipt.cashierName,
     customerName: receipt.customerName,
+    customerPhone: receipt.customerPhone,
+    loyalty: receipt.loyalty,
     lines: receipt.lines.map((l) => ({
       name: l.name,
       variantLabel: l.variantLabel,
@@ -72,12 +75,14 @@ export function TillReceipt({
   onNewSale,
   onVoid,
   payTo = null,
+  autoPrintOnce = false,
 }: {
   receipt: Receipt
   onNewSale?: () => void
   onVoid?: () => void
   /** "Paybill 400200, account DUKA01", printed so a customer can query it. */
   payTo?: string | null
+  autoPrintOnce?: boolean
 }) {
   const when = new Date(receipt.occurredAt)
 
@@ -107,12 +112,12 @@ export function TillReceipt({
   // because a queued request went through, and the customer already has the
   // slip. Printing again would suggest a second sale happened.
   useEffect(() => {
-    if (!auto) return
+    if (!auto && !autoPrintOnce) return
     if (receipt.replayed) return
     if (autoDone.current === receipt.saleId) return
     autoDone.current = receipt.saleId
     void doPrint(false)
-  }, [auto, receipt.replayed, receipt.saleId, doPrint])
+  }, [auto, autoPrintOnce, receipt.replayed, receipt.saleId, doPrint])
 
   return (
     <div className="mx-auto w-full max-w-sm">
@@ -174,11 +179,12 @@ export function TillReceipt({
         <div className="mt-2.5 border-t border-dashed border-gray-300 dark:border-gray-600 pt-2 space-y-0.5 text-[10px] text-gray-500 dark:text-gray-400">
           <div className="flex justify-between"><span>Receipt</span><span className="tabular-nums">#{receipt.saleNumber}</span></div>
           <div className="flex justify-between">
-            <span>{when.toLocaleDateString("en-KE")}</span>
-            <span>{when.toLocaleTimeString("en-KE", { hour: "2-digit", minute: "2-digit" })}</span>
+            <span>{when.toLocaleDateString("en-KE", { timeZone: "Africa/Nairobi" })}</span>
+            <span>{when.toLocaleTimeString("en-KE", { timeZone: "Africa/Nairobi", hour: "2-digit", minute: "2-digit" })}</span>
           </div>
           {receipt.cashierName && <div className="flex justify-between"><span>Served by</span><span>{receipt.cashierName}</span></div>}
           {receipt.customerName && <div className="flex justify-between"><span>Customer</span><span>{receipt.customerName}</span></div>}
+          {receipt.customerPhone && <div className="flex justify-between"><span>Phone</span><span>{receipt.customerPhone}</span></div>}
         </div>
 
         <div className="mt-2.5 border-t border-dashed border-gray-300 dark:border-gray-600 pt-2 space-y-1.5">
@@ -216,14 +222,11 @@ export function TillReceipt({
               <span>Discount</span><span className="tabular-nums">-{sh(receipt.discount)}</span>
             </div>
           )}
-          {receipt.taxRate > 0 && (
-            <div className="flex justify-between text-gray-600 dark:text-gray-400">
-              {/* Labelled as a rate, not as VAT. Nothing here is a tax
-                  filing, and a receipt that implies one is a liability. */}
-              <span>Tax {receipt.taxRate}%{receipt.taxInclusive ? " (included)" : ""}</span>
-              <span className="tabular-nums">{sh(receipt.tax)}</span>
-            </div>
-          )}
+          {(receipt.taxRate > 0 || receipt.tax > 0) && <>
+            <div className="flex justify-between text-gray-600 dark:text-gray-400"><span>Amount excl. VAT</span><span>{sh(receiptVat(receipt.total, receipt.tax).net)}</span></div>
+            <div className="flex justify-between text-gray-600 dark:text-gray-400"><span>VAT{receipt.taxRate > 0 ? ` ${receipt.taxRate}%` : ""}</span><span className="tabular-nums">{sh(receipt.tax)}</span></div>
+            <p className="text-[9px] text-gray-500">VAT is included in the total.</p>
+          </>}
           <div className="flex justify-between pt-1 text-sm font-bold">
             <span>TOTAL</span><span className="tabular-nums">KSh {sh(receipt.total)}</span>
           </div>
@@ -243,6 +246,7 @@ export function TillReceipt({
           )}
         </div>
 
+        {receipt.loyalty && <div className="mt-3 space-y-1 border-t border-dashed border-gray-300 pt-3"><p className="text-center font-bold">CUSTOMER LOYALTY</p><div className="flex justify-between"><span>Points added</span><span>{receipt.loyalty.earned}</span></div><div className="flex justify-between"><span>Points redeemed</span><span>{receipt.loyalty.redeemed}</span></div><div className="flex justify-between font-bold"><span>Total points</span><span>{receipt.loyalty.balance}</span></div><p className="text-[9px] text-gray-500">Balance after this sale</p></div>}
         {receipt.footer && (
           <p className="mt-2.5 border-t border-dashed border-gray-300 dark:border-gray-600 pt-2 text-center text-[10px] text-gray-500 leading-snug">
             {receipt.footer}

@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import { WorkspaceHeading, PosCard as Card } from "@/frontend/components/pos/workspace-ui"
 import {
   ArrowLeft, Clock, Loader2, ChevronDown, ChevronRight, Monitor, User, AlertTriangle, Check,
 } from "lucide-react"
-import { Card } from "@/frontend/components/ui/card"
 import {
   getShiftHistory, getShiftSales, type ShiftRow, type ShiftSaleRow,
 } from "@/backend/actions/pos-reports"
@@ -69,7 +69,7 @@ export default function TillShiftsPage() {
   const short = shifts.filter((s) => s.variance !== null && s.variance < 0).length
 
   return (
-    <div className="p-4 max-w-2xl mx-auto space-y-3 pb-24">
+    <div className="p-4 md:p-6 xl:p-8 w-full min-w-0 space-y-5 pb-12">
       <div className="flex items-center gap-2">
         <Link
           href="/pos/sell"
@@ -79,7 +79,7 @@ export default function TillShiftsPage() {
         </Link>
       </div>
       <div>
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white">Shifts</h1>
+        <WorkspaceHeading title="Shifts" />
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
           What was counted at the end of each shift against what the till expected. Tap one to
           see the sales that made it up.
