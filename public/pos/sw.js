@@ -26,9 +26,8 @@
  * rule here is that this worker caches the SHELL and never the DATA.
  *
  *   the app shell (HTML)     network first, cache only as a fallback
- *   /_next/static/*          cache first, because those URLs are content
- *                            hashed, so a changed file is a new URL and a
- *                            cached one can never be stale
+ *   /_next/static/*          network first; only explicitly immutable
+ *                            production output is saved for offline use
  *   everything else, and
  *   every non-GET request    straight to the network, never stored
  *
@@ -46,7 +45,8 @@
 // Bump to retire every previous cache. The activate handler deletes any
 // cache whose name is not this one, so a stale shell cannot outlive a
 // deploy.
-const CACHE = "saji-till-shell-v2"
+const CACHE = "saji-till-shell-v3"
+const DEVELOPMENT = new URL(self.location.href).searchParams.get("dev") === "1" || ["localhost", "127.0.0.1", "[::1]"].includes(self.location.hostname)
 
 // The shell, fetched at install so the first cold start offline works even
 // if the cashier has not opened that exact page since installing.
@@ -66,6 +66,7 @@ const SHELL = ["/pos/sell"]
  * page that looks half alive.
  */
 async function precache(cache, url) {
+  if (DEVELOPMENT) return
   let res
   try {
     res = await fetch(url, { credentials: "same-origin" })
@@ -85,13 +86,13 @@ async function precache(cache, url) {
   while ((m = re.exec(html)) !== null) {
     const a = m[1].replace(/&amp;/g, "&")
     // Only immutable output. A dev server's hot update endpoints are not.
-    if (a.includes("/static/") || a.endsWith(".js") || a.endsWith(".css")) assets.add(a)
+    if (a.startsWith("/_next/static/")) assets.add(a)
   }
 
   await Promise.all(
     [...assets].map((a) =>
       fetch(a, { credentials: "same-origin" })
-        .then((r) => (r.ok ? cache.put(a, r) : null))
+        .then((r) => (r.ok && /\bimmutable\b/i.test(r.headers.get("Cache-Control") || "") ? cache.put(a, r) : null))
         .catch(() => null),
     ),
   )
@@ -133,26 +134,31 @@ self.addEventListener("fetch", (event) => {
 
   // Only GET is ever cacheable. Everything else, every server action and
   // every sale, goes to the network untouched and is allowed to fail.
-  if (req.method !== "GET") return
+  if (req.method !== "GET" || DEVELOPMENT) return
 
   const url = new URL(req.url)
   if (url.origin !== self.location.origin) return
 
-  // Immutable build output: content hashed, so a hit can never be stale.
+  // Revalidate online. Only explicitly immutable production assets may be
+  // stored or used offline; development/HMR modules must never be cached.
   if (url.pathname.startsWith("/_next/static/")) {
-    event.respondWith(
-      caches.match(req).then(
-        (hit) =>
-          hit ||
-          fetch(req).then((res) => {
-            if (res.ok) {
-              const copy = res.clone()
-              caches.open(CACHE).then((c) => c.put(req, copy))
-            }
-            return res
-          }),
-      ),
-    )
+    event.respondWith((async () => {
+      try {
+        const response = await fetch(req)
+        if (response.ok && /\bimmutable\b/i.test(response.headers.get("Cache-Control") || "")) {
+          try {
+            const cache = await caches.open(CACHE)
+            await cache.put(req, response.clone())
+          } catch { /* A full cache must not break a successful network response. */ }
+        }
+        return response
+      } catch (error) {
+        const cache = await caches.open(CACHE)
+        const cached = await cache.match(req)
+        if (cached && /\bimmutable\b/i.test(cached.headers.get("Cache-Control") || "")) return cached
+        throw error
+      }
+    })())
     return
   }
 
@@ -169,12 +175,12 @@ self.addEventListener("fetch", (event) => {
           return res
         })
         .catch(() =>
-          caches.match(req).then(
+          caches.open(CACHE).then(cache => cache.match(req)).then(
             (hit) =>
               hit ||
               // Not this exact URL, but the till shell will do: it boots,
               // reads its catalogue from IndexedDB and says it is offline.
-              caches.match("/pos/sell").then(
+              caches.open(CACHE).then(cache => cache.match("/pos/sell")).then(
                 (shell) =>
                   shell ||
                   new Response(

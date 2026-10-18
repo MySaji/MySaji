@@ -39,6 +39,23 @@ function fixture(allowed = true) {
   return { ...actions, queries }
 }
 
+test('points-card lookup matches local and international phone formats within the same store', async () => {
+  const f = fixture()
+  for (const input of ['0712345678', '07 123 45678', '+254712345678', '254712345678', '712345678']) {
+    await f.findCustomerForTill({ query: input })
+    const where = f.queries.at(-1).where
+    assert.equal(where.shopkeeperId, 'current-store')
+    assert.equal(where.isActive, true)
+    assert.deepEqual(Array.from(where.phone.in), ['+254712345678', '254712345678', '0712345678', '712345678'])
+  }
+  await f.findCustomerForTill({ query: '0112345678' })
+  assert.equal(f.queries.at(-1).where.phone.in[0], '+254112345678')
+  for (const query of ['0712', '+254712']) {
+    await f.findCustomerForTill({ query })
+    assert.equal(f.queries.at(-1).where.OR.at(-1).phone.startsWith, '+254712')
+  }
+})
+
 test('customer search supports email, normalizes local phone numbers and paginates within the current store', async () => {
   const f = fixture()
   await f.getCustomers({ query: '0712345678', limit: 100, offset: 100 })

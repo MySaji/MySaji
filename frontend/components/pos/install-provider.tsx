@@ -31,8 +31,12 @@ export function TillInstallProvider({ children }: { children: ReactNode }) {
     window.addEventListener("appinstalled", installed)
     media.addEventListener("change", updateDisplay)
     if (window.isSecureContext && "serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/pos/sw.js", { scope: "/pos/" })
-        .then((registration) => { registration.active?.postMessage("precache") })
+      const worker = process.env.NODE_ENV === "production" ? "/pos/sw.js" : "/pos/sw.js?dev=1"
+      navigator.serviceWorker.register(worker, { scope: "/pos/", updateViaCache: "none" })
+        .then(async (registration) => {
+          await registration.update()
+          if (process.env.NODE_ENV === "production") registration.active?.postMessage("precache")
+        })
         .catch(() => setError("Till could not prepare installation. Check your connection and reload this page."))
     }
     return () => {

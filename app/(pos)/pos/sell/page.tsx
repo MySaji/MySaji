@@ -2,15 +2,18 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
+import { useSession } from "next-auth/react"
 import {
   AlertTriangle, ArrowLeft, ArrowRight, Banknote, Calculator, Camera, Check, Clock, CloudOff, CreditCard, Delete, FileLock, Gift, Hammer, HandCoins, Landmark, Loader2, LogOut, Maximize, Minimize, Minus, MonitorPlay, Package, Plus, RefreshCw, Search, ShieldCheck, ShoppingCart, SlidersHorizontal, Smartphone, Star, Store, Trash2, User, X,
 } from "lucide-react"
+import { PosLogoutButton } from "@/frontend/components/pos/logout-button"
 import { MpesaPaymentPicker } from "@/frontend/components/pos/mpesa-inbox"
 import { CatalogueBrowser } from "@/frontend/components/pos/catalogue-browser"
 import { BusinessWorkspace, RegisterNavigation } from "@/frontend/components/pos/register-workspace"
 import { getPosWhoAmI, type PosWhoAmI } from "@/backend/actions/pos-access"
 import { PosCard as Card } from "@/frontend/components/pos/workspace-ui"
 import { Button } from "@/frontend/components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/frontend/components/ui/dialog"
 import { Input } from "@/frontend/components/ui/input"
 import {
   getTillState, findTillProducts, recordPosSale, openTillShift, closeTillShift, voidPosSale,
@@ -86,6 +89,13 @@ const lineKey = (productId: string, variantId: string | null) => `${productId}::
 
 type PaymentDraft = { draftKey: string; mpesaTransactionId?: string; stkCheckoutId?: string; stkPhone?: string; method: "CASH" | "MPESA" | "CARD" | "BANK" | "CREDIT" | "GIFT_CARD"; amount: string; reference: string }
 
+type ParkedSale = {
+  key: string; savedAt: string; total: number; cart: CartLine[]; saleDiscount: string; customerName: string;
+  payments: PaymentDraft[]; promptPhone: string; member: CustomerRow | null; redeem: string;
+  buyer: { name: string; idNumber: string; phone: string; prescriberName: string; prescriptionRef: string };
+  ageConfirmed: boolean; asDeposit: boolean; dueDate: string; cashierId: string | null;
+}
+
 const METHOD_META: Record<PaymentDraft["method"], { label: string; icon: typeof Banknote }> = {
   CASH: { label: "Cash", icon: Banknote },
   MPESA: { label: "M-Pesa", icon: Smartphone },
@@ -155,6 +165,36 @@ export default function TillPage() {
   // dropped response cannot ring the same sale up twice. Replaced only after a
   // sale is successfully recorded.
   const [idempotencyKey, setIdempotencyKey] = useState(() => newKey())
+  const activeSaleKey = useRef(idempotencyKey)
+  activeSaleKey.current = idempotencyKey
+  const { data: accountSession } = useSession()
+  const [parkedState, setParkedState] = useState<{ scope: string; sales: ParkedSale[] }>({ scope: "", sales: [] })
+  const [showParked, setShowParked] = useState(false)
+  const [manualCompletion, setManualCompletion] = useState(false)
+  const [checkingParked, setCheckingParked] = useState(false)
+  const parkedScope = accountSession?.user?.id && actor?.storeId ? `till-parked:v1:${accountSession.user.id}:${actor.storeId}` : ""
+  const parkedSales = parkedState.scope === parkedScope ? parkedState.sales : []
+  const parkedScopeRef = useRef(parkedScope)
+  parkedScopeRef.current = parkedScope
+  const parkedRef = useRef(parkedSales)
+  parkedRef.current = parkedSales
+  useEffect(() => {
+    if (!parkedScope) return
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(parkedScope) || "[]")
+      setParkedState({ scope: parkedScope, sales: Array.isArray(saved) ? saved.filter((sale: ParkedSale) => typeof sale.key === "string" && Array.isArray(sale.cart) && Array.isArray(sale.payments)).slice(0, 30) : [] })
+    } catch { setError("Could not restore parked sales from this browser tab.") }
+  }, [parkedScope])
+
+  const saveParked = (sales: ParkedSale[]) => {
+    if (!parkedScope || parkedState.scope !== parkedScope) { setError("Wait for your store to finish loading before parking a sale."); return false }
+    try {
+      sessionStorage.setItem(parkedScope, JSON.stringify(sales))
+      parkedRef.current = sales
+      setParkedState({ scope: parkedScope, sales })
+      return true
+    } catch { setError("This browser could not save the parked sale. Keep this checkout open and retry."); return false }
+  }
 
   const offline = usePosOffline()
   const { available: offlineAvailable, saveCatalogue: saveOfflineCatalogue } = offline
@@ -244,9 +284,16 @@ export default function TillPage() {
   const [memberQuery, setMemberQuery] = useState("")
   const [memberHits, setMemberHits] = useState<CustomerRow[]>([])
   const [memberSearching, setMemberSearching] = useState(false)
+  const memberRequest = useRef(0)
   const [joinOpen, setJoinOpen] = useState(false)
   const [joinName, setJoinName] = useState("")
   const [redeem, setRedeem] = useState("")
+  const [receiptCustomerOpen, setReceiptCustomerOpen] = useState(false)
+  const [receiptCustomerPhone, setReceiptCustomerPhone] = useState("")
+  const [receiptCustomer, setReceiptCustomer] = useState<CustomerRow | null>(null)
+  const [receiptCustomerBusy, setReceiptCustomerBusy] = useState(false)
+  const [receiptCustomerError, setReceiptCustomerError] = useState("")
+  const receiptCustomerRequest = useRef(0)
   const [loyalty, setLoyalty] = useState<LoyaltySettings | null>(null)
 
   /**
@@ -592,8 +639,14 @@ export default function TillPage() {
     setCart((prev) => prev.filter((l) => lineKey(l.product.id, l.variant?.id ?? null) !== key))
 
   const clearSale = () => {
+    setReceiptCustomerOpen(false)
+    receiptCustomerRequest.current++
+    setReceiptCustomer(null); setReceiptCustomerPhone(""); setReceiptCustomerError(""); setReceiptCustomerBusy(false)
+    memberRequest.current++
+    setMemberSearching(false)
     setCart([]); setSaleDiscount(""); setCustomerName(""); setPickVariantFor(null)
     setAutoPrintReceipt(false)
+    setManualCompletion(false)
     setPayments([{ draftKey: newKey(), method: "CASH", amount: "", reference: "" }])
     setPrompts({}); setPromptPhone("")
     setMember(null); setMemberQuery(""); setMemberHits([]); setRedeem(""); setJoinOpen(false); setJoinName("")
@@ -601,13 +654,81 @@ export default function TillPage() {
     setScanSerialsFor(null); setSerialDraft("")
     setBuyer({ name: "", idNumber: "", phone: "", prescriberName: "", prescriptionRef: "" })
     setAsDeposit(false); setDueDate("")
-    setIdempotencyKey(newKey())
+    const freshSaleKey = newKey()
+    activeSaleKey.current = freshSaleKey
+    setIdempotencyKey(freshSaleKey)
     // A counter several people share: whoever serves the next customer signs
     // in for it. Without this the first person to touch the till owns the
     // whole day's sales, which is the opposite of what the setting is for.
     if (mode?.requirePinPerSale) setCashier(null)
     setView("sell")
     searchRef.current?.focus()
+  }
+
+  const snapshotSale = (): ParkedSale => ({
+    key: idempotencyKey, savedAt: new Date().toISOString(), total, cart, saleDiscount, customerName,
+    payments, promptPhone, member, redeem, buyer, ageConfirmed, asDeposit, dueDate, cashierId: cashier?.id ?? null,
+  })
+  const parkSale = () => {
+    if (!cart.length || busy || submitting.current || view === "receipt" || Object.values(prompts).some(prompt => prompt.state === "sending")) return
+    if (parkedSales.length >= 30) { setError("Finish a parked sale before adding another. This tab can hold 30 sales."); return }
+    if (!saveParked([...parkedSales, snapshotSale()])) return
+    clearSale()
+    setShowParked(true)
+  }
+  const resumeSale = (sale: ParkedSale) => {
+    if (busy || submitting.current || Object.values(prompts).some(prompt => prompt.state === "sending")) return
+    if (!state?.shift) { setError("Open a shift before resuming a sale."); setShowShift(true); return }
+    if (mode?.anyCashiers && sale.cashierId !== (cashier?.id ?? null)) { setError("Sign in with the cashier PIN that parked this sale before resuming it."); return }
+    // Swap the current basket into the queue, rather than losing it.
+    const next = parkedSales.filter(entry => entry.key !== sale.key)
+    if (cart.length && view !== "receipt") next.push(snapshotSale())
+    if (!saveParked(next)) return
+    clearSale()
+    setCart(sale.cart); setSaleDiscount(sale.saleDiscount); setCustomerName(sale.customerName)
+    setPayments(sale.payments); setPromptPhone(sale.promptPhone); setMember(sale.member); setRedeem(sale.redeem)
+    setBuyer(sale.buyer); setAgeConfirmed(sale.ageConfirmed); setAsDeposit(sale.asDeposit); setDueDate(sale.dueDate)
+    setIdempotencyKey(sale.key); activeSaleKey.current = sale.key
+    setManualCompletion(true); setView("pay"); setShowParked(false)
+    if (mode?.requirePinPerSale) setCashier(cashier)
+  }
+  const refreshParkedPayments = async () => {
+    if (checkingParked || !parkedScope || !navigator.onLine) return
+    const scope = parkedScope
+    setCheckingParked(true)
+    try {
+      // Only provider-confirmed, exact payments are attached to a parked basket.
+      // A paid parked sale stays parked until its cashier resumes and records it.
+      const updates = new Map<string, PaymentDraft>()
+      for (const sale of parkedRef.current) for (const payment of sale.payments) {
+        if (!payment.stkCheckoutId || payment.mpesaTransactionId) continue
+        const status = await checkPromptStatus({ checkoutId: payment.stkCheckoutId })
+        if (status.state === "paid" && status.amount === Number(payment.amount)) updates.set(payment.draftKey, { ...payment, reference: status.receipt, mpesaTransactionId: status.transactionId })
+      }
+      if (parkedScopeRef.current !== scope) return
+      if (updates.size) saveParked(parkedRef.current.map(sale => ({ ...sale, payments: sale.payments.map(payment => updates.get(payment.draftKey) ?? payment) })))
+    } catch { setError("Could not check parked payments. Retry when connected.") }
+    finally { setCheckingParked(false) }
+  }
+
+  const checkCurrentPayment = async () => {
+    if (checkingParked || !navigator.onLine) return
+    const key = idempotencyKey
+    setCheckingParked(true)
+    try {
+      let matched = false
+      for (const payment of payments) {
+        if (!payment.stkCheckoutId || payment.mpesaTransactionId) continue
+        const status = await checkPromptStatus({ checkoutId: payment.stkCheckoutId })
+        if (activeSaleKey.current !== key) return
+        if (status.state === "paid" && status.amount === Number(payment.amount)) {
+          matched = true
+          setPayments(current => current.map(row => row.draftKey === payment.draftKey ? { ...row, reference: status.receipt, mpesaTransactionId: status.transactionId } : row))
+        }
+      }
+      setError(matched ? "" : "No new confirmed payment yet. Check again or use the received-payments inbox.")
+    } catch { setError("Could not check this payment. Please retry.") }
+    finally { setCheckingParked(false) }
   }
 
   // ---- counter machine controls ------------------------------------------
@@ -698,9 +819,17 @@ export default function TillPage() {
   useEffect(() => { displayRef.current?.publish(displayState) }, [displayState])
 
   // ---- submitting ---------------------------------------------------------
-  const takePayment = async () => {
+  const takePayment = async (customerConfirmed = false, selectedCustomer: CustomerRow | null = member) => {
     if (!state?.shift) { setError("Open a shift before starting a sale."); setShowShift(true); return }
     if (submitting.current) return
+    if (loyalty?.enabled && !asDeposit && !customerConfirmed) {
+      receiptCustomerRequest.current++
+      setReceiptCustomerBusy(false)
+      setReceiptCustomer(member); setReceiptCustomerPhone(member?.phone || "")
+      setReceiptCustomerError(""); setReceiptCustomerOpen(true)
+      return
+    }
+    setReceiptCustomerOpen(false)
     submitting.current = true
     try {
     setBusy(true); setError("")
@@ -750,8 +879,8 @@ export default function TillPage() {
       // Who is collecting points, and how many they are spending. Both are
       // requests: the server checks the balance and the shop's rules before
       // either becomes money.
-      ...(member ? { posCustomerId: member.id } : {}),
-      ...(member && spendablePoints > 0 ? { redeemPoints: spendablePoints } : {}),
+      ...(selectedCustomer ? { posCustomerId: selectedCustomer.id } : {}),
+      ...(selectedCustomer && selectedCustomer.id === member?.id && spendablePoints > 0 ? { redeemPoints: spendablePoints } : {}),
     }
 
     const r = await offline.submitSale(payload, { total, itemCount: cart.length })
@@ -779,6 +908,20 @@ export default function TillPage() {
 
   }
 
+  const findReceiptCustomer = async () => {
+    const phone = receiptCustomerPhone.replace(/[\s()+-]/g, "")
+    if (!/^(?:0[17]\d{8}|254[17]\d{8}|[17]\d{8})$/.test(phone)) { setReceiptCustomerError("Enter a complete customer number, such as 0712 345 678."); return }
+    const request = ++receiptCustomerRequest.current
+    setReceiptCustomerBusy(true); setReceiptCustomerError(""); setReceiptCustomer(null)
+    try {
+      const matches = await findCustomerForTill({ query: receiptCustomerPhone })
+      if (request !== receiptCustomerRequest.current) return
+      if (matches.length) setReceiptCustomer(matches[0])
+      else setReceiptCustomerError("No active points account found for this number. Check it, or continue without points.")
+    } catch { if (request === receiptCustomerRequest.current) setReceiptCustomerError("Could not check this account. Retry when connected, or continue without points.") }
+    finally { if (request === receiptCustomerRequest.current) setReceiptCustomerBusy(false) }
+  }
+
   /**
    * Push a PIN request to the customer's phone for one payment row.
    *
@@ -793,15 +936,16 @@ export default function TillPage() {
   latestTakePayment.current = takePayment
   useEffect(() => {
     const payment = payments.length === 1 ? payments[0] : null
-    if (view !== "pay" || busy || !payment?.stkCheckoutId || !payment.mpesaTransactionId || payment.method !== "MPESA" || Number(payment.amount) !== total || total <= 0 || asDeposit || !navigator.onLine || (needsAgeCheck && !ageConfirmed) || (needsRegister && buyer.name.trim().length < 2)) return
+    if (manualCompletion || view !== "pay" || busy || !payment?.stkCheckoutId || !payment.mpesaTransactionId || payment.method !== "MPESA" || Number(payment.amount) !== total || total <= 0 || asDeposit || !navigator.onLine || (needsAgeCheck && !ageConfirmed) || (needsRegister && buyer.name.trim().length < 2)) return
     if (autoAttempt.current === payment.mpesaTransactionId) return
     autoAttempt.current = payment.mpesaTransactionId
     setAutoPrintReceipt(true)
     void latestTakePayment.current()
-  }, [payments, view, busy, total, asDeposit, needsAgeCheck, ageConfirmed, needsRegister, buyer.name])
+  }, [manualCompletion, payments, view, busy, total, asDeposit, needsAgeCheck, ageConfirmed, needsRegister, buyer.name])
 
   const sendPrompt = async (idx: number) => {
     const row = payments[idx]
+    const saleKey = idempotencyKey
     const signature = liveCheckout.current.signature
     const draftKey = row?.draftKey
     const amount = Number(row?.amount || 0) || shortBy || total
@@ -818,18 +962,20 @@ export default function TillPage() {
     // The amount is pinned to what was actually prompted for, so a cashier
     // editing the box afterwards cannot leave a confirmed payment sitting
     // against a different figure.
-    setPayments((prev) => prev.map((q, i) => (i === idx ? { ...q, amount: String(amount) } : q)))
+    setPayments((prev) => prev.map((q, i) => (i === idx ? { ...q, amount: String(amount), stkCheckoutId: r.checkoutId, stkPhone: r.phone } : q)))
 
     // Up to about two minutes, which is how long Safaricom keeps the request
     // on the handset. Then it stops rather than polling forever.
     for (let attempt = 0; attempt < 40; attempt++) {
       await new Promise((res) => setTimeout(res, 3000))
+      if (activeSaleKey.current !== saleKey) return
       let status: Awaited<ReturnType<typeof checkPromptStatus>>
       try {
         status = await checkPromptStatus({ checkoutId: r.checkoutId })
       } catch {
         continue
       }
+      if (activeSaleKey.current !== saleKey) return
       if (status.state === "paid") {
         const current = liveCheckout.current.payments[idx]
         if (!current || current.draftKey !== draftKey || current.method !== "MPESA" || Number(current.amount) !== status.amount || signature !== liveCheckout.current.signature) {
@@ -854,9 +1000,11 @@ export default function TillPage() {
 
   /** Find the member by the number they read out. */
   const lookupMember = async (q: string) => {
-    if (q.trim().length < 2) { setMemberHits([]); return }
+    const request = ++memberRequest.current
+    if (q.trim().length < 2) { setMemberHits([]); setMemberSearching(false); return }
     setMemberSearching(true)
     const hits = await findCustomerForTill({ query: q }).catch(() => [])
+    if (request !== memberRequest.current) return
     setMemberSearching(false)
     setMemberHits(hits)
   }
@@ -1230,6 +1378,23 @@ export default function TillPage() {
           </div>
         </div>
       )}
+
+      <div className={(view === "pay" ? "hidden" : "flex") + " flex-wrap items-center gap-2 border-b border-border bg-background px-4 py-3"}>
+        <PosLogoutButton />
+        <Button variant="outline" onClick={parkSale} disabled={!cart.length || busy || view === "receipt" || Object.values(prompts).some(prompt => prompt.state === "sending")} className="gap-2"><Clock className="h-4 w-4" />Park sale & start next</Button>
+        <Button variant="outline" onClick={() => { setShowParked(!showParked); if (!showParked) void refreshParkedPayments() }}>Parked sales ({parkedSales.length})</Button>
+        {payments.some(payment => payment.stkCheckoutId && !payment.mpesaTransactionId) && <Button variant="outline" onClick={() => void checkCurrentPayment()} disabled={checkingParked || busy}>{checkingParked ? "Checking…" : "Check this sale’s payment"}</Button>}
+        <span className="text-xs text-muted-foreground">Saved in this browser tab. Stock is reserved only when the sale is recorded.</span>
+      </div>
+      {showParked && <section aria-label="Parked sales" className="border-b border-border bg-muted/20 p-4">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-sm font-semibold">Customers waiting for payment</h2><p className="mt-1 text-xs text-muted-foreground">Check payments, resume a basket, then record the sale. Your current basket will be parked when you switch.</p></div><Button variant="outline" onClick={() => void refreshParkedPayments()} disabled={checkingParked}>{checkingParked ? "Checking…" : "Check payment status"}</Button></div>
+        {!parkedSales.length && <p className="py-4 text-sm text-muted-foreground">No parked sales. Add products and park the checkout to serve another customer.</p>}
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{parkedSales.map((sale, index) => {
+          const hasPrompt = sale.payments.some(payment => payment.stkCheckoutId)
+          const paid = sale.payments.filter(payment => payment.mpesaTransactionId).reduce((sum, payment) => sum + Number(payment.amount), 0)
+          return <div key={sale.key} className="rounded-xl border border-border bg-background p-4"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="truncate text-sm font-semibold">{sale.customerName || sale.member?.name || `Customer ${index + 1}`}</h3><p className="mt-1 text-xs text-muted-foreground">{sale.cart.length} lines · {new Date(sale.savedAt).toLocaleTimeString("en-KE", { hour: "2-digit", minute: "2-digit" })}</p></div><strong className="whitespace-nowrap text-sm">KSh {shShort(sale.total)}</strong></div><p className="mt-3 text-xs font-medium">{paid >= sale.total && sale.total > 0 ? "Payment received · ready to record" : paid > 0 ? "Part payment received" : hasPrompt ? "M-Pesa prompt pending · check status" : "Waiting for payment"}</p><p className="mt-2 truncate text-xs text-muted-foreground">{sale.cart.map(line => line.product.name).join(", ")}</p><Button className="mt-3 w-full" onClick={() => resumeSale(sale)} disabled={busy}>Resume checkout</Button></div>
+        })}</div>
+      </section>}
 
       {/* ---- shift and takings bar ---------------------------------------- */}
       {!state.shift && <div className="flex flex-wrap items-center justify-between gap-3 border-b border-amber-300 bg-amber-50 px-4 py-3 text-amber-950 dark:bg-amber-950 dark:text-amber-100"><div><p className="text-sm font-semibold">Open your shift to start selling</p><p className="text-xs">Record the opening cash before adding products or taking payment.</p></div><Button onClick={() => setShowShift(true)}>Open shift</Button></div>}
@@ -1681,7 +1846,7 @@ export default function TillPage() {
                         setError(unscanned[0].product.name + " is tracked individually — scan each unit before taking payment.")
                         return
                       }
-                      setView("pay"); setPayments([{ draftKey: newKey(), method: "CASH", amount: "", reference: "" }]); setError("")
+                      setView("pay"); setError("")
                     }}
                     disabled={total <= 0 || unscanned.length > 0}
                     className="w-full h-12 rounded-xl font-semibold mt-1"
@@ -1691,6 +1856,7 @@ export default function TillPage() {
                       : "Take payment"}
                     {unscanned.length === 0 && <ArrowRight className="w-4 h-4 ml-1" />}
                   </Button>
+                  <Button variant="outline" onClick={parkSale} disabled={busy || Object.values(prompts).some(prompt => prompt.state === "sending")} className="lg:hidden w-full h-12 rounded-xl gap-2"><Clock className="h-4 w-4" />Park sale & start next</Button>
                   <button onClick={clearSale} className="w-full py-2.5 text-[11px] text-gray-400 underline">
                     Cancel this sale
                   </button>
@@ -1702,10 +1868,13 @@ export default function TillPage() {
       </div>
 
       {/* ---- sticky basket bar (phones only) ------------------------------ */}
-      {itemCount > 0 && !cartOpen && (
+      {itemCount > 0 && !cartOpen && view === "sell" && (
+        <div className="lg:hidden fixed bottom-16 inset-x-3 z-30 flex gap-2 rounded-2xl border border-border bg-background p-2 shadow-lg">
         <button
+          type="button"
+          aria-label={`Open basket, ${itemCount} items, KSh ${sh(total)}`}
           onClick={() => setCartOpen(true)}
-          className="lg:hidden fixed bottom-16 inset-x-3 z-30 h-14 rounded-2xl bg-primary text-primary-foreground shadow-lg flex items-center justify-between px-4 active:scale-[0.98] transition-transform"
+          className="min-w-0 flex-1 rounded-xl bg-primary text-primary-foreground flex flex-col items-start justify-center px-3 py-2 active:scale-[0.98] transition-transform"
         >
           <span className="flex items-center gap-2 text-sm font-semibold">
             <ShoppingCart className="w-4 h-4" />
@@ -1713,6 +1882,8 @@ export default function TillPage() {
           </span>
           <span className="text-base font-bold tabular-nums">KSh {sh(total)}</span>
         </button>
+        <button type="button" onClick={parkSale} disabled={busy || Object.values(prompts).some(prompt => prompt.state === "sending")} className="flex w-32 shrink-0 items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-2 py-2 text-left text-xs font-semibold text-primary disabled:opacity-50"><Clock className="h-4 w-4 shrink-0" /><span>Park sale<br />&amp; start next</span></button>
+        </div>
       )}
 
       {/* ---- which size? ---------------------------------------------------
@@ -1857,6 +2028,21 @@ export default function TillPage() {
         )
       })()}
 
+      <Dialog open={receiptCustomerOpen} onOpenChange={open => { if (!busy) { setReceiptCustomerOpen(open); if (!open) receiptCustomerRequest.current++ } }}>
+        <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-md">
+          <DialogHeader><DialogTitle>Add customer points before the receipt?</DialogTitle><DialogDescription>Ask for the customer's registered phone number. Points are added when this sale is recorded, and the receipt shows points earned and their updated balance.</DialogDescription></DialogHeader>
+          {spendablePoints > 0 && member ? <p className="rounded-xl bg-muted p-3 text-sm">This sale redeems points from {member.name}. Keep this account attached to preserve the agreed payment total.</p> : <form onSubmit={event => { event.preventDefault(); void findReceiptCustomer() }} className="space-y-2">
+            <label htmlFor="receipt-customer-phone" className="text-sm font-medium">Customer phone number</label>
+            <div className="flex gap-2"><Input id="receipt-customer-phone" inputMode="tel" autoComplete="tel" placeholder="0712 345 678 or +254712345678" value={receiptCustomerPhone} onChange={event => { receiptCustomerRequest.current++; setReceiptCustomerBusy(false); setReceiptCustomerPhone(event.target.value); setReceiptCustomer(null); setReceiptCustomerError("") }} /><Button type="submit" disabled={receiptCustomerBusy || busy}>{receiptCustomerBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Find account"}</Button></div>
+          </form>}
+          {receiptCustomerError && <p role="alert" className="text-sm text-red-600">{receiptCustomerError}</p>}
+          {receiptCustomer && <div className="rounded-xl border border-primary/20 bg-primary/5 p-4"><p className="text-sm font-semibold">{receiptCustomer.name}</p><p className="mt-1 text-xs text-muted-foreground">{receiptCustomer.phone}</p><p className="mt-3 text-sm">Current balance: <strong>{receiptCustomer.pointsBalance} points</strong></p><p className="mt-1 text-xs text-muted-foreground">Points for this purchase and the new total will appear on the final receipt.</p></div>}
+          <Button disabled={!receiptCustomer || receiptCustomerBusy || busy} onClick={() => { if (receiptCustomer) { setMember(receiptCustomer); void takePayment(true, receiptCustomer) } }}>{busy ? "Recording…" : "Add points & finish sale"}</Button>
+          <Button variant="outline" disabled={busy || spendablePoints > 0} onClick={() => { setMember(null); void takePayment(true, null) }}>Skip & finish without points</Button>
+          <button type="button" onClick={() => setReceiptCustomerOpen(false)} disabled={busy} className="py-2 text-xs font-medium text-muted-foreground">Back to checkout</button>
+        </DialogContent>
+      </Dialog>
+
       {/* ---- payment sheet ------------------------------------------------ */}
       {view === "pay" && (
         <div className="fixed inset-0 z-50 flex items-end lg:items-center lg:justify-center bg-black/40">
@@ -1875,6 +2061,11 @@ export default function TillPage() {
               </div>
             </div>
 
+            <div className="flex flex-wrap gap-2 border-b border-border p-3">
+              <Button variant="outline" className="w-full" onClick={parkSale} disabled={busy || Object.values(prompts).some(prompt => prompt.state === "sending")}><Clock className="mr-2 h-4 w-4" />Park sale & start next</Button>
+              {payments.some(payment => payment.stkCheckoutId && !payment.mpesaTransactionId) && <Button variant="outline" className="w-full" onClick={() => void checkCurrentPayment()} disabled={checkingParked || busy}>{checkingParked ? "Checking…" : "Check this sale’s payment"}</Button>}
+              {manualCompletion && <p className="text-xs text-muted-foreground">Resumed sale: review the payment and click Record the sale when ready.</p>}
+            </div>
             <div className="p-3 space-y-3">
               {error && <ErrorNote>{error}</ErrorNote>}
 
@@ -2008,7 +2199,7 @@ export default function TillPage() {
                                 />
                                 <Button
                                   onClick={() => void sendPrompt(idx)}
-                                  disabled={promptPhone.replace(/\D/g, "").length < 9 || prompt?.state === "sending" || prompt?.state === "waiting"}
+                                  disabled={promptPhone.replace(/\D/g, "").length < 9 || prompt?.state === "sending" || prompt?.state === "waiting" || Boolean(p.stkCheckoutId && prompt?.state !== "failed")}
                                   className="h-11 rounded-xl text-xs whitespace-nowrap"
                                 >
                                   {prompt?.state === "sending" || prompt?.state === "waiting"
@@ -2270,7 +2461,7 @@ export default function TillPage() {
                           value={memberQuery}
                           onChange={(e) => { setMemberQuery(e.target.value); void lookupMember(e.target.value) }}
                           inputMode="tel"
-                          placeholder="Their phone number"
+                          placeholder="07xx xxx xxx or +2547xx xxx xxx"
                           className="h-11 rounded-xl text-sm tabular-nums"
                         />
                         {memberSearching && <Loader2 className="w-4 h-4 animate-spin text-gray-400 self-center" />}
@@ -2386,7 +2577,7 @@ export default function TillPage() {
               </div>
 
               <Button
-                onClick={takePayment}
+                onClick={() => void takePayment()}
                 disabled={!state.shift || busy || (shortBy > 0 && !(asDeposit && canDeposit && paid > 0)) || cart.length === 0 || (needsAgeCheck && !ageConfirmed)
                   || (needsRegister && buyer.name.trim().length < 2)}
                 className="w-full h-14 rounded-xl text-base font-bold"
