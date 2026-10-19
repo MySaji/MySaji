@@ -19,11 +19,14 @@ import "./workspaces.css"
 const _geist = Geist({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "SAJI - Marketplace",
+  metadataBase: new URL(siteUrl),
+  title: { default: "MySaji | Services, shops & business tools", template: "%s | MySaji" },
   description:
-    "Connect with trusted service providers. SAJI connects you with verified professionals for all your service needs.",
-  applicationName: "SAJI",
-  creator: "SAJI Team",
+    "Explore services, products and business tools on MySaji. Learn about Saji Pro and Saji Till before choosing your workspace.",
+  // Public pages opt in explicitly through pageMetadata(). Authentication is unchanged.
+  robots: { index: false, follow: false },
+  applicationName: "MySaji",
+  creator: "MySaji Team",
   keywords: ["marketplace", "services", "providers", "booking"],
   icons: {
     icon: [

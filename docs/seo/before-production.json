@@ -1,0 +1,267 @@
+{
+  "checkedAt": "2026-10-18T20:35:54.817Z",
+  "baseCommit": "224a709e63b3f47436ae58788b0c04bb3b073606",
+  "pages": [
+    {
+      "path": "/",
+      "status": 200,
+      "url": "https://mysaji.com/",
+      "title": "MySaji — Services, shops &amp; tools for everyday business",
+      "description": [
+        "Find services, manage orders and grow your business with MySaji. Explore Saji Pro, shop tools, wholesale workflows and Saji Till point of sale."
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "canonical": [
+        "https://mysaji.com/"
+      ],
+      "h1": [
+        "Good people. Useful skills. Things done."
+      ],
+      "websiteScripts": 1,
+      "publicLinks": [
+        "/pos",
+        "/knowledge",
+        "/knowledge/shops-orders",
+        "/knowledge/provider-guide",
+        "/knowledge/rentals",
+        "/knowledge/customer-bookings",
+        "/knowledge/distributors",
+        "/knowledge/getting-started",
+        "/pos/login",
+        "/pos/signup",
+        "/knowledge/messaging-calls",
+        "/knowledge/quotes-invoices",
+        "/knowledge/support",
+        "/knowledge/pos-guide",
+        "/knowledge/payments-wallet"
+      ]
+    },
+    {
+      "path": "/knowledge",
+      "status": 200,
+      "url": "https://mysaji.com/knowledge",
+      "title": "Knowledge base",
+      "description": [
+        "Practical guides to booking services, running a shop, using Saji Till, payments, verification, and getting help."
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "canonical": [
+        "https://mysaji.com/knowledge"
+      ],
+      "h1": [
+        "A little clarity. A lot more confidence."
+      ],
+      "websiteScripts": 0,
+      "publicLinks": [
+        "/knowledge",
+        "/pos",
+        "/knowledge/support",
+        "/knowledge/getting-started",
+        "/knowledge/customer-bookings",
+        "/knowledge/provider-guide",
+        "/knowledge/shops-orders",
+        "/knowledge/distributors",
+        "/knowledge/payments-wallet",
+        "/knowledge/verification",
+        "/knowledge/pos-guide",
+        "/knowledge/pos-offline",
+        "/knowledge/cancellations-disputes",
+        "/knowledge/messaging-calls",
+        "/knowledge/business-teams",
+        "/knowledge/account-security",
+        "/knowledge/rentals",
+        "/knowledge/quotes-invoices",
+        "/knowledge/rewards-referrals",
+        "/knowledge/household-maintenance",
+        "/knowledge/ai-assistance",
+        "/knowledge/pricing",
+        "/knowledge/staff-operations",
+        "/knowledge/reports-tax"
+      ]
+    },
+    {
+      "path": "/pos",
+      "status": 200,
+      "url": "https://mysaji.com/pos",
+      "title": "Saji Till — A good day starts at the counter",
+      "description": [
+        "A point of sale for your everyday business. Sell, manage stock, accept payments and give your team the right access with Saji Till."
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "canonical": [
+        "https://mysaji.com/pos"
+      ],
+      "h1": [
+        "A good day starts at the counter."
+      ],
+      "websiteScripts": 0,
+      "publicLinks": [
+        "/pos",
+        "/pos/login",
+        "/pos/signup",
+        "/pos/contact",
+        "/pos/employee"
+      ]
+    },
+    {
+      "path": "/shop",
+      "status": 404,
+      "url": "https://mysaji.com/shop",
+      "title": "SAJI - Marketplace",
+      "description": [
+        "Connect with trusted service providers. SAJI connects you with verified professionals for all your service needs."
+      ],
+      "robots": [],
+      "canonical": [],
+      "h1": [
+        "Page not found"
+      ],
+      "websiteScripts": 0,
+      "publicLinks": []
+    },
+    {
+      "path": "/work",
+      "status": 404,
+      "url": "https://mysaji.com/work",
+      "title": "SAJI - Marketplace",
+      "description": [
+        "Connect with trusted service providers. SAJI connects you with verified professionals for all your service needs."
+      ],
+      "robots": [],
+      "canonical": [],
+      "h1": [
+        "Page not found"
+      ],
+      "websiteScripts": 0,
+      "publicLinks": []
+    },
+    {
+      "path": "/rent",
+      "status": 404,
+      "url": "https://mysaji.com/rent",
+      "title": "SAJI - Marketplace",
+      "description": [
+        "Connect with trusted service providers. SAJI connects you with verified professionals for all your service needs."
+      ],
+      "robots": [],
+      "canonical": [],
+      "h1": [
+        "Page not found"
+      ],
+      "websiteScripts": 0,
+      "publicLinks": []
+    },
+    {
+      "path": "/grow",
+      "status": 404,
+      "url": "https://mysaji.com/grow",
+      "title": "SAJI - Marketplace",
+      "description": [
+        "Connect with trusted service providers. SAJI connects you with verified professionals for all your service needs."
+      ],
+      "robots": [],
+      "canonical": [],
+      "h1": [
+        "Page not found"
+      ],
+      "websiteScripts": 0,
+      "publicLinks": []
+    },
+    {
+      "path": "/pro",
+      "status": 404,
+      "url": "https://mysaji.com/pro",
+      "title": "SAJI - Marketplace",
+      "description": [
+        "Connect with trusted service providers. SAJI connects you with verified professionals for all your service needs."
+      ],
+      "robots": [],
+      "canonical": [],
+      "h1": [
+        "Page not found"
+      ],
+      "websiteScripts": 0,
+      "publicLinks": []
+    },
+    {
+      "path": "/auth/login",
+      "status": 200,
+      "url": "https://mysaji.com/auth/login",
+      "title": "Authentication - SAJI",
+      "description": [
+        "Sign in or create your SAJI account"
+      ],
+      "robots": [],
+      "canonical": [],
+      "h1": [
+        "Your next good connection starts here."
+      ],
+      "websiteScripts": 0,
+      "publicLinks": [
+        "/knowledge/customer-bookings",
+        "/knowledge/support"
+      ]
+    },
+    {
+      "path": "/customer/home",
+      "status": 200,
+      "url": "https://mysaji.com/customer/home",
+      "title": "SAJI - Marketplace",
+      "description": [
+        "Connect with trusted service providers. SAJI connects you with verified professionals for all your service needs."
+      ],
+      "robots": [],
+      "canonical": [],
+      "h1": [
+        "Home",
+        "SAJI"
+      ],
+      "websiteScripts": 0,
+      "publicLinks": [
+        "/knowledge"
+      ]
+    }
+  ],
+  "sitemap": {
+    "status": 200,
+    "urls": [
+      "https://mysaji.com/",
+      "https://mysaji.com/knowledge",
+      "https://mysaji.com/privacy",
+      "https://mysaji.com/terms",
+      "https://mysaji.com/pos",
+      "https://mysaji.com/knowledge/getting-started",
+      "https://mysaji.com/knowledge/customer-bookings",
+      "https://mysaji.com/knowledge/provider-guide",
+      "https://mysaji.com/knowledge/shops-orders",
+      "https://mysaji.com/knowledge/distributors",
+      "https://mysaji.com/knowledge/payments-wallet",
+      "https://mysaji.com/knowledge/verification",
+      "https://mysaji.com/knowledge/pos-guide",
+      "https://mysaji.com/knowledge/pos-offline",
+      "https://mysaji.com/knowledge/cancellations-disputes",
+      "https://mysaji.com/knowledge/messaging-calls",
+      "https://mysaji.com/knowledge/business-teams",
+      "https://mysaji.com/knowledge/account-security",
+      "https://mysaji.com/knowledge/support",
+      "https://mysaji.com/knowledge/rentals",
+      "https://mysaji.com/knowledge/quotes-invoices",
+      "https://mysaji.com/knowledge/rewards-referrals",
+      "https://mysaji.com/knowledge/household-maintenance",
+      "https://mysaji.com/knowledge/ai-assistance",
+      "https://mysaji.com/knowledge/pricing",
+      "https://mysaji.com/knowledge/staff-operations",
+      "https://mysaji.com/knowledge/reports-tax"
+    ]
+  },
+  "robots": {
+    "status": 200,
+    "text": "User-Agent: *\nAllow: /\nDisallow: /api/\n\nSitemap: https://mysaji.com/sitemap.xml\n"
+  }
+}

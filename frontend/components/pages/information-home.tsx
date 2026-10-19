@@ -1,17 +1,17 @@
-﻿import Link from "next/link"
+import Link from "next/link"
 import Image from "next/image"
 import { ArrowRight, ArrowUpRight, BookOpen, Boxes, CalendarCheck, Check, ChevronDown, KeyRound, MessageCircle, ShieldCheck, ShoppingBag, Store, Truck, Users, Wallet, Wrench } from "lucide-react"
 import { KnowledgeSearch } from "@/frontend/components/knowledge-search"
-import { BrandLogo } from "@/frontend/components/brand-logo"
-import { MobileHomeMenu } from "./mobile-home-menu"
+import { PublicHeader } from "@/frontend/components/public-header"
+import { OFFERING_LINKS } from "@/backend/domain/public-site"
 import { BackToTop } from "./back-to-top"
 import PublicChatButton from "@/frontend/components/public-chat-button"
 import styles from "./information-home.module.css"
 
 const pathways = [
-  { icon: Wrench, title: "Get a job off your list.", label: "FOR EVERYDAY LIFE", body: "Find services, compare the scope and price, and book the work you need. Keep the conversation and booking details together.", items: ["Home repairs & maintenance", "Cleaning & moving", "Professional services"], href: "/knowledge/customer-bookings", action: "Explore services & bookings" },
-  { icon: Users, title: "Put your skills to work.", label: "FOR PROFESSIONALS", body: "Give customers a clear picture of what you do. Build your profile, publish offers and manage work through Saji Pro.", items: ["Service profiles & offers", "Quotes & customer requests", "Messages & job records"], href: "/knowledge/provider-guide", action: "Get to know Saji Pro" },
-  { icon: ShoppingBag, title: "Bring your shop online.", label: "FOR SHOPS & CUSTOMERS", body: "Organise products into a useful catalogue. Keep prices and availability current, and manage customer orders from your workspace.", items: ["Products & storefronts", "Customer orders", "Fulfilment records"], href: "/knowledge/shops-orders", action: "Explore shops & orders" },
+  { icon: Wrench, title: "Get a job off your list.", label: "FOR EVERYDAY LIFE", body: "Find services, compare the scope and price, and book the work you need. Keep the conversation and booking details together.", items: ["Home repairs & maintenance", "Cleaning & moving", "Professional services"], href: "/work", action: "Explore services & bookings" },
+  { icon: Users, title: "Put your skills to work.", label: "FOR PROFESSIONALS", body: "Give customers a clear picture of what you do. Build your profile, publish offers and manage work through Saji Pro.", items: ["Service profiles & offers", "Quotes & customer requests", "Messages & job records"], href: "/pro", action: "Get to know Saji Pro" },
+  { icon: ShoppingBag, title: "Bring your shop online.", label: "FOR SHOPS & CUSTOMERS", body: "Organise products into a useful catalogue. Keep prices and availability current, and manage customer orders from your workspace.", items: ["Products & storefronts", "Customer orders", "Fulfilment records"], href: "/shop", action: "Explore shops & orders" },
   { icon: Truck, title: "Keep businesses supplied.", label: "FOR DISTRIBUTORS", body: "List wholesale products and manage procurement requests. Keep track of the details business buyers need before placing an order.", items: ["Wholesale catalogues", "Business buying requests", "Supply locations"], href: "/knowledge/distributors", action: "See the distributor guide" },
 ]
 const questions = [
@@ -24,18 +24,12 @@ const questions = [
 
 export function InformationHome() {
   return <div className={styles.home}>
-    <header id="home-top" tabIndex={-1} className={styles.header}>
-      <nav className={styles.nav} aria-label="Main navigation">
-        <Link href="/" className={styles.logo}><BrandLogo size="default" /><span>MySaji<span>Everyday life. Everyday business.</span></span></Link>
-        <div className={styles.navLinks}><a href="#explore">Explore MySaji</a><Link href="/pos">Saji Till</Link><a href="#handbook">Help & guides</a><Link href="/knowledge">Knowledge base</Link></div>
-        <div className={styles.navActions}><Link href="/auth/login">Sign in</Link><Link href="/auth/signup" className={styles.buttonSmall}>Join MySaji <ArrowUpRight size={16} /></Link><MobileHomeMenu /></div>
-      </nav>
-    </header>
+    <PublicHeader />
 
     <section className={`${styles.hero} ${styles.container}`}>
       <div className={styles.heroCopy}>
         <p className={styles.eyebrow}><span /> BUILT AROUND YOUR EVERYDAY</p>
-        <h1>Good people.<br />Useful skills.<br /><em>Things done.</em></h1>
+        <h1>Shop, book services<br />and run your business<br /><em>with MySaji.</em></h1>
         <p className={styles.intro}>Find help for your home. Make room for your next customer. Run the shop you’ve worked hard to build. There’s a place for you on MySaji.</p>
         <div className={styles.actions}><Link href="/auth/signup" className={styles.primary}>Find your place <ArrowRight size={18} /></Link><a href="#explore" className={styles.textLink}>See what you can do <ArrowRight size={17} /></a></div>
         <p className={styles.heroFoot}>For customers, independent professionals and growing businesses in Kenya.</p>
@@ -48,6 +42,8 @@ export function InformationHome() {
     </section>
 
     <div className={styles.pillars}><div className={styles.container}>{[["Shop", "Find products & manage orders", "/knowledge/shops-orders"], ["Work", "Offer skills & book services", "/knowledge/provider-guide"], ["Rent", "Understand equipment hire", "/knowledge/rentals"], ["Learn", "Get a clear answer", "/knowledge"], ["Grow", "Give your business better tools", "/pos"]].map(([label, body, href]) => <Link key={label} href={href}><strong>{label}<ArrowUpRight size={15} /></strong><span>{body}</span></Link>)}</div></div>
+
+    <nav aria-label="Explore MySaji offerings" className={styles.offeringLinks}>{OFFERING_LINKS.map(link => <Link key={link.href} href={link.href}><strong>{link.shortLabel}</strong><span>{link.label}</span><ArrowUpRight size={16} aria-hidden="true" /></Link>)}</nav>
 
     <section id="explore" className={`${styles.container} ${styles.section}`}>
       <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>DIFFERENT DAYS. ONE STARTING POINT.</p><h2>What’s on<br />your list today?</h2></div><p>Some days you need a reliable pair of hands. Other days you’re the person getting the job done. Pick the part of MySaji that fits.</p></div>

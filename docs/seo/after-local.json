@@ -1,0 +1,1432 @@
+{
+  "checkedAt": "2026-10-19T21:50:52.318Z",
+  "environment": "Local production build; not deployed",
+  "branch": "feat/public-seo-sitelinks",
+  "sitemap": {
+    "status": 200,
+    "urls": [
+      "https://mysaji.com/",
+      "https://mysaji.com/shop",
+      "https://mysaji.com/work",
+      "https://mysaji.com/rent",
+      "https://mysaji.com/grow",
+      "https://mysaji.com/pro",
+      "https://mysaji.com/knowledge",
+      "https://mysaji.com/privacy",
+      "https://mysaji.com/terms",
+      "https://mysaji.com/pos",
+      "https://mysaji.com/knowledge/getting-started",
+      "https://mysaji.com/knowledge/customer-bookings",
+      "https://mysaji.com/knowledge/provider-guide",
+      "https://mysaji.com/knowledge/shops-orders",
+      "https://mysaji.com/knowledge/distributors",
+      "https://mysaji.com/knowledge/payments-wallet",
+      "https://mysaji.com/knowledge/verification",
+      "https://mysaji.com/knowledge/pos-guide",
+      "https://mysaji.com/knowledge/pos-offline",
+      "https://mysaji.com/knowledge/cancellations-disputes",
+      "https://mysaji.com/knowledge/messaging-calls",
+      "https://mysaji.com/knowledge/business-teams",
+      "https://mysaji.com/knowledge/account-security",
+      "https://mysaji.com/knowledge/support",
+      "https://mysaji.com/knowledge/rentals",
+      "https://mysaji.com/knowledge/quotes-invoices",
+      "https://mysaji.com/knowledge/rewards-referrals",
+      "https://mysaji.com/knowledge/household-maintenance",
+      "https://mysaji.com/knowledge/ai-assistance",
+      "https://mysaji.com/knowledge/pricing",
+      "https://mysaji.com/knowledge/staff-operations",
+      "https://mysaji.com/knowledge/reports-tax"
+    ]
+  },
+  "robots": {
+    "status": 200,
+    "text": "User-Agent: *\nAllow: /\nDisallow: /api/\n\nSitemap: https://mysaji.com/sitemap.xml\n"
+  },
+  "pages": [
+    {
+      "path": "/",
+      "status": 200,
+      "title": "MySaji — Services, shops &amp; tools for everyday business",
+      "description": [
+        "Find services, manage orders and grow your business with MySaji. Explore Saji Pro, shop tools, wholesale workflows and Saji Till point of sale."
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "xRobotsTag": null,
+      "canonical": [
+        "https://mysaji.com"
+      ],
+      "h1": [
+        "Shop, book services and run your business with MySaji."
+      ],
+      "structuredData": [
+        {
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          "@id": "https://mysaji.com/#website",
+          "name": "MySaji",
+          "alternateName": "SAJI",
+          "url": "https://mysaji.com/",
+          "slogan": "Shop · Work · Rent · Learn · Grow"
+        }
+      ]
+    },
+    {
+      "path": "/shop",
+      "status": 200,
+      "title": "Shop products &amp; manage orders | MySaji",
+      "description": [
+        "Learn how to browse products, review prices and delivery details, and follow shop orders on MySaji. Explore tools for selling products online."
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "xRobotsTag": null,
+      "canonical": [
+        "https://mysaji.com/shop"
+      ],
+      "h1": [
+        "Shop products. Keep the order details together."
+      ],
+      "structuredData": [
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "MySaji home",
+              "item": "https://mysaji.com/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Shop",
+              "item": "https://mysaji.com/shop"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/work",
+      "status": 200,
+      "title": "Find services &amp; offer your skills | MySaji",
+      "description": [
+        "Explore service bookings and professional work on MySaji. Compare scope, profiles and availability, then manage quotes, bookings and communication in your account."
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "xRobotsTag": null,
+      "canonical": [
+        "https://mysaji.com/work"
+      ],
+      "h1": [
+        "Find the right service. Agree on the work."
+      ],
+      "structuredData": [
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "MySaji home",
+              "item": "https://mysaji.com/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Work",
+              "item": "https://mysaji.com/work"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/rent",
+      "status": 200,
+      "title": "Equipment rentals &amp; return workflows | MySaji",
+      "description": [
+        "Understand equipment rentals on MySaji: check available dates, rental fees, deposits, handover details and return expectations before confirming in your account."
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "xRobotsTag": null,
+      "canonical": [
+        "https://mysaji.com/rent"
+      ],
+      "h1": [
+        "The equipment you need. The rental terms made clear."
+      ],
+      "structuredData": [
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "MySaji home",
+              "item": "https://mysaji.com/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Rent",
+              "item": "https://mysaji.com/rent"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/grow",
+      "status": 200,
+      "title": "Business tools for shops &amp; professionals | MySaji",
+      "description": [
+        "Explore MySaji’s business tools for product catalogues, professional services, wholesale orders, staff access and sales records. Choose Saji Pro or Saji Till."
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "xRobotsTag": null,
+      "canonical": [
+        "https://mysaji.com/grow"
+      ],
+      "h1": [
+        "Give your business a more organised working day."
+      ],
+      "structuredData": [
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "MySaji home",
+              "item": "https://mysaji.com/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Grow",
+              "item": "https://mysaji.com/grow"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/pro",
+      "status": 200,
+      "title": "Saji Pro: tools for service professionals | MySaji",
+      "description": [
+        "Learn about Saji Pro for service professionals: business profiles, offers, quotes, availability, customer messages and job records, with capabilities suited to your setup."
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "xRobotsTag": null,
+      "canonical": [
+        "https://mysaji.com/pro"
+      ],
+      "h1": [
+        "Put your skills and customer work in one place."
+      ],
+      "structuredData": [
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "MySaji home",
+              "item": "https://mysaji.com/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Saji Pro",
+              "item": "https://mysaji.com/pro"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/knowledge",
+      "status": 200,
+      "title": "Help &amp; guides | MySaji",
+      "description": [
+        "Practical guides to booking services, running a shop, using Saji Till, payments, verification, and getting help."
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "xRobotsTag": null,
+      "canonical": [
+        "https://mysaji.com/knowledge"
+      ],
+      "h1": [
+        "MySaji help &amp; guides"
+      ],
+      "structuredData": [
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "MySaji home",
+              "item": "https://mysaji.com/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Help & guides",
+              "item": "https://mysaji.com/knowledge"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/privacy",
+      "status": 200,
+      "title": "Privacy policy | MySaji",
+      "description": [
+        "Read how MySaji handles personal information and your privacy."
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "xRobotsTag": null,
+      "canonical": [
+        "https://mysaji.com/privacy"
+      ],
+      "h1": [
+        "Privacy Policy"
+      ],
+      "structuredData": []
+    },
+    {
+      "path": "/terms",
+      "status": 200,
+      "title": "Terms of service | MySaji",
+      "description": [
+        "Read the terms governing use of MySaji and its services."
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "xRobotsTag": null,
+      "canonical": [
+        "https://mysaji.com/terms"
+      ],
+      "h1": [
+        "Terms of Service"
+      ],
+      "structuredData": []
+    },
+    {
+      "path": "/pos",
+      "status": 200,
+      "title": "Saji Till POS: sales, stock &amp; staff | MySaji",
+      "description": [
+        "Explore Saji Till point of sale for counter sales, stock records, shifts, receipts and employee permissions, with a dedicated business signup and workspace."
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "xRobotsTag": null,
+      "canonical": [
+        "https://mysaji.com/pos"
+      ],
+      "h1": [
+        "Saji Till. Point of sale for your shop."
+      ],
+      "structuredData": [
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "MySaji home",
+              "item": "https://mysaji.com/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Saji Till",
+              "item": "https://mysaji.com/pos"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/knowledge/getting-started",
+      "status": 200,
+      "title": "Find your place on SAJI | MySaji",
+      "description": [
+        "Choose an account, understand verification, and take your first step."
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "xRobotsTag": null,
+      "canonical": [
+        "https://mysaji.com/knowledge/getting-started"
+      ],
+      "h1": [
+        "Find your place on SAJI"
+      ],
+      "structuredData": [
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "MySaji home",
+              "item": "https://mysaji.com/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Help & guides",
+              "item": "https://mysaji.com/knowledge"
+            },
+            {
+              "@type": "ListItem",
+              "position": 3,
+              "name": "Find your place on SAJI",
+              "item": "https://mysaji.com/knowledge/getting-started"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/knowledge/customer-bookings",
+      "status": 200,
+      "title": "Book and manage a service | MySaji",
+      "description": [
+        "From finding a professional to reviewing completed work."
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "xRobotsTag": null,
+      "canonical": [
+        "https://mysaji.com/knowledge/customer-bookings"
+      ],
+      "h1": [
+        "Book and manage a service"
+      ],
+      "structuredData": [
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "MySaji home",
+              "item": "https://mysaji.com/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Help & guides",
+              "item": "https://mysaji.com/knowledge"
+            },
+            {
+              "@type": "ListItem",
+              "position": 3,
+              "name": "Book and manage a service",
+              "item": "https://mysaji.com/knowledge/customer-bookings"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/knowledge/provider-guide",
+      "status": 200,
+      "title": "Build your professional workspace | MySaji",
+      "description": [
+        "Set up your services, offers, availability, and business operations."
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "xRobotsTag": null,
+      "canonical": [
+        "https://mysaji.com/knowledge/provider-guide"
+      ],
+      "h1": [
+        "Build your professional workspace"
+      ],
+      "structuredData": [
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "MySaji home",
+              "item": "https://mysaji.com/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Help & guides",
+              "item": "https://mysaji.com/knowledge"
+            },
+            {
+              "@type": "ListItem",
+              "position": 3,
+              "name": "Build your professional workspace",
+              "item": "https://mysaji.com/knowledge/provider-guide"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/knowledge/shops-orders",
+      "status": 200,
+      "title": "Run a shop and fulfil orders | MySaji",
+      "description": [
+        "Manage your catalogue, storefront, customers, and fulfilment."
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "xRobotsTag": null,
+      "canonical": [
+        "https://mysaji.com/knowledge/shops-orders"
+      ],
+      "h1": [
+        "Run a shop and fulfil orders"
+      ],
+      "structuredData": [
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "MySaji home",
+              "item": "https://mysaji.com/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Help & guides",
+              "item": "https://mysaji.com/knowledge"
+            },
+            {
+              "@type": "ListItem",
+              "position": 3,
+              "name": "Run a shop and fulfil orders",
+              "item": "https://mysaji.com/knowledge/shops-orders"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/knowledge/distributors",
+      "status": 200,
+      "title": "Supply businesses in bulk | MySaji",
+      "description": [
+        "Understand wholesale catalogues, locations, and procurement requests."
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "xRobotsTag": null,
+      "canonical": [
+        "https://mysaji.com/knowledge/distributors"
+      ],
+      "h1": [
+        "Supply businesses in bulk"
+      ],
+      "structuredData": [
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "MySaji home",
+              "item": "https://mysaji.com/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Help & guides",
+              "item": "https://mysaji.com/knowledge"
+            },
+            {
+              "@type": "ListItem",
+              "position": 3,
+              "name": "Supply businesses in bulk",
+              "item": "https://mysaji.com/knowledge/distributors"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/knowledge/payments-wallet",
+      "status": 200,
+      "title": "Payments, wallet, and receipts | MySaji",
+      "description": [
+        "Understand payment states, deposits, wallet balances, and reconciliation."
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "xRobotsTag": null,
+      "canonical": [
+        "https://mysaji.com/knowledge/payments-wallet"
+      ],
+      "h1": [
+        "Payments, wallet, and receipts"
+      ],
+      "structuredData": [
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "MySaji home",
+              "item": "https://mysaji.com/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Help & guides",
+              "item": "https://mysaji.com/knowledge"
+            },
+            {
+              "@type": "ListItem",
+              "position": 3,
+              "name": "Payments, wallet, and receipts",
+              "item": "https://mysaji.com/knowledge/payments-wallet"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/knowledge/verification",
+      "status": 200,
+      "title": "Identity and business verification | MySaji",
+      "description": [
+        "Learn why verification is requested and how document review works."
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "xRobotsTag": null,
+      "canonical": [
+        "https://mysaji.com/knowledge/verification"
+      ],
+      "h1": [
+        "Identity and business verification"
+      ],
+      "structuredData": [
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "MySaji home",
+              "item": "https://mysaji.com/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Help & guides",
+              "item": "https://mysaji.com/knowledge"
+            },
+            {
+              "@type": "ListItem",
+              "position": 3,
+              "name": "Identity and business verification",
+              "item": "https://mysaji.com/knowledge/verification"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/knowledge/pos-guide",
+      "status": 200,
+      "title": "Set up and use your point of sale | MySaji",
+      "description": [
+        "Catalogue, shifts, sales, stock, receipts, and staff permissions."
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "xRobotsTag": null,
+      "canonical": [
+        "https://mysaji.com/knowledge/pos-guide"
+      ],
+      "h1": [
+        "Set up and use your point of sale"
+      ],
+      "structuredData": [
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "MySaji home",
+              "item": "https://mysaji.com/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Help & guides",
+              "item": "https://mysaji.com/knowledge"
+            },
+            {
+              "@type": "ListItem",
+              "position": 3,
+              "name": "Set up and use your point of sale",
+              "item": "https://mysaji.com/knowledge/pos-guide"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/knowledge/pos-offline",
+      "status": 200,
+      "title": "Keep selling when connectivity drops | MySaji",
+      "description": [
+        "Understand cached stock, queued sales, retries, and device safety."
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "xRobotsTag": null,
+      "canonical": [
+        "https://mysaji.com/knowledge/pos-offline"
+      ],
+      "h1": [
+        "Keep selling when connectivity drops"
+      ],
+      "structuredData": [
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "MySaji home",
+              "item": "https://mysaji.com/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Help & guides",
+              "item": "https://mysaji.com/knowledge"
+            },
+            {
+              "@type": "ListItem",
+              "position": 3,
+              "name": "Keep selling when connectivity drops",
+              "item": "https://mysaji.com/knowledge/pos-offline"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/knowledge/cancellations-disputes",
+      "status": 200,
+      "title": "Changes, cancellations, and disputes | MySaji",
+      "description": [
+        "Keep clear records when a job or order does not go as expected."
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "xRobotsTag": null,
+      "canonical": [
+        "https://mysaji.com/knowledge/cancellations-disputes"
+      ],
+      "h1": [
+        "Changes, cancellations, and disputes"
+      ],
+      "structuredData": [
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "MySaji home",
+              "item": "https://mysaji.com/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Help & guides",
+              "item": "https://mysaji.com/knowledge"
+            },
+            {
+              "@type": "ListItem",
+              "position": 3,
+              "name": "Changes, cancellations, and disputes",
+              "item": "https://mysaji.com/knowledge/cancellations-disputes"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/knowledge/messaging-calls",
+      "status": 200,
+      "title": "Messages, calls, and notifications | MySaji",
+      "description": [
+        "Coordinate work and understand delivery and connectivity limits."
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "xRobotsTag": null,
+      "canonical": [
+        "https://mysaji.com/knowledge/messaging-calls"
+      ],
+      "h1": [
+        "Messages, calls, and notifications"
+      ],
+      "structuredData": [
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "MySaji home",
+              "item": "https://mysaji.com/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Help & guides",
+              "item": "https://mysaji.com/knowledge"
+            },
+            {
+              "@type": "ListItem",
+              "position": 3,
+              "name": "Messages, calls, and notifications",
+              "item": "https://mysaji.com/knowledge/messaging-calls"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/knowledge/business-teams",
+      "status": 200,
+      "title": "Branches, staff, and responsibilities | MySaji",
+      "description": [
+        "Give people access appropriate to their work and keep records attributable."
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "xRobotsTag": null,
+      "canonical": [
+        "https://mysaji.com/knowledge/business-teams"
+      ],
+      "h1": [
+        "Branches, staff, and responsibilities"
+      ],
+      "structuredData": [
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "MySaji home",
+              "item": "https://mysaji.com/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Help & guides",
+              "item": "https://mysaji.com/knowledge"
+            },
+            {
+              "@type": "ListItem",
+              "position": 3,
+              "name": "Branches, staff, and responsibilities",
+              "item": "https://mysaji.com/knowledge/business-teams"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/knowledge/account-security",
+      "status": 200,
+      "title": "Protect your account and personal data | MySaji",
+      "description": [
+        "Passwords, one-time codes, shared devices, and suspicious activity."
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "xRobotsTag": null,
+      "canonical": [
+        "https://mysaji.com/knowledge/account-security"
+      ],
+      "h1": [
+        "Protect your account and personal data"
+      ],
+      "structuredData": [
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "MySaji home",
+              "item": "https://mysaji.com/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Help & guides",
+              "item": "https://mysaji.com/knowledge"
+            },
+            {
+              "@type": "ListItem",
+              "position": 3,
+              "name": "Protect your account and personal data",
+              "item": "https://mysaji.com/knowledge/account-security"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/knowledge/support",
+      "status": 200,
+      "title": "Get help with a specific problem | MySaji",
+      "description": [
+        "Find the right record and share the details needed to investigate."
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "xRobotsTag": null,
+      "canonical": [
+        "https://mysaji.com/knowledge/support"
+      ],
+      "h1": [
+        "Get help with a specific problem"
+      ],
+      "structuredData": [
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "MySaji home",
+              "item": "https://mysaji.com/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Help & guides",
+              "item": "https://mysaji.com/knowledge"
+            },
+            {
+              "@type": "ListItem",
+              "position": 3,
+              "name": "Get help with a specific problem",
+              "item": "https://mysaji.com/knowledge/support"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/knowledge/rentals",
+      "status": 200,
+      "title": "Rent equipment and manage returns | MySaji",
+      "description": [
+        "Check dates, deposits, handover, condition, and return expectations."
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "xRobotsTag": null,
+      "canonical": [
+        "https://mysaji.com/knowledge/rentals"
+      ],
+      "h1": [
+        "Rent equipment and manage returns"
+      ],
+      "structuredData": [
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "MySaji home",
+              "item": "https://mysaji.com/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Help & guides",
+              "item": "https://mysaji.com/knowledge"
+            },
+            {
+              "@type": "ListItem",
+              "position": 3,
+              "name": "Rent equipment and manage returns",
+              "item": "https://mysaji.com/knowledge/rentals"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/knowledge/quotes-invoices",
+      "status": 200,
+      "title": "Quotes, scope changes, and invoices | MySaji",
+      "description": [
+        "Keep the agreed work and its financial record aligned."
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "xRobotsTag": null,
+      "canonical": [
+        "https://mysaji.com/knowledge/quotes-invoices"
+      ],
+      "h1": [
+        "Quotes, scope changes, and invoices"
+      ],
+      "structuredData": [
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "MySaji home",
+              "item": "https://mysaji.com/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Help & guides",
+              "item": "https://mysaji.com/knowledge"
+            },
+            {
+              "@type": "ListItem",
+              "position": 3,
+              "name": "Quotes, scope changes, and invoices",
+              "item": "https://mysaji.com/knowledge/quotes-invoices"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/knowledge/rewards-referrals",
+      "status": 200,
+      "title": "Understand rewards and referrals | MySaji",
+      "description": [
+        "Find your referral record and check when a reward is actually credited."
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "xRobotsTag": null,
+      "canonical": [
+        "https://mysaji.com/knowledge/rewards-referrals"
+      ],
+      "h1": [
+        "Understand rewards and referrals"
+      ],
+      "structuredData": [
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "MySaji home",
+              "item": "https://mysaji.com/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Help & guides",
+              "item": "https://mysaji.com/knowledge"
+            },
+            {
+              "@type": "ListItem",
+              "position": 3,
+              "name": "Understand rewards and referrals",
+              "item": "https://mysaji.com/knowledge/rewards-referrals"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/knowledge/household-maintenance",
+      "status": 200,
+      "title": "Households and recurring maintenance | MySaji",
+      "description": [
+        "Organize shared responsibilities and repeat service needs."
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "xRobotsTag": null,
+      "canonical": [
+        "https://mysaji.com/knowledge/household-maintenance"
+      ],
+      "h1": [
+        "Households and recurring maintenance"
+      ],
+      "structuredData": [
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "MySaji home",
+              "item": "https://mysaji.com/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Help & guides",
+              "item": "https://mysaji.com/knowledge"
+            },
+            {
+              "@type": "ListItem",
+              "position": 3,
+              "name": "Households and recurring maintenance",
+              "item": "https://mysaji.com/knowledge/household-maintenance"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/knowledge/ai-assistance",
+      "status": 200,
+      "title": "Use AI assistance thoughtfully | MySaji",
+      "description": [
+        "Understand help with discovery, questions, and offer drafts."
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "xRobotsTag": null,
+      "canonical": [
+        "https://mysaji.com/knowledge/ai-assistance"
+      ],
+      "h1": [
+        "Use AI assistance thoughtfully"
+      ],
+      "structuredData": [
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "MySaji home",
+              "item": "https://mysaji.com/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Help & guides",
+              "item": "https://mysaji.com/knowledge"
+            },
+            {
+              "@type": "ListItem",
+              "position": 3,
+              "name": "Use AI assistance thoughtfully",
+              "item": "https://mysaji.com/knowledge/ai-assistance"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/knowledge/pricing",
+      "status": 200,
+      "title": "Find the price that applies to you | MySaji",
+      "description": [
+        "Understand service prices, subscriptions, commissions, and transaction totals."
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "xRobotsTag": null,
+      "canonical": [
+        "https://mysaji.com/knowledge/pricing"
+      ],
+      "h1": [
+        "Find the price that applies to you"
+      ],
+      "structuredData": [
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "MySaji home",
+              "item": "https://mysaji.com/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Help & guides",
+              "item": "https://mysaji.com/knowledge"
+            },
+            {
+              "@type": "ListItem",
+              "position": 3,
+              "name": "Find the price that applies to you",
+              "item": "https://mysaji.com/knowledge/pricing"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/knowledge/staff-operations",
+      "status": 200,
+      "title": "Platform staff and review workflows | MySaji",
+      "description": [
+        "An overview of administration, verification, support, and finance responsibilities."
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "xRobotsTag": null,
+      "canonical": [
+        "https://mysaji.com/knowledge/staff-operations"
+      ],
+      "h1": [
+        "Platform staff and review workflows"
+      ],
+      "structuredData": [
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "MySaji home",
+              "item": "https://mysaji.com/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Help & guides",
+              "item": "https://mysaji.com/knowledge"
+            },
+            {
+              "@type": "ListItem",
+              "position": 3,
+              "name": "Platform staff and review workflows",
+              "item": "https://mysaji.com/knowledge/staff-operations"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/knowledge/reports-tax",
+      "status": 200,
+      "title": "Reports, reconciliation, and tax records | MySaji",
+      "description": [
+        "Read business figures in context and understand external tax submission status."
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "xRobotsTag": null,
+      "canonical": [
+        "https://mysaji.com/knowledge/reports-tax"
+      ],
+      "h1": [
+        "Reports, reconciliation, and tax records"
+      ],
+      "structuredData": [
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "MySaji home",
+              "item": "https://mysaji.com/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Help & guides",
+              "item": "https://mysaji.com/knowledge"
+            },
+            {
+              "@type": "ListItem",
+              "position": 3,
+              "name": "Reports, reconciliation, and tax records",
+              "item": "https://mysaji.com/knowledge/reports-tax"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/auth/login",
+      "status": 200,
+      "title": "Authentication - SAJI | MySaji",
+      "description": [
+        "Sign in or create your SAJI account"
+      ],
+      "robots": [
+        "noindex, nofollow"
+      ],
+      "xRobotsTag": "noindex, nofollow",
+      "canonical": [],
+      "h1": [
+        "Your next good connection starts here."
+      ],
+      "structuredData": []
+    },
+    {
+      "path": "/customer/home",
+      "status": 200,
+      "title": "MySaji | Services, shops &amp; business tools",
+      "description": [
+        "Explore services, products and business tools on MySaji. Learn about Saji Pro and Saji Till before choosing your workspace."
+      ],
+      "robots": [
+        "noindex, nofollow"
+      ],
+      "xRobotsTag": "noindex, nofollow",
+      "canonical": [],
+      "h1": [
+        "Home",
+        "SAJI"
+      ],
+      "structuredData": []
+    },
+    {
+      "path": "/pos/login",
+      "status": 200,
+      "title": "Saji Till — POS | MySaji",
+      "description": [
+        "Explore services, products and business tools on MySaji. Learn about Saji Pro and Saji Till before choosing your workspace."
+      ],
+      "robots": [
+        "noindex, nofollow"
+      ],
+      "xRobotsTag": "noindex, nofollow",
+      "canonical": [],
+      "h1": [
+        "Welcome back."
+      ],
+      "structuredData": []
+    },
+    {
+      "path": "/pos/home",
+      "status": 200,
+      "title": "Saji Till — POS | MySaji",
+      "description": [
+        "Explore services, products and business tools on MySaji. Learn about Saji Pro and Saji Till before choosing your workspace."
+      ],
+      "robots": [
+        "noindex, nofollow"
+      ],
+      "xRobotsTag": "noindex, nofollow",
+      "canonical": [],
+      "h1": [],
+      "structuredData": []
+    },
+    {
+      "path": "/not-an-offering",
+      "status": 404,
+      "title": "MySaji | Services, shops &amp; business tools",
+      "description": [
+        "Explore services, products and business tools on MySaji. Learn about Saji Pro and Saji Till before choosing your workspace."
+      ],
+      "robots": [
+        "noindex",
+        "noindex, nofollow"
+      ],
+      "xRobotsTag": null,
+      "canonical": [],
+      "h1": [],
+      "structuredData": []
+    }
+  ]
+}

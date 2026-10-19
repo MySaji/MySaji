@@ -1,12 +1,12 @@
 import { test, expect } from "@playwright/test"
 import { GUIDES } from "../../backend/domain/knowledge"
 
-test("homepage introduces the platform and links to role guides", async ({ page }) => {
+test("homepage introduces MySaji and links to the public offering hierarchy", async ({ page }) => {
   await page.goto("/")
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Know the way")
-  await expect(page.getByRole("link", { name: "Explore the knowledge base" })).toBeVisible()
-  await page.getByRole("link", { name: "Explore customer guides", exact: false }).click()
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Book and manage a service")
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("MySaji")
+  await page.getByRole("navigation", { name: "Explore MySaji offerings", exact: true }).getByRole("link", { name: /Shop products/ }).click()
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Shop products. Keep the order details together.")
+  await expect(page.getByRole("navigation", { name: "Breadcrumb", exact: true })).toContainText("Shop")
 })
 
 test("knowledge search, topic filters, and related articles work", async ({ page }) => {
