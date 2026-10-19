@@ -45,12 +45,13 @@
 // Bump to retire every previous cache. The activate handler deletes any
 // cache whose name is not this one, so a stale shell cannot outlive a
 // deploy.
-const CACHE = "saji-till-shell-v3"
+const CACHE = "saji-till-shell-v4"
 const DEVELOPMENT = new URL(self.location.href).searchParams.get("dev") === "1" || ["localhost", "127.0.0.1", "[::1]"].includes(self.location.hostname)
 
 // The shell, fetched at install so the first cold start offline works even
 // if the cashier has not opened that exact page since installing.
-const SHELL = ["/pos/sell"]
+const SHELL = ["/pos"]
+let signedOut = false
 
 /**
  * Cache the shell, and whatever the shell says it needs.
@@ -69,7 +70,7 @@ async function precache(cache, url) {
   if (DEVELOPMENT) return
   let res
   try {
-    res = await fetch(url, { credentials: "same-origin" })
+    res = await fetch(url, { credentials: "same-origin", signal: AbortSignal.timeout(8000) })
   } catch {
     return
   }
@@ -114,6 +115,12 @@ self.addEventListener("install", (event) => {
 // By then the worker is controlling and the document is the current build,
 // so anything the install pass could not see gets picked up.
 self.addEventListener("message", (event) => {
+  if (event.data === "logout") {
+    signedOut = true
+    event.waitUntil(caches.keys().then(names => Promise.all(names.filter(name => name.startsWith("saji-till-shell-")).map(name => caches.delete(name)))).then(() => event.ports?.[0]?.postMessage("cleared")))
+    return
+  }
+  if (event.data === "session-active") { signedOut = false; return }
   if (event.data !== "precache") return
   event.waitUntil(
     caches.open(CACHE).then((cache) => Promise.all(SHELL.map((url) => precache(cache, url)))),
@@ -166,9 +173,9 @@ self.addEventListener("fetch", (event) => {
   // current build; the cache answers only when the network does not.
   if (req.mode === "navigate") {
     event.respondWith(
-      fetch(req)
+      fetch(req, { signal: AbortSignal.timeout(8000) })
         .then((res) => {
-          if (res.ok) {
+          if (res.ok && !res.redirected && !signedOut) {
             const copy = res.clone()
             caches.open(CACHE).then((c) => c.put(req, copy))
           }
@@ -180,7 +187,10 @@ self.addEventListener("fetch", (event) => {
               hit ||
               // Not this exact URL, but the till shell will do: it boots,
               // reads its catalogue from IndexedDB and says it is offline.
-              caches.open(CACHE).then(cache => cache.match("/pos/sell")).then(
+              caches.open(CACHE).then(async cache => {
+                const register = ["/pos/sell", "/pos/open"].includes(url.pathname) ? await cache.match("/pos/sell") : null
+                return register || cache.match("/pos")
+              }).then(
                 (shell) =>
                   shell ||
                   new Response(

@@ -186,6 +186,7 @@ export async function updatePosConfig(input: unknown): Promise<PosActionResult> 
   const permission = await requirePosPermission("settings.store")
   if (!permission.ok) return { success: false, error: permission.error }
   if (typeof input !== "object" || input === null || Array.isArray(input)) return { success: false, error: "Invalid settings" }
+  if (Object.hasOwn(input, "installLogo")) return { success: false, error: "Use the owner business-logo upload to change the installation icon." }
   if (Object.hasOwn(input, "primaryColor") && permission.actor.role !== "OWNER") {
     return { success: false, error: "Only the POS owner can change the Till theme colour." }
   }

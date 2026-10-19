@@ -50,16 +50,17 @@ export default function PosLayout({ children }: { children: React.ReactNode }) {
 
 function PosShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? ""
+  const isPublic = PUBLIC.includes(pathname) || pathname.startsWith("/pos/welcome/")
 
   const [actor, setActor] = useState<PosWhoAmI | null>(null)
   useEffect(() => {
-    if (PUBLIC.includes(pathname) || FULL_BLEED.includes(pathname)) return
+    if (isPublic || FULL_BLEED.includes(pathname)) return
     let cancelled = false
     getPosWhoAmI().then((value) => { if (!cancelled) setActor(value) }).catch(() => { if (!cancelled) setActor(null) })
     return () => { cancelled = true }
-  }, [pathname])
+  }, [pathname, isPublic])
 
-  if (PUBLIC.includes(pathname) || FULL_BLEED.includes(pathname)) {
+  if (isPublic || FULL_BLEED.includes(pathname)) {
     return <>{children}</>
   }
 

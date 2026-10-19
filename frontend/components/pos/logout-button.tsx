@@ -1,15 +1,14 @@
 ﻿"use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import { Loader2, LogOut } from "lucide-react"
 import { useAuth } from "@/frontend/lib/hooks/useAuth"
 import { clearSessionHeartbeat } from "@/frontend/lib/session-heartbeat"
+import { clearTillInstallCache } from "@/frontend/lib/pos-install-session"
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from "@/frontend/components/ui/alert-dialog"
 
 export function PosLogoutButton({ navigation = false }: { navigation?: boolean }) {
   const { logout } = useAuth()
-  const router = useRouter()
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState("")
@@ -20,8 +19,12 @@ export function PosLogoutButton({ navigation = false }: { navigation?: boolean }
     try {
       await logout()
       clearSessionHeartbeat()
-      router.replace("/pos/login")
-      router.refresh()
+      try {
+        navigator.serviceWorker?.controller?.postMessage("logout")
+        await Promise.race([clearTillInstallCache(), new Promise(resolve => setTimeout(resolve, 2000))])
+      } catch { /* Cache support must not prevent leaving a signed-out workspace. */ }
+      // Discard the authenticated React tree and router cache after the cookie is cleared.
+      window.location.replace("/pos")
     } catch { setError("Could not log out. Please try again."); setBusy(false) }
   }
 

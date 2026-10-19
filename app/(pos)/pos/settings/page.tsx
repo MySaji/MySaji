@@ -10,6 +10,7 @@ import {
 import { WorkspaceHero } from "@/frontend/components/pos/workspace-ui"
 import { VatSettings } from "@/frontend/components/pos/vat-settings"
 import { AppearanceSettings } from "@/frontend/components/pos/appearance-settings"
+import { BusinessLogoSettings } from "@/frontend/components/pos/business-logo-settings"
 import { PosCard as Card } from "@/frontend/components/pos/workspace-ui"
 import { Button } from "@/frontend/components/ui/button"
 import { Input } from "@/frontend/components/ui/input"
@@ -187,7 +188,7 @@ export default function PosSettingsPage() {
           <div className="mt-4 hidden rounded-2xl border border-blue-100 bg-blue-50/50 p-4 text-xs dark:border-blue-900 dark:bg-blue-950/30 lg:block"><p className="font-semibold">Your shop, your rules</p><p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">Your trade preset is a starting point. You can adjust every selling feature as your business grows.</p><Link href="/pos/home" className="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600">Back to Overview<ChevronRight className="h-3 w-3" /></Link></div>
         </aside>
         <div className="min-w-0">
-      <section hidden={activeSection !== "appearance"} aria-label="Till appearance settings"><AppearanceSettings active={activeSection === "appearance"} /></section>
+      <section hidden={activeSection !== "appearance"} aria-label="Till appearance settings" className="space-y-5"><AppearanceSettings active={activeSection === "appearance"} /><BusinessLogoSettings /></section>
       <section hidden={activeSection !== "shop"} aria-label="Business profile settings" className="space-y-4">
       <SectionHeading id="shop" title="Your shop" blurb="What you sell and how the till is set up for it." />
 

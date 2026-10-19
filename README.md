@@ -33,7 +33,7 @@ Missing gateway configuration disables payments by default. Development simulati
 - `backend/scripts/`: operational tooling and read-only action inventory.
 - `tests/`: unit, isolated PostgreSQL, and public browser regression tests.
 
-See [Architecture](ARCHITECTURE.md), [Implementation status](docs/IMPLEMENTATION-STATUS.md), and [Staging acceptance](docs/STAGING-ACCEPTANCE.md). Older audits and PDFs are historical snapshots.
+See [Architecture](syst%20flow/ARCHITECTURE.md), [Implementation status](docs/IMPLEMENTATION-STATUS.md), and [Staging acceptance](docs/STAGING-ACCEPTANCE.md). Older audits and PDFs are historical snapshots.
 
 ## Security boundaries
 

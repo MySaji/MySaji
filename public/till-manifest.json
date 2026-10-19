@@ -3,7 +3,7 @@
   "name": "Saji Till",
   "short_name": "Till",
   "description": "Serve customers at your counter - scan, weigh, take cash or M-Pesa, print a receipt.",
-  "start_url": "/pos/sell",
+  "start_url": "/pos/open",
   "scope": "/pos/",
   "display": "standalone",
   "background_color": "#ffffff",

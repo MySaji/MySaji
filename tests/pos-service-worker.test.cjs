@@ -8,7 +8,7 @@ function worker(url, fetcher, cached = null) {
   const cache = { match: async () => cached, put: async (...args) => writes.push(args) }
   const location = new URL(url)
   vm.runInNewContext(fs.readFileSync('public/pos/sw.js', 'utf8'), {
-    URL, Response, fetch: fetcher,
+    URL, Response, AbortSignal, fetch: fetcher,
     self: { location, addEventListener: (name, handler) => { events[name] = handler }, clients: { claim: async () => {} }, skipWaiting: async () => {} },
     caches: { open: async () => cache, keys: async () => ['saji-till-shell-v2', 'saji-till-shell-v3', 'push-other'], delete: async name => deleted.push(name) },
   })
@@ -55,5 +55,29 @@ test('activation retires old till caches without removing other application cach
   let done
   w.events.activate({ waitUntil: promise => { done = promise } })
   await done
-  assert.deepEqual(w.deleted, ['saji-till-shell-v2'])
+  assert.deepEqual(w.deleted, ['saji-till-shell-v2', 'saji-till-shell-v3'])
+})
+
+test('logout purges Till HTML caches and acknowledges completion without deleting other applications', async () => {
+  const w = worker('https://mysaji.com/pos/sw.js', async () => new Response(''))
+  let done, acknowledged
+  w.events.message({ data: 'logout', ports: [{ postMessage: value => { acknowledged = value } }], waitUntil: promise => { done = promise } })
+  await done
+  assert.equal(acknowledged, 'cleared')
+  assert.deepEqual(w.deleted, ['saji-till-shell-v2', 'saji-till-shell-v3'])
+})
+
+test('sign-in navigation never falls back to an authenticated register shell', async () => {
+  const paths = []
+  const events = {}
+  vm.runInNewContext(fs.readFileSync('public/pos/sw.js', 'utf8'), {
+    URL, Response, AbortSignal,
+    fetch: async () => { throw Error('offline') },
+    self: { location: new URL('https://mysaji.com/pos/sw.js'), addEventListener: (name, handler) => { events[name] = handler } },
+    caches: { open: async () => ({ match: async path => { paths.push(typeof path === 'string' ? path : path.url); return typeof path === 'string' && path === '/pos' ? new Response('Public Till landing') : null } }) },
+  })
+  let response
+  events.fetch({ request: { method: 'GET', mode: 'navigate', url: 'https://mysaji.com/pos/login' }, respondWith: value => { response = value } })
+  assert.equal(await (await response).text(), 'Public Till landing')
+  assert.equal(paths.includes('/pos/sell'), false)
 })

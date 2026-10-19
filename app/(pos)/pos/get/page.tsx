@@ -153,6 +153,8 @@ export default function GetTillPage() {
       {/* --- 1. this machine --------------------------------------------- */}
       <Card className="p-4 rounded-2xl">
         <h2 className="text-sm font-bold text-gray-900 dark:text-white">Install Saji Till on this machine</h2>
+        {address && <a href={`/pos/open?shop=${address.slug}&install=1`} className="mt-3 inline-flex min-h-11 items-center rounded-xl border border-border px-4 text-xs font-semibold text-primary">Prepare {address.shopName}’s branded installation</a>}
+        <p className="mt-2 text-xs leading-6 text-muted-foreground">Set the business logo in Settings → Till appearance before installing. Branded installation uses your shop’s name and saved icon.</p>
         {installError && <p role="alert" className="mt-2 text-xs text-red-600">{installError}</p>}
         {standalone ? (
           <div className="mt-2 flex items-center gap-2">
@@ -164,7 +166,7 @@ export default function GetTillPage() {
         ) : available ? (
           <>
             <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-              Adds a Till icon that opens straight into the register, in its own window.
+              Adds a Till icon in its own window. On launch, signed-in users open their workspace; signed-out users can sign in safely.
             </p>
             <Button onClick={doInstall} className="mt-3 w-full h-12 rounded-xl gap-1.5">
               <MonitorDown className="w-4 h-4" /> Install the till here

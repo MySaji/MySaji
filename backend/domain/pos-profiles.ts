@@ -57,7 +57,7 @@ export type PosProfile = {
 }
 
 /**
- * The table. Derived from the trait matrix in POS1.md section 3 — if you
+ * The table. Derived from the trait matrix in "syst flow/POS1.md" section 3 — if you
  * change a row here, change it there too, or the design document stops
  * describing the code.
  */

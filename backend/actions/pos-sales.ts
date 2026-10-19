@@ -7,7 +7,7 @@ import { mpesaScope } from "@/backend/domain/pos-mpesa"
 import { claimReceivedMpesa } from "@/backend/services/pos-mpesa-claims"
 import { receiptSnapshot, loyaltyFromEntries, type ReceiptSnapshot, type ReceiptLoyalty } from "@/backend/domain/pos-receipt-details"
 import type { PosPermission } from "@/backend/domain/pos-permissions"
-import { requirePosPermission } from "@/backend/services/pos-access-core"
+import { requirePosPermission, recordPosAudit } from "@/backend/services/pos-access-core"
 import { db } from "@/backend/db"
 import { posShopIdFor } from "@/backend/services/pos-tenant"
 import { recordStockMovement } from "@/backend/services/pos-ledger"
@@ -550,7 +550,7 @@ export async function openTillShift(input: unknown): Promise<TillActionResult> {
   const device = await resolveDevice(till.shopkeeperId, parsed.data.deviceSecret)
   if (!device.ok) return { success: false, error: device.error }
 
-  await db.tillSession.create({
+  const openedShift = await db.tillSession.create({
     data: {
       shopkeeperId: till.shopkeeperId,
       cashierUserId: till.userId,
@@ -559,6 +559,7 @@ export async function openTillShift(input: unknown): Promise<TillActionResult> {
       deviceId: device.deviceId,
     },
   })
+  await recordPosAudit({ actor: { businessId: till.businessId, storeId: till.storeId, userId: till.userId, staffId: till.staffId, name: till.userName }, action: "shift.open", entityType: "till_session", entityId: openedShift.id, summary: `${till.userName} opened a shift` })
   return { success: true } as TillActionResult
 }
 
@@ -627,6 +628,7 @@ export async function closeTillShift(input: unknown): Promise<TillActionResult<S
       note: parsed.data.note?.trim() || null,
     },
   })
+  await recordPosAudit({ actor: { businessId: till.businessId, storeId: till.storeId, userId: till.userId, staffId: till.staffId, name: till.userName }, action: "shift.close", entityType: "till_session", entityId: shift.id, summary: `${till.userName} closed a shift`, detail: { expectedCash: money(expected), countedCash: money(counted), variance: money(variance), saleCount: sales.length } })
 
   return {
     success: true,
@@ -2189,6 +2191,7 @@ export async function voidPosSale(input: unknown): Promise<TillActionResult> {
         // means something structural and must roll the void back.
         if (!back.ok) throw new PosSaleError(`Sale ${sale.saleNumber} could not be returned to stock. Nothing was changed.`)
       }
+      await tx.posAuditEvent.create({ data: { businessId: till.businessId, storeId: till.storeId, actorUserId: till.userId, actorStaffId: till.staffId, action: "sale.void", entityType: "pos_sale", entityId: sale.id, summary: `${till.userName} voided sale ${sale.saleNumber}: ${parsed.data.reason}`.slice(0, 400) } })
     }, { timeout: 30000, maxWait: 10000 })
   } catch (e) {
     if (e instanceof PosSaleError) return { success: false, error: e.message }

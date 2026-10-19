@@ -1,6 +1,7 @@
 "use client"
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
+import { useSession } from "next-auth/react"
 
 type InstallEvent = Event & {
   prompt: () => Promise<void>
@@ -13,11 +14,15 @@ const InstallContext = createContext({
 })
 
 export function TillInstallProvider({ children }: { children: ReactNode }) {
+  const { status } = useSession()
   const [prompt, setPrompt] = useState<InstallEvent | null>(null)
   const [standalone, setStandalone] = useState(false)
   const [isIos, setIsIos] = useState(false)
   const [secure, setSecure] = useState(true)
   const [error, setError] = useState("")
+  useEffect(() => {
+    if (status === "authenticated") navigator.serviceWorker?.controller?.postMessage("session-active")
+  }, [status])
 
   useEffect(() => {
     const media = window.matchMedia("(display-mode: standalone)")

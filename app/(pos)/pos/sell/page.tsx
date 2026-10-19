@@ -167,7 +167,11 @@ export default function TillPage() {
   const [idempotencyKey, setIdempotencyKey] = useState(() => newKey())
   const activeSaleKey = useRef(idempotencyKey)
   activeSaleKey.current = idempotencyKey
-  const { data: accountSession } = useSession()
+  const { data: accountSession, status: accountStatus } = useSession()
+  useEffect(() => {
+    const watchdog = setTimeout(() => setLoading(false), 20_000)
+    return () => clearTimeout(watchdog)
+  }, [])
   const [parkedState, setParkedState] = useState<{ scope: string; sales: ParkedSale[] }>({ scope: "", sales: [] })
   const [showParked, setShowParked] = useState(false)
   const [manualCompletion, setManualCompletion] = useState(false)
@@ -197,7 +201,7 @@ export default function TillPage() {
   }
 
   const offline = usePosOffline()
-  const { available: offlineAvailable, saveCatalogue: saveOfflineCatalogue } = offline
+  const { saveCatalogue: saveOfflineCatalogue } = offline
   // A sale that was queued rather than sent. The customer is standing
   // there and the sale DID happen, so a receipt is still shown — what
   // changes is the wording on it.
@@ -370,9 +374,14 @@ export default function TillPage() {
   }, [])
 
   useEffect(() => {
-    if (!offlineAvailable) return
-    Promise.all([
+    if (accountStatus === "unauthenticated") { window.location.replace("/pos/login"); return }
+    if (accountStatus !== "authenticated") return
+    let cancelled = false
+    let timer: ReturnType<typeof setTimeout>
+    const timeout = new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error("Till startup timed out")), 15_000) })
+    const startup = Promise.all([
       getTillState().then((s) => {
+        if (cancelled) return s
         setState(s)
         setStateIsRemembered(false)
         // The server answered. Null here is a real answer, not a failure.
@@ -380,9 +389,10 @@ export default function TillPage() {
         else void cacheTillState(s)
         return s
       }),
-      findTillProducts({ query: "", limit: 50 }).then((p) => { setResults(p); setHasMoreProducts(p.length === 50); return p }),
+      findTillProducts({ query: "", limit: 50 }).then((p) => { if (!cancelled) { setResults(p); setHasMoreProducts(p.length === 50) }; return p }),
     ])
-      .then(([, products]) => { void saveOfflineCatalogue(products) })
+    Promise.race([startup, timeout])
+      .then(([, products]) => { if (!cancelled) void saveOfflineCatalogue(products) })
       .catch(async () => {
         // Unreachable. Fall back to what this device last knew, so the till
         // opens and sells. Without this the page showed "No till on this
@@ -390,7 +400,7 @@ export default function TillPage() {
         // cashier standing at a cold machine in the morning.
         try {
           const { state: remembered } = await readTillState<TillState>()
-          if (remembered) {
+          if (remembered && !cancelled) {
             setState(remembered)
             setStateIsRemembered(true)
           }
@@ -399,8 +409,9 @@ export default function TillPage() {
           // because this device has genuinely never seen this till.
         }
       })
-      .finally(() => setLoading(false))
-  }, [offlineAvailable, saveOfflineCatalogue])
+      .finally(() => { clearTimeout(timer); if (!cancelled) setLoading(false) })
+    return () => { cancelled = true; clearTimeout(timer) }
+  }, [accountStatus, saveOfflineCatalogue])
 
   // Ignore stale responses when a cashier types or scans another query.
   useEffect(() => {
@@ -1093,13 +1104,14 @@ export default function TillPage() {
             The till cannot open yet
           </h1>
           <p className="mt-1.5 text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-            There is no connection, and this device has not opened the till before, so there is
-            nothing saved on it to work from. Connect once and it will open without a connection
-            after that.
+            Till could not finish loading your workspace. Check your connection and sign-in.
+            If this device has no saved catalogue, connect once before using offline mode.
           </p>
           <Button onClick={() => window.location.reload()} className="mt-4 h-11 rounded-xl gap-1.5">
             <RefreshCw className="w-4 h-4" /> Try again
           </Button>
+          <a href="/pos/login" className="mt-4 block text-sm font-semibold text-primary">Sign in to Saji Till</a>
+          <a href="/pos" className="mt-3 block text-xs text-muted-foreground">Return to Saji Till</a>
         </Card>
       </div>
     )
