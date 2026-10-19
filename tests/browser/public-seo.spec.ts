@@ -9,6 +9,7 @@ test("every sitemap URL is a successful public canonical with a unique title and
   const urls = [...(await response.text()).matchAll(/<loc>(.*?)<\/loc>/g)].map(match => match[1])
   expect(new Set(urls).size).toBe(urls.length)
   const titles = new Set<string>()
+  const descriptions = new Set<string>()
   for (const url of urls) {
     const canonical = new URL(url)
     expect(canonical.origin).toBe("https://mysaji.com")
@@ -25,6 +26,10 @@ test("every sitemap URL is a successful public canonical with a unique title and
     expect(title).toContain("MySaji")
     expect(titles.has(title), title).toBe(false)
     titles.add(title)
+    const description = html.match(/<meta name="description" content="([^"]*)"/)?.[1] ?? ""
+    expect(description.length, canonical.pathname).toBeGreaterThan(50)
+    expect(descriptions.has(description), canonical.pathname).toBe(false)
+    descriptions.add(description)
   }
 })
 

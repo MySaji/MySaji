@@ -1,6 +1,7 @@
 {
-  "checkedAt": "2026-10-19T21:50:52.318Z",
+  "checkedAt": "2026-10-19T22:02:57.941Z",
   "environment": "Local production build; not deployed",
+  "baseCommit": "a9c155a",
   "branch": "feat/public-seo-sitelinks",
   "sitemap": {
     "status": 200,
@@ -306,7 +307,7 @@
       "status": 200,
       "title": "Privacy policy | MySaji",
       "description": [
-        "Read how MySaji handles personal information and your privacy."
+        "How MySaji handles account, payment, messaging and business information, and how to exercise your privacy rights."
       ],
       "robots": [
         "index, follow"
@@ -325,7 +326,7 @@
       "status": 200,
       "title": "Terms of service | MySaji",
       "description": [
-        "Read the terms governing use of MySaji and its services."
+        "MySaji account, marketplace, payment, communication and Saji Till responsibilities, including complaints and consumer rights."
       ],
       "robots": [
         "index, follow"

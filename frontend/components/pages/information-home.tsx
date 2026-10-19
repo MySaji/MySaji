@@ -41,8 +41,6 @@ export function InformationHome() {
       </div>
     </section>
 
-    <div className={styles.pillars}><div className={styles.container}>{[["Shop", "Find products & manage orders", "/knowledge/shops-orders"], ["Work", "Offer skills & book services", "/knowledge/provider-guide"], ["Rent", "Understand equipment hire", "/knowledge/rentals"], ["Learn", "Get a clear answer", "/knowledge"], ["Grow", "Give your business better tools", "/pos"]].map(([label, body, href]) => <Link key={label} href={href}><strong>{label}<ArrowUpRight size={15} /></strong><span>{body}</span></Link>)}</div></div>
-
     <nav aria-label="Explore MySaji offerings" className={styles.offeringLinks}>{OFFERING_LINKS.map(link => <Link key={link.href} href={link.href}><strong>{link.shortLabel}</strong><span>{link.label}</span><ArrowUpRight size={16} aria-hidden="true" /></Link>)}</nav>
 
     <section id="explore" className={`${styles.container} ${styles.section}`}>

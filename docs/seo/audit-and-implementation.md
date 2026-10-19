@@ -1,6 +1,6 @@
 # MySaji public SEO audit and implementation
 
-Base: `224a709e63b3f47436ae58788b0c04bb3b073606` (`origin/main`). Review branch: `feat/public-seo-sitelinks`. Production domain: `https://mysaji.com`.
+Initial audit base: `224a709e63b3f47436ae58788b0c04bb3b073606`. Rebased onto `a9c155a` (`origin/main`) on 20 October 2026, preserving the subsequent portal changes. Review branch: `feat/public-seo-sitelinks`. Production domain: `https://mysaji.com`.
 
 This work was isolated from the main workspace’s uncommitted portal changes. It does not deploy, merge, change DNS, submit Search Console requests or certify that Google will select sitelinks. Google automatically selects sitelinks based on the query and the site; site owners cannot force them.
 
@@ -41,8 +41,10 @@ The feature branch is disabled in `vercel.json` through `git.deploymentEnabled`,
 
 ## Verification and handover
 
-Tests validate canonical sitemap membership, unique offering content, valid linked guides, matching structured-data URLs, safe JSON-LD serialization and preserved analytics privacy rules. Browser checks cover sitemap URLs, successful responses, actual metadata, server-rendered content with JavaScript disabled, private noindex headers, unknown-route 404s, navigation and mobile widths. Production-build and browser results are recorded with the review evidence once complete.
+Tests validate canonical sitemap membership, unique offering content, valid linked guides, matching structured-data URLs, safe JSON-LD serialization and preserved analytics privacy rules. Browser checks cover sitemap URLs, successful responses, actual metadata, server-rendered content with JavaScript disabled, private noindex headers, unknown-route 404s, navigation and mobile widths. Sanitized HTTP evidence from the local production build is saved in [after-local.json](./after-local.json); compare it with the dated production snapshot rather than treating the local result as a deployment.
 
-Follow [the Search Console checklist](./search-console-checklist.md) after an approved release. Repository tests and a local build do not prove Google has indexed the pages, selected the preferred canonical or generated sitelinks.
+The implementation keeps the new offering pages, header and breadcrumb components on the server. Only the existing mobile menu and footer interactions need client state. Native disclosure elements, labelled navigation, keyboard dismissal and visible focus styles preserve accessible interaction without an added SEO or UI library.
+
+See [validation and reproduction steps](./validation.md) for check results and evidence boundaries. Follow [the Search Console checklist](./search-console-checklist.md) after an approved release. Repository tests and a local build do not prove Google has indexed the pages, selected the preferred canonical or generated sitelinks.
 
 Sources: [Google sitelinks](https://developers.google.com/search/docs/appearance/sitelinks), [site names](https://developers.google.com/search/docs/appearance/site-names), [breadcrumbs](https://developers.google.com/search/docs/appearance/structured-data/breadcrumb), [Vercel branch deployment controls](https://vercel.com/docs/project-configuration/git-configuration#git.deploymentenabled), and the installed Next.js metadata/JSON-LD documentation.
