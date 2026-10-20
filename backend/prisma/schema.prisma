@@ -4920,8 +4920,25 @@ model PosBusiness {
   stores    PosStore[]
   staff     PosStaff[]
   transfers PosStockTransfer[]
+  website   PosBusinessWebsite?
 
   @@map("pos_businesses")
+}
+
+/// A business-owned public website. Draft edits never alter the published snapshot.
+model PosBusinessWebsite {
+  id               String   @id @default(cuid())
+  businessId       String   @unique
+  subdomain        String   @unique
+  draft            Json
+  publishedContent Json?
+  publishedAt      DateTime?
+  version          Int      @default(1)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  business PosBusiness @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@map("pos_business_websites")
 }
 
 /// One shop floor.

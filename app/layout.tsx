@@ -2,6 +2,8 @@ import { IncomingCallBanner } from "@/frontend/components/messages/incoming-call
 import { DevicePushSession } from "@/frontend/components/notifications/device-notifications"
 import type React from "react"
 import type { Metadata, Viewport } from "next"
+import { headers } from "next/headers"
+import { isBusinessHost } from "@/backend/domain/pos-website"
 import { Geist } from "next/font/google"
 import { AnalyticsConsent } from "@/frontend/components/analytics-consent"
 import { siteUrl } from "@/frontend/lib/seo"
@@ -59,6 +61,11 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  // Customer-facing business websites never receive marketplace sessions,
+  // notifications, account providers or the marketplace subscription popup.
+  if (isBusinessHost((await headers()).get("host") ?? "")) {
+    return <html lang="en"><body className={`font-sans antialiased ${_geist.className}`}>{children}</body></html>
+  }
   // Fetching the session server-side and handing it to SessionProvider lets
   // it skip its own client-side fetch on initial mount entirely (see
   // node_modules/next-auth/react.js: it only calls getSession() itself when

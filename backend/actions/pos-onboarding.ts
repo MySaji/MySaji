@@ -11,6 +11,7 @@ import { checkRateLimit } from "@/backend/services/rate-limit"
 import { resolvePosProfile } from "@/backend/domain/pos-profiles"
 import { recordPosAudit, resolvePosActor } from "@/backend/services/pos-access-core"
 import { ONBOARDING_STEPS, type OnboardingStep } from "@/backend/domain/pos-onboarding-steps"
+import { ensureBusinessWebsite } from "@/backend/services/pos-website-provision"
 
 /**
  * Getting a shop from "I heard about this" to "I am trading".
@@ -169,6 +170,7 @@ export async function createPosAccount(input: unknown): Promise<CreatePosAccount
       await tx.posStore.create({
         data: { businessId: business.id, shopkeeperId, name: d.businessName },
       })
+      await ensureBusinessWebsite(tx, { id: business.id, name: d.businessName })
 
       await tx.posStaff.create({
         data: {

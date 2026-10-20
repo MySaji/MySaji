@@ -57,6 +57,21 @@ test("logo-free shops retain valid Saji Till icons", async () => {
   assert.equal(manifest.icons[1].src, "/pos/icon-512.png")
 })
 
+test("branded route handlers return valid manifest JSON and actual sized PNG responses", async () => {
+  const b = branding({ shopName: "Shop", tillSlug: "shop", posConfig: { installLogo: await logo() } })
+  const manifest = loadService("app/(pos)/pos/brand/[slug]/manifest.webmanifest/route.ts", { "@/backend/services/pos-install-brand": b }, { Response })
+  const response = await manifest.GET(null, { params: Promise.resolve({ slug: "shop" }) })
+  assert.equal(response.status, 200)
+  assert.equal(response.headers.get("content-type"), "application/manifest+json")
+  assert.equal((await response.json()).name, "Shop · Saji Till")
+  const icons = loadService("app/(pos)/pos/brand/[slug]/icon/[size]/route.ts", { "@/backend/services/pos-install-brand": b }, { Response, URL })
+  const image = await icons.GET({ url: "https://mysaji.com/pos/brand/shop/icon/192" }, { params: Promise.resolve({ slug: "shop", size: "192" }) })
+  assert.equal(image.status, 200)
+  assert.equal(image.headers.get("content-type"), "image/png")
+  assert.equal(Buffer.from(await image.arrayBuffer()).readUInt32BE(16), 192)
+  assert.equal((await icons.GET(null, { params: Promise.resolve({ slug: "shop", size: "9999" }) })).status, 404)
+})
+
 test("logo mutation checks actual business ownership, preserves existing settings and rejects malformed images", async () => {
   const writes = [], recorded = [], cookieWrites = []
   let role = "CASHIER", actualOwner = "owner", userId = "employee"

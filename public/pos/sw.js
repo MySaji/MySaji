@@ -177,7 +177,7 @@ self.addEventListener("fetch", (event) => {
         .then((res) => {
           if (res.ok && !res.redirected && !signedOut) {
             const copy = res.clone()
-            caches.open(CACHE).then((c) => c.put(req, copy))
+            caches.open(CACHE).then((c) => { if (!signedOut) return c.put(req, copy) }).catch(() => {})
           }
           return res
         })
