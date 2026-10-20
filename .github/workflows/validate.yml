@@ -160,6 +160,7 @@ jobs:
           REGISTRY_USER: ${{ github.actor }}
           REVISION: ${{ github.sha }}
         run: |
+          set -euo pipefail
           python3 - <<'PY' | ssh -i ~/.ssh/staging -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes mysaji-deploy@172.18.0.1 | tee deployment.json
           import json, os
           print(json.dumps({"revision":os.environ["REVISION"],"image":os.environ["APP_IMAGE"],"migration_image":os.environ["MIGRATION_IMAGE"],"registry_token":os.environ["REGISTRY_TOKEN"],"registry_user":os.environ["REGISTRY_USER"]}))

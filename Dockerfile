@@ -20,7 +20,10 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN NODE_OPTIONS=--max-old-space-size=4096 DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build DIRECT_URL=postgresql://build:build@127.0.0.1:5432/build pnpm build
 FROM build AS migration
 USER node
-CMD ["pnpm", "exec", "prisma", "migrate", "deploy"]
+# Runs on the internal database network without egress; corepack would try to
+# download pnpm for the node user, so invoke the locally installed CLI directly.
+ENV CHECKPOINT_DISABLE=1
+CMD ["node_modules/.bin/prisma", "migrate", "deploy"]
 FROM base AS runtime
 ARG APP_REVISION=development
 LABEL org.opencontainers.image.source="https://github.com/MySaji/MySaji" org.opencontainers.image.revision=$APP_REVISION
