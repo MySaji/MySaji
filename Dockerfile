@@ -5,7 +5,8 @@ WORKDIR /app
 FROM base AS build
 RUN corepack enable && corepack prepare pnpm@11.15.1 --activate
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN pnpm install --frozen-lockfile --ignore-scripts
+# Hosted builders may have slower registry egress; allow retries before failing.
+RUN pnpm install --frozen-lockfile --ignore-scripts --fetch-retries=5 --fetch-timeout=120000 --network-concurrency=8
 COPY . .
 RUN pnpm exec prisma generate
 ARG NEXT_PUBLIC_SITE_URL=https://mysaji.com
@@ -14,7 +15,7 @@ ARG NEXT_PUBLIC_VAPID_PUBLIC_KEY
 ARG NEXT_PUBLIC_SENTRY_DSN
 ENV NEXT_TELEMETRY_DISABLED=1
 # Synthetic build-only URLs; no production secrets enter image layers.
-RUN DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build DIRECT_URL=postgresql://build:build@127.0.0.1:5432/build pnpm build
+RUN NODE_OPTIONS=--max-old-space-size=4096 DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build DIRECT_URL=postgresql://build:build@127.0.0.1:5432/build pnpm build
 FROM base AS runtime
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 HOSTNAME=0.0.0.0 PORT=3000
 COPY --from=build --chown=node:node /app/.next/standalone ./
