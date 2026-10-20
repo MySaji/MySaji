@@ -1,29 +1,31 @@
 # MySaji owner progress update
 
-**As of 16 October 2026**
+**As of 19 October 2026**
 
-The core foundation is in place, and the public apex website is live at **https://mysaji.com**. The latest check independently confirmed that the apex resolves directly to Vercel IP addresses and returns **HTTP 200**. The app's `/api/health` also returned **HTTP 200** with `status: ok` and `database: ok`. Cloudflare remains authoritative for DNS; these web record changes were made outside this session.
+The public apex website is live at **https://mysaji.com** on Vercel. A fresh check on 19 October at 20:40 UTC returned HTTP 200 for both the homepage and `/api/health`. `www.mysaji.com` returned Cloudflare HTTP 521. The apex response still sets the Auth.js callback URL to `https://saji-3.vercel.app`, so custom-domain sign-in still needs configuration and a fresh login test. These checks verify the Vercel-hosted site, not a deployment to the VPS.
 
 The MySaji GitHub repository is configured as this checkout's origin. GitHub had a newer `origin/main` commit (`7483f0a`) than the earlier local checkpoint. To preserve both, the original local `main` remains intact and a separate local reconciliation branch, `infra/reconcile-20261015`, now contains the remote source plus the infrastructure work. It has not been pushed or deployed. Previous local build, TypeScript, Docker, and synthetic PostGIS restore/connectivity checks passed; synthetic Dokploy Compose validation shows no published app/database ports and a private DB network. The new source revision could not be installed or tested: `pnpm-workspace.yaml` overrides `next-auth` to `^5.0.0`, which has no matching stable registry version, and frozen install also reports lockfile/override mismatch. No customer database was migrated.
 
-The VPS owner reports that the server is up. SSH on port 22 responds, but the available root key is rejected, so server services and Dokploy status are not yet independently verified. Use **Reset credentials**, not reinstall: Contabo says the Linux root reset preserves data but reboots the server, whereas reinstall permanently deletes existing data. Compare the saved host fingerprint with Contabo VNC before password login; see `docs/DEVOPS_EXECUTION.md`. After named key access is tested, rotate the root password and retain provider-console recovery. No server software or firewall changes have been made.
+The owner reports that VNC reaches the Ubuntu console on VPS `vmi3668179` (`169.58.242.133`), but the console remains at the login prompt and root access has not been established after multiple credential resets. The host and Dokploy status remain unverified. A support request was drafted, but submission is not confirmed. Preserve the existing server and data; do not reinstall. No server software or firewall changes have been made.
 
 ## Items still in progress
 
-- `www.mysaji.com` currently resolves through Cloudflare and returned **HTTP 521** in the latest check (the supplied PDF's earlier 403 result is superseded). Set the `www` record to the exact target Vercel provides for `www`, with Cloudflare proxy disabled, then verify HTTPS.
-- The apex response still sets the Auth.js callback URL to `https://saji-3.vercel.app`. Set `AUTH_URL` and `NEXTAUTH_URL` in the Vercel production environment to `https://mysaji.com`, redeploy, and verify sign-in redirects/callbacks.
+- `www.mysaji.com` returned **HTTP 521** on 19 October. Set its record to the exact target Vercel provides for `www`, initially with Cloudflare proxy disabled, then verify HTTPS.
+- The apex response still sets the Auth.js callback URL to `https://saji-3.vercel.app`. Set the required Auth.js production URL variables in Vercel to `https://mysaji.com`, redeploy, and verify sign-in redirects/callbacks.
 - Connect and validate the Vercel deployment configuration. This local checkout has no linked Vercel project or CLI access, so those settings could not be changed here.
-- VPS SSH on port 22 responds, but authentication as root with the available key is rejected (`Permission denied (publickey,password)`). Restore named/key access and inspect the VPS read-only. Then complete Dokploy installation/status review, private Isaac/Oliver accounts, WireGuard, firewall rules, database migration rehearsal, off-server backups, and restore verification.
-- Confirm whether the local infrastructure commit should be pushed after the source baseline and repository permissions are confirmed.
+- The local reconciliation branch is clean and 10 commits ahead of the locally recorded `origin/main`; it has not been pushed or deployed. Resolve the Auth.js workspace override (`next-auth: ^5.0.0`) and lockfile mismatch with the source owner before validating the new source baseline.
+- After support restores verified VPS access, inspect the host read-only before Dokploy installation, private Isaac/Oliver accounts, WireGuard, firewall rules, database migration rehearsal, off-server backups, or restore verification.
 - Review the newly fetched source update and its Prisma baseline/payment-settlement migrations; do not apply them to the existing database until an isolated rehearsal and source-database comparison are complete.
 - Work ownership: Isaac leads backend/API, database and infrastructure; Oliver leads source handover, frontend, content/branding and frontend integration. Keep the current integrated Next.js application operational while Django is developed and connected incrementally.
 - Source-owner action before reconciliation validation: resolve the invalid `next-auth` workspace override and refresh the lockfile intentionally; review the resulting auth version change before running/publishing the branch.
 
 ## Next actions
 
-1. In Vercel, set production `AUTH_URL` and `NEXTAUTH_URL` to `https://mysaji.com`, redeploy, and test login.
-2. In Cloudflare, update the existing `www` record to the exact record shown by Vercel; set it to DNS only. Preserve MX/SPF. Check the Vercel dashboard for the required redirect/domain status.
-3. Restore SSH access through Contabo console/public-key onboarding and verify the host fingerprint; inspect the running server before making changes.
-4. Review and push the two local commits after confirming the intended source baseline; continue staging and private-access work without using production customer data.
+1. Ask Contabo support to restore root console access while preserving the VPS and its data. Verify host identity, then inspect the running server before changes.
+2. Fix and test Vercel custom-domain authentication and the `www` DNS target. Preserve MX/SPF records.
+3. Resolve the Auth.js dependency/lockfile mismatch with the source owner and validate the reconciled branch.
+4. Continue protected staging, private access and backup/restore work after host inspection and source validation.
 
 Passwords, API tokens, SSH/VPN private keys, and recovery codes are not included in this report. Share them individually using the approved password manager or secure channel.
+
+See [DEPLOYMENT_REPORT.md](DEPLOYMENT_REPORT.md) for the owner-ready deployment and infrastructure report with current evidence.

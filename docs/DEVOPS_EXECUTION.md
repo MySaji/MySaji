@@ -206,3 +206,10 @@ Local `origin` remains https://github.com/MySaji/MySaji.git. Local HEAD is `a4e1
 - Apex `mysaji.com` resolved to Vercel IPv4s `64.29.17.65` and `216.198.79.65`; HTTPS returned HTTP/2 200, and `/api/health` returned `status: ok`, `database: ok`.
 - The Auth.js callback cookie still names `https://saji-3.vercel.app`. `www.mysaji.com` resolved to Cloudflare proxy IPv4s and returned HTTP 521 on this check. This supersedes the supplied PDF's earlier HTTP 403 observation for `www`; keep the exact response time and environment with each future check.
 - No Vercel/Cloudflare changes or DNS mutations were performed. The Vercel origin and health result do not prove VPS deployment or migration.
+
+## Live deployment report refresh (2026-10-19 20:40 UTC)
+
+- Read-only HTTPS checks: `https://mysaji.com/` returned HTTP 200 from Vercel (remote address `64.29.17.1`); `/api/health` returned HTTP 200 (remote address `216.198.79.1`); `https://www.mysaji.com/` returned Cloudflare HTTP 521 (remote address `172.67.150.93`). The apex response still sets the Auth.js callback URL to `https://saji-3.vercel.app`. This is current public-site evidence, not VPS deployment evidence.
+- Owner reports VNC reaches the Ubuntu console but login has not succeeded after multiple credential resets. Support-ticket text was drafted; no submission confirmation. Root access, host inventory, Dokploy, firewall, deployments, private access and backup/restore remain unverified. No server changes were performed.
+- Repository at report time: clean `infra/reconcile-20261015`, HEAD `7d8bf1acfebbec5650fc07c2dd748716677459de`, 10 commits ahead of the locally recorded `origin/main`; not pushed or deployed. Reconciled-source dependency/lockfile blocker remains documented above. Earlier build and synthetic checks apply to an earlier source baseline.
+- Owner-ready report: `docs/operations/DEPLOYMENT_REPORT.md`. No credential or DNS changes were made.
