@@ -1,6 +1,9 @@
 "use client"
 
 import useSWR from "swr"
+import { useState } from "react"
+import { useAuthContext } from "@/frontend/lib/auth-context"
+import { WorkflowGuide, WorkspaceRecovery, WorkspaceRefresh } from "@/frontend/components/workspace-panels"
 import { Users, Briefcase, CheckCircle, AlertCircle, ArrowRight, Loader2 } from "lucide-react"
 import { Card } from "@/frontend/components/ui/card"
 import { Button } from "@/frontend/components/ui/button"
@@ -17,9 +20,14 @@ const ROLE_COLOR: Record<string, string> = {
 export default function SubAdminDashboard() {
   const router = useRouter()
   const { t } = useLocalization()
-  const { data, isLoading } = useSWR(
-    "sub-admin-dashboard", () => withTimeout(getSubAdminDashboard(), DASHBOARD_FETCH_TIMEOUT_MS),
+  const { user } = useAuthContext()
+  const [updatedAt, setUpdatedAt] = useState<number>()
+  const { data, isLoading, error, mutate, isValidating } = useSWR(
+    user?.id ? ["sub-admin-dashboard", user.id] : null, () => withTimeout(getSubAdminDashboard(), DASHBOARD_FETCH_TIMEOUT_MS),
+    { onSuccess: () => setUpdatedAt(Date.now()) },
   )
+
+  if (error || (!isLoading && !data)) return <WorkspaceRecovery title="Operations workspace unavailable" retry={() => void mutate()} busy={isValidating} />
 
   if (isLoading || !data) {
     return (
@@ -53,6 +61,8 @@ export default function SubAdminDashboard() {
         <Button onClick={() => router.push("/sub-admin/reports")} className="bg-blue-600 hover:bg-blue-700 text-xs">{t("subAdmin.dashboard.generateReport")}</Button>
       </div>
 
+      <WorkspaceRefresh refreshing={isValidating} updatedAt={updatedAt} refresh={() => void mutate()} />
+      <WorkflowGuide title="Operations workspace" steps={[{ title: "Check activity", description: "Review the current user and job figures." },{ title: "Review assigned work", description: "Open the management pages available to your role." },{ title: "Follow up", description: "Use the relevant record and messages to keep work moving." }]} />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
         {stats.map((s, i) => (
           <Card key={i} className={`p-4 lg:p-5 border-0 shadow-sm bg-gradient-to-br ${s.color}`}>

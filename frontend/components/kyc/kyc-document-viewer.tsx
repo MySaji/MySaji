@@ -41,7 +41,7 @@ export function KycDocumentViewer({ documents }: { documents: KycDocumentItem[] 
                   <span className="text-[10px] font-medium">PDF document</span>
                 </div>
               ) : (
-                // eslint-disable-next-line @next/next/no-img-element -- base64 data URLs aren't supported by next/image
+                // Images use the configured unoptimized rendering policy -- base64 data URLs aren't supported by next/image
                 <img src={doc.url} alt={doc.label} className="w-full h-full object-cover" />
               )}
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
@@ -136,7 +136,7 @@ function KycDocumentLightbox({
         {isPdf ? (
           <iframe src={doc.url} title={doc.label} className="w-full h-full max-w-4xl rounded-lg bg-white" />
         ) : (
-          // eslint-disable-next-line @next/next/no-img-element -- base64 data URLs aren't supported by next/image
+          // Images use the configured unoptimized rendering policy -- base64 data URLs aren't supported by next/image
           <img src={doc.url} alt={doc.label} className="max-w-full max-h-full object-contain rounded-lg" />
         )}
       </div>

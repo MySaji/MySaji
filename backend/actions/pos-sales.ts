@@ -3,6 +3,11 @@
 import { z } from "zod"
 import { Prisma } from "@prisma/client"
 import { auth } from "@/backend/auth"
+import { mpesaScope } from "@/backend/domain/pos-mpesa"
+import { claimReceivedMpesa } from "@/backend/services/pos-mpesa-claims"
+import { receiptSnapshot, loyaltyFromEntries, type ReceiptSnapshot, type ReceiptLoyalty } from "@/backend/domain/pos-receipt-details"
+import type { PosPermission } from "@/backend/domain/pos-permissions"
+import { requirePosPermission, recordPosAudit } from "@/backend/services/pos-access-core"
 import { db } from "@/backend/db"
 import { posShopIdFor } from "@/backend/services/pos-tenant"
 import { recordStockMovement } from "@/backend/services/pos-ledger"
@@ -49,10 +54,14 @@ import type { PosTrait } from "@/backend/domain/pos-traits"
 // ---------------------------------------------------------------------------
 
 type TillTenant = {
+  businessId: string
+  storeId: string | null
+  staffId: string | null
   userId: string
   userName: string
   shopkeeperId: string
   shopName: string
+  profileKey: string | null
   traits: PosTrait[]
   negativeStock: NegativeStockPolicy
   expiredStock: ExpiredStockPolicy
@@ -73,7 +82,9 @@ type TillTenant = {
 }
 
 /** The signed-in user's till, or null if they have not got one. */
-async function requireTill(): Promise<TillTenant | null> {
+async function requireTill(permission: PosPermission = "till.sell"): Promise<TillTenant | null> {
+  const access = await requirePosPermission(permission)
+  if (!access.ok) return null
   const session = await auth()
   if (!session?.user?.id) return null
   if (session.user.role !== "provider" && session.user.role !== "shopkeeper") return null
@@ -93,10 +104,14 @@ async function requireTill(): Promise<TillTenant | null> {
 
   const config = parsePosConfig(shop.posConfig)
   return {
+    businessId: access.actor.businessId,
+    storeId: access.actor.storeId,
+    staffId: access.actor.staffId,
     userId: session.user.id,
     userName: session.user.name ?? "Cashier",
     shopkeeperId: shop.id,
     shopName: shop.shopName,
+    profileKey: shop.posProfileKey,
     traits: effectiveTraits(shop.posProfileKey, shop.posTraits),
     negativeStock: config.negativeStock,
     expiredStock: config.expiredStock,
@@ -198,6 +213,7 @@ export type TillShift = {
 
 export type TillState = {
   shopName: string
+  profileKey?: string
   traits: PosTrait[]
   canSellFractional: boolean
   canOverridePrice: boolean
@@ -310,6 +326,7 @@ export async function getTillState(): Promise<TillState | null> {
 
   return {
     shopName: till.shopName,
+    profileKey: till.profileKey ?? undefined,
     traits: till.traits,
     canSellFractional: till.traits.includes("MEASURED"),
     canOverridePrice: till.traits.includes("OPEN_PRICE"),
@@ -342,6 +359,7 @@ export async function getTillState(): Promise<TillState | null> {
 const searchSchema = z.object({
   query: z.string().trim().max(120),
   limit: z.number().int().min(1).max(50).optional(),
+  offset: z.number().int().min(0).max(100000).optional(),
 })
 
 /**
@@ -359,6 +377,7 @@ export async function findTillProducts(input: unknown): Promise<TillProduct[]> {
   if (!parsed.success) return []
   const { query } = parsed.data
   const limit = parsed.data.limit ?? 20
+  const offset = parsed.data.offset ?? 0
 
   const select = {
     id: true, name: true, sku: true, barcode: true, unit: true, images: true,
@@ -415,8 +434,9 @@ export async function findTillProducts(input: unknown): Promise<TillProduct[]> {
           ],
         },
         select,
-        orderBy: [{ totalSold: "desc" }, { name: "asc" }],
+        orderBy: [{ totalSold: "desc" }, { name: "asc" }, { id: "asc" }],
         take: limit,
+        skip: offset,
       })
       }
     }
@@ -426,8 +446,9 @@ export async function findTillProducts(input: unknown): Promise<TillProduct[]> {
     rows = await db.product.findMany({
       where: base,
       select,
-      orderBy: [{ totalSold: "desc" }, { name: "asc" }],
+      orderBy: [{ totalSold: "desc" }, { name: "asc" }, { id: "asc" }],
       take: limit,
+      skip: offset,
     })
   }
 
@@ -513,7 +534,7 @@ async function resolveDevice(
 }
 
 export async function openTillShift(input: unknown): Promise<TillActionResult> {
-  const till = await requireTill()
+  const till = await requireTill("till.open_shift")
   if (!till) return { success: false, error: "There is no till on this account." }
   const parsed = openShiftSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: "Enter the cash you are starting with." }
@@ -529,7 +550,7 @@ export async function openTillShift(input: unknown): Promise<TillActionResult> {
   const device = await resolveDevice(till.shopkeeperId, parsed.data.deviceSecret)
   if (!device.ok) return { success: false, error: device.error }
 
-  await db.tillSession.create({
+  const openedShift = await db.tillSession.create({
     data: {
       shopkeeperId: till.shopkeeperId,
       cashierUserId: till.userId,
@@ -538,6 +559,7 @@ export async function openTillShift(input: unknown): Promise<TillActionResult> {
       deviceId: device.deviceId,
     },
   })
+  await recordPosAudit({ actor: { businessId: till.businessId, storeId: till.storeId, userId: till.userId, staffId: till.staffId, name: till.userName }, action: "shift.open", entityType: "till_session", entityId: openedShift.id, summary: `${till.userName} opened a shift` })
   return { success: true } as TillActionResult
 }
 
@@ -557,7 +579,7 @@ export type ShiftCloseSummary = {
 }
 
 export async function closeTillShift(input: unknown): Promise<TillActionResult<ShiftCloseSummary>> {
-  const till = await requireTill()
+  const till = await requireTill("till.close_shift")
   if (!till) return { success: false, error: "There is no till on this account." }
   const parsed = closeShiftSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: "Enter the cash you counted." }
@@ -606,6 +628,7 @@ export async function closeTillShift(input: unknown): Promise<TillActionResult<S
       note: parsed.data.note?.trim() || null,
     },
   })
+  await recordPosAudit({ actor: { businessId: till.businessId, storeId: till.storeId, userId: till.userId, staffId: till.staffId, name: till.userName }, action: "shift.close", entityType: "till_session", entityId: shift.id, summary: `${till.userName} closed a shift`, detail: { expectedCash: money(expected), countedCash: money(counted), variance: money(variance), saleCount: sales.length } })
 
   return {
     success: true,
@@ -670,6 +693,7 @@ const saleSchema = z.object({
      * merely recorded, and a browser must not be able to assert that about
      * money by sending a boolean.
      */
+    mpesaTransactionId: z.string().trim().min(1).max(100).optional(),
     stkCheckoutId: z.string().trim().max(80).optional(),
     stkPhone: z.string().trim().max(16).optional(),
   })).min(1).max(5),
@@ -776,6 +800,8 @@ export type Receipt = {
   changeGiven: number
   payments: { method: string; amount: number; reference: string | null }[]
   customerName: string | null
+  customerPhone?: string | null
+  loyalty?: ReceiptLoyalty | null
   /** True when this was a replay of a sale already recorded. */
   replayed: boolean
   /** Lines that went below zero stock under a WARN policy. */
@@ -805,8 +831,15 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
     include: { items: true, payments: true },
   })
   if (already) {
-    return { success: true, data: buildReceipt(till, already, already.items, already.payments, true, []) }
+    return { success: true, data: await buildReceipt(till, already, already.items, already.payments, true, []) }
   }
+
+  const openShift = await db.tillSession.findFirst({
+    where: { shopkeeperId: till.shopkeeperId, closedAt: null },
+    orderBy: { openedAt: "desc" },
+    select: { id: true },
+  })
+  if (!openShift) return { success: false, error: "Open a shift before starting a sale." }
 
   // --- is this till paid up ------------------------------------------------
   //
@@ -1210,7 +1243,7 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
   // the ledger, and nothing from the request is trusted beyond "this
   // customer, these points". The three refusals below are each a way a
   // scheme leaks money if it is missed.
-  let loyaltyCustomer: { id: string; name: string; pointsBalance: number } | null = null
+  let loyaltyCustomer: { id: string; name: string; phone: string; pointsBalance: number } | null = null
   let redeemPoints = 0
   let redeemValue = D(0)
   const loyalty = {
@@ -1223,7 +1256,7 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
   if (body.posCustomerId && loyalty.enabled) {
     const found = await db.posCustomer.findFirst({
       where: { id: body.posCustomerId, shopkeeperId: till.shopkeeperId, isActive: true },
-      select: { id: true, name: true, pointsBalance: true },
+      select: { id: true, name: true, phone: true, pointsBalance: true },
     })
     // A customer id from another shop is ignored rather than refused: the
     // sale is real and the queue is waiting. They simply earn nothing.
@@ -1456,14 +1489,31 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
   // recorded rather than confirmed, which is what the till does for every
   // other M-Pesa payment anyway.
   const confirmedStk: boolean[] = []
-  for (const p of body.payments) {
-    if (!p.stkCheckoutId) { confirmedStk.push(false); continue }
-    try {
-      const status = await checkPromptStatus({ checkoutId: p.stkCheckoutId })
-      confirmedStk.push(status.state === "paid")
-    } catch {
-      confirmedStk.push(false)
+  const receivedPayments = new Map<number, { id: string; receipt: string; source: string }>()
+  const seenMpesa = new Set<string>()
+  const mpesaShop = body.payments.some(p => p.method === "MPESA")
+    ? await db.shopkeeperProfile.findUnique({ where: { id: till.shopkeeperId }, select: { mpesaShortcode: true, mpesaEnv: true, mpesaUseDemoCreds: true } }) : null
+  for (const [index, payment] of body.payments.entries()) {
+    if (!payment.mpesaTransactionId && !payment.stkCheckoutId) {
+      if (payment.method !== "MPESA" || !payment.reference || !mpesaShop) { confirmedStk.push(false); continue }
+      const match = await db.posMpesaTransaction.findFirst({ where: { shopkeeperId: till.shopkeeperId, receipt: payment.reference.trim().toUpperCase(), shortcode: mpesaScope(mpesaShop).shortcode, environment: mpesaScope(mpesaShop).environment } })
+      if (!match) { confirmedStk.push(false); continue }
+      payment.mpesaTransactionId = match.id
     }
+    if (payment.method !== "MPESA" || !mpesaShop) return { success: false, error: "A received M-Pesa payment can only pay an M-Pesa line." }
+    let transactionId = payment.mpesaTransactionId
+    if (payment.stkCheckoutId) {
+      const status = await checkPromptStatus({ checkoutId: payment.stkCheckoutId })
+      if (status.state !== "paid" || (transactionId && transactionId !== status.transactionId)) return { success: false, error: "The M-Pesa prompt has not been confirmed for this payment." }
+      transactionId = status.transactionId
+    }
+    if (!transactionId || seenMpesa.has(transactionId)) return { success: false, error: "The same M-Pesa payment cannot be used twice." }
+    seenMpesa.add(transactionId)
+    const { environment, shortcode } = mpesaScope(mpesaShop)
+    const row = await db.posMpesaTransaction.findFirst({ where: { id: transactionId, shopkeeperId: till.shopkeeperId, shortcode, environment, status: "PAID", consumedSaleId: null } })
+    if (!row?.receipt || !D(row.amount).equals(D(payment.amount))) return { success: false, error: "Received payment is unavailable, already used, or does not exactly match this payment amount." }
+    receivedPayments.set(index, { id: row.id, receipt: row.receipt, source: row.source })
+    confirmedStk.push(row.source === "STK")
   }
 
   // --- which counter ---------------------------------------------------
@@ -1491,12 +1541,6 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
     if (c) cashierName = c.name
   }
 
-  const openShift = await db.tillSession.findFirst({
-    where: { shopkeeperId: till.shopkeeperId, closedAt: null },
-    orderBy: { openedAt: "desc" },
-    select: { id: true },
-  })
-
   // --- write it, all or nothing -------------------------------------------
   const stockWarnings: string[] = []
 
@@ -1506,6 +1550,9 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
   for (let attempt = 0; attempt < 5; attempt++) {
     try {
       const result = await db.$transaction(async (tx) => {
+        // Lock the shift until this sale commits so it cannot close mid-sale.
+        const activeShift = await tx.$queryRaw<{ id: string }[]>`SELECT id FROM till_sessions WHERE id = ${openShift.id} AND "closedAt" IS NULL FOR UPDATE`
+        if (!activeShift.length) throw new PosSaleError("This shift has closed. Open a shift before starting a sale.")
         const last = await tx.posSale.findFirst({
           where: { shopkeeperId: till.shopkeeperId },
           orderBy: { saleNumber: "desc" },
@@ -1517,7 +1564,7 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
           data: {
             shopkeeperId: till.shopkeeperId,
             saleNumber: nextNumber,
-            tillSessionId: openShift?.id ?? null,
+            tillSessionId: openShift.id,
             cashierUserId: till.userId,
             cashierName,
             subtotal,
@@ -1539,7 +1586,7 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
             // presence of a name means something.
             discountApprovedBy: discountApproval.approvedBy,
             customerName: body.customerName?.trim() || loyaltyCustomer?.name || null,
-            customerPhone: body.customerPhone?.trim() || null,
+            customerPhone: loyaltyCustomer?.phone || body.customerPhone?.trim() || null,
             // Falls back to the credit customer: loyalty can be switched
             // off while credit is in use, and a credit sale with no customer
             // on it cannot be traced back from the statement.
@@ -1580,7 +1627,7 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
               create: body.payments.map((p, i) => ({
                 method: p.method,
                 amount: D(p.amount),
-                reference: p.reference?.trim() || null,
+                reference: receivedPayments.get(i)?.receipt ?? (p.reference?.trim() || null),
                 stkCheckoutId: p.stkCheckoutId?.trim() || null,
                 stkPhone: p.stkPhone?.trim() || null,
                 // Verified above against Safaricom, never taken from the
@@ -1591,6 +1638,18 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
           },
           include: { items: true, payments: true },
         })
+
+        const references = body.payments.flatMap((payment, index) => payment.method === "MPESA" ? [receivedPayments.get(index)?.receipt ?? payment.reference?.trim().toUpperCase()] : []).filter((reference): reference is string => !!reference).sort()
+        if (new Set(references).size !== references.length) throw new PosSaleError("The same M-Pesa receipt cannot pay two lines.")
+        for (const reference of references) {
+          await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${"mpesa-reference:" + till.shopkeeperId}), hashtext(${reference}))::text`
+          const prior = await tx.posPayment.findFirst({ where: { method: "MPESA", reference: { equals: reference, mode: "insensitive" }, saleId: { not: sale.id }, sale: { shopkeeperId: till.shopkeeperId } }, select: { id: true } })
+          if (prior) throw new PosSaleError("That M-Pesa receipt has already been used on another sale.")
+        }
+        for (const [index, payment] of receivedPayments) {
+          try { await claimReceivedMpesa(tx, { id: payment.id, shopkeeperId: till.shopkeeperId, saleId: sale.id, amount: D(body.payments[index].amount) }) }
+          catch { throw new PosSaleError("That M-Pesa payment was already matched on another counter. No sale was recorded here.") }
+        }
 
         // STOCK DOES NOT MOVE ON A DEPOSIT.
         //
@@ -1742,6 +1801,7 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
         //
         // A DEPOSIT earns nothing: the goods have not gone out and the sale
         // is not finished. Points come when it is handed over.
+        let receiptLoyalty: ReceiptLoyalty | null = null
         if (loyaltyCustomer && loyalty.enabled) {
           let balance = loyaltyCustomer.pointsBalance
 
@@ -1789,17 +1849,23 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
             })
           }
 
+          receiptLoyalty = { earned: isDeposit ? 0 : earned, redeemed: redeemPoints, balance }
           await tx.posCustomer.update({
             where: { id: loyaltyCustomer.id },
             data: {
               pointsBalance: balance,
-              pointsEarned: { increment: earned },
+              pointsEarned: { increment: isDeposit ? 0 : earned },
               totalSpent: { increment: rounded },
               visits: { increment: 1 },
               lastSeenAt: occurredAt,
             },
           })
         }
+
+        // Record the original receipt details atomically in the append-only
+        // audit journal. Reprints must not use today's VAT settings or points.
+        const snapshot: ReceiptSnapshot = { version: 1, taxRate: till.taxRate, taxInclusive: till.taxInclusive, customerPhone: loyaltyCustomer?.phone || body.customerPhone?.trim() || null, loyalty: receiptLoyalty }
+        await tx.posAuditEvent.create({ data: { businessId: till.businessId, storeId: till.storeId, actorUserId: till.userId, actorStaffId: till.staffId, action: "receipt.issue", entityType: "pos_sale", entityId: sale.id, summary: `Receipt #${sale.saleNumber} issued`, detail: snapshot } })
 
         // ---- the cards, spent with the sale -------------------------------
         for (const r of giftRedemptions) {
@@ -1852,7 +1918,7 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
           })
         }
 
-        return sale
+        return { ...sale, receiptSnapshot: snapshot }
       }, { timeout: 30000, maxWait: 10000 })
 
       // --- tell KRA, eventually ------------------------------------------
@@ -1866,7 +1932,7 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
 
       return {
         success: true,
-        data: buildReceipt(till, result, result.items, result.payments, false, [...expiryWarnings, ...stockWarnings]),
+        data: await buildReceipt(till, result, result.items, result.payments, false, [...expiryWarnings, ...stockWarnings]),
       }
     } catch (e) {
       if (e instanceof PosSaleError) return { success: false, error: e.message }
@@ -1879,7 +1945,7 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
             where: { shopkeeperId_idempotencyKey: { shopkeeperId: till.shopkeeperId, idempotencyKey: body.idempotencyKey } },
             include: { items: true, payments: true },
           })
-          if (winner) return { success: true, data: buildReceipt(till, winner, winner.items, winner.payments, true, []) }
+          if (winner) return { success: true, data: await buildReceipt(till, winner, winner.items, winner.payments, true, []) }
         }
         stockWarnings.length = 0
         continue
@@ -1894,12 +1960,12 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
 /** Thrown to abort a sale transaction with a message worth showing a cashier. */
 class PosSaleError extends Error {}
 
-function buildReceipt(
+async function buildReceipt(
   till: TillTenant,
   sale: {
     id: string; saleNumber: string; cashierName: string | null; occurredAt: Date
     subtotal: Prisma.Decimal; discount: Prisma.Decimal; tax: Prisma.Decimal; total: Prisma.Decimal
-    amountPaid: Prisma.Decimal; changeGiven: Prisma.Decimal; customerName: string | null
+    amountPaid: Prisma.Decimal; changeGiven: Prisma.Decimal; customerName: string | null; customerPhone?: string | null; receiptSnapshot?: unknown
   },
   items: {
     name: string; variantLabel: string | null; sku: string | null; quantity: Prisma.Decimal; unit: string
@@ -1909,7 +1975,13 @@ function buildReceipt(
   payments: { method: string; amount: Prisma.Decimal; reference: string | null }[],
   replayed: boolean,
   stockWarnings: string[],
-): Receipt {
+): Promise<Receipt> {
+  let snapshot = receiptSnapshot(sale.receiptSnapshot)
+  if (!snapshot) {
+    const journal = await db.posAuditEvent.findFirst({ where: { businessId: till.businessId, action: "receipt.issue", entityType: "pos_sale", entityId: sale.id }, orderBy: { createdAt: "asc" }, select: { detail: true } }).catch(() => null)
+    snapshot = receiptSnapshot(journal?.detail)
+  }
+  const entries = snapshot ? [] : await db.posLoyaltyEntry.findMany({ where: { shopkeeperId: till.shopkeeperId, saleId: sale.id, kind: { in: ["EARN", "REDEEM"] } }, orderBy: [{ occurredAt: "asc" }, { id: "asc" }], select: { kind: true, points: true, balanceAfter: true } }).catch(() => [])
   return {
     saleId: sale.id,
     saleNumber: sale.saleNumber,
@@ -1935,13 +2007,15 @@ function buildReceipt(
     subtotal: money(D(sale.subtotal)),
     discount: money(D(sale.discount)),
     tax: money(D(sale.tax)),
-    taxRate: till.taxRate,
-    taxInclusive: till.taxInclusive,
+    taxRate: snapshot?.taxRate ?? 0,
+    taxInclusive: snapshot?.taxInclusive ?? true,
     total: money(D(sale.total)),
     amountPaid: money(D(sale.amountPaid)),
     changeGiven: money(D(sale.changeGiven)),
     payments: payments.map((p) => ({ method: p.method, amount: money(D(p.amount)), reference: p.reference })),
     customerName: sale.customerName,
+    customerPhone: snapshot?.customerPhone ?? sale.customerPhone ?? null,
+    loyalty: snapshot ? snapshot.loyalty : loyaltyFromEntries(entries),
     replayed,
     stockWarnings,
   }
@@ -1962,7 +2036,7 @@ const voidSchema = z.object({
  * the receipt numbers deserves to find out why rather than wonder.
  */
 export async function voidPosSale(input: unknown): Promise<TillActionResult> {
-  const till = await requireTill()
+  const till = await requireTill("till.void")
   if (!till) return { success: false, error: "There is no till on this account." }
   const parsed = voidSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: "Say why this sale is being voided." }
@@ -2117,6 +2191,7 @@ export async function voidPosSale(input: unknown): Promise<TillActionResult> {
         // means something structural and must roll the void back.
         if (!back.ok) throw new PosSaleError(`Sale ${sale.saleNumber} could not be returned to stock. Nothing was changed.`)
       }
+      await tx.posAuditEvent.create({ data: { businessId: till.businessId, storeId: till.storeId, actorUserId: till.userId, actorStaffId: till.staffId, action: "sale.void", entityType: "pos_sale", entityId: sale.id, summary: `${till.userName} voided sale ${sale.saleNumber}: ${parsed.data.reason}`.slice(0, 400) } })
     }, { timeout: 30000, maxWait: 10000 })
   } catch (e) {
     if (e instanceof PosSaleError) return { success: false, error: e.message }
@@ -2323,7 +2398,7 @@ export async function settleDeposit(input: unknown): Promise<TillActionResult<Re
       })
     }, { timeout: 30000, maxWait: 10000 })
 
-    return { success: true, data: buildReceipt(till, updated, updated.items, updated.payments, false, stockWarnings) }
+    return { success: true, data: await buildReceipt(till, updated, updated.items, updated.payments, false, stockWarnings) }
   } catch (e) {
     if (e instanceof PosSaleError) return { success: false, error: e.message }
     return { success: false, error: "That payment could not be saved. Nothing was changed — try again." }

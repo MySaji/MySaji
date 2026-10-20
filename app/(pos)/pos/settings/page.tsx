@@ -3,11 +3,15 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import {
-  ArrowLeft, Calculator, Check, Clock, Loader2, Search, Store,
+  Calculator, Check, Clock, Loader2, Search, Store,
   AlertTriangle, Save, Users, ChevronRight, Monitor, MonitorDown, Smartphone,
-  LayoutDashboard, Truck, RotateCcw, Star, Package, Wallet, Receipt,
+  RotateCcw, Star, Wallet, Receipt,
 } from "lucide-react"
-import { Card } from "@/frontend/components/ui/card"
+import { WorkspaceHero } from "@/frontend/components/pos/workspace-ui"
+import { VatSettings } from "@/frontend/components/pos/vat-settings"
+import { AppearanceSettings } from "@/frontend/components/pos/appearance-settings"
+import { BusinessLogoSettings } from "@/frontend/components/pos/business-logo-settings"
+import { PosCard as Card } from "@/frontend/components/pos/workspace-ui"
 import { Button } from "@/frontend/components/ui/button"
 import { Input } from "@/frontend/components/ui/input"
 import {
@@ -34,11 +38,12 @@ import { POS_PROFILE_ICON, POS_TRAIT_ICON } from "@/frontend/components/pos/pos-
  */
 /** The sections, in the order they appear. Used by the jump bar. */
 const SECTIONS = [
-  { id: "shop", label: "Your shop" },
-  { id: "features", label: "What it can do" },
-  { id: "people", label: "People and places" },
-  { id: "rules", label: "Rules" },
-]
+  { id: "appearance", label: "Till appearance", description: "Brand colour and live preview", icon: Monitor },
+  { id: "shop", label: "Business profile", description: "Shop type and trade presets", icon: Store },
+  { id: "features", label: "Selling features", description: "Configure your register", icon: Receipt },
+  { id: "people", label: "Team & devices", description: "People, branches and access", icon: Users },
+  { id: "rules", label: "Counter rules", description: "Stock, rounding and loyalty", icon: Monitor },
+] as const
 
 /**
  * A section break.
@@ -50,13 +55,15 @@ const SECTIONS = [
 function SectionHeading({ id, title, blurb }: { id: string; title: string; blurb: string }) {
   return (
     <div id={id} className="pt-3 scroll-mt-28">
-      <h2 className="text-base font-bold text-gray-900 dark:text-white">{title}</h2>
-      <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">{blurb}</p>
+      <h2 className="text-lg font-semibold tracking-tight text-gray-900 dark:text-white">{title}</h2>
+      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{blurb}</p>
     </div>
   )
 }
 
 export default function PosSettingsPage() {
+  const [activeSection, setActiveSection] = useState<(typeof SECTIONS)[number]["id"]>("shop")
+  const [featureQuery, setFeatureQuery] = useState("")
   const [setup, setSetup] = useState<PosSetup | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState<string | null>(null)
@@ -70,15 +77,22 @@ export default function PosSettingsPage() {
   const [profileSearch, setProfileSearch] = useState("")
   const [showProfiles, setShowProfiles] = useState(false)
 
-  const refresh = () =>
+  const refresh = (resetTraits = true) =>
     getMyPosSetup().then((s) => {
       setSetup(s)
-      setDraftTraits(s?.traits ?? [])
+      if (resetTraits) setDraftTraits(s?.traits ?? [])
       return s
     })
 
   useEffect(() => {
-    refresh().finally(() => setLoading(false))
+    refresh().catch(() => setError("Could not load settings. Check your connection and try again.")).finally(() => setLoading(false))
+    const syncSection = () => {
+      const section = SECTIONS.find(item => `#${item.id}` === window.location.hash)
+      if (section) setActiveSection(section.id)
+    }
+    syncSection()
+    window.addEventListener("hashchange", syncSection)
+    return () => window.removeEventListener("hashchange", syncSection)
   }, [])
 
   const flash = (msg: string) => {
@@ -110,7 +124,7 @@ export default function PosSettingsPage() {
     setBusy(label); setError("")
     const r = await updatePosConfig(patch)
     if (!r.success) setError(r.error)
-    else { await refresh(); flash("Saved") }
+    else { await refresh(false); flash("Saved") }
     setBusy(null)
   }
 
@@ -124,14 +138,14 @@ export default function PosSettingsPage() {
 
   if (!setup || !setup.enabled) {
     return (
-      <div className="p-4 max-w-2xl mx-auto">
+      <div className="p-4 w-full min-w-0">
         <Card className="p-6 text-center rounded-2xl">
           <Calculator className="w-10 h-10 mx-auto text-gray-300 dark:text-gray-600" />
           <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
             There is no till on this account to configure.
           </p>
-          <Link href="/provider/business-types">
-            <Button variant="outline" className="mt-4 h-10 rounded-xl">My Business</Button>
+          <Link href="/pos/setup">
+            <Button variant="outline" className="mt-4 h-10 rounded-xl">Set up your POS</Button>
           </Link>
         </Card>
       </div>
@@ -141,24 +155,17 @@ export default function PosSettingsPage() {
   const traitsChanged =
     draftTraits.length !== setup.traits.length ||
     draftTraits.some((t) => !setup.traits.includes(t))
+  const visibleTraits = POS_TRAITS.filter(trait => `${POS_TRAIT_META[trait].label} ${POS_TRAIT_META[trait].effect}`.toLowerCase().includes(featureQuery.toLowerCase().trim()))
 
   return (
-    <div className="p-4 max-w-2xl mx-auto space-y-3 pb-24">
-      <div className="flex items-center gap-2">
-        <Link
-          href="/pos/sell"
-          className="text-sm text-gray-500 hover:text-gray-900 dark:hover:text-white inline-flex items-center gap-1 h-9 -ml-1 px-1 rounded-lg active:scale-95 transition-transform"
-        >
-          <ArrowLeft className="w-4 h-4" /> Till
-        </Link>
-      </div>
-      <div>
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white">POS Settings</h1>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
-          Everything here can be changed whenever your shop changes. Nothing is locked by the
-          shop type you picked when you signed up.
-        </p>
-      </div>
+    <div className="p-4 md:p-6 xl:p-8 w-full min-w-0 space-y-5 pb-12">
+      <WorkspaceHero title="Business settings" description="Make Till work your way. Set up your trade, choose how you sell, and give your team the right access.">
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-xs">
+          <p className="font-semibold">{setup.shopName}</p><p className="mt-1 text-slate-400">{setup.profileLabel}</p>
+          <div className="mt-3 flex gap-4 border-t border-white/10 pt-3 text-[10px]"><span>{setup.liveTraits.length} active features</span><span>{setup.productCount} products</span></div>
+        </div>
+      </WorkspaceHero>
+      {traitsChanged && <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/40"><p className="text-xs text-amber-800 dark:text-amber-200">You have unsaved selling feature changes.</p><button onClick={() => setActiveSection("features")} className="text-xs font-semibold text-amber-800 underline dark:text-amber-200">Review changes</button></div>}
 
       {error && (
         <div className="rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 px-3 py-2.5 flex items-start gap-2">
@@ -173,25 +180,16 @@ export default function PosSettingsPage() {
         </div>
       )}
 
-      {/* ---- getting around ------------------------------------------------
-          Twenty cards in one scroll is a page people give up on halfway. The
-          cards themselves are unchanged; what is new is that they are now in
-          named sections with a bar that jumps to them, so somebody who came
-          here to change one thing can reach it without reading the rest. */}
-      <nav className="sticky top-12 z-30 -mx-4 px-4 py-2 bg-background/95 backdrop-blur border-b border-border">
-        <div className="flex gap-1.5 overflow-x-auto">
-          {SECTIONS.map((sec) => (
-            <a
-              key={sec.id}
-              href={"#" + sec.id}
-              className="h-8 px-2.5 rounded-lg text-[11px] font-semibold whitespace-nowrap bg-muted text-muted-foreground hover:text-foreground active:scale-95"
-            >
-              {sec.label}
-            </a>
-          ))}
-        </div>
-      </nav>
-
+      <div className="grid items-start gap-5 lg:grid-cols-[240px_minmax(0,1fr)]">
+        <aside className="min-w-0 lg:sticky lg:top-24">
+          <nav aria-label="Settings sections" className="flex gap-2 overflow-x-auto rounded-2xl border border-border bg-background p-2 lg:flex-col">
+            {SECTIONS.map(section => <button key={section.id} onClick={() => setActiveSection(section.id)} aria-pressed={activeSection === section.id} className={`flex shrink-0 items-center gap-3 rounded-xl p-3 text-left transition-colors ${activeSection === section.id ? "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-200" : "text-muted-foreground hover:bg-muted"}`}><section.icon className="h-4 w-4 shrink-0" /><span><span className="block text-xs font-semibold">{section.label}</span><span className="mt-1 hidden text-[10px] opacity-70 lg:block">{section.description}</span></span></button>)}
+          </nav>
+          <div className="mt-4 hidden rounded-2xl border border-blue-100 bg-blue-50/50 p-4 text-xs dark:border-blue-900 dark:bg-blue-950/30 lg:block"><p className="font-semibold">Your shop, your rules</p><p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">Your trade preset is a starting point. You can adjust every selling feature as your business grows.</p><Link href="/pos/home" className="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600">Back to Overview<ChevronRight className="h-3 w-3" /></Link></div>
+        </aside>
+        <div className="min-w-0">
+      <section hidden={activeSection !== "appearance"} aria-label="Till appearance settings" className="space-y-5"><AppearanceSettings active={activeSection === "appearance"} /><BusinessLogoSettings /></section>
+      <section hidden={activeSection !== "shop"} aria-label="Business profile settings" className="space-y-4">
       <SectionHeading id="shop" title="Your shop" blurb="What you sell and how the till is set up for it." />
 
       {/* --- 1. What kind of shop ------------------------------------------- */}
@@ -327,6 +325,13 @@ export default function PosSettingsPage() {
       </Card>
 
       {/* --- 2. How it sells ------------------------------------------------ */}
+      <div className="grid gap-3 sm:grid-cols-3">
+        <button onClick={() => setActiveSection("features")} className="rounded-2xl border border-border bg-background p-5 text-left hover:border-blue-300"><Receipt className="h-5 w-5 text-blue-500" /><span className="mt-4 block text-2xl font-semibold">{setup.liveTraits.length}</span><span className="mt-1 block text-xs text-muted-foreground">Active selling features</span><span className="mt-4 block text-[11px] font-semibold text-blue-600">Customize features →</span></button>
+        <Link href="/pos/products" className="rounded-2xl border border-border bg-background p-5 hover:border-blue-300"><Store className="h-5 w-5 text-violet-500" /><span className="mt-4 block text-2xl font-semibold">{setup.productCount}</span><span className="mt-1 block text-xs text-muted-foreground">Products in your catalogue</span><span className="mt-4 block text-[11px] font-semibold text-blue-600">Manage catalogue →</span></Link>
+        <Link href="/pos/stock" className="rounded-2xl border border-border bg-background p-5 hover:border-blue-300"><Monitor className="h-5 w-5 text-amber-500" /><span className="mt-4 block text-2xl font-semibold">{setup.productsWithoutLedger}</span><span className="mt-1 block text-xs text-muted-foreground">Products without stock movements</span><span className="mt-4 block text-[11px] font-semibold text-blue-600">Review inventory →</span></Link>
+      </div>
+      </section>
+      <section hidden={activeSection !== "features"} aria-label="Selling feature settings" className="space-y-4">
       <SectionHeading id="features" title="What the till can do" blurb="Switch on only what your shop actually needs. Each one changes what the counter asks for." />
 
       <Card className="p-4 rounded-2xl">
@@ -336,8 +341,9 @@ export default function PosSettingsPage() {
           a sale or records stock.
         </p>
 
-        <div className="mt-3 space-y-1.5">
-          {POS_TRAITS.map((trait) => {
+        <div className="relative mt-4"><Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input value={featureQuery} onChange={event => setFeatureQuery(event.target.value)} aria-label="Search selling features" placeholder="Search features, such as serials or weight" className="h-10 rounded-xl pl-9" /></div>
+        <div className="mt-4 grid gap-3 xl:grid-cols-2">
+          {visibleTraits.map((trait) => {
             const meta = POS_TRAIT_META[trait]
             const Icon = POS_TRAIT_ICON[meta.icon] ?? Check
             const on = draftTraits.includes(trait)
@@ -386,6 +392,7 @@ export default function PosSettingsPage() {
           })}
         </div>
 
+        {visibleTraits.length === 0 && <p role="status" className="mt-4 rounded-xl bg-muted p-5 text-center text-xs text-muted-foreground">No selling features match your search.</p>}
         {traitsChanged && (
           <div className="mt-3 flex items-center gap-2">
             <Button
@@ -409,13 +416,21 @@ export default function PosSettingsPage() {
         )}
       </Card>
 
+      </section>
+      <section hidden={activeSection !== "people"} aria-label="Team and device settings" className="space-y-4">
       <SectionHeading id="people" title="People and places" blurb="Your branches, your team and the devices they work on." />
 
       {/* --- who works the till ---------------------------------------------
           Its own page: a list that grows, a form, and two settings that only
           make sense next to that list. */}
+      <div className="grid gap-3 sm:grid-cols-2">
+      <Link href="/pos/team" className="block rounded-2xl border border-primary/20 bg-primary/5 p-5 hover:bg-primary/10">
+        <Users className="h-5 w-5 text-primary" />
+        <h3 className="mt-3 text-sm font-bold">Employees and portal access</h3>
+        <p className="mt-1 text-xs text-muted-foreground leading-relaxed">Add employees, assign branches and roles, and choose the features each person can access in their POS portal.</p>
+      </Link>
       <Link href="/pos/stores" className="block active:scale-[0.99] transition-transform">
-        <Card className="p-4 rounded-2xl flex items-center gap-3">
+        <Card className="h-full p-5 rounded-2xl flex-row items-center gap-3 transition-colors hover:border-blue-300">
           <span className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
             <Store className="w-4 h-4" />
           </span>
@@ -430,7 +445,7 @@ export default function PosSettingsPage() {
       </Link>
 
       <Link href="/pos/people" className="block active:scale-[0.99] transition-transform">
-        <Card className="p-4 rounded-2xl flex items-center gap-3">
+        <Card className="h-full p-5 rounded-2xl flex-row items-center gap-3 transition-colors hover:border-blue-300">
           <span className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
             <Users className="w-4 h-4" />
           </span>
@@ -444,83 +459,8 @@ export default function PosSettingsPage() {
         </Card>
       </Link>
 
-      <Link href="/pos/home" className="block active:scale-[0.99] transition-transform">
-        <Card className="p-4 rounded-2xl flex items-center gap-3">
-          <span className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
-            <LayoutDashboard className="w-4 h-4" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-sm font-bold text-gray-900 dark:text-white">Dashboard</span>
-            <span className="block text-xs text-gray-500 dark:text-gray-400 leading-snug mt-0.5">
-              Today's takings, what is running low and what is selling.
-            </span>
-          </span>
-          <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0" />
-        </Card>
-      </Link>
-
-      <Link href="/pos/products" className="block active:scale-[0.99] transition-transform">
-        <Card className="p-4 rounded-2xl flex items-center gap-3">
-          <span className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
-            <Package className="w-4 h-4" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-sm font-bold text-gray-900 dark:text-white">Products and prices</span>
-            <span className="block text-xs text-gray-500 dark:text-gray-400 leading-snug mt-0.5">
-              What you sell, what you charge, and what each line actually makes you.
-            </span>
-          </span>
-          <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0" />
-        </Card>
-      </Link>
-
-      <Link href="/pos/customers" className="block active:scale-[0.99] transition-transform">
-        <Card className="p-4 rounded-2xl flex items-center gap-3">
-          <span className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
-            <Star className="w-4 h-4" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-sm font-bold text-gray-900 dark:text-white">Customers and points</span>
-            <span className="block text-xs text-gray-500 dark:text-gray-400 leading-snug mt-0.5">
-              Your regulars, what they have spent, and the points they are holding.
-            </span>
-          </span>
-          <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0" />
-        </Card>
-      </Link>
-
-      <Link href="/pos/expenses" className="block active:scale-[0.99] transition-transform">
-        <Card className="p-4 rounded-2xl flex items-center gap-3">
-          <span className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
-            <Wallet className="w-4 h-4" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-sm font-bold text-gray-900 dark:text-white">Costs and what you kept</span>
-            <span className="block text-xs text-gray-500 dark:text-gray-400 leading-snug mt-0.5">
-              Rent, power, wages and transport, against the month's takings.
-            </span>
-          </span>
-          <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0" />
-        </Card>
-      </Link>
-
-      <Link href="/pos/purchasing" className="block active:scale-[0.99] transition-transform">
-        <Card className="p-4 rounded-2xl flex items-center gap-3">
-          <span className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
-            <Truck className="w-4 h-4" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-sm font-bold text-gray-900 dark:text-white">Buying</span>
-            <span className="block text-xs text-gray-500 dark:text-gray-400 leading-snug mt-0.5">
-              Suppliers, orders, and recording what actually turned up.
-            </span>
-          </span>
-          <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0" />
-        </Card>
-      </Link>
-
       <Link href="/pos/etims" className="block active:scale-[0.99] transition-transform">
-        <Card className="p-4 rounded-2xl flex items-center gap-3">
+        <Card className="h-full p-5 rounded-2xl flex-row items-center gap-3 transition-colors hover:border-blue-300">
           <span className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
             <Receipt className="w-4 h-4" />
           </span>
@@ -535,7 +475,7 @@ export default function PosSettingsPage() {
       </Link>
 
       <Link href="/pos/mpesa" className="block active:scale-[0.99] transition-transform">
-        <Card className="p-4 rounded-2xl flex items-center gap-3">
+        <Card className="h-full p-5 rounded-2xl flex-row items-center gap-3 transition-colors hover:border-blue-300">
           <span className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
             <Smartphone className="w-4 h-4" />
           </span>
@@ -550,7 +490,7 @@ export default function PosSettingsPage() {
       </Link>
 
       <Link href="/pos/subscription" className="block active:scale-[0.99] transition-transform">
-        <Card className="p-4 rounded-2xl flex items-center gap-3">
+        <Card className="h-full p-5 rounded-2xl flex-row items-center gap-3 transition-colors hover:border-blue-300">
           <span className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
             <Wallet className="w-4 h-4" />
           </span>
@@ -565,7 +505,7 @@ export default function PosSettingsPage() {
       </Link>
 
       <Link href="/pos/get" className="block active:scale-[0.99] transition-transform">
-        <Card className="p-4 rounded-2xl flex items-center gap-3">
+        <Card className="h-full p-5 rounded-2xl flex-row items-center gap-3 transition-colors hover:border-blue-300">
           <span className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
             <MonitorDown className="w-4 h-4" />
           </span>
@@ -580,7 +520,7 @@ export default function PosSettingsPage() {
       </Link>
 
       <Link href="/pos/devices" className="block active:scale-[0.99] transition-transform">
-        <Card className="p-4 rounded-2xl flex items-center gap-3">
+        <Card className="h-full p-5 rounded-2xl flex-row items-center gap-3 transition-colors hover:border-blue-300">
           <span className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
             <Monitor className="w-4 h-4" />
           </span>
@@ -595,7 +535,12 @@ export default function PosSettingsPage() {
       </Link>
 
       {/* --- 3. When stock runs out ----------------------------------------- */}
+      </div>
+
+      </section>
+      <section hidden={activeSection !== "rules"} aria-label="Counter rule settings" className="space-y-4">
       <SectionHeading id="rules" title="Rules at the counter" blurb="What the till does when stock runs out, expires, or the total needs rounding." />
+      <VatSettings config={setup.config} busy={busy === "vat"} onSave={patch => void saveConfig(patch, "vat")} />
 
       <Card className="p-4 rounded-2xl">
         <h2 className="text-sm font-bold text-gray-900 dark:text-white">When stock runs out</h2>
@@ -734,6 +679,9 @@ export default function PosSettingsPage() {
           </p>
         </Card>
       )}
+      </section>
+        </div>
+      </div>
     </div>
   )
 }

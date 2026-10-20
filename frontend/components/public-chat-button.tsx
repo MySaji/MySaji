@@ -20,9 +20,11 @@ export default function PublicChatButton() {
         <div className="group relative">
           <div className="absolute inset-0 animate-pulse rounded-full bg-blue-600 opacity-20 transition-opacity group-hover:opacity-30" />
           <button
+            type="button"
             onClick={() => setIsOpen((v) => !v)}
             aria-label={isOpen ? "Close chat" : "Open chat"}
-            className="relative flex h-14 w-14 transform items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-2xl hover:from-blue-700 hover:to-blue-800 md:h-16 md:w-16"
+            aria-expanded={isOpen}
+            className="relative flex h-14 w-14 transform items-center justify-center rounded-full bg-blue-700 text-white shadow-lg transition-all duration-300 hover:scale-110 hover:bg-blue-800 hover:shadow-2xl md:h-16 md:w-16"
           >
             <Bot className="h-6 w-6 md:h-7 md:w-7" />
           </button>

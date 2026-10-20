@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { Mail, MapPin, Phone, Facebook, Twitter, Instagram, Linkedin } from "lucide-react"
+import { NewsletterForm } from "@/frontend/components/newsletter-form"
 import { BrandLogo } from "@/frontend/components/brand-logo"
 import { getPublicSiteSettings, type PublicSiteSettings } from "@/backend/actions/admin-settings"
 
@@ -26,9 +27,9 @@ const SUPPORT_LINKS = [
 
 const DEFAULT_SETTINGS: PublicSiteSettings = {
   logoUrl: null,
-  supportEmail: "support@saji.app",
-  supportPhone: "+254 700 000 000",
-  address: "Nairobi, Kenya",
+  supportEmail: "",
+  supportPhone: "",
+  address: "",
   socialLinks: { facebook: "", twitter: "", instagram: "", linkedin: "" },
 }
 
@@ -39,13 +40,13 @@ export function Footer() {
     let cancelled = false
     getPublicSiteSettings().then((s) => {
       if (!cancelled) setSettings(s)
-    })
+    }).catch(() => {})
     return () => {
       cancelled = true
     }
   }, [])
 
-  // Each platform's own brand color instead of a generic muted circle —
+  // Each platform's own brand color instead of a generic muted circle â€”
   // Instagram's is a gradient since that's its actual brand mark, not a
   // single flat color.
   const socials = [
@@ -58,7 +59,7 @@ export function Footer() {
   return (
     <footer className="border-t border-border bg-card mt-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-5 gap-y-8 mb-12 [&>div]:min-w-0 [overflow-wrap:anywhere]">
           {/* Brand */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
@@ -69,7 +70,7 @@ export function Footer() {
               Connecting you with trusted, verified service providers across Kenya.
             </p>
             {socials.length > 0 && (
-              <div className="flex items-center gap-2 pt-1">
+              <div className="flex flex-wrap items-center gap-2 pt-1">
                 {socials.map((s) => (
                   <a
                     key={s.key}
@@ -118,26 +119,18 @@ export function Footer() {
           <div>
             <h3 className="font-semibold mb-4 text-foreground">Contact</h3>
             <ul className="space-y-3 text-sm text-muted-foreground">
-              <li className="flex items-start gap-2">
-                <Mail className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <a href={`mailto:${settings.supportEmail}`} className="hover:text-foreground transition-colors">
-                  {settings.supportEmail}
-                </a>
-              </li>
-              <li className="flex items-start gap-2">
-                <Phone className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <a href={`tel:${settings.supportPhone.replace(/[^+\d]/g, "")}`} className="hover:text-foreground transition-colors">
-                  {settings.supportPhone}
-                </a>
-              </li>
-              <li className="flex items-start gap-2">
-                <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <span>{settings.address}</span>
-              </li>
+              {settings.supportEmail && <li className="flex items-start gap-2"><Mail className="mt-0.5 h-4 w-4 shrink-0" /><a href={`mailto:${settings.supportEmail}`} className="hover:text-foreground">{settings.supportEmail}</a></li>}
+              {settings.supportPhone && <li className="flex items-start gap-2"><Phone className="mt-0.5 h-4 w-4 shrink-0" /><a href={`tel:${settings.supportPhone.replace(/[^+\d]/g, "")}`} className="hover:text-foreground">{settings.supportPhone}</a></li>}
+              {settings.address && <li className="flex items-start gap-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0" /><span>{settings.address}</span></li>}
+              <li><Link href="/knowledge/support" className="hover:text-foreground">How to get help</Link></li>
             </ul>
           </div>
         </div>
 
+        <section aria-labelledby="footer-newsletter" className="mb-10 grid gap-6 rounded-2xl border border-blue-100 bg-blue-50/50 p-5 sm:p-8 lg:grid-cols-2 lg:gap-12">
+          <div><p className="mb-2 text-xs font-bold tracking-widest text-orange-600">STAY CONNECTED</p><h3 id="footer-newsletter" className="text-2xl font-semibold tracking-tight">A little MySaji in your inbox.</h3><p className="mt-3 max-w-md text-sm leading-7 text-muted-foreground">Discover new products, marketplace updates and useful finds. Choose to hear from us and unsubscribe whenever you like.</p></div>
+          <NewsletterForm />
+        </section>
         {/* Bottom Bar */}
         <div className="pt-8 border-t border-border">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-muted-foreground">

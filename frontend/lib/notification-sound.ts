@@ -13,6 +13,18 @@
 // fires, the user has almost always already clicked/typed something, but
 // this fails silently either way rather than throwing.
 let sharedContext: AudioContext | null = null
+let lastPlayed = 0
+let lastDeviceAlert = 0
+export function markDeviceNotificationReceived() { lastDeviceAlert = Date.now() }
+const SOUND_KEY = "saji:notification-sound"
+
+export function notificationSoundEnabled() {
+  try { return localStorage.getItem(SOUND_KEY) !== "off" } catch { return true }
+}
+
+export function setNotificationSoundEnabled(enabled: boolean) {
+  try { localStorage.setItem(SOUND_KEY, enabled ? "on" : "off") } catch { /* Device preference remains optional. */ }
+}
 
 function getContext(): AudioContext | null {
   if (typeof window === "undefined") return null
@@ -36,15 +48,19 @@ function tone(ctx: AudioContext, frequency: number, startAt: number, duration: n
   oscillator.stop(startAt + duration)
 }
 
-export function playNotificationSound() {
+export function playNotificationSound(force = false) {
   try {
+    if (!force && (!notificationSoundEnabled() || document.visibilityState !== "visible" || Date.now() - lastPlayed < 1200 || Date.now() - lastDeviceAlert < 35000)) return
     const ctx = getContext()
     if (!ctx) return
-    if (ctx.state === "suspended") void ctx.resume()
-    const now = ctx.currentTime
-    // Two quick ascending notes, like a real notification chime.
-    tone(ctx, 880, now, 0.16, 0.18)
-    tone(ctx, 1318.5, now + 0.1, 0.22, 0.16)
+    lastPlayed = Date.now()
+    const play = () => {
+      const now = ctx.currentTime
+      tone(ctx, 880, now, 0.16, 0.18)
+      tone(ctx, 1318.5, now + 0.1, 0.22, 0.16)
+    }
+    if (ctx.state === "suspended") void ctx.resume().then(play).catch(() => {})
+    else if (ctx.state === "running") play()
   } catch {
     // Autoplay-blocked or unsupported — never let a decorative sound cue
     // break the actual notification it's announcing.

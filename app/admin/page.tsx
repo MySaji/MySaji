@@ -1,4 +1,6 @@
 "use client"
+import Link from "next/link"
+import dynamic from "next/dynamic"
 import { useState, useMemo } from "react"
 import useSWR from "swr"
 import {
@@ -8,7 +10,7 @@ import {
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts"
 import { Card } from "@/frontend/components/ui/card"
 import { Button } from "@/frontend/components/ui/button"
-import { getAdminDashboard, getAdminRevenue } from "@/backend/actions/admin-dashboard"
+import { getAdminDashboard, getAdminRevenue, getAdminNavBadges } from "@/backend/actions/admin-dashboard"
 import { withTimeout, DASHBOARD_FETCH_TIMEOUT_MS } from "@/frontend/lib/swr-utils"
 import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 import { getYearOptions, MONTH_OPTIONS } from "@/backend/domain/revenue-period-options"
@@ -38,10 +40,12 @@ function formatRelative(
 }
 
 const CURRENT_YEAR = new Date().getFullYear()
+const AdminOperationsMap = dynamic(() => import("@/frontend/components/maps/admin-operations-map"), { ssr: false, loading: () => <Card className="p-8 text-sm text-muted-foreground">Preparing operations map...</Card> })
 
 export default function AdminDashboard() {
   const { t, tn, formatMoney } = useLocalization()
-  const { data, isLoading } = useSWR("admin-dashboard", () => withTimeout(getAdminDashboard(), DASHBOARD_FETCH_TIMEOUT_MS))
+  const { data: queue, mutate: refreshQueue } = useSWR("admin-nav-badges", getAdminNavBadges)
+  const { data, isLoading, error, mutate: refreshDashboard } = useSWR("admin-dashboard", () => withTimeout(getAdminDashboard(), DASHBOARD_FETCH_TIMEOUT_MS))
 
   const yearOptions = useMemo(() => getYearOptions(), [])
   // Draft = what's selected in the pickers right now; applied = what's
@@ -62,6 +66,8 @@ export default function AdminDashboard() {
     setAppliedMonth(draftMonth === "" ? undefined : draftMonth)
   }
 
+  if (error || (!isLoading && !data)) return <Card className="p-6"><h1 className="text-xl font-semibold">Dashboard unavailable</h1><p className="mt-2 text-sm text-muted-foreground">Check your connection and administrator access, then try again.</p><Button className="mt-4" onClick={() => void refreshDashboard()}>Retry dashboard</Button></Card>
+
   if (isLoading || !data) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -79,6 +85,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-8">
+      <section className="rounded-2xl border border-border bg-card p-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-semibold">Operations desk</h2><p className="mt-1 text-xs text-muted-foreground">Review pending work, follow active jobs and manage what customers see.</p></div><Button variant="outline" onClick={() => { void refreshQueue(); void refreshDashboard() }}>Refresh overview</Button></div><div className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">{[{href:"/admin/verifications",label:"Verification queue",value:queue?.verifications},{href:"/admin/disputes",label:"Open disputes",value:queue?.disputes},{href:"/admin/moderation",label:"Content reports",value:queue?.moderation},{href:"/admin/jobs",label:"Active jobs",value:queue?.jobs}].map(item=><Link key={item.href} href={item.href} className="rounded-xl border border-border p-4 hover:border-primary/40"><p className="text-xs text-muted-foreground">{item.label}</p><p className="mt-2 text-2xl font-semibold">{item.value ?? "—"}</p><span className="mt-2 block text-xs font-semibold text-primary">Review queue →</span></Link>)}</div><div className="mt-4 flex flex-wrap gap-3 text-xs font-semibold text-primary"><Link href="/admin/banners">Manage customer campaigns →</Link><Link href="/admin/team">Manage team access →</Link><Link href="/admin/users">Find a user →</Link></div></section>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t("admin.dashboard.title")}</h1>
@@ -219,6 +226,8 @@ export default function AdminDashboard() {
           </div>
         </Card>
       </div>
+
+      <AdminOperationsMap />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="p-6 border-0 shadow-lg">

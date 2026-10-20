@@ -20,6 +20,7 @@ import { getLiveOffers, type PublicOfferListItem } from "@/backend/actions/offer
 import { getWishlistIds, getWishlistedProviders, toggleWishlist, type WishlistedProvider, type WishlistTargetKind } from "@/backend/actions/wishlist"
 import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 import { NearYouSection } from "@/frontend/components/geo/near-you-section"
+import { MarketplaceCampaigns, AssistantIdeas, HomeProductGrid } from "@/frontend/components/customer/marketplace-discovery"
 import { SuggestionsSection } from "@/frontend/components/home/suggestions-section"
 import { RequestPhotoButton } from "@/frontend/components/customer/request-photo-button"
 import { ProviderStoryRing } from "@/frontend/components/provider-story-ring"
@@ -43,7 +44,7 @@ function SectionHeader({ title, sub, href }: { title: string; sub?: string; href
   const { t } = useLocalization()
   return (
     <div className="mb-3 flex items-baseline justify-between gap-3">
-      <h2 className="text-[15px] font-bold text-foreground">
+      <h2 className="text-lg sm:text-xl font-semibold tracking-tight text-foreground">
         {title}
         {sub && <span className="font-normal text-muted-foreground"> – {sub}</span>}
       </h2>
@@ -58,7 +59,7 @@ function SectionHeader({ title, sub, href }: { title: string; sub?: string; href
 
 function RatingLine({ rating, reviewCount, meta }: { rating: number; reviewCount: number; meta?: string | null }) {
   return (
-    <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+    <div className="flex items-center gap-1 text-[12px] text-muted-foreground">
       <Star className="h-3 w-3 flex-shrink-0 fill-amber-400 text-amber-400" />
       <span className="font-semibold text-foreground">{rating.toFixed(1)}</span>
       <span>({reviewCount})</span>
@@ -91,7 +92,7 @@ function SaveHeart({ saved, onToggle }: { saved: boolean; onToggle: () => void }
 /** Horizontal card strip on mobile, a grid at sm+. Shared by all three
  * browse sections so they read as one system rather than three styles. */
 const CARD_ROW_CLASS =
-  "flex gap-3 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-hide sm:mx-0 sm:px-0 sm:grid sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
+  "grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
 
 // --- Search --------------------------------------------------------------
 
@@ -261,7 +262,7 @@ function ActivityRow({
   )
 }
 
-function YourActivitySection({ jobs, orders }: { jobs: CustomerJob[]; orders: CustomerOrder[] }) {
+function YourActivitySection({ jobs, orders, loading = false }: { jobs: CustomerJob[]; orders: CustomerOrder[]; loading?: boolean }) {
   const { t } = useLocalization()
   const JOB_STATUS_STYLE = useJobStatusStyle(t)
 
@@ -273,11 +274,11 @@ function YourActivitySection({ jobs, orders }: { jobs: CustomerJob[]; orders: Cu
   return (
     <section>
       <Link href="/customer/jobs" className="group mb-3 flex items-center justify-between">
-        <h2 className="text-[15px] font-bold text-foreground">{t("customer.home.yourActivity")}</h2>
+        <h2 className="text-lg sm:text-xl font-semibold tracking-tight text-foreground">{t("customer.home.yourActivity")}</h2>
         <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground" />
       </Link>
 
-      {liveJobs.length === 0 && !liveOrder ? (
+      {loading ? <div role="status" className="rounded-xl border border-border bg-card p-5 text-sm text-muted-foreground">Loading your recent activity…</div> : liveJobs.length === 0 && !liveOrder ? (
         <div className="rounded-xl border border-dashed border-border bg-card p-4 text-center">
           <p className="text-xs text-muted-foreground">{t("customer.home.noActivityYet")}</p>
         </div>
@@ -319,7 +320,7 @@ function QuickActionsSection() {
     { key: "shop", icon: ShoppingCart, label: t("customer.home.qaShop"), sub: t("customer.home.qaShopSub"), href: "/customer/shops", tint: "bg-emerald-50 dark:bg-emerald-950/30", fg: "text-emerald-600 dark:text-emerald-400" },
     { key: "solve", icon: Wrench, label: t("customer.home.qaSolve"), sub: t("customer.home.qaSolveSub"), href: "/customer/services", tint: "bg-sky-50 dark:bg-sky-950/30", fg: "text-sky-600 dark:text-sky-400" },
     { key: "space", icon: House, label: t("customer.home.qaSpace"), sub: t("customer.home.qaSpaceSub"), href: "/customer/services?search=house", tint: "bg-orange-50 dark:bg-orange-950/30", fg: "text-orange-500 dark:text-orange-400" },
-    { key: "rent", icon: Car, label: t("customer.home.qaRent"), sub: t("customer.home.qaRentSub"), href: "/customer/services/more?type=rental", tint: "bg-violet-50 dark:bg-violet-950/30", fg: "text-violet-600 dark:text-violet-400" },
+    { key: "rent", icon: Car, label: t("customer.home.qaRent"), sub: t("customer.home.qaRentSub"), href: "/customer/services/more?type=rental", tint: "bg-blue-50 dark:bg-blue-950/30", fg: "text-blue-600 dark:text-blue-400" },
     { key: "learn", icon: GraduationCap, label: t("customer.home.qaLearn"), sub: t("customer.home.qaLearnSub"), href: "/customer/services?search=tutor", tint: "bg-teal-50 dark:bg-teal-950/30", fg: "text-teal-700 dark:text-teal-400" },
     { key: "nearby", icon: MapPin, label: t("customer.home.qaNearby"), sub: t("customer.home.qaNearbySub"), href: "/customer/find-specialists", tint: "bg-rose-50 dark:bg-rose-950/30", fg: "text-rose-500 dark:text-rose-400" },
   ]
@@ -336,7 +337,7 @@ function QuickActionsSection() {
           >
             <a.icon className={`h-5 w-5 ${a.fg}`} />
             <span className="text-xs font-bold text-foreground">{a.label}</span>
-            <span className="text-[10px] leading-tight text-muted-foreground">{a.sub}</span>
+            <span className="text-[11px] leading-tight text-muted-foreground">{a.sub}</span>
           </Link>
         ))}
       </div>
@@ -367,7 +368,7 @@ function SolveAProblemSection() {
   return (
     <section className="flex items-center gap-4 rounded-xl border border-border bg-muted/50 p-4 dark:bg-muted/20">
       <div className="min-w-0 flex-1">
-        <h3 className="text-[15px] font-bold text-foreground">{t("customer.home.solveAProblem")}</h3>
+        <h3 className="text-lg sm:text-xl font-semibold tracking-tight text-foreground">{t("customer.home.solveAProblem")}</h3>
         <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{t("customer.home.solveProblemDesc")}</p>
 
         <form
@@ -392,7 +393,7 @@ function SolveAProblemSection() {
         {/* The old path, kept as the secondary option rather than removed:
             posting reaches people who are not online right now, which the
             live radius cannot. */}
-        <Link href="/customer/requests" className="mt-2 inline-block text-[11px] font-medium text-muted-foreground hover:text-foreground hover:underline">
+        <Link href="/customer/requests" className="mt-2 inline-block text-[12px] font-medium text-muted-foreground hover:text-foreground hover:underline">
           {t("customer.home.describeNow")}
         </Link>
       </div>
@@ -428,18 +429,18 @@ function SolveAProblemSection() {
 function PostBoardSection({ popular }: { popular: PopularRequestItem[] }) {
   const { t } = useLocalization()
   return (
-    <section className="rounded-xl border border-violet-200 bg-violet-50/70 p-4 dark:border-violet-900/60 dark:bg-violet-950/20">
+    <section className="rounded-xl border border-blue-200 bg-blue-50/70 p-4 dark:border-blue-900/60 dark:bg-blue-950/20">
       <div className="flex flex-col gap-4 sm:flex-row">
         <div className="flex min-w-0 flex-1 gap-3">
-          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-white shadow-sm dark:bg-violet-950/60">
-            <SquarePen className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-white shadow-sm dark:bg-blue-950/60">
+            <SquarePen className="h-5 w-5 text-blue-600 dark:text-blue-400" />
           </div>
           <div className="min-w-0">
-            <h3 className="text-[15px] font-bold text-foreground">{t("customer.home.postBoardTitle")}</h3>
+            <h3 className="text-lg sm:text-xl font-semibold tracking-tight text-foreground">{t("customer.home.postBoardTitle")}</h3>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{t("customer.home.postBoardDesc")}</p>
             <Link
               href="/customer/requests"
-              className="mt-3 inline-flex rounded-lg bg-violet-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-violet-700"
+              className="mt-3 inline-flex rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-blue-700"
             >
               {t("customer.home.postRequestButton")}
             </Link>
@@ -449,15 +450,15 @@ function PostBoardSection({ popular }: { popular: PopularRequestItem[] }) {
         {popular.length > 0 && (
           <Link
             href="/customer/requests"
-            className="flex items-center gap-2 sm:w-64 sm:flex-shrink-0 sm:border-l sm:border-violet-200 sm:pl-4 dark:sm:border-violet-900/60"
+            className="flex items-center gap-2 sm:w-64 sm:flex-shrink-0 sm:border-l sm:border-blue-200 sm:pl-4 dark:sm:border-blue-900/60"
           >
             <div className="min-w-0 flex-1">
-              <p className="mb-2 flex items-center gap-1 text-[11px] font-semibold text-amber-600 dark:text-amber-500">
+              <p className="mb-2 flex items-center gap-1 text-[12px] font-semibold text-amber-600 dark:text-amber-500">
                 <Flame className="h-3 w-3 flex-shrink-0" /> {t("customer.home.popularRequests")}
               </p>
               <ul className="space-y-2">
                 {popular.map((r) => (
-                  <li key={r.id} className="flex items-center justify-between gap-2 text-[11px]">
+                  <li key={r.id} className="flex items-center justify-between gap-2 text-[12px]">
                     <span className="truncate text-foreground">{r.title}</span>
                     <span className="flex-shrink-0 text-muted-foreground">
                       {t("customer.home.responsesCount", { count: r.responseCount })}
@@ -496,22 +497,22 @@ function ShopLocalSection({
           <Link
             key={shop.id}
             href={`/customer/shops/${shop.id}`}
-            className="w-40 flex-shrink-0 overflow-hidden rounded-xl border border-border bg-card transition-shadow hover:shadow-md sm:w-auto"
+            className="min-w-0 overflow-hidden rounded-xl border border-border bg-card transition-shadow hover:shadow-md sm:w-auto"
           >
-            <div className="relative h-20 bg-muted">
+            <div className="relative h-36 sm:h-44 bg-muted">
               <Image src={shop.image || "/placeholder.svg"} alt={shop.name} fill sizes="160px" className="object-cover" />
               <SaveHeart saved={savedShopIds.includes(shop.id)} onToggle={() => onToggleSaved(shop.id)} />
             </div>
             <div className="p-2.5">
               <div className="flex items-start justify-between gap-1">
-                <p className="truncate text-xs font-bold leading-tight text-foreground">{shop.name}</p>
+                <p className="truncate text-sm font-semibold leading-tight text-foreground">{shop.name}</p>
                 {shop.isOpen && (
                   <span className="flex-shrink-0 rounded bg-emerald-50 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
                     {t("customer.home.openBadge")}
                   </span>
                 )}
               </div>
-              {shop.category && <p className="mt-0.5 truncate text-[10px] text-muted-foreground">{shop.category}</p>}
+              {shop.category && <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{shop.category}</p>}
               <div className="mt-1.5">
                 <RatingLine
                   rating={shop.rating}
@@ -552,16 +553,16 @@ function RecommendedSection({
             <Link
               key={offer.offerId}
               href={offerHref(offer.actionType, offer.offerId)}
-              className="w-40 flex-shrink-0 overflow-hidden rounded-xl border border-border bg-card transition-shadow hover:shadow-md sm:w-auto"
+              className="min-w-0 overflow-hidden rounded-xl border border-border bg-card transition-shadow hover:shadow-md sm:w-auto"
             >
-              <div className="relative h-20 bg-muted">
+              <div className="relative h-36 sm:h-44 bg-muted">
                 <Image src={offer.image || "/placeholder.svg"} alt={offer.title} fill sizes="160px" className="object-cover" />
                 <SaveHeart saved={isWishlisted} onToggle={() => onToggleWishlist(offer.providerId)} />
               </div>
               <div className="p-2.5">
-                <p className="truncate text-xs font-bold leading-tight text-foreground">{offer.title}</p>
+                <p className="truncate text-sm font-semibold leading-tight text-foreground">{offer.title}</p>
                 {offer.price != null && (
-                  <p className="mt-1 truncate text-[11px] text-muted-foreground">
+                  <p className="mt-1 truncate text-[12px] text-muted-foreground">
                     {isRental ? "From " : ""}
                     <span className="font-semibold text-foreground">{formatMoney(offer.price)}</span>
                     {isRental ? "/day" : ""}
@@ -602,8 +603,8 @@ function SavedForLaterSection({ providers }: { providers: WishlistedProvider[] }
               </span>
             </div>
             <div className="min-w-0">
-              <p className="line-clamp-2 text-[11px] font-bold leading-tight text-foreground">{p.name}</p>
-              <p className="mt-0.5 truncate text-[10px] text-muted-foreground">{p.bio || `${p.completedJobs} jobs done`}</p>
+              <p className="line-clamp-2 text-[12px] font-bold leading-tight text-foreground">{p.name}</p>
+              <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{p.bio || `${p.completedJobs} jobs done`}</p>
             </div>
           </Link>
         ))}
@@ -662,11 +663,11 @@ function AvailableNowSection({ providers }: { providers: OnlineProviderCard[] })
                   {p.name}
                   {p.verified && <ShieldCheck className="ml-1 inline h-3 w-3 align-[-1px] text-emerald-600" />}
                 </p>
-                {p.categoryName && <p className="mt-0.5 truncate text-[10px] text-muted-foreground">{p.categoryName}</p>}
+                {p.categoryName && <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{p.categoryName}</p>}
                 {/* The row is ordered by this, so showing it is what makes
                     the ordering legible rather than arbitrary. */}
                 {p.distanceKm != null && (
-                  <p className="mt-0.5 flex items-center gap-0.5 truncate text-[10px] font-medium text-primary">
+                  <p className="mt-0.5 flex items-center gap-0.5 truncate text-[11px] font-medium text-primary">
                     <MapPin className="h-2.5 w-2.5 flex-shrink-0" />
                     {t("nearby.distanceAway", { km: p.distanceKm })}
                   </p>
@@ -674,7 +675,7 @@ function AvailableNowSection({ providers }: { providers: OnlineProviderCard[] })
               </div>
             </div>
 
-            <div className="mt-2.5 flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
+            <div className="mt-2.5 flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
               {/* A rating of 0 from no reviews reads as a bad rating, so a new
                   provider shows their job count instead. */}
               {p.reviewCount > 0 ? (
@@ -690,7 +691,7 @@ function AvailableNowSection({ providers }: { providers: OnlineProviderCard[] })
               )}
             </div>
 
-            <span className="mt-2.5 rounded-lg bg-primary py-1.5 text-center text-[11px] font-semibold text-primary-foreground transition-opacity group-hover:opacity-90">
+            <span className="mt-2.5 rounded-lg bg-primary py-1.5 text-center text-[12px] font-semibold text-primary-foreground transition-opacity group-hover:opacity-90">
               {t("customer.home.availableNowCta")}
             </span>
           </Link>
@@ -711,25 +712,25 @@ export function CustomerHome() {
   // navigating back to Home renders the last-known data instantly while a
   // fresh fetch happens behind it, and each section paints as soon as its
   // own query lands rather than waiting on the slowest one.
-  const { data: recentJobs } = useSWR(
-    "customer-jobs", () => withTimeout(getCustomerJobs(), DASHBOARD_FETCH_TIMEOUT_MS),
+  const { data: recentJobs, isLoading: jobsLoading, error: jobsError, mutate: refreshJobs } = useSWR(
+    user?.id ? ["customer-jobs", user.id] : null, () => withTimeout(getCustomerJobs(), DASHBOARD_FETCH_TIMEOUT_MS),
   )
-  const { data: recentOrders } = useSWR(
-    "recent-orders", () => withTimeout(getRecentOrders(), DASHBOARD_FETCH_TIMEOUT_MS),
+  const { data: recentOrders, isLoading: ordersLoading } = useSWR(
+    user?.id ? ["recent-orders", user.id] : null, () => withTimeout(getRecentOrders(), DASHBOARD_FETCH_TIMEOUT_MS),
   )
-  const { data: featuredShops } = useSWR(
-    "recommended-shops", () => withTimeout(getRecommendedShops(), DASHBOARD_FETCH_TIMEOUT_MS),
+  const { data: featuredShops, error: shopsError, mutate: refreshShops } = useSWR(
+    user?.id ? ["recommended-shops", user.id] : null, () => withTimeout(getRecommendedShops(), DASHBOARD_FETCH_TIMEOUT_MS),
   )
-  const { data: liveOffers } = useSWR(
-    // 10 matches what RecommendedSection actually renders below, so the
+  const { data: liveOffers, error: offersError, mutate: refreshOffers } = useSWR(
+    // 20 matches what RecommendedSection actually renders below, so the
     // feed never pays to transfer offers it will discard.
-    "live-offers", () => withTimeout(getLiveOffers(10), DASHBOARD_FETCH_TIMEOUT_MS),
+    user?.id ? ["live-offers", user.id] : null, () => withTimeout(getLiveOffers(20), DASHBOARD_FETCH_TIMEOUT_MS),
   )
   const { data: popularRequests } = useSWR(
-    "popular-requests", () => withTimeout(getPopularOpenRequests(3), DASHBOARD_FETCH_TIMEOUT_MS),
+    user?.id ? ["popular-requests", user.id] : null, () => withTimeout(getPopularOpenRequests(3), DASHBOARD_FETCH_TIMEOUT_MS),
   )
   const { data: savedProviders } = useSWR(
-    "wishlisted-providers", () => withTimeout(getWishlistedProviders(), DASHBOARD_FETCH_TIMEOUT_MS),
+    user?.id ? ["wishlisted-providers", user.id] : null, () => withTimeout(getWishlistedProviders(), DASHBOARD_FETCH_TIMEOUT_MS),
   )
   // Providers' before/after statuses, as a row of rings under the search bar.
   // Same SWR key the Community page uses, so the two surfaces dedupe into one
@@ -746,7 +747,7 @@ export function CustomerHome() {
   // on the page waits for it. Same SWR key as Community so the two surfaces
   // dedupe into one request.
   const { data: storyGroups } = useSWR(
-    "provider-stories", getActiveProviderStories, { refreshInterval: 60_000 },
+    user?.id ? ["provider-stories", user.id] : null, getActiveProviderStories, { refreshInterval: 60_000 },
   )
   // Who is online changes minute to minute, so this refreshes on its own
   // rather than showing whoever happened to be on when the page loaded.
@@ -754,7 +755,7 @@ export function CustomerHome() {
   // page fires several actions at once and a deadline only turns a slow
   // section into a permanently missing one.
   const { data: onlineProviders } = useSWR(
-    "online-providers", () => getOnlineProviders(8), { refreshInterval: 60_000 },
+    user?.id ? ["online-providers", user.id] : null, () => getOnlineProviders(8), { refreshInterval: 60_000 },
   )
 
   // Providers and shops are separate wishlist target kinds, so they need
@@ -785,7 +786,7 @@ export function CustomerHome() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-3xl space-y-6 px-4 pb-6 pt-4 lg:max-w-5xl">
+      <div className="mx-auto max-w-[1500px] space-y-7 px-4 pb-8 pt-5 sm:px-6 lg:space-y-9">
         {/* Greeting */}
         <div>
           <h1 className="text-xl font-bold text-foreground">
@@ -796,9 +797,13 @@ export function CustomerHome() {
 
         <HomeSearch />
 
+        <MarketplaceCampaigns />
+
+        {(jobsError || shopsError || offersError) && <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><p>Some sections could not load. Your account and saved activity are unchanged.</p><button onClick={() => { void refreshJobs(); void refreshShops(); void refreshOffers() }} className="rounded-lg border border-amber-300 px-4 py-2 text-xs font-semibold">Retry loading</button></div>}
+
         <ProviderStoryRing groups={storyGroups ?? []} />
 
-        <YourActivitySection jobs={recentJobs ?? []} orders={recentOrders ?? []} />
+        <YourActivitySection jobs={recentJobs ?? []} orders={recentOrders ?? []} loading={jobsLoading || ordersLoading} />
 
         <QuickActionsSection />
 
@@ -812,6 +817,10 @@ export function CustomerHome() {
             itself away for somebody signed out or brand new. */}
         <SuggestionsSection />
 
+        <AssistantIdeas />
+
+        <HomeProductGrid />
+
         <SolveAProblemSection />
 
         <PostBoardSection popular={popularRequests ?? []} />
@@ -823,7 +832,7 @@ export function CustomerHome() {
         />
 
         <RecommendedSection
-          offers={(liveOffers ?? []).slice(0, 10)}
+          offers={(liveOffers ?? []).slice(0, 20)}
           wishlistIds={wishlistIds}
           onToggleWishlist={toggleFavorite}
         />

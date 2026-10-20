@@ -26,9 +26,8 @@
  * rule here is that this worker caches the SHELL and never the DATA.
  *
  *   the app shell (HTML)     network first, cache only as a fallback
- *   /_next/static/*          cache first, because those URLs are content
- *                            hashed, so a changed file is a new URL and a
- *                            cached one can never be stale
+ *   /_next/static/*          network first; only explicitly immutable
+ *                            production output is saved for offline use
  *   everything else, and
  *   every non-GET request    straight to the network, never stored
  *
@@ -46,11 +45,13 @@
 // Bump to retire every previous cache. The activate handler deletes any
 // cache whose name is not this one, so a stale shell cannot outlive a
 // deploy.
-const CACHE = "saji-till-shell-v2"
+const CACHE = "saji-till-shell-v4"
+const DEVELOPMENT = new URL(self.location.href).searchParams.get("dev") === "1" || ["localhost", "127.0.0.1", "[::1]"].includes(self.location.hostname)
 
 // The shell, fetched at install so the first cold start offline works even
 // if the cashier has not opened that exact page since installing.
-const SHELL = ["/pos/sell"]
+const SHELL = ["/pos"]
+let signedOut = false
 
 /**
  * Cache the shell, and whatever the shell says it needs.
@@ -66,9 +67,10 @@ const SHELL = ["/pos/sell"]
  * page that looks half alive.
  */
 async function precache(cache, url) {
+  if (DEVELOPMENT) return
   let res
   try {
-    res = await fetch(url, { credentials: "same-origin" })
+    res = await fetch(url, { credentials: "same-origin", signal: AbortSignal.timeout(8000) })
   } catch {
     return
   }
@@ -85,13 +87,13 @@ async function precache(cache, url) {
   while ((m = re.exec(html)) !== null) {
     const a = m[1].replace(/&amp;/g, "&")
     // Only immutable output. A dev server's hot update endpoints are not.
-    if (a.includes("/static/") || a.endsWith(".js") || a.endsWith(".css")) assets.add(a)
+    if (a.startsWith("/_next/static/")) assets.add(a)
   }
 
   await Promise.all(
     [...assets].map((a) =>
       fetch(a, { credentials: "same-origin" })
-        .then((r) => (r.ok ? cache.put(a, r) : null))
+        .then((r) => (r.ok && /\bimmutable\b/i.test(r.headers.get("Cache-Control") || "") ? cache.put(a, r) : null))
         .catch(() => null),
     ),
   )
@@ -113,6 +115,12 @@ self.addEventListener("install", (event) => {
 // By then the worker is controlling and the document is the current build,
 // so anything the install pass could not see gets picked up.
 self.addEventListener("message", (event) => {
+  if (event.data === "logout") {
+    signedOut = true
+    event.waitUntil(caches.keys().then(names => Promise.all(names.filter(name => name.startsWith("saji-till-shell-")).map(name => caches.delete(name)))).then(() => event.ports?.[0]?.postMessage("cleared")))
+    return
+  }
+  if (event.data === "session-active") { signedOut = false; return }
   if (event.data !== "precache") return
   event.waitUntil(
     caches.open(CACHE).then((cache) => Promise.all(SHELL.map((url) => precache(cache, url)))),
@@ -133,26 +141,31 @@ self.addEventListener("fetch", (event) => {
 
   // Only GET is ever cacheable. Everything else, every server action and
   // every sale, goes to the network untouched and is allowed to fail.
-  if (req.method !== "GET") return
+  if (req.method !== "GET" || DEVELOPMENT) return
 
   const url = new URL(req.url)
   if (url.origin !== self.location.origin) return
 
-  // Immutable build output: content hashed, so a hit can never be stale.
+  // Revalidate online. Only explicitly immutable production assets may be
+  // stored or used offline; development/HMR modules must never be cached.
   if (url.pathname.startsWith("/_next/static/")) {
-    event.respondWith(
-      caches.match(req).then(
-        (hit) =>
-          hit ||
-          fetch(req).then((res) => {
-            if (res.ok) {
-              const copy = res.clone()
-              caches.open(CACHE).then((c) => c.put(req, copy))
-            }
-            return res
-          }),
-      ),
-    )
+    event.respondWith((async () => {
+      try {
+        const response = await fetch(req)
+        if (response.ok && /\bimmutable\b/i.test(response.headers.get("Cache-Control") || "")) {
+          try {
+            const cache = await caches.open(CACHE)
+            await cache.put(req, response.clone())
+          } catch { /* A full cache must not break a successful network response. */ }
+        }
+        return response
+      } catch (error) {
+        const cache = await caches.open(CACHE)
+        const cached = await cache.match(req)
+        if (cached && /\bimmutable\b/i.test(cached.headers.get("Cache-Control") || "")) return cached
+        throw error
+      }
+    })())
     return
   }
 
@@ -160,21 +173,24 @@ self.addEventListener("fetch", (event) => {
   // current build; the cache answers only when the network does not.
   if (req.mode === "navigate") {
     event.respondWith(
-      fetch(req)
+      fetch(req, { signal: AbortSignal.timeout(8000) })
         .then((res) => {
-          if (res.ok) {
+          if (res.ok && !res.redirected && !signedOut) {
             const copy = res.clone()
-            caches.open(CACHE).then((c) => c.put(req, copy))
+            caches.open(CACHE).then((c) => { if (!signedOut) return c.put(req, copy) }).catch(() => {})
           }
           return res
         })
         .catch(() =>
-          caches.match(req).then(
+          caches.open(CACHE).then(cache => cache.match(req)).then(
             (hit) =>
               hit ||
               // Not this exact URL, but the till shell will do: it boots,
               // reads its catalogue from IndexedDB and says it is offline.
-              caches.match("/pos/sell").then(
+              caches.open(CACHE).then(async cache => {
+                const register = ["/pos/sell", "/pos/open"].includes(url.pathname) ? await cache.match("/pos/sell") : null
+                return register || cache.match("/pos")
+              }).then(
                 (shell) =>
                   shell ||
                   new Response(

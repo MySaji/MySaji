@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import { WorkspaceHeading, PosCard as Card } from "@/frontend/components/pos/workspace-ui"
 import {
   ArrowLeft, AlertTriangle, Check, Loader2, Monitor, Smartphone, Tablet, Ban, RotateCcw, Pencil,
 } from "lucide-react"
-import { Card } from "@/frontend/components/ui/card"
 import { Button } from "@/frontend/components/ui/button"
 import { Input } from "@/frontend/components/ui/input"
 import {
@@ -74,7 +74,7 @@ export default function TillDevicesPage() {
   }
 
   return (
-    <div className="p-4 max-w-2xl mx-auto space-y-3 pb-24">
+    <div className="p-4 md:p-6 xl:p-8 w-full min-w-0 space-y-5 pb-12">
       <div className="flex items-center gap-2">
         <Link
           href="/pos/settings"
@@ -84,7 +84,7 @@ export default function TillDevicesPage() {
         </Link>
       </div>
       <div>
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white">Devices</h1>
+        <WorkspaceHeading title="Devices" />
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
           Every phone, tablet or computer that has opened your till. A device that stopped
           checking in may still be holding sales that have not reached here.
@@ -113,14 +113,14 @@ export default function TillDevicesPage() {
             </p>
           </div>
         ) : (
-          <div className="space-y-1.5">
+          <div className="grid items-start gap-3 xl:grid-cols-2">
             {rows.map((d) => {
               const Icon = d.platform === "ios" || d.platform === "android" ? Smartphone
                 : d.platform === "windows" || d.platform === "mac" ? Monitor : Tablet
               return (
                 <div
                   key={d.id}
-                  className={`p-3 rounded-xl border ${
+                  className={`p-4 rounded-xl border ${
                     d.revokedAt
                       ? "border-red-100 dark:border-red-900/50 bg-red-50/50 dark:bg-red-900/10"
                       : "border-gray-200 dark:border-gray-700"

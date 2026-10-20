@@ -22,7 +22,7 @@
  *   node scripts/enable-postgis.js --check
  */
 
-require("dotenv").config()
+process.loadEnvFile?.()
 
 const { PrismaClient } = require("@prisma/client")
 
@@ -46,9 +46,9 @@ const POINT_EXPRESSION =
 
 async function isInstalled() {
   const rows = await db.$queryRawUnsafe(
-    `SELECT installed_version FROM pg_available_extensions WHERE name = 'postgis'`,
+    `SELECT e.extversion AS installed_version, n.nspname AS schema FROM pg_extension e JOIN pg_namespace n ON n.oid=e.extnamespace WHERE e.extname='postgis'`,
   )
-  return Boolean(rows[0]?.installed_version)
+  return Boolean(rows[0]?.installed_version && rows[0]?.schema === "extensions")
 }
 
 async function indexExists(name) {
@@ -82,6 +82,7 @@ async function main() {
   // public, so every PostGIS call in this codebase is schema-qualified.
   await db.$executeRawUnsafe(`CREATE SCHEMA IF NOT EXISTS extensions`)
   await db.$executeRawUnsafe(`CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA extensions`)
+  if (!(await isInstalled())) throw new Error("PostGIS must be installed in the extensions schema; review extension placement before continuing.")
   console.log("postgis enabled in schema extensions")
 
   for (const { table, index } of SPATIAL_TABLES) {

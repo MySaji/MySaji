@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import { WorkspaceHeading, PosCard as Card } from "@/frontend/components/pos/workspace-ui"
 import {
   ArrowLeft, Loader2, Calculator, Hammer, AlertTriangle, Check, Banknote,
   Smartphone, CreditCard, Landmark, HandCoins,
 } from "lucide-react"
-import { Card } from "@/frontend/components/ui/card"
 import { Button } from "@/frontend/components/ui/button"
 import { Input } from "@/frontend/components/ui/input"
 import { getOpenDeposits, settleDeposit, type OpenDeposit } from "@/backend/actions/pos-sales"
@@ -74,13 +74,13 @@ export default function TillOrdersPage() {
   }
 
   return (
-    <div className="p-3 max-w-2xl mx-auto space-y-3 pb-24">
+    <div className="p-4 md:p-6 xl:p-8 w-full min-w-0 space-y-5 pb-12">
       <Link href="/pos/sell" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 dark:hover:text-white active:scale-95 transition-transform">
         <ArrowLeft className="w-4 h-4" /> Till
       </Link>
 
       <div>
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white">Orders to deliver</h1>
+        <WorkspaceHeading title="Orders to deliver" />
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
           Paid for in part and not yet handed over. Nothing has come off your stock for these —
           it moves when the customer takes them.

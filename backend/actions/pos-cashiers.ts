@@ -1,7 +1,9 @@
 "use server"
 
+import type { PosPermission } from "@/backend/domain/pos-permissions"
 import { z } from "zod"
 import bcrypt from "bcryptjs"
+import { resolvePosActor } from "@/backend/services/pos-access-core"
 import { auth } from "@/backend/auth"
 import { db } from "@/backend/db"
 import { posShopIdFor } from "@/backend/services/pos-tenant"
@@ -31,7 +33,9 @@ import { parsePosConfig } from "@/backend/domain/pos-config"
  * can reach this page is already signed in as the shop.
  */
 
-async function requireShopOwner() {
+async function requireShopOwner(permissions: PosPermission[] = ["till.sell"]) {
+  const actor = await resolvePosActor()
+  if (!actor || !permissions.some(permission => actor.can(permission))) return null
   const session = await auth()
   if (!session?.user?.id) return null
   if (session.user.role !== "provider" && session.user.role !== "shopkeeper") return null
@@ -94,7 +98,7 @@ const saveSchema = z.object({
 })
 
 export async function saveCashier(input: unknown): Promise<CashierResult> {
-  const shop = await requireShopOwner()
+  const shop = await requireShopOwner(["staff.manage"])
   if (!shop) return { success: false, error: "There is no till on this account." }
   const parsed = saveSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
@@ -152,7 +156,7 @@ export async function saveCashier(input: unknown): Promise<CashierResult> {
  * having happened.
  */
 export async function setCashierActive(input: unknown): Promise<CashierResult> {
-  const shop = await requireShopOwner()
+  const shop = await requireShopOwner(["staff.manage"])
   if (!shop) return { success: false, error: "There is no till on this account." }
   const parsed = z.object({
     cashierId: z.string().trim().min(1),

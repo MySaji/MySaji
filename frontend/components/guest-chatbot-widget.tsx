@@ -71,7 +71,7 @@ export function GuestChatbotWidget({ onClose }: { onClose: () => void }) {
               <p className="truncate text-xs text-blue-100">Ask me anything about SAJI</p>
             </div>
           </div>
-          <Button onClick={onClose} size="sm" variant="ghost" className="flex-shrink-0 rounded-full p-2 text-white hover:bg-white/20">
+          <Button type="button" aria-label="Close assistant" onClick={onClose} size="sm" variant="ghost" className="flex-shrink-0 rounded-full p-2 text-white hover:bg-white/20">
             <X className="h-5 w-5" />
           </Button>
         </div>

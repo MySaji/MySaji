@@ -1,6 +1,9 @@
 "use client"
 
 import useSWR from "swr"
+import { useState } from "react"
+import { useAuthContext } from "@/frontend/lib/auth-context"
+import { WorkflowGuide, WorkspaceRecovery, WorkspaceRefresh } from "@/frontend/components/workspace-panels"
 import { CreditCard, TrendingUp, Clock, CheckCircle, Download, BarChart3, Loader2 } from "lucide-react"
 import { Card } from "@/frontend/components/ui/card"
 import { Button } from "@/frontend/components/ui/button"
@@ -11,8 +14,11 @@ import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 export default function SecretaryDashboard() {
   const { t, tn, formatMoney } = useLocalization()
-  const { data, isLoading } = useSWR(
-    "secretary-dashboard", () => withTimeout(getSecretaryDashboard(), DASHBOARD_FETCH_TIMEOUT_MS),
+  const { user } = useAuthContext()
+  const [updatedAt, setUpdatedAt] = useState<number>()
+  const { data, isLoading, error, mutate, isValidating } = useSWR(
+    user?.id ? ["secretary-dashboard", user.id] : null, () => withTimeout(getSecretaryDashboard(), DASHBOARD_FETCH_TIMEOUT_MS),
+    { onSuccess: () => setUpdatedAt(Date.now()) },
   )
 
   const txnTypeLabels: Record<string, string> = {
@@ -53,6 +59,8 @@ export default function SecretaryDashboard() {
     window.URL.revokeObjectURL(url)
   }
 
+  if (error || (!isLoading && !data)) return <WorkspaceRecovery title="Payments workspace unavailable" retry={() => void mutate()} busy={isValidating} />
+
   if (isLoading || !data) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -81,6 +89,8 @@ export default function SecretaryDashboard() {
         </Button>
       </div>
 
+      <WorkspaceRefresh refreshing={isValidating} updatedAt={updatedAt} refresh={() => void mutate()} />
+      <WorkflowGuide title="Payments workspace" steps={[{ title: "Review pending work", description: "Check requests and transaction details before taking action." },{ title: "Reconcile records", description: "Compare recorded transactions and wallet balances." },{ title: "Report the outcome", description: "Export the current view for your authorised reporting workflow." }]} />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat, idx) => {
           const Icon = stat.icon

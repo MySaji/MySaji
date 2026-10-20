@@ -1,5 +1,8 @@
 "use client"
 
+import { WalletLedger } from "@/frontend/components/payment/wallet-ledger"
+import { WorkspaceRecovery, WorkspaceRefresh } from "@/frontend/components/workspace-panels"
+import { csvCell } from "@/frontend/lib/wallet-ledger"
 import { useEffect, useState } from "react"
 import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 import { useGatedAction } from "@/frontend/lib/hooks/useGatedAction"
@@ -27,23 +30,30 @@ export default function DistributorWalletPage() {
 
   const [summary, setSummary] = useState<DistributorWalletSummary>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
+  const [updatedAt, setUpdatedAt] = useState<number>()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formError, setFormError] = useState("")
 
-  const refresh = () => getDistributorWalletSummary().then(setSummary)
+  const refresh = async () => {
+    setRefreshing(true); setLoadError(false)
+    try { const result = await getDistributorWalletSummary(); setSummary(result); setLoadError(!result); setUpdatedAt(Date.now()) }
+    catch { setLoadError(true) }
+    finally { setRefreshing(false); setIsLoading(false) }
+  }
 
   useEffect(() => {
     refresh().finally(() => setIsLoading(false))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const handleWithdraw = async () => {
     const amount = Number.parseFloat(withdrawAmount)
     if (!(amount > 0) || !withdrawMethodId) return
     setIsSubmitting(true)
+    try {
     setFormError("")
     const result = await requestWithdrawal({ amount, paymentMethodId: withdrawMethodId })
-    setIsSubmitting(false)
     if (!result.success) {
       // A verification refusal opens the wizard rather than leaving the user
       // with a message and nowhere to act on it.
@@ -53,6 +63,8 @@ export default function DistributorWalletPage() {
     }
     await refresh()
     setShowWithdraw(false); setWithdrawAmount(""); setWithdrawMethodId(null)
+    } catch { setFormError("The request could not be confirmed. Refresh your wallet before trying again.") }
+    finally { setIsSubmitting(false) }
   }
 
   const openWithdraw = () => {
@@ -64,13 +76,14 @@ export default function DistributorWalletPage() {
     if (!summary) return
     const headers = [t("distributor.wallet.csvDate"), t("distributor.wallet.csvType"), t("distributor.wallet.csvDescription"), t("distributor.wallet.csvAmount"), t("common.status")]
     const rows = summary.transactions.map((tx) => [new Date(tx.date).toLocaleDateString(), tx.type, tx.description, formatMoney(tx.amount), tx.status])
-    const csv = [[t("distributor.wallet.csvTitle")], [t("distributor.wallet.csvBalance", { amount: formatMoney(summary.balance) })], [], headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(",")).join("\n")
+    const csv = [[t("distributor.wallet.csvTitle")], [t("distributor.wallet.csvBalance", { amount: formatMoney(summary.balance) })], [], headers, ...rows].map(row => row.map(csvCell).join(",")).join("\n")
     const blob = new Blob([csv], { type: "text/csv" })
     const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `distributor-wallet-statement-${new Date().toISOString().split('T')[0]}.csv`; link.click()
   }
 
   const handleAddPaymentMethod = async () => {
     setIsSubmitting(true)
+    try {
     setFormError("")
     const result = await addPaymentMethod({
       type: newMethodType,
@@ -79,7 +92,6 @@ export default function DistributorWalletPage() {
       cvv: paymentForm.cvv,
       paypalEmail: paymentForm.paypalEmail,
     })
-    setIsSubmitting(false)
     if (!result.success) {
       // A verification refusal opens the wizard rather than leaving the user
       // with a message and nowhere to act on it.
@@ -90,12 +102,16 @@ export default function DistributorWalletPage() {
     await refresh()
     setShowAddMethod(false)
     setPaymentForm({ mpesaPhone: "", cardNumber: "", cardName: "", expiryDate: "", cvv: "", paypalEmail: "" }); setNewMethodType("")
+    } catch { setFormError("The request could not be confirmed. Refresh your wallet before trying again.") }
+    finally { setIsSubmitting(false) }
   }
 
   const txnConfig: Record<string, { icon: typeof ArrowUpRight; iconBg: string; iconColor: string }> = {
     credit: { icon: ArrowDownLeft, iconBg: "bg-emerald-100 dark:bg-emerald-900/20", iconColor: "text-emerald-600 dark:text-emerald-400" },
     debit: { icon: ArrowUpRight, iconBg: "bg-amber-100 dark:bg-amber-900/20", iconColor: "text-amber-600 dark:text-amber-400" },
   }
+
+  if (loadError) return <WorkspaceRecovery title="Wallet unavailable" retry={() => void refresh()} busy={refreshing} />
 
   if (isLoading || !summary) {
     return (
@@ -109,13 +125,13 @@ export default function DistributorWalletPage() {
 
   return (
     <div className="min-h-screen">
-      <div className="max-w-3xl mx-auto px-4 py-6 lg:py-8">
+      <div className="max-w-6xl mx-auto px-4 py-6 lg:py-8">
         <div className="flex items-center gap-2 mb-6">
           <Wallet className="w-5 h-5 text-teal-600" />
           <h1 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white tracking-tight">{t("distributor.wallet.title")}</h1>
         </div>
 
-        <Card className="overflow-hidden border-0 shadow-lg mb-6 bg-gradient-to-br from-teal-700 via-teal-700 to-cyan-900 text-white">
+        <Card className="overflow-hidden border-0 shadow-lg mb-6 bg-[#063b97] text-white">
           <div className="p-6 lg:p-8">
             <div className="flex items-center justify-between mb-6">
               <p className="text-xs font-medium opacity-80">{t("distributor.wallet.totalBalance")}</p>
@@ -166,41 +182,8 @@ export default function DistributorWalletPage() {
           ))}
         </div>
 
-        {activeTab === "transactions" && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-gray-900 dark:text-white text-xs">{t("distributor.wallet.recentTransactions")}</h3>
-              <Button size="sm" variant="ghost" onClick={handleDownloadStatement} className="gap-1.5 text-[11px] h-8" disabled={transactions.length === 0}><Download className="w-3.5 h-3.5" />{t("distributor.wallet.export")}</Button>
-            </div>
-            {transactions.length === 0 ? (
-              <Card className="p-8 text-center border-0 shadow-sm">
-                <p className="text-xs text-muted-foreground">{t("distributor.wallet.noTransactions")}</p>
-              </Card>
-            ) : transactions.map((txn) => {
-              const config = txnConfig[txn.type]
-              const Icon = config.icon
-              return (
-                <Card key={txn.id} className="p-3.5 border-0 shadow-sm hover:shadow-md transition-all">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${config.iconBg}`}>
-                      <Icon className={`w-4 h-4 ${config.iconColor}`} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-xs text-gray-900 dark:text-white truncate">{txn.description}</p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-[11px] text-muted-foreground">{new Date(txn.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${txn.status === "completed" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400" : "bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400"}`}>{txn.status === "completed" ? t("distributor.wallet.statusCompleted") : t("distributor.wallet.statusPending")}</span>
-                      </div>
-                    </div>
-                    <p className={`font-bold text-xs flex-shrink-0 ${txn.type === "credit" ? "text-emerald-600 dark:text-emerald-400" : "text-gray-900 dark:text-white"}`}>
-                      {txn.type === "credit" ? "+" : "-"}{formatMoney(txn.amount)}
-                    </p>
-                  </div>
-                </Card>
-              )
-            })}
-          </div>
-        )}
+        <WorkspaceRefresh refreshing={refreshing} updatedAt={updatedAt} refresh={() => void refresh()} />
+        {activeTab === "transactions" && <WalletLedger entries={summary.transactions.map(entry => ({ id: entry.id, description: entry.description, amount: entry.type === "credit" ? Math.abs(entry.amount) : -Math.abs(entry.amount), status: entry.status, date: entry.date }))} />}
 
         {activeTab === "methods" && (
           <div className="space-y-3">

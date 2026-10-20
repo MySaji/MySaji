@@ -1,5 +1,7 @@
 "use client"
 
+import { WorkspaceTools } from "@/frontend/components/workspace-tools"
+
 import React from "react"
 
 import { useState, useEffect, useRef } from "react"
@@ -126,7 +128,7 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div data-workspace="customer" className="min-h-screen bg-background">
       {/* Upgrades this session's city-level IP position to a real GPS fix in
           the background. Renders nothing and blocks nothing — the feed has
           already been served from the IP origin by the time it runs. */}
@@ -170,7 +172,7 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
           >
             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
               {user?.avatar ? (
-                // eslint-disable-next-line @next/next/no-img-element -- base64 data URLs (locally-uploaded avatars) aren't supported by next/image
+                // Images use the configured unoptimized rendering policy -- base64 data URLs (locally-uploaded avatars) aren't supported by next/image
                 <img src={user.avatar} alt="" width={40} height={40} className="w-full h-full object-cover" />
               ) : (
                 <User className="w-5 h-5 text-primary" />
@@ -255,7 +257,7 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
                   <Link href="/customer/profile" className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted transition-colors">
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
                       {user?.avatar ? (
-                        // eslint-disable-next-line @next/next/no-img-element -- base64 data URLs (locally-uploaded avatars) aren't supported by next/image
+                        // Images use the configured unoptimized rendering policy -- base64 data URLs (locally-uploaded avatars) aren't supported by next/image
                         <img src={user.avatar} alt="" width={40} height={40} className="w-full h-full object-cover" />
                       ) : (
                         <User className="w-5 h-5 text-primary" />
@@ -333,7 +335,7 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
 
             {/* Right Side Actions */}
             <div className="flex flex-shrink-0 items-center gap-2">
-              <Link href="/customer/cart" className="relative">
+              <Link href="/customer/cart" aria-label="Shopping cart" className="relative">
                 <Button variant="ghost" size="icon" className="relative" aria-label={t("customer.layout.cart")}>
                   <ShoppingCart className="w-5 h-5" />
                   {cartCount > 0 && (
@@ -426,6 +428,7 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
             last card's action button, with about a third of it unreachable. On
             lg the button moves to bottom-6 at 64px tall, hence lg:pb-24. */}
         <main id="main-content" className="pb-36 lg:pb-24">
+          <WorkspaceTools name="MySaji customer workspace" />
           {openDisputes.length > 0 && (
             <div className="px-4 lg:px-6 pt-4">
               <DisputeBanner disputes={openDisputes} messagesBasePath="/customer/messages" />

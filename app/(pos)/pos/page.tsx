@@ -1,232 +1,66 @@
-import Link from "next/link"
+﻿import Link from "next/link"
+import { ArrowRight, ArrowUpRight, BarChart3, Boxes, Check, ChevronDown, CreditCard, ScanLine, ShieldCheck, ShoppingBag, Smartphone, Users, WifiOff } from "lucide-react"
 import { auth } from "@/backend/auth"
 import { posDestination } from "@/backend/actions/pos-onboarding"
-import {
-  ShoppingCart, Boxes, Users, BarChart3, WifiOff, Receipt, Scale, Store,
-  Smartphone, ClipboardCheck, ArrowRight, Check,
-} from "lucide-react"
+import { pageMetadata } from "@/frontend/lib/seo"
+import { BrandLogo } from "@/frontend/components/brand-logo"
+import styles from "./landing.module.css"
 
-/**
- * /pos, which is the address a shopkeeper will be given or will type.
- *
- * WHY THIS IS A PAGE AND NOT A REDIRECT
- *
- * It used to decide silently: signed in with a till, go to the till; signed
- * in without one, go to sign-up; signed out, go to login. That is efficient
- * for somebody who already knows what this is, and useless for everybody
- * else. Most people arriving here have been told "SAJI does a till" and have
- * no idea what that means, what it costs, or whether it works when the line
- * drops. Bouncing them to a login form answers none of it.
- *
- * So this says what the thing is. Somebody who already has a till still gets
- * one tap to it, at the top, which costs them nothing.
- *
- * It names no price. The subscription is set per shop by an admin, so a
- * figure here would be wrong for somebody.
- */
+export const metadata = pageMetadata("/pos", "Saji Till — A good day starts at the counter", "A point of sale for your everyday business. Sell, manage stock, accept payments and give your team the right access with Saji Till.")
 export const dynamic = "force-dynamic"
 
-const FEATURES = [
-  {
-    icon: ShoppingCart,
-    title: "A counter that keeps up",
-    body: "Scan with a barcode reader, weigh by the kilo, split a payment between cash and M-Pesa, and print or send the receipt.",
-  },
-  {
-    icon: WifiOff,
-    title: "Works when the line drops",
-    body: "Sales carry on when the internet does not. They queue on the device and go up by themselves when it comes back, and nothing is counted twice.",
-  },
-  {
-    icon: Boxes,
-    title: "Stock that adds up",
-    body: "Every movement is recorded, so what the system thinks is on the shelf can be checked against what is actually there. Count a shelf, approve the difference, and see what it cost you.",
-  },
-  {
-    icon: Users,
-    title: "Your people, with limits",
-    body: "Cashiers, stock controllers, managers and an accountant, each seeing only their own part. Everyone signs in with their own PIN, so every sale has a name on it.",
-  },
-  {
-    icon: Receipt,
-    title: "KRA eTIMS when you are ready",
-    body: "Tax invoices are built in. Until your credentials are entered it will tell you plainly that nothing has been filed, rather than pretending.",
-  },
-  {
-    icon: BarChart3,
-    title: "Figures you can act on",
-    body: "Takings by day, by cashier and by product; what the shift should have in the drawer; what you spent; and what you are actually making after costs.",
-  },
+const trades = [
+  ["01", "Retail & groceries", "From the first barcode to the last cash count. Keep products, prices and everyday sales together.", "Barcode scanning · Stock counts · Customer loyalty"],
+  ["02", "Food & hospitality", "Keep the counter and kitchen in step with tables, orders and a dedicated kitchen screen.", "Table service · Kitchen screen · Split payments"],
+  ["03", "Pharmacy & agrovet", "Know which batch you are selling and which products need attention before they expire.", "Batch tracking · Expiry alerts · Stock records"],
+  ["04", "Fashion & electronics", "Give every size, colour and serial number its place, without making checkout complicated.", "Product variants · Serial numbers · IMEI tracking"],
+  ["05", "Fresh & weighed goods", "Sell a little or a lot. Handle quantities by weight for cereals, produce and butchery counters.", "Measured quantities · Flexible pricing · Receipts"],
+  ["06", "Services & workshops", "Take in a job, record a deposit and keep track of what the customer still owes.", "Work orders · Deposits · Balance tracking"],
+]
+const faqs = [
+  ["Do I need a new till machine?", "You can use Till in a browser on a phone, tablet or computer. A larger screen is useful at a busy counter. Barcode scanners and receipt printers depend on your device and browser setup; talk to us about your equipment before buying hardware."],
+  ["Can my employees have their own login?", "Yes. Add an employee in Team, choose their branch and select the features they may use. New employees verify their invited email and create a password. You can change or switch off access later. Shared-counter PINs are available separately."],
+  ["Can I use my shop’s own M-Pesa Paybill?", "Till supports merchant M-Pesa setup, a received-payments inbox and STK prompts. Live confirmation requires approved Daraja credentials and connected public callbacks. Adding a Paybill number alone does not activate automatic confirmation."],
+  ["What happens if the internet goes down?", "On a prepared device, eligible register sales can queue locally and sync when the connection returns. Start your shift while connected and keep the browser’s local data intact. Online services, including payment confirmation, still need a connection."],
+  ["What appears on a receipt?", "Receipts include the items, payment breakdown and shop details. When configured, they also show VAT, customer details and loyalty points. VAT display is separate from eTIMS submission, which requires its own setup."],
+  ["How much does it cost?", "Contact the Saji team for the subscription and setup options for your business. We’ll discuss your branches, team and hardware requirements before you choose a plan."],
 ]
 
-const TRADES = [
-  { icon: Store, label: "Shops and supermarkets" },
-  { icon: Scale, label: "Cereals, butchery and produce sold by weight" },
-  { icon: ClipboardCheck, label: "Pharmacy and agrovet, with batches and expiry" },
-  { icon: Smartphone, label: "Phones and electronics, tracked by IMEI" },
-  { icon: Receipt, label: "Garages, salons and laundries that take work in" },
-  { icon: ShoppingCart, label: "Restaurants, with tables and a kitchen screen" },
-]
+function CounterPreview() {
+  return <div className={styles.previewWrap}>
+    <div className={styles.previewNote}><span /> Made for the everyday rush</div>
+    <div className={styles.preview} aria-label="Illustrative Saji Till register preview">
+      <div className={styles.previewTop}><span className={styles.previewBrand}><ShoppingBag size={17} /> SAJI TILL</span><span className={styles.shift}><span /> Shift open</span></div>
+      <div className={styles.previewBody}>
+        <div className={styles.products}><div className={styles.previewHeading}><strong>Good morning, Amina.</strong><span>Let’s make it a good day.</span></div><div className={styles.search}><ScanLine size={16} /> Search or scan a product <span>⌕</span></div><div className={styles.categories}><b>All items</b><span>Pantry</span><span>Drinks</span></div><div className={styles.productGrid}>{[{ name: "Fresh milk", price: "70", emoji: "🥛", bg: "#f0e6d6" }, { name: "Brown bread", price: "65", emoji: "🍞", bg: "#f7dfb3" }, { name: "Avocado", price: "40", emoji: "🥑", bg: "#dfe7cb" }, { name: "Coffee", price: "350", emoji: "☕", bg: "#e7d6c8" }].map(item => <div key={item.name} className={styles.product}><div style={{ background: item.bg }} aria-hidden="true">{item.emoji}</div><strong>{item.name}</strong><span>KSh {item.price}</span></div>)}</div></div>
+        <div className={styles.order}><div className={styles.orderHeading}><strong>Current sale</strong><span>3 items</span></div>{[["Fresh milk", "1 × 70", "70"], ["Brown bread", "1 × 65", "65"], ["Avocado", "1 × 40", "40"]].map(row => <div className={styles.orderLine} key={row[0]}><span><strong>{row[0]}</strong><small>{row[1]}</small></span><b>{row[2]}</b></div>)}<div className={styles.orderTotal}><span>Total <small>KSh</small></span><strong>175.00</strong></div><div className={styles.paymentTypes}><span>Cash</span><b>M-Pesa</b><span>Card</span></div><div className={styles.pay}>Complete sale <ArrowRight size={15} /></div><p>Receipt ready when you are.</p></div>
+      </div>
+      <div className={styles.previewBottom}><span><span /> Counter connected</span><span>Illustrative preview · Sample products</span></div>
+    </div>
+    <div className={styles.stockNote}><span className={styles.stockIcon}><Boxes size={21} /></span><span><strong>One less thing to count.</strong><small>Sales update your stock records.</small></span><Check size={18} /></div>
+  </div>
+}
 
 export default async function PosLandingPage() {
   const session = await auth()
-
-  // The same function the sign-in screen uses, so the button here and the
-  // redirect there can never send somebody to different places.
   const destination = session?.user?.id ? await posDestination() : "/pos/signup"
-  const hasTill = destination === "/pos/home" || destination === "/pos/sell" || destination === "/pos/setup"
-
-  return (
-    <main className="min-h-screen bg-background">
-      <header className="border-b border-border">
-        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-          <span className="font-bold text-foreground">
-            SAJI <span className="text-primary">Till</span>
-          </span>
-          <div className="flex items-center gap-2">
-            {hasTill ? (
-              <Link
-                href={destination}
-                className="h-9 px-3 rounded-lg bg-primary text-primary-foreground text-xs font-semibold inline-flex items-center gap-1.5 active:scale-95"
-              >
-                Open your till <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            ) : (
-              <>
-                  <Link
-                  href="/pos/contact"
-                  className="h-9 px-3 rounded-lg text-xs font-semibold inline-flex items-center text-muted-foreground hover:text-foreground active:scale-95"
-                >
-                  Contact
-                </Link>
-              <Link
-                  href="/pos/login"
-                  className="h-9 px-3 rounded-lg border border-border text-xs font-semibold inline-flex items-center text-foreground active:scale-95"
-                >
-                  Sign in
-                </Link>
-                <Link
-                  href="/pos/signup"
-                  className="h-9 px-3 rounded-lg bg-primary text-primary-foreground text-xs font-semibold inline-flex items-center active:scale-95"
-                >
-                  Get a till
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
-
-      <section className="max-w-5xl mx-auto px-4 pt-10 pb-8">
-        <h1 className="text-3xl sm:text-4xl font-bold text-foreground leading-tight">
-          A till for your shop, not a spreadsheet
-        </h1>
-        <p className="mt-3 text-sm text-muted-foreground leading-relaxed max-w-2xl">
-          Ring up sales, keep track of stock, know what the drawer should hold at
-          the end of a shift, and see what you are really making. It runs on the
-          phone in your pocket or a monitor on the counter, and it keeps working
-          when the internet does not.
-        </p>
-        <div className="mt-5 flex flex-wrap gap-2">
-          <Link
-            href={hasTill ? destination : "/pos/signup"}
-            className="h-11 px-5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold inline-flex items-center gap-1.5 active:scale-[0.98]"
-          >
-            {hasTill ? "Open your till" : "Set up your till"} <ArrowRight className="w-4 h-4" />
-          </Link>
-          {!hasTill && (
-            <Link
-              href="/pos/login"
-              className="h-11 px-5 rounded-xl border border-border text-sm font-semibold inline-flex items-center text-foreground active:scale-[0.98]"
-            >
-              I already have one
-            </Link>
-          )}
-        </div>
-        {/* Said plainly, because it is the first question a shopkeeper asks
-            and burying it would read as a catch. */}
-        <p className="mt-3 text-[11px] text-muted-foreground">
-          Set up in a few minutes. Nothing to install.
-        </p>
-      </section>
-
-      <section className="border-y border-border bg-muted/30">
-        <div className="max-w-5xl mx-auto px-4 py-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {FEATURES.map((f) => (
-            <div key={f.title}>
-              <f.icon className="w-5 h-5 text-primary" />
-              <h2 className="mt-2 text-sm font-bold text-foreground">{f.title}</h2>
-              <p className="mt-1 text-xs text-muted-foreground leading-relaxed">{f.body}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="max-w-5xl mx-auto px-4 py-8">
-        <h2 className="text-lg font-bold text-foreground">Set up for your trade</h2>
-        <p className="mt-1 text-xs text-muted-foreground leading-relaxed max-w-2xl">
-          You pick what kind of shop you run and the till configures itself: what
-          it asks for at the counter, what it tracks, and what it warns you about.
-          You can change any of it afterwards.
-        </p>
-        <ul className="mt-4 grid sm:grid-cols-2 gap-2">
-          {TRADES.map((t) => (
-            <li key={t.label} className="flex items-start gap-2 rounded-xl border border-border p-3">
-              <t.icon className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-              <span className="text-xs text-foreground leading-relaxed">{t.label}</span>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section className="border-t border-border bg-muted/30">
-        <div className="max-w-5xl mx-auto px-4 py-8">
-          <h2 className="text-lg font-bold text-foreground">What you get on day one</h2>
-          <ul className="mt-3 grid sm:grid-cols-2 gap-x-6 gap-y-2">
-            {[
-              "Your own sign-in, separate from the rest of SAJI",
-              "Unlimited products and customers",
-              "Barcode scanning on a phone camera or a counter scanner",
-              "Cash, M-Pesa, card, bank, gift cards and credit",
-              "Shift open and close, with the drawer counted",
-              "Staff PINs and role limits you set yourself",
-              "Receipts to print, or sent by SMS",
-              "Several branches under one business",
-            ].map((line) => (
-              <li key={line} className="flex items-start gap-2">
-                <Check className="w-3.5 h-3.5 text-primary mt-0.5 flex-shrink-0" />
-                <span className="text-xs text-foreground leading-relaxed">{line}</span>
-              </li>
-            ))}
-          </ul>
-
-          <div className="mt-6 flex flex-wrap gap-2">
-            <Link
-              href={hasTill ? destination : "/pos/signup"}
-              className="h-11 px-5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold inline-flex items-center gap-1.5 active:scale-[0.98]"
-            >
-              {hasTill ? "Open your till" : "Set up your till"} <ArrowRight className="w-4 h-4" />
-            </Link>
-            <Link
-              href="/pos/login"
-              className="h-11 px-5 rounded-xl border border-border text-sm font-semibold inline-flex items-center text-foreground active:scale-[0.98]"
-            >
-              Sign in
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      <footer className="max-w-5xl mx-auto px-4 py-6">
-        <p className="text-[11px] text-muted-foreground">
-          SAJI Till is part of SAJI. You do not need a SAJI shop or provider
-          account to use it.
-        </p>
-        <p className="mt-2 text-[11px] text-muted-foreground">
-          Questions before you start?{" "}
-          <Link href="/pos/contact" className="text-primary font-medium">Talk to us</Link>.
-        </p>
-      </footer>
-    </main>
-  )
+  const hasTill = destination.startsWith("/pos/") && !["/pos/signup", "/pos/login"].includes(destination)
+  const start = hasTill ? destination : "/pos/signup"
+  return <main className={styles.landing}>
+    <header className={styles.header}><div className={styles.nav}><Link href="/pos" className={styles.logo} aria-label="Saji Till home"><span><BrandLogo size="default" /></span>saji<span className={styles.logoTill}>till</span></Link><nav className={styles.navLinks} aria-label="Explore Till"><a href="#features">Why Till</a><a href="#businesses">Your business</a><a href="#questions">FAQs</a></nav><div className={styles.navActions}><Link href="/pos/login" className={styles.signIn}>Sign in</Link><Link href={start} className={styles.smallCta}>{hasTill ? "Open workspace" : "Get started"}<ArrowUpRight size={16} /></Link></div></div></header>
+    <section className={styles.hero}><div className={styles.container}><div className={styles.heroCopy}><div className={styles.eyebrow}><span /> YOUR BUSINESS. A LITTLE MORE SORTED.</div><h1>A good day starts<br />at the <span>counter.</span></h1><p className={styles.heroDescription}>The sale. The stock. The end-of-day numbers.<br className={styles.desktopBreak} /> Bring it all together with a till that fits the way you work.</p><div className={styles.heroActions}><Link href={start} className={styles.primaryCta}>{hasTill ? "Open your workspace" : "Set up your business"}<ArrowRight size={19} /></Link><Link href="/pos/contact" className={styles.textCta}>Let’s talk <ArrowUpRight size={17} /></Link></div><div className={styles.heroChecks}><span><Check size={14} /> Your own shop workspace</span><span><Check size={14} /> Phone, tablet or desktop</span></div></div><CounterPreview /></div></section>
+    <section className={styles.utilityStrip} aria-label="Till essentials"><div className={styles.container}>{[[ScanLine, "Scan. Sell. Keep moving."], [Smartphone, "Cash, card & M-Pesa"], [Users, "Your team, your permissions"], [WifiOff, "Offline sales queue"]].map(([Icon, label]) => { const FeatureIcon = Icon as typeof ScanLine; return <div key={String(label)}><FeatureIcon size={20} /><span>{String(label)}</span></div> })}</div></section>
+    <section id="features" className={`${styles.section} ${styles.container}`}><div className={styles.sectionHeading}><div><p className={styles.kicker}>LESS CHASING. MORE RUNNING YOUR BUSINESS.</p><h2>Keep your eye on<br />the whole shop.</h2></div><p>A busy counter shouldn’t leave you guessing. Know what sold, what’s left and who did what, from one workspace.</p></div><div className={styles.featureGrid}>
+      <article className={styles.featureLead}><span className={styles.featureIcon}><ScanLine /></span><h3>Make the next sale<br />the easy part.</h3><p>Scan a barcode, find a product, take a split payment. Keep the queue moving and give your customer a clear receipt.</p><div className={styles.miniReceipt}><div><span>SALE COMPLETE</span><Check size={18} /></div><strong>Thank you. See you again.</strong><p>Items recorded. Payment recorded.<br />A receipt to take away.</p><div className={styles.receiptBars} aria-hidden="true" /></div><Link href={start}>Meet your new counter <ArrowRight size={16} /></Link></article>
+      <article className={styles.featureCard}><Boxes size={25} /><h3>A clearer picture of your stock.</h3><p>Add products with photos, receive deliveries and record adjustments. Find low stock before an empty shelf surprises you.</p><div className={styles.stockRows}><div><span>Rice · 2 kg</span><b>In stock</b></div><div><span>Cooking oil · 1 L</span><b>In stock</b></div><div><span>Sugar · 1 kg</span><em>Running low</em></div></div></article>
+      <article className={styles.featureCard}><ShieldCheck size={25} /><h3>Give everyone the right keys.</h3><p>Your cashier sells. Your stock controller manages products. Your auditor checks the figures. Choose each employee’s features yourself.</p><div className={styles.accessChips}><span><Check size={13} /> Register</span><span><Check size={13} /> Open shift</span><span className={styles.mutedChip}>Reports restricted</span></div></article>
+      <article className={styles.featureWide}><BarChart3 size={25} /><div><h3>Close the day with answers.</h3><p>Review sales, payment methods and product performance. Compare the cash counted with the expected drawer balance.</p></div><span className={styles.dayEnd}>Open shift <ArrowRight size={15} /> Sell <ArrowRight size={15} /> Count & close</span></article>
+    </div></section>
+    <section id="businesses" className={styles.tradesSection}><div className={`${styles.container} ${styles.section}`}><div className={styles.sectionHeading}><div><p className={styles.kicker}>ONE TILL. YOUR WAY OF WORKING.</p><h2>At home in<br />your kind of business.</h2></div><p>A cereal shop and a salon have different days. Choose your business profile and configure the selling tools you need.</p></div><div className={styles.tradeGrid}>{trades.map(([number, title, description, features]) => <article key={title}><span className={styles.tradeNumber}>{number}</span><h3>{title}</h3><p>{description}</p><span className={styles.tradeFeatures}>{features}</span></article>)}</div><p className={styles.tradeFoot}>More than one counter? Manage branches and assign employees to the right location. <Link href="/pos/contact">Talk through your setup <ArrowUpRight size={15} /></Link></p></div></section>
+    <section className={`${styles.section} ${styles.container}`}><div className={styles.setupGrid}><div><p className={styles.kicker}>FROM FIRST LOGIN TO FIRST SALE</p><h2>Make yourself<br />at home.</h2><p className={styles.setupIntro}>Start with your essentials. Add more of your business as you go.</p><Link href={start} className={styles.textCta}>Let’s set up your till <ArrowRight size={18} /></Link></div><ol className={styles.steps}>{[["Tell us about your shop", "Create your owner account, choose your business type and add your shop details."], ["Bring in your products & people", "Add your catalogue, set your payment options and choose what each employee can access."], ["Open your shift. You’re ready.", "Enter your opening cash, ring up a sale and print the receipt. Review your day when it’s time to close."]].map(([title, body], i) => <li key={title}><span>{String(i + 1).padStart(2, "0")}</span><div><h3>{title}</h3><p>{body}</p></div></li>)}</ol></div></section>
+    <section className={styles.paymentSection}><div className={`${styles.container} ${styles.paymentInner}`}><div><p className={styles.kicker}>A PLACE FOR EVERY PAYMENT</p><h2>“Nimelipa.”<br />Now match the payment.</h2><p>Find received M-Pesa payments at checkout, match the right amount and keep the reference with the sale. With a connected merchant setup, a confirmed exact-amount prompt can complete checkout and trigger receipt printing.</p><Link href="/pos/contact" className={styles.textCta}>Ask about M-Pesa setup <ArrowUpRight size={17} /></Link><small>Live confirmation requires approved merchant credentials and callback setup. Printing uses your device’s print flow.</small></div><div className={styles.paymentIllustration}><div className={styles.paymentIllustrationTop}><span><CreditCard size={20} /> Payments inbox</span><span className={styles.sampleLabel}>Sample</span></div><div className={styles.paymentAmount}><span>M-PESA PAYMENT RECEIVED</span><strong>KSh 1,250<span>.00</span></strong><p>Reference matched to your checkout</p></div><div className={styles.matched}><span><Check size={15} /> Exact amount matched</span><ShieldCheck size={19} /></div><div className={styles.paymentTrail}><span>Payment</span><ArrowRight size={15} /><span>Sale</span><ArrowRight size={15} /><span>Receipt</span></div></div></div></section>
+    <section id="questions" className={`${styles.section} ${styles.container}`}><div className={styles.faqGrid}><div><p className={styles.kicker}>BEFORE YOU OPEN UP</p><h2>Good questions.<br />Straight answers.</h2><p className={styles.setupIntro}>Have a different question?</p><Link href="/pos/contact" className={styles.textCta}>Speak to the Saji team <ArrowUpRight size={17} /></Link></div><div className={styles.faqs}>{faqs.map(([question, answer]) => <details key={question}><summary>{question}<ChevronDown size={19} /></summary><p>{answer}</p></details>)}</div></div></section>
+    <section className={styles.finalCta}><div className={styles.container}><p className={styles.kicker}>HERE’S TO YOUR NEXT GOOD DAY.</p><h2>Open for business.<br />Ready for what’s next.</h2><div className={styles.heroActions}><Link href={start} className={styles.primaryCta}>{hasTill ? "Back to your workspace" : "Get started with Till"}<ArrowRight size={19} /></Link><Link href="/pos/contact" className={styles.textCta}>Talk to us first <ArrowUpRight size={17} /></Link></div></div></section>
+    <footer className={styles.footer}><div className={styles.container}><div><Link href="/pos" className={styles.logo}><span><BrandLogo size="default" /></span>saji<span className={styles.logoTill}>till</span></Link><p>A little more order.<br />A lot more room to grow.</p></div><nav aria-label="Footer navigation"><Link href="/pos/signup">Owner signup</Link><Link href="/pos/login">Till sign-in</Link><Link href="/pos/employee">Employee signup</Link><Link href="/pos/contact">Contact & pricing</Link></nav><div className={styles.footerNote}><span>© {new Date().getFullYear()} Saji Till</span><span>A dedicated POS workspace by MySaji.</span></div></div></footer>
+  </main>
 }

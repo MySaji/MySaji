@@ -10,7 +10,7 @@ export type DistributorWalletTransaction = {
   description: string
   amount: number
   date: string
-  status: "completed" | "pending"
+  status: "completed" | "pending" | "failed" | "reversed"
 }
 
 export type DistributorWalletSummary = {
@@ -63,7 +63,7 @@ export async function getDistributorWalletSummary(): Promise<DistributorWalletSu
       description: t.description,
       amount: Math.abs(Number(t.amount)),
       date: t.createdAt.toISOString(),
-      status: t.status === "PENDING" ? "pending" : "completed",
+      status: t.status.toLowerCase() as "completed" | "pending" | "failed" | "reversed",
     })),
     paymentMethods: paymentMethods.map((p) => ({
       id: p.id,

@@ -46,6 +46,8 @@ export const EXPIRED_STOCK_POLICY_LABEL: Record<ExpiredStockPolicy, string> = {
 }
 
 export const posConfigSchema = z.object({
+  installLogo: z.string().max(2_000_000).nullable().optional(),
+  primaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Use a six-digit hex colour, such as #2563eb").default("#2563eb"),
   /** Printed at the top of the receipt. Defaults to the shop name. */
   receiptHeader: z.string().trim().max(200).optional(),
   receiptFooter: z.string().trim().max(300).optional(),
@@ -95,10 +97,8 @@ export const posConfigSchema = z.object({
   refundApprovalAbove: z.number().min(0).nullable().default(null),
 
   /**
-   * Percentage added at the till. Deliberately NOT called "VAT": this is an
-   * arithmetic convenience, and calling it VAT would imply a compliance
-   * claim that nothing here supports. Real VAT and eTIMS are a separate
-   * piece of work with their own verification.
+   * Configured single VAT rate for the Till. These calculations and receipt
+   * amounts are separate from eTIMS signing and verification.
    */
   taxRate: z.number().min(0).max(100).default(0),
   taxInclusive: z.boolean().default(true),

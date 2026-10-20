@@ -38,12 +38,13 @@ export type PostItem = {
   isMine: boolean
 }
 
-export async function getPosts(): Promise<PostItem[]> {
+export async function getPosts(postId?: string, savedOnly = false): Promise<PostItem[]> {
   const session = await auth()
   const myId = session?.user?.id ?? null
+  if ((postId !== undefined && (typeof postId !== "string" || !postId.trim() || postId.length > 200)) || (savedOnly === true && !myId)) return []
 
   const posts = await db.post.findMany({
-    where: { isArchived: false },
+    where: { isArchived: false, ...(postId ? { id: postId } : {}), ...(savedOnly === true && myId ? { saves: { some: { userId: myId } } } : {}) },
     orderBy: { createdAt: "desc" },
     take: 50,
     include: {
@@ -187,7 +188,7 @@ export async function getComments(postId: string): Promise<CommentItem[]> {
   }))
 }
 
-const addCommentSchema = z.object({ postId: z.string().trim().min(1), content: z.string().trim().min(1, "Write a comment") })
+const addCommentSchema = z.object({ postId: z.string().trim().min(1), content: z.string().trim().min(1, "Write a comment").max(2000) })
 
 export async function addComment(input: unknown): Promise<CommunityActionResult> {
   const session = await auth()
@@ -203,11 +204,21 @@ export async function addComment(input: unknown): Promise<CommunityActionResult>
   return { success: true }
 }
 
+const postImageSchema = z.string().max(1_400_000).refine(value => {
+  if (/^https:\/\/[^\s]+$/i.test(value)) return value.length <= 4096
+  const match = /^data:image\/(?:jpeg|png|webp|gif);base64,([A-Za-z0-9+/]+={0,2})$/.exec(value)
+  return !!match && Buffer.from(match[1], "base64").byteLength <= 1024 * 1024
+}, "Use a supported image up to 1 MB.")
+const postVideoSchema = z.string().max(4_200_000).refine(value => {
+  if (/^https:\/\/[^\s]+$/i.test(value)) return value.length <= 4096
+  const match = /^data:video\/(?:mp4|webm|quicktime);base64,([A-Za-z0-9+/]+={0,2})$/.exec(value)
+  return !!match && Buffer.from(match[1], "base64").byteLength <= 3 * 1024 * 1024
+}, "Use a supported video up to 3 MB.")
 const createPostSchema = z.object({
   content: z.string().trim().max(2000).optional().default(""),
-  images: z.array(z.string()).max(4).optional().default([]),
-  video: z.string().optional(),
-  location: z.string().trim().optional(),
+  images: z.array(postImageSchema).max(4).optional().default([]),
+  video: postVideoSchema.optional(),
+  location: z.string().trim().max(150).optional(),
 })
 
 export type CreatePostResult = { success: true; postId: string } | { success: false; error: string }
@@ -216,7 +227,7 @@ export async function createPost(input: unknown): Promise<CreatePostResult> {
   const session = await auth()
   if (!session?.user?.id) return { success: false, error: "You must be signed in." }
   const parsed = createPostSchema.safeParse(input)
-  if (!parsed.success) return { success: false, error: "Invalid input" }
+  if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
   const { content, images, video, location } = parsed.data
   if (!content.trim() && images.length === 0 && !video) return { success: false, error: "Write something or add media." }
 
@@ -325,8 +336,8 @@ export async function getGroups(): Promise<GroupItem[]> {
 }
 
 const createGroupSchema = z.object({
-  name: z.string().trim().min(1, "Name is required"),
-  description: z.string().trim().min(1, "Description is required"),
+  name: z.string().trim().min(1, "Name is required").max(100),
+  description: z.string().trim().min(1, "Description is required").max(1000),
 })
 
 export async function createGroup(input: unknown): Promise<CommunityActionResult> {

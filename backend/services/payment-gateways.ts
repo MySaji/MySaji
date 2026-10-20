@@ -1,9 +1,10 @@
 import "server-only"
+
+import { matchesGatewayAmount } from "@/backend/domain/payment-verification"
+
 import { settleConfirmedPayment } from "@/backend/services/payment-settlement"
 
 import { paymentSimulationAllowed } from "@/backend/domain/payment-simulation"
-
-import { confirmProSubscriptionPayment, confirmRentalBookingPayment } from "@/backend/services/settlement-core"
 
 import { db } from "@/backend/db"
 
@@ -24,6 +25,8 @@ export type InitiatePaymentResult = {
   /** True when no real gateway credentials are configured and the payment was
    * auto-completed as a sandbox simulation — clearly logged, never silent. */
   simulated?: boolean
+  gatewayAmount?: number
+  gatewayCurrency?: string
 }
 
 let mpesaToken: { access_token: string; expires_at: number } | null = null
@@ -187,7 +190,7 @@ export async function handleMpesaCallback(payload: any) {
             if (success) await confirmWalletTopup(payment.id, "M-Pesa")
             else await failWalletTopup(payment.id, verified.reason ?? undefined)
           } else {
-            await db.payment.updateMany({ where: { externalRef: checkoutId }, data: { status: success ? "COMPLETED" : "FAILED", paidAt: success ? new Date() : undefined, failureReason: success ? null : verified.reason } }).catch(() => {})
+            await db.payment.updateMany({ where: { externalRef: checkoutId, status: "PENDING" }, data: { status: success ? "COMPLETED" : "FAILED", paidAt: success ? new Date() : undefined, failureReason: success ? null : verified.reason } })
             if (payment.jobId) {
               if (success) await confirmJobPayment(payment.jobId)
               else await failJobPayment(payment.jobId, verified.reason ?? undefined)
@@ -201,8 +204,8 @@ export async function handleMpesaCallback(payload: any) {
         // will retry the same verified query later rather than guessing here.
       }
     }
-    await db.auditLog.create({ data: { action: "mpesa-callback", entityType: "payment", entityId: checkoutId ?? "", newValues: payload } }).catch(() => {})
-  } catch (e) {}
+    await db.auditLog.create({ data: { action: "mpesa-callback", entityType: "payment", entityId: checkoutId ?? "", newValues: payload } })
+  } catch { return { ok: false } }
   return { ok: true }
 }
 
@@ -261,14 +264,14 @@ export async function handleStripeWebhook(payload: string, sig: string) {
       if (payment.contextType === "WALLET_TOPUP") {
         await confirmWalletTopup(payment.id, "Card")
       } else {
-        await db.payment.updateMany({ where: { externalRef: session.id }, data: { status: "COMPLETED", paidAt: new Date() } }).catch(() => {})
+        await db.payment.updateMany({ where: { externalRef: session.id, status: "PENDING" }, data: { status: "COMPLETED", paidAt: new Date() } })
         if (payment && payment.jobId) {
           await confirmJobPayment(payment.jobId)
         } else if (payment) {
           await confirmSubscriptionPaymentIfApplicable(payment)
         }
       }
-      await db.auditLog.create({ data: { action: "stripe-checkout", entityType: "payment", entityId: session.id, newValues: session } }).catch(() => {})
+      await db.auditLog.create({ data: { action: "stripe-checkout", entityType: "payment", entityId: session.id, newValues: session } })
     }
 
     return { ok: true }
@@ -309,7 +312,9 @@ export async function initiatePaypalPayment(amount: number, returnUrl?: string, 
 
   try {
     const token = await getPaypalToken()
-    const usdAmount = (amount * 0.0077).toFixed(2) // PayPal doesn't settle in KES; convert for the order total
+    const rate = Number(process.env.PAYPAL_KES_TO_USD_RATE)
+    if (!Number.isFinite(rate) || rate <= 0) return { success: false, provider: "paypal", message: "PayPal exchange-rate configuration is unavailable." }
+    const usdAmount = (amount * rate).toFixed(2)
 
     const res = await fetch(`${paypalBase()}/v2/checkout/orders`, {
       method: "POST",
@@ -328,7 +333,7 @@ export async function initiatePaypalPayment(amount: number, returnUrl?: string, 
     if (!res.ok || !approveLink) {
       return { success: false, provider: "paypal", message: data?.message || "Failed to create PayPal order" }
     }
-    return { success: true, provider: "paypal", checkoutUrl: approveLink, requestId: data.id }
+    return { success: true, provider: "paypal", checkoutUrl: approveLink, requestId: data.id, gatewayAmount: Number(usdAmount), gatewayCurrency: "USD" }
   } catch (err: any) {
     return { success: false, provider: "paypal", message: err?.message ?? "paypal error" }
   }
@@ -336,33 +341,40 @@ export async function initiatePaypalPayment(amount: number, returnUrl?: string, 
 
 export async function capturePaypalOrder(orderId: string): Promise<{ success: boolean; message?: string }> {
   if (!paypalConfigured()) return { success: false, message: "PayPal is not configured" }
+  const payment = await db.payment.findFirst({ where: { externalRef: orderId } })
+  if (!payment) return { success: false, message: "Payment not found" }
+  if (payment.status === "COMPLETED") {
+    if (payment.jobId) await confirmJobPayment(payment.jobId)
+    else await confirmSubscriptionPaymentIfApplicable(payment)
+    return { success: true }
+  }
+  if (!payment.gatewayAmount || !payment.gatewayCurrency) return { success: false, message: "This legacy payment requires reconciliation." }
   try {
     const token = await getPaypalToken()
-    const res = await fetch(`${paypalBase()}/v2/checkout/orders/${orderId}/capture`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    })
-    const data = await res.json()
-    const success = res.ok && data?.status === "COMPLETED"
-
-    const payment = await db.payment.findFirst({ where: { externalRef: orderId } }).catch(() => null)
-    if (payment?.contextType === "WALLET_TOPUP") {
-      if (success) await confirmWalletTopup(payment.id, "PayPal")
-      else await failWalletTopup(payment.id)
-    } else {
-      await db.payment.updateMany({ where: { externalRef: orderId }, data: { status: success ? "COMPLETED" : "FAILED", paidAt: success ? new Date() : undefined } }).catch(() => {})
-      if (payment && payment.jobId) {
-        if (success) await confirmJobPayment(payment.jobId)
-        else await failJobPayment(payment.jobId)
-      } else if (payment && success) {
-        await confirmSubscriptionPaymentIfApplicable(payment)
-      }
+    const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
+    let res = await fetch(`${paypalBase()}/v2/checkout/orders/${orderId}/capture`, { method: "POST", headers })
+    let data = await res.json()
+    if (!res.ok) {
+      // A duplicate capture can be refused after the first request succeeded.
+      res = await fetch(`${paypalBase()}/v2/checkout/orders/${orderId}`, { headers })
+      data = await res.json()
     }
-    await db.auditLog.create({ data: { action: "paypal-capture", entityType: "payment", entityId: orderId, newValues: data } }).catch(() => {})
-
-    return { success, message: success ? undefined : data?.message || "PayPal payment was not completed" }
-  } catch (err: any) {
-    return { success: false, message: err?.message ?? "paypal capture error" }
+    const captures = data?.purchase_units?.flatMap((unit: any) => unit.payments?.captures ?? []) ?? []
+    const currency = captures[0]?.amount?.currency_code
+    const valid = res.ok && data?.status === "COMPLETED" && captures.length > 0
+      && captures.every((capture: any) => capture.status === "COMPLETED" && capture.amount?.currency_code === currency)
+      && matchesGatewayAmount({ amount: Number(payment.gatewayAmount), currency: payment.gatewayCurrency },
+        { amount: captures.reduce((sum: number, capture: any) => sum + Number(capture.amount?.value), 0), currency: currency ?? "" })
+    if (!valid) return { success: false, message: "Payment has not been verified. Check its status before retrying." }
+    if (payment.contextType === "WALLET_TOPUP") await confirmWalletTopup(payment.id, "PayPal")
+    else {
+      await db.payment.updateMany({ where: { id: payment.id, status: "PENDING" }, data: { status: "COMPLETED", paidAt: new Date() } })
+      if (payment.jobId) await confirmJobPayment(payment.jobId)
+      else await confirmSubscriptionPaymentIfApplicable(payment)
+    }
+    return { success: true }
+  } catch {
+    return { success: false, message: "Payment verification is temporarily unavailable." }
   }
 }
 
@@ -371,7 +383,7 @@ export async function handlePaypalCallback(payload: any) {
   if (orderId && payload?.event_type === "CHECKOUT.ORDER.APPROVED") {
     await capturePaypalOrder(orderId)
   }
-  await db.auditLog.create({ data: { action: "paypal-callback", entityType: "payment", entityId: orderId ?? "", newValues: payload } }).catch(() => {})
+  await db.auditLog.create({ data: { action: "paypal-callback", entityType: "payment", entityId: orderId ?? "", newValues: payload } })
   return { ok: true }
 }
 
@@ -389,6 +401,6 @@ export async function initiateAirtelPayment(phone: string, amount: number, descr
 }
 
 export async function handleAirtelCallback(payload: any) {
-  await db.auditLog.create({ data: { action: "airtel-callback", entityType: "payment", entityId: payload?.transactionId ?? "", newValues: payload } }).catch(() => {})
+  await db.auditLog.create({ data: { action: "airtel-callback", entityType: "payment", entityId: payload?.transactionId ?? "", newValues: payload } })
   return { ok: true }
 }

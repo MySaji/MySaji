@@ -52,10 +52,11 @@ export type DashboardStat = {
 
 export type PosDashboard = {
   shopName: string
+  periodDays?: number
   role: string
   canSeeMoney: boolean
   stats: DashboardStat[]
-  /** Takings per day for the last seven days, oldest first. */
+  /** Takings per day for the selected period, oldest first. */
   trend: { date: string; label: string; total: number; transactions: number }[]
   recentSales: {
     id: string
@@ -88,9 +89,9 @@ export type PosDashboard = {
  * a thin connection that reads as broken.
  */
 export async function getPosDashboard(input?: unknown): Promise<PosDashboard | null> {
-  const staffId = (input as { staffId?: string } | undefined)?.staffId
-  const parsed = z.object({ staffId: z.string().trim().max(60).optional() }).safeParse(input ?? {})
-  const gate = await requirePosPermission("product.view", parsed.success ? parsed.data.staffId : staffId)
+  const parsed = z.object({ staffId: z.string().trim().max(60).optional(), days: z.union([z.literal(7), z.literal(30)]).default(7) }).safeParse(input ?? {})
+  if (!parsed.success) return null
+  const gate = await requirePosPermission("product.view", parsed.data.staffId)
   if (!gate.ok || !gate.actor.shopkeeperId) return null
 
   const shopkeeperId = gate.actor.shopkeeperId
@@ -99,7 +100,8 @@ export async function getPosDashboard(input?: unknown): Promise<PosDashboard | n
   const now = new Date()
   const todayStart = startOfDay(now)
   const yesterdayStart = new Date(todayStart.getTime() - 86400000)
-  const weekStart = new Date(todayStart.getTime() - 6 * 86400000)
+  const days = parsed.data.days
+  const weekStart = new Date(todayStart.getTime() - (days - 1) * 86400000)
 
   const [shop, todaySales, yesterdaySales, weekSales, recent, inventory, topRaw, openShift, batches] =
     await Promise.all([
@@ -195,13 +197,13 @@ export async function getPosDashboard(input?: unknown): Promise<PosDashboard | n
     stats.push({ label: "Today's sales", value: todayTotal, deltaPercent: delta(todayTotal, yTotal), riseIsGood: true, kind: "money" })
   }
   stats.push({ label: "Transactions", value: todayCount, deltaPercent: delta(todayCount, yCount), riseIsGood: true, kind: "count" })
-  stats.push({ label: "Customers served", value: todayCustomers, deltaPercent: delta(todayCustomers, yCustomers), riseIsGood: true, kind: "count" })
+  stats.push({ label: "Identified customers", value: todayCustomers, deltaPercent: delta(todayCustomers, yCustomers), riseIsGood: true, kind: "count" })
   stats.push({ label: "Low stock items", value: lowStock + outOfStock, deltaPercent: null, riseIsGood: false, kind: "count" })
 
-  // Seven days, with empty days present rather than skipped: a gap in a bar
+  // Include empty days throughout the selected period: a gap in a bar
   // chart reads as a closed shop, and a missing bar reads as a bug.
   const trend: PosDashboard["trend"] = []
-  for (let i = 6; i >= 0; i--) {
+  for (let i = days - 1; i >= 0; i--) {
     const day = new Date(todayStart.getTime() - i * 86400000)
     const next = new Date(day.getTime() + 86400000)
     const rows = weekSales.filter((s) => s.occurredAt >= day && s.occurredAt < next)
@@ -226,6 +228,7 @@ export async function getPosDashboard(input?: unknown): Promise<PosDashboard | n
 
   return {
     shopName: shop.shopName,
+    periodDays: days,
     role: gate.actor.role,
     canSeeMoney,
     stats,

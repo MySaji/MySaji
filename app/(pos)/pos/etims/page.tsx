@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import { WorkspaceHeading, PosCard as Card } from "@/frontend/components/pos/workspace-ui"
 import {
   ArrowLeft, AlertTriangle, Check, Loader2, Receipt, RefreshCw, ShieldCheck, Clock, X,
 } from "lucide-react"
-import { Card } from "@/frontend/components/ui/card"
 import { Button } from "@/frontend/components/ui/button"
 import { Input } from "@/frontend/components/ui/input"
 import {
@@ -117,7 +117,7 @@ export default function TillEtimsPage() {
 
   if (!view) {
     return (
-      <div className="p-4 max-w-2xl mx-auto">
+      <div className="p-4 w-full min-w-0">
         <Card className="p-6 text-center rounded-2xl">
           <Receipt className="w-10 h-10 mx-auto text-gray-300 dark:text-gray-600" />
           <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
@@ -134,7 +134,8 @@ export default function TillEtimsPage() {
     serial !== (view.deviceSerial ?? "") || env !== view.env || defaultCode !== view.defaultTaxCode
 
   return (
-    <div className="p-3 max-w-3xl mx-auto space-y-3 pb-24">
+    <div className="p-4 md:p-6 xl:p-8 w-full min-w-0 space-y-5 pb-12">
+      <div className="rounded-2xl border border-border bg-background p-5 md:p-6"><WorkspaceHeading title="Tax & invoicing" /><p className="mt-3 text-xs leading-relaxed text-muted-foreground">Manage your KRA eTIMS setup and invoice submissions.</p></div>
       <Link href="/pos/settings" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 dark:hover:text-white active:scale-95 transition-transform">
         <ArrowLeft className="w-4 h-4" /> Settings
       </Link>

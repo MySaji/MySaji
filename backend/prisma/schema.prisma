@@ -3124,6 +3124,8 @@ model Payment {
   failureReason    String?
   createdAt        DateTime           @default(now())
   paidAt           DateTime?
+  gatewayAmount    Decimal?           @db.Decimal(14, 2)
+  gatewayCurrency  String?
   settledAt        DateTime?
   refundedAt       DateTime?
 
@@ -4439,7 +4441,7 @@ model ProModuleSetting {
 //
 // 4. A COUNTER SALE IS NOT AN Order.
 //
-//    POS2.md proposed reusing Order with a channel flag, and that was wrong.
+//    "syst flow/POS2.md" proposed reusing Order with a channel flag, and that was wrong.
 //    Order requires a customerId that FKs to a real User account; a walk-in
 //    has none. Order carries an address, a delivery fee, an escrow-backed
 //    Payment and a PENDING -> SHIPPED -> DELIVERED lifecycle; a counter sale
@@ -4730,6 +4732,44 @@ model PosSaleItem {
 
 /// One tender against one sale. Only needed for SPLIT payments, but every
 /// sale gets rows so a day's takings can be summed by method from one table.
+model PosMpesaConnection {
+  id String @id @default(cuid())
+  shopkeeperId String @unique
+  shortcode String
+  environment String
+  tokenHash String @unique
+  tokenCiphertext String
+  registeredAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@map("pos_mpesa_connections")
+}
+
+model PosMpesaTransaction {
+  id String @id @default(cuid())
+  shopkeeperId String
+  shortcode String
+  environment String
+  source String
+  status String @default("PENDING")
+  amount Decimal @db.Decimal(14, 2)
+  phone String?
+  payerName String?
+  accountReference String?
+  checkoutId String? @unique
+  receipt String?
+  callbackTokenHash String? @unique
+  consumedSaleId String?
+  resultDescription String?
+  confirmedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([environment, shortcode, receipt])
+  @@index([shopkeeperId, environment, status, createdAt])
+  @@index([consumedSaleId])
+  @@map("pos_mpesa_transactions")
+}
+
 model PosPayment {
   id        String           @id @default(cuid())
   saleId    String
@@ -4880,8 +4920,25 @@ model PosBusiness {
   stores    PosStore[]
   staff     PosStaff[]
   transfers PosStockTransfer[]
+  website   PosBusinessWebsite?
 
   @@map("pos_businesses")
+}
+
+/// A business-owned public website. Draft edits never alter the published snapshot.
+model PosBusinessWebsite {
+  id               String   @id @default(cuid())
+  businessId       String   @unique
+  subdomain        String   @unique
+  draft            Json
+  publishedContent Json?
+  publishedAt      DateTime?
+  version          Int      @default(1)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  business PosBusiness @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@map("pos_business_websites")
 }
 
 /// One shop floor.

@@ -34,7 +34,7 @@ test("knowledge articles have unique routes, substantive content and valid relat
   const { GUIDES } = loadService("backend/domain/knowledge.ts")
   const slugs = new Set(GUIDES.map(g => g.slug))
   assert.equal(slugs.size, GUIDES.length)
-  assert.ok(GUIDES.length >= 14)
+  assert.ok(GUIDES.length >= 22)
   for (const g of GUIDES) {
     assert.ok(g.sections.length >= 2)
     for (const section of g.sections) assert.ok(section.body.length > 40)
@@ -86,4 +86,32 @@ test("offline scopes change with the store and become inaccessible after sign-ou
   assert.equal(offline.offlineScope(), null)
   await offline.initializeOfflineScope("bob")
   assert.equal(offline.offlineScope(), null)
+})
+
+
+test("gateway amounts reject underpayment, wrong currency, and non-finite totals", () => {
+  const { matchesGatewayAmount } = loadService("backend/domain/payment-verification.ts")
+  const expected = { amount: 12.34, currency: "USD" }
+  assert.equal(matchesGatewayAmount(expected, { amount: 12.34, currency: "usd" }), true)
+  assert.equal(matchesGatewayAmount(expected, { amount: 1.23, currency: "USD" }), false)
+  assert.equal(matchesGatewayAmount(expected, { amount: 12.34, currency: "KES" }), false)
+  assert.equal(matchesGatewayAmount(expected, { amount: NaN, currency: "USD" }), false)
+})
+
+test("serialization conflicts retry within a bounded limit", async () => {
+  const { Prisma } = require("@prisma/client")
+  let attempts = 0
+  const db = { $transaction: async (run, options) => {
+    assert.equal(options.isolationLevel, "Serializable")
+    attempts++
+    if (attempts < 3) throw new Prisma.PrismaClientKnownRequestError("conflict", { code: "P2034", clientVersion: "6.19.3" })
+    return run({ marker: "transaction" })
+  } }
+  const { serialTransaction } = loadService("backend/services/db-transaction.ts", { "@/backend/db": { db } })
+  assert.equal(await serialTransaction(async tx => tx.marker), "transaction")
+  assert.equal(attempts, 3)
+  attempts = 0
+  db.$transaction = async () => { attempts++; throw new Prisma.PrismaClientKnownRequestError("conflict", { code: "P2034", clientVersion: "6.19.3" }) }
+  await assert.rejects(() => serialTransaction(async () => "never"))
+  assert.equal(attempts, 4)
 })

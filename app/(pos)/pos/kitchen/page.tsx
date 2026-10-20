@@ -71,15 +71,15 @@ export default function KitchenPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-900 text-white">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+    <main className="min-h-screen bg-slate-950 text-white">
+      <div className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-white/10 bg-slate-950/95 px-4 py-4 backdrop-blur md:px-6">
         <Link
           href="/pos/sell"
           className="text-sm text-slate-400 hover:text-white inline-flex items-center gap-1 h-9 px-1 rounded-lg"
         >
           <ArrowLeft className="w-4 h-4" /> Till
         </Link>
-        <h1 className="text-lg font-bold">Kitchen</h1>
+        <div className="text-center"><p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-blue-400">Order preparation</p><h1 className="mt-1 text-xl font-semibold">Kitchen display</h1></div>
         <button
           onClick={toggleFullscreen}
           aria-label={fullscreen ? "Leave full screen" : "Full screen"}
@@ -101,10 +101,10 @@ export default function KitchenPage() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 p-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 p-4 md:p-6">
           {tickets.map((t) => (
-            <section key={t.orderId} className="rounded-2xl bg-slate-800 overflow-hidden flex flex-col">
-              <header className="flex items-center justify-between px-3 py-2 bg-slate-700">
+            <section key={t.orderId} className="rounded-2xl border border-white/10 bg-slate-900 overflow-hidden flex flex-col shadow-lg">
+              <header className="flex items-center justify-between px-4 py-3 bg-slate-800">
                 <span className="text-xl font-bold">
                   {t.isTakeaway ? "Takeaway" : t.tableName ?? t.reference}
                 </span>

@@ -1,3 +1,4 @@
+import { pageMetadata } from "@/frontend/lib/seo"
 import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
@@ -6,7 +7,7 @@ import { GUIDES, guideBySlug } from "@/backend/domain/knowledge"
 export function generateStaticParams() { return GUIDES.map(g => ({ slug: g.slug })) }
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const guide = guideBySlug((await params).slug)
-  return { title: guide ? `${guide.title} | SAJI Knowledge Base` : "Guide not found", description: guide?.summary }
+  return guide ? pageMetadata(`/knowledge/${guide.slug}`, guide.title, guide.summary) : { title: "Guide not found", robots: { index: false } }
 }
 export default async function GuidePage({ params }: { params: Promise<{ slug: string }> }) {
   const guide = guideBySlug((await params).slug)

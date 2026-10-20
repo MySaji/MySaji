@@ -21,7 +21,7 @@ export type ProviderWalletTransaction = {
   title: string
   amount: number
   date: string
-  status: "completed" | "pending"
+  status: "completed" | "pending" | "failed" | "reversed"
 }
 
 export type ProviderEscrowJob = {
@@ -107,7 +107,7 @@ export async function getProviderWalletSummary(): Promise<ProviderWalletSummary>
       title: t.description,
       amount: Math.abs(Number(t.amount)),
       date: t.createdAt.toISOString(),
-      status: t.status === "PENDING" ? "pending" : "completed",
+      status: t.status.toLowerCase() as "completed" | "pending" | "failed" | "reversed",
     })),
     escrowJobs: escrowJobsRaw.map((j) => ({
       id: j.id,

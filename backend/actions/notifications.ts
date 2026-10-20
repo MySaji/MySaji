@@ -48,7 +48,7 @@ export async function getNotifications(limit?: number): Promise<NotificationItem
     // that split, so an old backlog does not keep the bell lit.
     where: { userId: session.user.id, type: { in: enabledTypes, not: "MESSAGE" } },
     orderBy: { createdAt: "desc" },
-    take: limit,
+    take: typeof limit === "number" && Number.isFinite(limit) ? Math.max(1, Math.min(200, Math.floor(limit))) : 100,
   })
 
   return notifications.map((n) => ({

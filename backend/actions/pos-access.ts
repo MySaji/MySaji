@@ -36,7 +36,7 @@ export type PosWhoAmI = {
 export async function getPosWhoAmI(staffId?: string | null): Promise<PosWhoAmI | null> {
   const actor = await resolvePosActor(staffId)
   if (!actor) return null
-  const { POS_ROLE_PERMISSIONS } = await import("@/backend/domain/pos-permissions")
+  const { POS_PERMISSIONS } = await import("@/backend/domain/pos-permissions")
   return {
     businessId: actor.businessId,
     businessName: actor.businessName,
@@ -44,7 +44,7 @@ export async function getPosWhoAmI(staffId?: string | null): Promise<PosWhoAmI |
     role: actor.role,
     roleLabel: POS_ROLE_META[actor.role].label,
     roleDescription: POS_ROLE_META[actor.role].description,
-    permissions: POS_ROLE_PERMISSIONS[actor.role].filter(p => actor.can(p)),
+    permissions: POS_PERMISSIONS.filter(p => actor.can(p)),
     storeId: actor.storeId,
     isOwner: actor.role === "OWNER",
   }

@@ -132,7 +132,7 @@ function Portfolio({ items }: { items: Data["portfolio"] }) {
             className="group overflow-hidden rounded-xl border bg-white text-left transition hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 dark:border-gray-700 dark:bg-gray-800"
           >
             <span className="relative block aspect-[4/3] overflow-hidden bg-gray-100 dark:bg-gray-900">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {/* Images use the configured unoptimized rendering policy */}
               <img src={item.imageUrl} alt={item.title} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
               {item.videoUrl && (
                 <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-medium text-white">
@@ -222,7 +222,7 @@ function PortfolioLightbox({
         {item.videoUrl ? (
           <video src={item.videoUrl} poster={item.imageUrl} controls autoPlay playsInline className="max-h-full w-full max-w-3xl rounded-xl" />
         ) : (
-          /* eslint-disable-next-line @next/next/no-img-element */
+          /* Images use the configured unoptimized rendering policy */
           <img src={item.imageUrl} alt={item.title} className="max-h-full w-full max-w-3xl rounded-xl object-contain" />
         )}
       </div>

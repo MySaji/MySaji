@@ -1,12 +1,14 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import { createPortal } from "react-dom"
 import Link from "next/link"
+import { WorkspaceHeading, PosCard as Card } from "@/frontend/components/pos/workspace-ui"
 import {
   ArrowLeft, AlertTriangle, Check, Copy, Loader2, MonitorDown, Pencil, Share,
   Plus, Smartphone, Printer,
 } from "lucide-react"
-import { Card } from "@/frontend/components/ui/card"
+import { useTillInstall } from "@/frontend/components/pos/install-provider"
 import { Button } from "@/frontend/components/ui/button"
 import { Input } from "@/frontend/components/ui/input"
 import { getTillAddress, setTillSlug, type TillAddress } from "@/backend/actions/pos-install"
@@ -14,21 +16,13 @@ import { getTillAddress, setTillSlug, type TillAddress } from "@/backend/actions
 /**
  * Getting the till onto the machine at the counter.
  *
- * Three ways, because shops differ and only one of them is "install an app":
+ * Three ways to prepare the counter device:
  *   - install it here, on the machine being read on;
  *   - send the address to the phone that will actually be the till;
  *   - write the address down, because the tablet is not here yet.
  *
- * What this page must not do is imply a native binary. There is no .exe and
- * no Play Store listing, and saying "Download" while handing over a browser
- * shortcut is the kind of small dishonesty a shopkeeper discovers at the
- * worst moment.
+ * Till installs as a standalone web app with its own manifest and icon.
  */
-
-type InstallPromptEvent = Event & {
-  prompt: () => Promise<void>
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>
-}
 
 export default function GetTillPage() {
   const [address, setAddress] = useState<TillAddress | null>(null)
@@ -39,47 +33,32 @@ export default function GetTillPage() {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState("")
 
-  const [prompt, setPrompt] = useState<InstallPromptEvent | null>(null)
-  const [standalone, setStandalone] = useState(false)
-  const [isIos, setIsIos] = useState(false)
+  const { available, standalone, isIos, secure, error: installError, install: doInstall } = useTillInstall()
   const qrRef = useRef<HTMLCanvasElement | null>(null)
+  const [qrImage, setQrImage] = useState("")
 
   useEffect(() => {
     getTillAddress().then(setAddress).finally(() => setLoading(false))
 
-    const running =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      (window.navigator as unknown as { standalone?: boolean }).standalone === true
-    setStandalone(running)
-    const ua = window.navigator.userAgent
-    setIsIos(/iPad|iPhone|iPod/.test(ua) && !/CriOS|FxiOS/.test(ua))
-
-    const onPrompt = (e: Event) => { e.preventDefault(); setPrompt(e as InstallPromptEvent) }
-    window.addEventListener("beforeinstallprompt", onPrompt)
-    return () => window.removeEventListener("beforeinstallprompt", onPrompt)
   }, [])
 
   // The QR code is the whole point of the page on a shop floor: the owner
   // reads it on their laptop, the assistant points the counter phone at it.
   useEffect(() => {
     if (!address || !qrRef.current) return
+    setQrImage("")
     let cancelled = false
     import("qrcode")
       .then((QR) => {
         if (cancelled || !qrRef.current) return
-        return QR.toCanvas(qrRef.current, address.url, { width: 180, margin: 1 })
+        return QR.toCanvas(qrRef.current, address.url, { width: 600, margin: 4 })
+          .then(() => {
+            if (!cancelled && qrRef.current) setQrImage(qrRef.current.toDataURL("image/png"))
+          })
       })
       .catch(() => { /* the address is printed underneath it either way */ })
     return () => { cancelled = true }
   }, [address])
-
-  const doInstall = async () => {
-    if (!prompt) return
-    await prompt.prompt()
-    const { outcome } = await prompt.userChoice
-    if (outcome === "accepted") setStandalone(true)
-    setPrompt(null)
-  }
 
   const copy = async () => {
     if (!address) return
@@ -120,15 +99,15 @@ export default function GetTillPage() {
 
   if (!address) {
     return (
-      <div className="p-4 max-w-2xl mx-auto">
+      <div className="p-4 w-full min-w-0">
         <Card className="p-6 text-center rounded-2xl">
           <MonitorDown className="w-10 h-10 mx-auto text-gray-300 dark:text-gray-600" />
           <h1 className="mt-3 text-lg font-bold text-gray-900 dark:text-white">No till on this account</h1>
           <p className="mt-1.5 text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-            Add the till from My Business and this page will have something to give you.
+            Set up your POS business first, then return here to install your till.
           </p>
-          <Link href="/provider/business-types">
-            <Button className="mt-4 h-11 rounded-xl">Go to My Business</Button>
+          <Link href="/pos/setup">
+            <Button className="mt-4 h-11 rounded-xl">Set up your POS</Button>
           </Link>
         </Card>
       </div>
@@ -136,7 +115,19 @@ export default function GetTillPage() {
   }
 
   return (
-    <div className="p-4 max-w-2xl mx-auto space-y-3 pb-24">
+    <div className="p-4 md:p-6 xl:p-8 w-full min-w-0 space-y-5 pb-12">
+      {qrImage && createPortal(
+        <div id="till-qr-print" style={{ display: "none" }}>
+          <style>{`
+            @media print {
+              body > :not(#till-qr-print) { display: none !important; }
+              #till-qr-print { display: block !important; }
+              #till-qr-print img { display: block; width: 50mm; height: 50mm; }
+            }
+          `}</style>
+          <img src={qrImage} alt="Till QR code" width={600} height={600} />
+        </div>, document.body,
+      )}
       <div className="flex items-center gap-2">
         <Link
           href="/pos/sell"
@@ -146,10 +137,9 @@ export default function GetTillPage() {
         </Link>
       </div>
       <div>
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white">Get your till</h1>
+        <WorkspaceHeading title="Get your till" />
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
-          Put {address.shopName} on the machine at your counter. Set it up once and whoever is
-          on shift just opens it.
+          Install Saji Till for {address.shopName} as its own app, separate from MySaji, with a dedicated icon and window.
         </p>
       </div>
 
@@ -162,7 +152,10 @@ export default function GetTillPage() {
 
       {/* --- 1. this machine --------------------------------------------- */}
       <Card className="p-4 rounded-2xl">
-        <h2 className="text-sm font-bold text-gray-900 dark:text-white">On this machine</h2>
+        <h2 className="text-sm font-bold text-gray-900 dark:text-white">Install Saji Till on this machine</h2>
+        {address && <a href={`/pos/open?shop=${address.slug}&install=1`} className="mt-3 inline-flex min-h-11 items-center rounded-xl border border-border px-4 text-xs font-semibold text-primary">Prepare {address.shopName}’s branded installation</a>}
+        <p className="mt-2 text-xs leading-6 text-muted-foreground">Set the business logo in Settings → Till appearance before installing. Branded installation uses your shop’s name and saved icon.</p>
+        {installError && <p role="alert" className="mt-2 text-xs text-red-600">{installError}</p>}
         {standalone ? (
           <div className="mt-2 flex items-center gap-2">
             <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" strokeWidth={3} />
@@ -170,10 +163,10 @@ export default function GetTillPage() {
               Already installed &mdash; you are reading this inside it.
             </p>
           </div>
-        ) : prompt ? (
+        ) : available ? (
           <>
             <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-              Adds a Till icon that opens straight into the register, in its own window.
+              Adds a Till icon in its own window. On launch, signed-in users open their workspace; signed-out users can sign in safely.
             </p>
             <Button onClick={doInstall} className="mt-3 w-full h-12 rounded-xl gap-1.5">
               <MonitorDown className="w-4 h-4" /> Install the till here
@@ -191,14 +184,22 @@ export default function GetTillPage() {
               </li>
             </ol>
             <p className="mt-2 text-[11px] text-gray-400 dark:text-gray-500 leading-snug">
-              Safari only &mdash; Chrome on iPhone cannot install it.
+              In the Share menu, select Add to Home Screen and keep Open as Web App enabled if shown.
             </p>
           </div>
         ) : (
-          <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-            This browser has not offered to install it. Open the address below in Chrome or Edge
-            on the counter machine, or use it as it is &mdash; the till works the same in a tab.
-          </p>
+          <div className="mt-3 space-y-3 text-xs text-muted-foreground leading-relaxed">
+            {!secure ? <p role="alert">Installation needs a secure connection. Open this POS address using HTTPS, or use localhost when testing on this machine. An HTTP network address cannot install Till.</p> : <>
+              <p>Install <strong>Saji Till</strong> from your browser menu. It gets its own app icon and opens in a dedicated POS window, separate from MySaji.</p>
+              <ul className="list-disc pl-5 space-y-2">
+                <li><strong>Chrome:</strong> open the menu, then Cast, save and share ? Install page as app (or Install Saji Till).</li>
+                <li><strong>Edge:</strong> open the menu ? Apps ? Install this site as an app.</li>
+                <li><strong>Android:</strong> open the browser menu ? Install app or Add to Home screen.</li>
+                <li><strong>Safari on Mac:</strong> choose File ? Add to Dock.</li>
+              </ul>
+              <p>If MySaji is already installed, open this POS address in a regular browser window first, then install Saji Till here.</p>
+            </>}
+          </div>
         )}
       </Card>
 
@@ -211,7 +212,7 @@ export default function GetTillPage() {
 
         <div className="mt-3 flex flex-col items-center gap-2">
           <div className="rounded-xl bg-white p-2.5 border border-gray-200">
-            <canvas ref={qrRef} width={180} height={180} aria-label={"QR code for " + address.display} />
+            <canvas ref={qrRef} width={180} height={180} className="!w-[180px] !h-[180px]" aria-label={"QR code for " + address.display} />
           </div>
           <p className="text-xs font-mono text-gray-700 dark:text-gray-300 text-center break-all px-2">
             {address.display}
@@ -226,7 +227,7 @@ export default function GetTillPage() {
             {copied ? <Check className="w-3.5 h-3.5" strokeWidth={3} /> : <Copy className="w-3.5 h-3.5" />}
             {copied ? "Copied" : "Copy link"}
           </Button>
-          <Button onClick={() => window.print()} variant="outline" className="h-11 w-11 rounded-xl p-0" aria-label="Print this page">
+          <Button onClick={() => window.print()} disabled={!qrImage} variant="outline" className="h-11 w-11 rounded-xl p-0" aria-label="Print QR code">
             <Printer className="w-4 h-4" />
           </Button>
         </div>
@@ -273,8 +274,8 @@ export default function GetTillPage() {
             Sales are saved on the device and go through on their own when the connection is back.
           </li>
           <li>
-            <span className="font-semibold text-gray-900 dark:text-white">It is not a separate program.</span>{" "}
-            There is no file to download and nothing to keep updated &mdash; it updates itself.
+            <span className="font-semibold text-gray-900 dark:text-white">A separate Saji Till app.</span>{" "}
+            Install it alongside MySaji with its own icon and POS window. Updates arrive automatically; no installer file is needed.
           </li>
           <li>
             <span className="font-semibold text-gray-900 dark:text-white">Opening the address signs nobody in.</span>{" "}

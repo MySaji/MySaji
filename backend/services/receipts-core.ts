@@ -6,7 +6,7 @@ import { db } from "@/backend/db"
 
 import { sendEmail } from "@/backend/services/email"
 
-import { wrapEmailLayout, emailButton, siteOrigin } from "@/backend/services/email-templates"
+import { wrapEmailLayout, escapeEmailText, emailButton, siteOrigin } from "@/backend/services/email-templates"
 
 import { getPublicSiteSettings } from "@/backend/actions/admin-settings"
 
@@ -113,7 +113,7 @@ export async function createAndEmailReceipt(input: CreateReceiptInput): Promise<
     const html = wrapEmailLayout({
       title: subject,
       bodyHtml: `
-        <p>Hi ${user.name},</p>
+        <p>Hi ${escapeEmailText(user.name || "there")},</p>
         <p>Your receipt <strong>${receiptNumber}</strong> is attached as a PDF.</p>
         ${emailButton("Verify this receipt", pdfData.verifyUrl)}
       `,

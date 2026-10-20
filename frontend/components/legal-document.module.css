@@ -1,0 +1,8 @@
+.document { overflow-wrap: anywhere; }
+@media print {
+  .document { background: white !important; color: black !important; }
+  .document ~ :global(*) { display: none !important; }
+  .document article { max-width: none; padding: 0; border: 0; box-shadow: none; }
+  .document h2 { break-after: avoid; }
+  .document p, .document li { orphans: 3; widows: 3; }
+}

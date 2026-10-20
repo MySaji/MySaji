@@ -1,4 +1,6 @@
 "use server"
+import { after } from "next/server"
+import { validChatAttachment, MAX_CHAT_DATA_URL_LENGTH } from "@/backend/domain/chat-media"
 
 import { z } from "zod"
 import { isBlockedFrom, recordViolations, reportUser } from "@/backend/services/moderation-core"
@@ -36,17 +38,19 @@ export async function getConversations(): Promise<ConversationSummary[]> {
   const conversations = await db.conversation.findMany({
     where: { OR: [{ participantAId: myId }, { participantBId: myId }] },
     include: {
-      participantA: { include: { providerProfile: { include: { category: true, availability: { select: { isOnline: true } } } } } },
-      participantB: { include: { providerProfile: { include: { category: true, availability: { select: { isOnline: true } } } } } },
-      messages: { orderBy: { createdAt: "desc" }, take: 1 },
+      participantA: { select: { id: true, name: true, image: true, role: true, providerProfile: { select: { category: { select: { name: true } }, availability: { select: { isOnline: true } } } } } },
+      participantB: { select: { id: true, name: true, image: true, role: true, providerProfile: { select: { category: { select: { name: true } }, availability: { select: { isOnline: true } } } } } },
+      messages: { orderBy: { createdAt: "desc" }, take: 1, select: { type: true, content: true } },
     },
     orderBy: { lastMessageAt: "desc" },
   })
+  const unread = conversations.length ? await db.message.groupBy({ by: ["conversationId"], where: { conversationId: { in: conversations.map(item => item.id) }, senderId: { not: myId }, isRead: false }, _count: { _all: true } }) : []
+  const unreadByConversation = new Map(unread.map(item => [item.conversationId, item._count._all]))
 
   const result: ConversationSummary[] = []
   for (const conv of conversations) {
     const other = conv.participantAId === myId ? conv.participantB : conv.participantA
-    const unreadCount = await db.message.count({ where: { conversationId: conv.id, senderId: other.id, isRead: false } })
+    const unreadCount = unreadByConversation.get(conv.id) || 0
     const lastMessage = conv.messages[0]
     const otherAppRole = ROLE_DB_TO_APP[other.role]
     result.push({
@@ -119,7 +123,7 @@ export async function getMessages(conversationId: string): Promise<ChatMessage[]
     orderBy: { createdAt: "asc" },
     // Only the quoted message's own fields — deliberately not its own
     // replyTo, so a long reply chain doesn't fan out into nested loads.
-    include: { replyTo: { select: { id: true, type: true, content: true, senderId: true } } },
+    select: { id: true, senderId: true, type: true, content: true, isRead: true, createdAt: true, replyTo: { select: { id: true, type: true, content: true, senderId: true } } },
   })
   return messages.map((m) => ({
     id: m.id,
@@ -127,7 +131,7 @@ export async function getMessages(conversationId: string): Promise<ChatMessage[]
     isMine: m.senderId === session.user!.id,
     type: m.type,
     content: m.content,
-    attachmentUrl: m.attachmentUrl,
+    attachmentUrl: ["IMAGE", "FILE", "VOICE"].includes(m.type) ? `/api/messages/${encodeURIComponent(m.id)}/attachment` : null,
     isRead: m.isRead,
     createdAt: m.createdAt.toISOString(),
     replyTo: m.replyTo
@@ -139,8 +143,8 @@ export async function getMessages(conversationId: string): Promise<ChatMessage[]
 const sendSchema = z.object({
   conversationId: z.string().trim().min(1),
   type: z.enum(["TEXT", "IMAGE", "FILE", "VOICE", "LOCATION"]),
-  content: z.string().trim().optional(),
-  attachmentUrl: z.string().optional(),
+  content: z.string().trim().max(6000).optional(),
+  attachmentUrl: z.string().max(MAX_CHAT_DATA_URL_LENGTH).optional(),
   replyToId: z.string().trim().min(1).optional(),
 })
 
@@ -153,6 +157,8 @@ export async function sendMessage(input: unknown): Promise<SendMessageResult> {
   const parsed = sendSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: "Invalid input" }
   const { conversationId, type, attachmentUrl } = parsed.data
+  if (["IMAGE", "FILE", "VOICE"].includes(type) && !validChatAttachment(type, attachmentUrl)) return { success: false, error: "Choose a supported image, document or audio file up to 5 MB." }
+  if (type === "TEXT" && !parsed.data.content) return { success: false, error: "Write a message before sending." }
 
   const conversation = await db.conversation.findUnique({ where: { id: conversationId } })
   if (!conversation || (conversation.participantAId !== session.user.id && conversation.participantBId !== session.user.id)) {
@@ -219,7 +225,7 @@ export async function sendMessage(input: unknown): Promise<SendMessageResult> {
   //
   // The push still fires: that is the OS-level alert for when the app is
   // closed, which the in-app inbox badge cannot replace.
-  await pushToUser(otherUserId, { title: "New message", body: messagePreview, url: messagesUrl }, "message")
+  after(() => pushToUser(otherUserId, { title: "New message", body: messagePreview, url: messagesUrl, tag: `message-${conversationId}` }, "message"))
 
   return {
     success: true,
@@ -229,7 +235,7 @@ export async function sendMessage(input: unknown): Promise<SendMessageResult> {
       isMine: true,
       type: message.type,
       content: message.content,
-      attachmentUrl: message.attachmentUrl,
+      attachmentUrl: ["IMAGE", "FILE", "VOICE"].includes(message.type) ? `/api/messages/${encodeURIComponent(message.id)}/attachment` : null,
       isRead: message.isRead,
       createdAt: message.createdAt.toISOString(),
       replyTo: message.replyTo

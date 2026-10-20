@@ -42,12 +42,7 @@ const money = (d: Prisma.Decimal) => Number(d.toFixed(2))
 
 /** Kenyan numbers in any of the shapes people actually type. */
 export async function normalizeCustomerPhone(raw: string): Promise<string | null> {
-  const digits = raw.trim().replace(/[^\d+]/g, "")
-  if (/^\+254\d{9}$/.test(digits)) return digits
-  if (/^254\d{9}$/.test(digits)) return "+" + digits
-  if (/^0\d{9}$/.test(digits)) return "+254" + digits.slice(1)
-  if (/^\d{9}$/.test(digits)) return "+254" + digits
-  return null
+  return normalize(raw)
 }
 
 function normalize(raw: string): string | null {
@@ -113,9 +108,12 @@ export async function getCustomers(input?: unknown): Promise<CustomerRow[]> {
   const parsed = z.object({
     query: z.string().trim().max(60).optional(),
     limit: z.number().int().min(1).max(200).optional(),
+    offset: z.number().int().min(0).max(1000000).optional(),
     staffId: z.string().trim().max(60).optional(),
   }).safeParse(input ?? {})
-  const q = parsed.success ? parsed.data.query?.trim() : undefined
+  if (!parsed.success) return []
+  const q = parsed.data.query?.trim()
+  const phone = q ? normalize(q) : null
   const g = await gate("product.view", parsed.success ? parsed.data.staffId : undefined)
   if (!g.ok) return []
 
@@ -124,10 +122,11 @@ export async function getCustomers(input?: unknown): Promise<CustomerRow[]> {
     where: {
       shopkeeperId: g.shopkeeperId,
       ...(q
-        ? { OR: [{ name: { contains: q, mode: "insensitive" } }, { phone: { contains: q } }] }
+        ? { OR: [{ name: { contains: q, mode: "insensitive" } }, { email: { contains: q, mode: "insensitive" } }, { phone: { contains: phone ?? q } }] }
         : {}),
     },
-    orderBy: [{ isActive: "desc" }, { lastSeenAt: { sort: "desc", nulls: "last" } }],
+    orderBy: [{ isActive: "desc" }, { lastSeenAt: { sort: "desc", nulls: "last" } }, { id: "asc" }],
+    skip: parsed.data.offset ?? 0,
     take: parsed.success ? parsed.data.limit ?? 100 : 100,
   })
 
@@ -164,14 +163,18 @@ export async function findCustomerForTill(input: unknown): Promise<CustomerRow[]
   if (!g.ok) return []
 
   const phone = normalize(parsed.data.query)
+  const digits = parsed.data.query.replace(/[\s()+-]/g, "")
+  const localDigits = digits.replace(/^(?:254|0)/, "")
+  const phonePrefix = /^\d+$/.test(digits) && /^[17]\d{0,7}$/.test(localDigits)
+    ? "+254" + localDigits : null
   const settings = await loyaltyOf(g.shopkeeperId)
   const rows = await db.posCustomer.findMany({
     where: {
       shopkeeperId: g.shopkeeperId,
       isActive: true,
       ...(phone
-        ? { phone }
-        : { OR: [{ name: { contains: parsed.data.query, mode: "insensitive" } }, { phone: { contains: parsed.data.query } }] }),
+        ? { phone: { in: [phone, phone.slice(1), "0" + phone.slice(4), phone.slice(4)] } }
+        : { OR: [{ name: { contains: parsed.data.query, mode: "insensitive" } }, { phone: { contains: parsed.data.query } }, ...(phonePrefix ? [{ phone: { startsWith: phonePrefix } }] : [])] }),
     },
     take: 8,
   })

@@ -1,5 +1,7 @@
 "use client"
 
+import { WorkspaceTools } from "@/frontend/components/workspace-tools"
+
 import type React from "react"
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
@@ -93,7 +95,7 @@ export default function SecretaryLayout({ children }: { children: React.ReactNod
   const moreItems = menuItems.slice(4)
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+    <div data-workspace="secretary" className="flex h-screen bg-gray-50 dark:bg-gray-900">
       {/* Desktop Sidebar */}
       <aside className={`fixed top-0 left-0 h-dvh ${isCollapsed ? "lg:w-20" : "lg:w-64"} w-64 bg-gradient-to-b from-blue-600 to-blue-700 text-white transform transition-[transform,width] z-40 ${menuOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 lg:relative flex flex-col`}>
         <button
@@ -250,6 +252,7 @@ export default function SecretaryLayout({ children }: { children: React.ReactNod
 
         {/* Page Content */}
         <main className="flex-1 overflow-auto pb-20 lg:pb-0">
+          <WorkspaceTools name="Finance workspace" />
           <div className="container mx-auto p-4 lg:p-6">{children}</div>
         </main>
       </div>

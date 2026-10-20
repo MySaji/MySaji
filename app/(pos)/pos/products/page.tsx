@@ -2,11 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
+import { WorkspaceHeading, PosCard as Card } from "@/frontend/components/pos/workspace-ui"
 import {
   ArrowLeft, AlertTriangle, Check, Loader2, Package, Plus, Search, X,
   Pencil, Pause, Play, Camera, Tag, CalendarClock, History, Coins, ShieldAlert,
 } from "lucide-react"
-import { Card } from "@/frontend/components/ui/card"
+import { RowActions } from "@/frontend/components/pos/row-actions"
+import { ManagementTable } from "@/frontend/components/pos/management-table"
+import { ProductPhotoField } from "@/frontend/components/pos/product-photo-field"
 import { Button } from "@/frontend/components/ui/button"
 import { Input } from "@/frontend/components/ui/input"
 import { ScanButton } from "@/frontend/components/pos/barcode-scanner"
@@ -27,11 +30,11 @@ import {
  * are counted at the top, and filling one in is a single tap rather than a
  * trip through the whole form.
  *
- * WHY NOTHING HERE DELETES
+ * WHY USED PRODUCTS CANNOT BE DELETED
  *
  * A product that has ever been sold is named on receipts, in the stock
  * ledger and in last month's figures. Deleting the row would tear holes in
- * all three, so the strongest thing on offer is to stop selling it, which
+ * all three. Used products can be paused, which
  * takes it off the till and leaves the history standing.
  *
  * WHERE STOCK IS NOT EDITED
@@ -109,11 +112,13 @@ export default function TillProductsPage() {
   const [view, setView] = useState<CatalogueView>(null)
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState("")
+  const [category, setCategory] = useState("")
   const [tab, setTab] = useState<Tab>("all")
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState("")
   const [saved, setSaved] = useState("")
 
+  const [photoBusy, setPhotoBusy] = useState(false)
   const [draft, setDraft] = useState<Draft | null>(null)
   const [costFor, setCostFor] = useState<CatalogueRow | null>(null)
   const [costValue, setCostValue] = useState("")
@@ -140,15 +145,15 @@ export default function TillProductsPage() {
   }, [query])
 
   const rows = useMemo(() => {
-    const all = view?.rows ?? []
+    const all = (view?.rows ?? []).filter(row => !category || row.categoryName === category)
     if (tab === "low") return all.filter((r) => r.status === "low" || r.status === "out")
     if (tab === "paused") return all.filter((r) => r.status === "paused")
     if (tab === "nocost") return all.filter((r) => r.costPrice === null)
     return all
-  }, [view, tab])
+  }, [view, tab, category])
 
   const submit = async () => {
-    if (!draft) return
+    if (!draft || photoBusy) return
     setBusy("save"); setError("")
     const r = await saveProduct({
       ...(draft.id ? { id: draft.id } : {}),
@@ -160,7 +165,7 @@ export default function TillProductsPage() {
       unit: draft.unit.trim() || "piece",
       ...(draft.categoryId ? { categoryId: draft.categoryId } : {}),
       ...(draft.description.trim() ? { description: draft.description.trim() } : {}),
-      ...(draft.image.trim() ? { image: draft.image.trim() } : {}),
+      image: draft.image.trim(),
       ageRestricted: draft.ageRestricted,
       ...(draft.lowStockThreshold.trim() ? { lowStockThreshold: Math.floor(Number(draft.lowStockThreshold)) } : {}),
       ...(!draft.id && draft.openingStock.trim() ? { openingStock: Number(draft.openingStock) } : {}),
@@ -203,7 +208,7 @@ export default function TillProductsPage() {
 
   if (!view) {
     return (
-      <div className="p-4 max-w-2xl mx-auto">
+      <div className="p-4 w-full min-w-0">
         <Card className="p-6 text-center rounded-2xl">
           <Package className="w-10 h-10 mx-auto text-gray-300 dark:text-gray-600" />
           <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
@@ -218,7 +223,8 @@ export default function TillProductsPage() {
   const s = view.summary
 
   return (
-    <div className="p-3 max-w-3xl mx-auto space-y-3 pb-24">
+    <div className="p-4 md:p-6 xl:p-8 w-full min-w-0 space-y-5 pb-12">
+      <div className="rounded-2xl border border-border bg-background p-5 md:p-6"><WorkspaceHeading title="Product catalogue" /><p className="mt-3 text-xs leading-relaxed text-muted-foreground">Organize products, services, pricing and stock in one place.</p></div>
       <div className="flex items-center justify-between gap-2">
         <Link href="/pos/sell" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 dark:hover:text-white active:scale-95 transition-transform">
           <ArrowLeft className="w-4 h-4" /> Till
@@ -285,6 +291,7 @@ export default function TillProductsPage() {
         <ScanButton onScanned={(code) => setQuery(code)} label="code of a product to find" />
         {view.canCreate && (
           <Button
+            aria-label="Add product"
             onClick={() => { setDraft(emptyDraft(view.defaultUnit)); setError("") }}
             className="h-11 px-3 rounded-xl flex-shrink-0"
           >
@@ -327,6 +334,8 @@ export default function TillProductsPage() {
         </p>
       )}
 
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-background p-3"><label className="flex items-center gap-3 text-xs font-medium">Category<select aria-label="Filter product category" value={category} onChange={event => setCategory(event.target.value)} className="h-9 rounded-lg border border-border bg-background px-3 text-xs"><option value="">All categories</option>{Array.from(new Set(view.rows.map(row => row.categoryName).filter((name): name is string => !!name))).sort().map(name => <option key={name}>{name}</option>)}</select></label><p className="text-[11px] text-muted-foreground">Choose a row to edit prices, record cost or pause selling.</p></div>
+
       {/* ---- the list ----------------------------------------------------- */}
       {rows.length === 0 ? (
         <Card className="p-8 text-center rounded-2xl">
@@ -345,6 +354,7 @@ export default function TillProductsPage() {
           )}
         </Card>
       ) : (
+        <ManagementTable canDelete={view.canEdit} onDeleted={reload} kind="products" rows={rows.map(row => ({ id: row.id, name: row.name, code: row.sku, quantity: row.stock, price: row.price, status: STATUS[row.status].text, detail: `${row.categoryName || "General"} / ${row.unit}${row.marginPercent === null ? " / Cost missing" : ` / ${row.marginPercent.toFixed(1)}% margin`}`, actions: <>{(view.canEdit || view.canPrice) && <button onClick={() => { setDraft(draftOf(row)); setError("") }}>Edit</button>}{view.canEdit && <><button disabled={busy === row.id} onClick={() => void toggleSelling(row)}>{row.isActive ? "Pause" : "Resume"}</button><button onClick={() => { setCostFor(row); setCostValue("") }}>Set cost</button></>}</> }))}>
         <div className="space-y-2">
           {rows.map((row) => (
             <Card key={row.id} className="p-3 rounded-2xl">
@@ -353,7 +363,7 @@ export default function TillProductsPage() {
                     there is not: a shop with no photographs should not be
                     shown four hundred placeholders. */}
                 {row.image ? (
-                  // eslint-disable-next-line @next/next/no-img-element
+                  // Images use the configured unoptimized rendering policy
                   <img
                     src={row.image}
                     alt=""
@@ -428,6 +438,7 @@ export default function TillProductsPage() {
                   )}
 
                   <div className="mt-2 flex gap-1.5">
+                    <RowActions name={row.name}>
                     {view.canEdit && (
                       <button
                         onClick={() => { setDraft(draftOf(row)); setError("") }}
@@ -454,12 +465,14 @@ export default function TillProductsPage() {
                     >
                       <Tag className="w-3 h-3" /> Stock
                     </Link>
+                    </RowActions>
                   </div>
                 </div>
               </div>
             </Card>
           ))}
         </div>
+        </ManagementTable>
       )}
 
       {/* ---- the form ----------------------------------------------------- */}
@@ -572,25 +585,7 @@ export default function TillProductsPage() {
               />
             </Field>
 
-            <Field label="Picture" hint="A web address, or leave it empty. The till shows the name either way.">
-              <div className="flex gap-2">
-                <Input
-                  value={draft.image}
-                  onChange={(e) => setDraft({ ...draft, image: e.target.value })}
-                  placeholder="https://"
-                  className="h-11 rounded-xl text-sm"
-                />
-                {draft.image.trim().length > 0 && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={draft.image} alt="" className="w-11 h-11 rounded-xl object-cover bg-gray-100 dark:bg-gray-800 flex-shrink-0" />
-                )}
-                {draft.image.trim().length === 0 && (
-                  <span className="w-11 h-11 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center flex-shrink-0">
-                    <Camera className="w-4 h-4 text-gray-300 dark:text-gray-600" />
-                  </span>
-                )}
-              </div>
-            </Field>
+            <ProductPhotoField key={draft.id ?? "new-product"} value={draft.image} editing={!!draft.id} onChange={image => setDraft(current => current ? { ...current, image } : current)} onBusyChange={setPhotoBusy} />
 
             {view.listedOnMarketplace && (
               <>
@@ -655,7 +650,7 @@ export default function TillProductsPage() {
 
             <Button
               onClick={() => void submit()}
-              disabled={busy === "save" || draft.name.trim().length < 1 || !draft.price}
+              disabled={busy === "save" || photoBusy || draft.name.trim().length < 1 || !draft.price}
               className="w-full h-12 rounded-xl text-sm font-semibold"
             >
               {busy === "save"

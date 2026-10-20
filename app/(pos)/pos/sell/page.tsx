@@ -2,11 +2,18 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
+import { useSession } from "next-auth/react"
 import {
   AlertTriangle, ArrowLeft, ArrowRight, Banknote, Calculator, Camera, Check, Clock, CloudOff, CreditCard, Delete, FileLock, Gift, Hammer, HandCoins, Landmark, Loader2, LogOut, Maximize, Minimize, Minus, MonitorPlay, Package, Plus, RefreshCw, Search, ShieldCheck, ShoppingCart, SlidersHorizontal, Smartphone, Star, Store, Trash2, User, X,
 } from "lucide-react"
-import { Card } from "@/frontend/components/ui/card"
+import { PosLogoutButton } from "@/frontend/components/pos/logout-button"
+import { MpesaPaymentPicker } from "@/frontend/components/pos/mpesa-inbox"
+import { CatalogueBrowser } from "@/frontend/components/pos/catalogue-browser"
+import { BusinessWorkspace, RegisterNavigation } from "@/frontend/components/pos/register-workspace"
+import { getPosWhoAmI, type PosWhoAmI } from "@/backend/actions/pos-access"
+import { PosCard as Card } from "@/frontend/components/pos/workspace-ui"
 import { Button } from "@/frontend/components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/frontend/components/ui/dialog"
 import { Input } from "@/frontend/components/ui/input"
 import {
   getTillState, findTillProducts, recordPosSale, openTillShift, closeTillShift, voidPosSale,
@@ -46,11 +53,8 @@ import { searchCached, cacheTillState, readTillState } from "@/frontend/lib/pos-
  * components/pos/till-receipt.tsx — this page deliberately does not use
  * useLocalization's formatMoney, which would convert.
  *
- * What this screen does NOT do yet, and does not pretend to: work offline.
- * Every action here is a round trip. The groundwork is in place (each sale
- * carries an idempotency key, so a retry cannot double-charge) but there is no
- * local catalogue and no queue, so a dropped connection means a failed sale
- * rather than a queued one. Saying so is better than a cashier discovering it.
+ * Offline catalogues and queued sales are scoped to the active POS account
+ * and store. The server remains authoritative for prices and final stock.
  */
 
 function sh(n: number): string {
@@ -83,7 +87,14 @@ type CartLine = {
  *  shirt are two lines, not one with a quantity of two. */
 const lineKey = (productId: string, variantId: string | null) => `${productId}::${variantId ?? ""}`
 
-type PaymentDraft = { method: "CASH" | "MPESA" | "CARD" | "BANK" | "CREDIT" | "GIFT_CARD"; amount: string; reference: string }
+type PaymentDraft = { draftKey: string; mpesaTransactionId?: string; stkCheckoutId?: string; stkPhone?: string; method: "CASH" | "MPESA" | "CARD" | "BANK" | "CREDIT" | "GIFT_CARD"; amount: string; reference: string }
+
+type ParkedSale = {
+  key: string; savedAt: string; total: number; cart: CartLine[]; saleDiscount: string; customerName: string;
+  payments: PaymentDraft[]; promptPhone: string; member: CustomerRow | null; redeem: string;
+  buyer: { name: string; idNumber: string; phone: string; prescriberName: string; prescriptionRef: string };
+  ageConfirmed: boolean; asDeposit: boolean; dueDate: string; cashierId: string | null;
+}
 
 const METHOD_META: Record<PaymentDraft["method"], { label: string; icon: typeof Banknote }> = {
   CASH: { label: "Cash", icon: Banknote },
@@ -113,6 +124,8 @@ function quickCash(total: number): number[] {
 }
 
 export default function TillPage() {
+  const [actor, setActor] = useState<PosWhoAmI | null>(null)
+  useEffect(() => { getPosWhoAmI().then(setActor).catch(() => {}) }, [])
   const [state, setState] = useState<TillState | null>(null)
   /**
    * True when the settings on screen came from this device, not the server.
@@ -131,6 +144,8 @@ export default function TillPage() {
   const [query, setQuery] = useState("")
   const [results, setResults] = useState<TillProduct[]>([])
   const [searching, setSearching] = useState(false)
+  const [hasMoreProducts, setHasMoreProducts] = useState(false)
+  const catalogueRequest = useRef(0)
   const searchRef = useRef<HTMLInputElement>(null)
 
   const [cart, setCart] = useState<CartLine[]>([])
@@ -138,17 +153,55 @@ export default function TillPage() {
   const [saleDiscount, setSaleDiscount] = useState("")
   const [customerName, setCustomerName] = useState("")
 
-  const [payments, setPayments] = useState<PaymentDraft[]>([{ method: "CASH", amount: "", reference: "" }])
+  const [payments, setPayments] = useState<PaymentDraft[]>([{ draftKey: newKey(), method: "CASH", amount: "", reference: "" }])
   const [receipt, setReceipt] = useState<Receipt | null>(null)
   const [busy, setBusy] = useState(false)
+  const [autoPrintReceipt, setAutoPrintReceipt] = useState(false)
+  const submitting = useRef(false)
+  const autoAttempt = useRef("")
   const [error, setError] = useState("")
 
   // Generated once per sale attempt and resent unchanged on every retry, so a
   // dropped response cannot ring the same sale up twice. Replaced only after a
   // sale is successfully recorded.
   const [idempotencyKey, setIdempotencyKey] = useState(() => newKey())
+  const activeSaleKey = useRef(idempotencyKey)
+  activeSaleKey.current = idempotencyKey
+  const { data: accountSession, status: accountStatus } = useSession()
+  useEffect(() => {
+    const watchdog = setTimeout(() => setLoading(false), 20_000)
+    return () => clearTimeout(watchdog)
+  }, [])
+  const [parkedState, setParkedState] = useState<{ scope: string; sales: ParkedSale[] }>({ scope: "", sales: [] })
+  const [showParked, setShowParked] = useState(false)
+  const [manualCompletion, setManualCompletion] = useState(false)
+  const [checkingParked, setCheckingParked] = useState(false)
+  const parkedScope = accountSession?.user?.id && actor?.storeId ? `till-parked:v1:${accountSession.user.id}:${actor.storeId}` : ""
+  const parkedSales = parkedState.scope === parkedScope ? parkedState.sales : []
+  const parkedScopeRef = useRef(parkedScope)
+  parkedScopeRef.current = parkedScope
+  const parkedRef = useRef(parkedSales)
+  parkedRef.current = parkedSales
+  useEffect(() => {
+    if (!parkedScope) return
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(parkedScope) || "[]")
+      setParkedState({ scope: parkedScope, sales: Array.isArray(saved) ? saved.filter((sale: ParkedSale) => typeof sale.key === "string" && Array.isArray(sale.cart) && Array.isArray(sale.payments)).slice(0, 30) : [] })
+    } catch { setError("Could not restore parked sales from this browser tab.") }
+  }, [parkedScope])
+
+  const saveParked = (sales: ParkedSale[]) => {
+    if (!parkedScope || parkedState.scope !== parkedScope) { setError("Wait for your store to finish loading before parking a sale."); return false }
+    try {
+      sessionStorage.setItem(parkedScope, JSON.stringify(sales))
+      parkedRef.current = sales
+      setParkedState({ scope: parkedScope, sales })
+      return true
+    } catch { setError("This browser could not save the parked sale. Keep this checkout open and retry."); return false }
+  }
 
   const offline = usePosOffline()
+  const { saveCatalogue: saveOfflineCatalogue } = offline
   // A sale that was queued rather than sent. The customer is standing
   // there and the sale DID happen, so a receipt is still shown — what
   // changes is the wording on it.
@@ -235,9 +288,16 @@ export default function TillPage() {
   const [memberQuery, setMemberQuery] = useState("")
   const [memberHits, setMemberHits] = useState<CustomerRow[]>([])
   const [memberSearching, setMemberSearching] = useState(false)
+  const memberRequest = useRef(0)
   const [joinOpen, setJoinOpen] = useState(false)
   const [joinName, setJoinName] = useState("")
   const [redeem, setRedeem] = useState("")
+  const [receiptCustomerOpen, setReceiptCustomerOpen] = useState(false)
+  const [receiptCustomerPhone, setReceiptCustomerPhone] = useState("")
+  const [receiptCustomer, setReceiptCustomer] = useState<CustomerRow | null>(null)
+  const [receiptCustomerBusy, setReceiptCustomerBusy] = useState(false)
+  const [receiptCustomerError, setReceiptCustomerError] = useState("")
+  const receiptCustomerRequest = useRef(0)
   const [loyalty, setLoyalty] = useState<LoyaltySettings | null>(null)
 
   /**
@@ -314,9 +374,14 @@ export default function TillPage() {
   }, [])
 
   useEffect(() => {
-    if (!offline.available) return
-    Promise.all([
+    if (accountStatus === "unauthenticated") { window.location.replace("/pos/login"); return }
+    if (accountStatus !== "authenticated") return
+    let cancelled = false
+    let timer: ReturnType<typeof setTimeout>
+    const timeout = new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error("Till startup timed out")), 15_000) })
+    const startup = Promise.all([
       getTillState().then((s) => {
+        if (cancelled) return s
         setState(s)
         setStateIsRemembered(false)
         // The server answered. Null here is a real answer, not a failure.
@@ -324,9 +389,10 @@ export default function TillPage() {
         else void cacheTillState(s)
         return s
       }),
-      findTillProducts({ query: "" }).then((p) => { setResults(p); return p }),
+      findTillProducts({ query: "", limit: 50 }).then((p) => { if (!cancelled) { setResults(p); setHasMoreProducts(p.length === 50) }; return p }),
     ])
-      .then(([, products]) => { void offline.saveCatalogue(products) })
+    Promise.race([startup, timeout])
+      .then(([, products]) => { if (!cancelled) void saveOfflineCatalogue(products) })
       .catch(async () => {
         // Unreachable. Fall back to what this device last knew, so the till
         // opens and sells. Without this the page showed "No till on this
@@ -334,7 +400,7 @@ export default function TillPage() {
         // cashier standing at a cold machine in the morning.
         try {
           const { state: remembered } = await readTillState<TillState>()
-          if (remembered) {
+          if (remembered && !cancelled) {
             setState(remembered)
             setStateIsRemembered(true)
           }
@@ -343,33 +409,49 @@ export default function TillPage() {
           // because this device has genuinely never seen this till.
         }
       })
-      .finally(() => setLoading(false))
-  }, [offline.available, offline.saveCatalogue])
+      .finally(() => { clearTimeout(timer); if (!cancelled) setLoading(false) })
+    return () => { cancelled = true; clearTimeout(timer) }
+  }, [accountStatus, saveOfflineCatalogue])
 
-  // Debounced, because a barcode scanner types a whole code in milliseconds
-  // and a request per keystroke would both hammer the server and let an
-  // earlier response land after a later one.
+  // Ignore stale responses when a cashier types or scans another query.
   useEffect(() => {
+    const request = ++catalogueRequest.current
     const id = setTimeout(() => {
       setSearching(true)
-      findTillProducts({ query })
-        .then((p) => {
-          setResults(p)
-          // Only a full, unfiltered result is worth caching — caching a
-          // search result would shrink the local catalogue to whatever was
-          // last typed.
-          if (query.trim() === "") void offline.saveCatalogue(p)
+      findTillProducts({ query, limit: 50 })
+        .then((products) => {
+          if (request !== catalogueRequest.current) return
+          setResults(products)
+          setHasMoreProducts(products.length === 50)
+          if (query.trim() === "") void offline.saveCatalogue(products)
         })
         .catch(() => {
-          // Unreachable. Serve the last catalogue this till saw rather than
-          // an empty screen, and let the banner say which it is.
+          if (request !== catalogueRequest.current) return
           setResults(searchCached(offline.catalogue, query))
+          setHasMoreProducts(false)
         })
-        .finally(() => setSearching(false))
+        .finally(() => { if (request === catalogueRequest.current) setSearching(false) })
     }, 180)
-    return () => clearTimeout(id)
+    return () => { clearTimeout(id); catalogueRequest.current = request + 1 }
+    // Cached catalogue changes are used on the next search or network failure.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, offline.catalogue])
+  }, [query, offline.available])
+
+  const loadMoreProducts = async () => {
+    if (searching || !hasMoreProducts) return
+    const request = catalogueRequest.current
+    setSearching(true)
+    try {
+      const products = await findTillProducts({ query, limit: 50, offset: results.length })
+      if (request !== catalogueRequest.current) return
+      const combined = [...new Map([...results, ...products].map(product => [product.id, product])).values()]
+      setResults(combined)
+      setHasMoreProducts(products.length === 50 && combined.length > results.length)
+      if (!query.trim()) void offline.saveCatalogue(combined)
+    } catch {
+      if (request === catalogueRequest.current) setError("Could not load more products. Your current basket is unchanged. Try again when connected.")
+    } finally { if (request === catalogueRequest.current) setSearching(false) }
+  }
 
   // ---- cart maths. Mirrors the server, which prices the sale for real. ----
   const lineTotal = (l: CartLine) => {
@@ -467,6 +549,7 @@ export default function TillPage() {
   }
 
   const addProduct = (product: TillProduct, variant?: TillVariant | null) => {
+    if (!state?.shift) { setError("Open a shift before starting a sale."); setShowShift(true); return }
     setError("")
 
     // A product sold in sizes cannot be added without one. If the scan
@@ -517,7 +600,7 @@ export default function TillPage() {
       if (found.length === 1) {
         addProduct(found[0])
         setQuery("")
-        setResults(await findTillProducts({ query: "" }).catch(() => found))
+        setResults(await findTillProducts({ query: "", limit: 50 }).then(products => { setHasMoreProducts(products.length === 50); return products }).catch(() => found))
         return
       }
       // Nothing, or more than one. Shown rather than decided: adding the
@@ -567,21 +650,96 @@ export default function TillPage() {
     setCart((prev) => prev.filter((l) => lineKey(l.product.id, l.variant?.id ?? null) !== key))
 
   const clearSale = () => {
+    setReceiptCustomerOpen(false)
+    receiptCustomerRequest.current++
+    setReceiptCustomer(null); setReceiptCustomerPhone(""); setReceiptCustomerError(""); setReceiptCustomerBusy(false)
+    memberRequest.current++
+    setMemberSearching(false)
     setCart([]); setSaleDiscount(""); setCustomerName(""); setPickVariantFor(null)
-    setPayments([{ method: "CASH", amount: "", reference: "" }])
+    setAutoPrintReceipt(false)
+    setManualCompletion(false)
+    setPayments([{ draftKey: newKey(), method: "CASH", amount: "", reference: "" }])
     setPrompts({}); setPromptPhone("")
     setMember(null); setMemberQuery(""); setMemberHits([]); setRedeem(""); setJoinOpen(false); setJoinName("")
     setReceipt(null); setError(""); setCartOpen(false); setAgeConfirmed(false)
     setScanSerialsFor(null); setSerialDraft("")
     setBuyer({ name: "", idNumber: "", phone: "", prescriberName: "", prescriptionRef: "" })
     setAsDeposit(false); setDueDate("")
-    setIdempotencyKey(newKey())
+    const freshSaleKey = newKey()
+    activeSaleKey.current = freshSaleKey
+    setIdempotencyKey(freshSaleKey)
     // A counter several people share: whoever serves the next customer signs
     // in for it. Without this the first person to touch the till owns the
     // whole day's sales, which is the opposite of what the setting is for.
     if (mode?.requirePinPerSale) setCashier(null)
     setView("sell")
     searchRef.current?.focus()
+  }
+
+  const snapshotSale = (): ParkedSale => ({
+    key: idempotencyKey, savedAt: new Date().toISOString(), total, cart, saleDiscount, customerName,
+    payments, promptPhone, member, redeem, buyer, ageConfirmed, asDeposit, dueDate, cashierId: cashier?.id ?? null,
+  })
+  const parkSale = () => {
+    if (!cart.length || busy || submitting.current || view === "receipt" || Object.values(prompts).some(prompt => prompt.state === "sending")) return
+    if (parkedSales.length >= 30) { setError("Finish a parked sale before adding another. This tab can hold 30 sales."); return }
+    if (!saveParked([...parkedSales, snapshotSale()])) return
+    clearSale()
+    setShowParked(true)
+  }
+  const resumeSale = (sale: ParkedSale) => {
+    if (busy || submitting.current || Object.values(prompts).some(prompt => prompt.state === "sending")) return
+    if (!state?.shift) { setError("Open a shift before resuming a sale."); setShowShift(true); return }
+    if (mode?.anyCashiers && sale.cashierId !== (cashier?.id ?? null)) { setError("Sign in with the cashier PIN that parked this sale before resuming it."); return }
+    // Swap the current basket into the queue, rather than losing it.
+    const next = parkedSales.filter(entry => entry.key !== sale.key)
+    if (cart.length && view !== "receipt") next.push(snapshotSale())
+    if (!saveParked(next)) return
+    clearSale()
+    setCart(sale.cart); setSaleDiscount(sale.saleDiscount); setCustomerName(sale.customerName)
+    setPayments(sale.payments); setPromptPhone(sale.promptPhone); setMember(sale.member); setRedeem(sale.redeem)
+    setBuyer(sale.buyer); setAgeConfirmed(sale.ageConfirmed); setAsDeposit(sale.asDeposit); setDueDate(sale.dueDate)
+    setIdempotencyKey(sale.key); activeSaleKey.current = sale.key
+    setManualCompletion(true); setView("pay"); setShowParked(false)
+    if (mode?.requirePinPerSale) setCashier(cashier)
+  }
+  const refreshParkedPayments = async () => {
+    if (checkingParked || !parkedScope || !navigator.onLine) return
+    const scope = parkedScope
+    setCheckingParked(true)
+    try {
+      // Only provider-confirmed, exact payments are attached to a parked basket.
+      // A paid parked sale stays parked until its cashier resumes and records it.
+      const updates = new Map<string, PaymentDraft>()
+      for (const sale of parkedRef.current) for (const payment of sale.payments) {
+        if (!payment.stkCheckoutId || payment.mpesaTransactionId) continue
+        const status = await checkPromptStatus({ checkoutId: payment.stkCheckoutId })
+        if (status.state === "paid" && status.amount === Number(payment.amount)) updates.set(payment.draftKey, { ...payment, reference: status.receipt, mpesaTransactionId: status.transactionId })
+      }
+      if (parkedScopeRef.current !== scope) return
+      if (updates.size) saveParked(parkedRef.current.map(sale => ({ ...sale, payments: sale.payments.map(payment => updates.get(payment.draftKey) ?? payment) })))
+    } catch { setError("Could not check parked payments. Retry when connected.") }
+    finally { setCheckingParked(false) }
+  }
+
+  const checkCurrentPayment = async () => {
+    if (checkingParked || !navigator.onLine) return
+    const key = idempotencyKey
+    setCheckingParked(true)
+    try {
+      let matched = false
+      for (const payment of payments) {
+        if (!payment.stkCheckoutId || payment.mpesaTransactionId) continue
+        const status = await checkPromptStatus({ checkoutId: payment.stkCheckoutId })
+        if (activeSaleKey.current !== key) return
+        if (status.state === "paid" && status.amount === Number(payment.amount)) {
+          matched = true
+          setPayments(current => current.map(row => row.draftKey === payment.draftKey ? { ...row, reference: status.receipt, mpesaTransactionId: status.transactionId } : row))
+        }
+      }
+      setError(matched ? "" : "No new confirmed payment yet. Check again or use the received-payments inbox.")
+    } catch { setError("Could not check this payment. Please retry.") }
+    finally { setCheckingParked(false) }
   }
 
   // ---- counter machine controls ------------------------------------------
@@ -672,7 +830,19 @@ export default function TillPage() {
   useEffect(() => { displayRef.current?.publish(displayState) }, [displayState])
 
   // ---- submitting ---------------------------------------------------------
-  const takePayment = async () => {
+  const takePayment = async (customerConfirmed = false, selectedCustomer: CustomerRow | null = member) => {
+    if (!state?.shift) { setError("Open a shift before starting a sale."); setShowShift(true); return }
+    if (submitting.current) return
+    if (loyalty?.enabled && !asDeposit && !customerConfirmed) {
+      receiptCustomerRequest.current++
+      setReceiptCustomerBusy(false)
+      setReceiptCustomer(member); setReceiptCustomerPhone(member?.phone || "")
+      setReceiptCustomerError(""); setReceiptCustomerOpen(true)
+      return
+    }
+    setReceiptCustomerOpen(false)
+    submitting.current = true
+    try {
     setBusy(true); setError("")
     const payload = {
       idempotencyKey,
@@ -689,16 +859,14 @@ export default function TillPage() {
         })),
       payments: payments
         .filter((p) => Number(p.amount || 0) > 0)
-        .map((p, i) => ({
+        .map((p) => ({
           method: p.method,
           amount: Number(p.amount),
           ...(p.reference.trim() ? { reference: p.reference.trim() } : {}),
           // Only a prompt Safaricom said was paid. The server checks this
           // again before it writes anything, so sending it is a claim, not
           // a decision.
-          ...(prompts[i]?.state === "paid"
-            ? { stkCheckoutId: prompts[i].checkoutId, stkPhone: prompts[i].phone }
-            : {}),
+          ...(p.method === "MPESA" && p.mpesaTransactionId ? { mpesaTransactionId: p.mpesaTransactionId, ...(p.stkCheckoutId ? { stkCheckoutId: p.stkCheckoutId, stkPhone: p.stkPhone } : {}) } : {}),
         })),
       ...(discountNum > 0 ? { saleDiscount: discountNum } : {}),
       ...(needsAgeCheck ? { ageVerified: ageConfirmed } : {}),
@@ -722,8 +890,8 @@ export default function TillPage() {
       // Who is collecting points, and how many they are spending. Both are
       // requests: the server checks the balance and the shop's rules before
       // either becomes money.
-      ...(member ? { posCustomerId: member.id } : {}),
-      ...(member && spendablePoints > 0 ? { redeemPoints: spendablePoints } : {}),
+      ...(selectedCustomer ? { posCustomerId: selectedCustomer.id } : {}),
+      ...(selectedCustomer && selectedCustomer.id === member?.id && spendablePoints > 0 ? { redeemPoints: spendablePoints } : {}),
     }
 
     const r = await offline.submitSale(payload, { total, itemCount: cart.length })
@@ -746,7 +914,23 @@ export default function TillPage() {
     // Rotated only once the sale is either confirmed OR safely queued under
     // this key. Rotating after a plain failure would turn the cashier's
     // retry into a second sale.
-    setIdempotencyKey(newKey())
+    setIdempotencyKey(newKey())    } catch { setError("Could not finish checkout. Your payment remains in the inbox until the sale is recorded. Retry this checkout to check its status.") }
+    finally { submitting.current = false; setBusy(false) }
+
+  }
+
+  const findReceiptCustomer = async () => {
+    const phone = receiptCustomerPhone.replace(/[\s()+-]/g, "")
+    if (!/^(?:0[17]\d{8}|254[17]\d{8}|[17]\d{8})$/.test(phone)) { setReceiptCustomerError("Enter a complete customer number, such as 0712 345 678."); return }
+    const request = ++receiptCustomerRequest.current
+    setReceiptCustomerBusy(true); setReceiptCustomerError(""); setReceiptCustomer(null)
+    try {
+      const matches = await findCustomerForTill({ query: receiptCustomerPhone })
+      if (request !== receiptCustomerRequest.current) return
+      if (matches.length) setReceiptCustomer(matches[0])
+      else setReceiptCustomerError("No active points account found for this number. Check it, or continue without points.")
+    } catch { if (request === receiptCustomerRequest.current) setReceiptCustomerError("Could not check this account. Retry when connected, or continue without points.") }
+    finally { if (request === receiptCustomerRequest.current) setReceiptCustomerBusy(false) }
   }
 
   /**
@@ -757,8 +941,24 @@ export default function TillPage() {
    * a spinner over the whole screen: the rest of the sale stays usable, and
    * a prompt that is ignored can simply be abandoned for cash.
    */
+  const liveCheckout = useRef({ payments, signature: "" })
+  liveCheckout.current = { payments, signature: JSON.stringify({ cart: cart.map(line => [line.product.id, line.variant?.id, line.quantity, line.unitPriceOverride]), total, customer: member?.id, redeem, asDeposit }) }
+  const latestTakePayment = useRef(takePayment)
+  latestTakePayment.current = takePayment
+  useEffect(() => {
+    const payment = payments.length === 1 ? payments[0] : null
+    if (manualCompletion || view !== "pay" || busy || !payment?.stkCheckoutId || !payment.mpesaTransactionId || payment.method !== "MPESA" || Number(payment.amount) !== total || total <= 0 || asDeposit || !navigator.onLine || (needsAgeCheck && !ageConfirmed) || (needsRegister && buyer.name.trim().length < 2)) return
+    if (autoAttempt.current === payment.mpesaTransactionId) return
+    autoAttempt.current = payment.mpesaTransactionId
+    setAutoPrintReceipt(true)
+    void latestTakePayment.current()
+  }, [manualCompletion, payments, view, busy, total, asDeposit, needsAgeCheck, ageConfirmed, needsRegister, buyer.name])
+
   const sendPrompt = async (idx: number) => {
     const row = payments[idx]
+    const saleKey = idempotencyKey
+    const signature = liveCheckout.current.signature
+    const draftKey = row?.draftKey
     const amount = Number(row?.amount || 0) || shortBy || total
     if (amount <= 0) return
 
@@ -773,22 +973,29 @@ export default function TillPage() {
     // The amount is pinned to what was actually prompted for, so a cashier
     // editing the box afterwards cannot leave a confirmed payment sitting
     // against a different figure.
-    setPayments((prev) => prev.map((q, i) => (i === idx ? { ...q, amount: String(Math.floor(amount)) } : q)))
+    setPayments((prev) => prev.map((q, i) => (i === idx ? { ...q, amount: String(amount), stkCheckoutId: r.checkoutId, stkPhone: r.phone } : q)))
 
     // Up to about two minutes, which is how long Safaricom keeps the request
     // on the handset. Then it stops rather than polling forever.
     for (let attempt = 0; attempt < 40; attempt++) {
       await new Promise((res) => setTimeout(res, 3000))
+      if (activeSaleKey.current !== saleKey) return
       let status: Awaited<ReturnType<typeof checkPromptStatus>>
       try {
         status = await checkPromptStatus({ checkoutId: r.checkoutId })
       } catch {
         continue
       }
+      if (activeSaleKey.current !== saleKey) return
       if (status.state === "paid") {
+        const current = liveCheckout.current.payments[idx]
+        if (!current || current.draftKey !== draftKey || current.method !== "MPESA" || Number(current.amount) !== status.amount || signature !== liveCheckout.current.signature) {
+          setError("M-Pesa payment received, but checkout changed. Find the payment in the inbox and confirm the correct basket.")
+          return
+        }
         setPrompts((prev) => ({ ...prev, [idx]: { checkoutId: r.checkoutId, phone: r.phone, state: "paid" } }))
         setPayments((prev) => prev.map((q, i) =>
-          i === idx ? { ...q, reference: status.receipt ?? q.reference } : q))
+          i === idx ? { ...q, amount: String(status.amount), reference: status.receipt, mpesaTransactionId: status.transactionId, stkCheckoutId: r.checkoutId, stkPhone: r.phone } : q))
         return
       }
       if (status.state === "failed") {
@@ -804,9 +1011,11 @@ export default function TillPage() {
 
   /** Find the member by the number they read out. */
   const lookupMember = async (q: string) => {
-    if (q.trim().length < 2) { setMemberHits([]); return }
+    const request = ++memberRequest.current
+    if (q.trim().length < 2) { setMemberHits([]); setMemberSearching(false); return }
     setMemberSearching(true)
     const hits = await findCustomerForTill({ query: q }).catch(() => [])
+    if (request !== memberRequest.current) return
     setMemberSearching(false)
     setMemberHits(hits)
   }
@@ -895,13 +1104,14 @@ export default function TillPage() {
             The till cannot open yet
           </h1>
           <p className="mt-1.5 text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-            There is no connection, and this device has not opened the till before, so there is
-            nothing saved on it to work from. Connect once and it will open without a connection
-            after that.
+            Till could not finish loading your workspace. Check your connection and sign-in.
+            If this device has no saved catalogue, connect once before using offline mode.
           </p>
           <Button onClick={() => window.location.reload()} className="mt-4 h-11 rounded-xl gap-1.5">
             <RefreshCw className="w-4 h-4" /> Try again
           </Button>
+          <a href="/pos/login" className="mt-4 block text-sm font-semibold text-primary">Sign in to Saji Till</a>
+          <a href="/pos" className="mt-3 block text-xs text-muted-foreground">Return to Saji Till</a>
         </Card>
       </div>
     )
@@ -914,12 +1124,11 @@ export default function TillPage() {
           <Calculator className="w-10 h-10 mx-auto text-gray-300 dark:text-gray-600" />
           <h1 className="mt-3 text-lg font-bold text-gray-900 dark:text-white">No till on this account</h1>
           <p className="mt-1.5 text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-            A till is for serving customers at your own counter. You can add it from My Business,
-            as long as this account does not also offer services, rentals, tutoring or consulting.
+            Set up your POS business to start serving customers, managing stock and adding your team.
           </p>
-          <Link href="/provider/business-types">
+          <Link href="/pos/setup">
             <Button className="mt-4 h-11 rounded-xl gap-1.5">
-              Go to My Business <ArrowRight className="w-4 h-4" />
+              Set up your POS <ArrowRight className="w-4 h-4" />
             </Button>
           </Link>
         </Card>
@@ -978,6 +1187,7 @@ export default function TillPage() {
         )}
         <TillReceipt
           receipt={receipt}
+          autoPrintOnce={autoPrintReceipt}
           onNewSale={clearSale}
           onVoid={busy || voidAsk ? undefined : doVoid}
           /* Printed on the slip so a customer can pay later or query the
@@ -1144,7 +1354,8 @@ export default function TillPage() {
   }
 
   return (
-    <div className="pb-28 lg:pb-4">
+    <div className="min-h-dvh w-full bg-slate-50 pb-28 dark:bg-slate-950 lg:pl-20 lg:pb-4">
+      <RegisterNavigation actor={actor} />
       {/* ---- the subscription, where it is in the way ---------------------
           Above everything, because a cashier who learns about this from a
           refused sale learns it in front of a customer. The server refuses
@@ -1155,7 +1366,7 @@ export default function TillPage() {
             ? "border-b border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-900/20 px-3 py-2.5"
             : "border-b border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 px-3 py-2.5"
         }>
-          <div className="flex items-start gap-2 max-w-3xl mx-auto">
+          <div className="flex items-start gap-2 w-full min-w-0">
             <AlertTriangle className={
               billing.canSell
                 ? "w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5"
@@ -1180,12 +1391,30 @@ export default function TillPage() {
         </div>
       )}
 
+      <div className={(view === "pay" ? "hidden" : "flex") + " flex-wrap items-center gap-2 border-b border-border bg-background px-4 py-3"}>
+        <PosLogoutButton />
+        <Button variant="outline" onClick={parkSale} disabled={!cart.length || busy || view === "receipt" || Object.values(prompts).some(prompt => prompt.state === "sending")} className="gap-2"><Clock className="h-4 w-4" />Park sale & start next</Button>
+        <Button variant="outline" onClick={() => { setShowParked(!showParked); if (!showParked) void refreshParkedPayments() }}>Parked sales ({parkedSales.length})</Button>
+        {payments.some(payment => payment.stkCheckoutId && !payment.mpesaTransactionId) && <Button variant="outline" onClick={() => void checkCurrentPayment()} disabled={checkingParked || busy}>{checkingParked ? "Checking…" : "Check this sale’s payment"}</Button>}
+        <span className="text-xs text-muted-foreground">Saved in this browser tab. Stock is reserved only when the sale is recorded.</span>
+      </div>
+      {showParked && <section aria-label="Parked sales" className="border-b border-border bg-muted/20 p-4">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-sm font-semibold">Customers waiting for payment</h2><p className="mt-1 text-xs text-muted-foreground">Check payments, resume a basket, then record the sale. Your current basket will be parked when you switch.</p></div><Button variant="outline" onClick={() => void refreshParkedPayments()} disabled={checkingParked}>{checkingParked ? "Checking…" : "Check payment status"}</Button></div>
+        {!parkedSales.length && <p className="py-4 text-sm text-muted-foreground">No parked sales. Add products and park the checkout to serve another customer.</p>}
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{parkedSales.map((sale, index) => {
+          const hasPrompt = sale.payments.some(payment => payment.stkCheckoutId)
+          const paid = sale.payments.filter(payment => payment.mpesaTransactionId).reduce((sum, payment) => sum + Number(payment.amount), 0)
+          return <div key={sale.key} className="rounded-xl border border-border bg-background p-4"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="truncate text-sm font-semibold">{sale.customerName || sale.member?.name || `Customer ${index + 1}`}</h3><p className="mt-1 text-xs text-muted-foreground">{sale.cart.length} lines · {new Date(sale.savedAt).toLocaleTimeString("en-KE", { hour: "2-digit", minute: "2-digit" })}</p></div><strong className="whitespace-nowrap text-sm">KSh {shShort(sale.total)}</strong></div><p className="mt-3 text-xs font-medium">{paid >= sale.total && sale.total > 0 ? "Payment received · ready to record" : paid > 0 ? "Part payment received" : hasPrompt ? "M-Pesa prompt pending · check status" : "Waiting for payment"}</p><p className="mt-2 truncate text-xs text-muted-foreground">{sale.cart.map(line => line.product.name).join(", ")}</p><Button className="mt-3 w-full" onClick={() => resumeSale(sale)} disabled={busy}>Resume checkout</Button></div>
+        })}</div>
+      </section>}
+
       {/* ---- shift and takings bar ---------------------------------------- */}
+      {!state.shift && <div className="flex flex-wrap items-center justify-between gap-3 border-b border-amber-300 bg-amber-50 px-4 py-3 text-amber-950 dark:bg-amber-950 dark:text-amber-100"><div><p className="text-sm font-semibold">Open your shift to start selling</p><p className="text-xs">Record the opening cash before adding products or taking payment.</p></div><Button onClick={() => setShowShift(true)}>Open shift</Button></div>}
       <div className="sticky top-0 z-20 border-b border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-900/95 backdrop-blur px-3 py-2">
         {/* Connection, stated before anything else. A cashier must never
             have to infer it from a sale failing. */}
         {(offline.connection === "offline" || offline.pendingCount > 0 || offline.failedCount > 0 || (state?.openDeposits ?? 0) > 0) && (
-          <div className="max-w-5xl xl:max-w-[1600px] mx-auto mb-2 flex flex-wrap items-center gap-1.5">
+          <div className="w-full min-w-0 mb-2 flex flex-wrap items-center gap-1.5">
             {offline.connection === "offline" && (
               <span className="inline-flex items-center gap-1.5 h-7 px-2 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 text-[11px] font-semibold">
                 <CloudOff className="w-3 h-3" /> No connection. Sales are saved here
@@ -1228,7 +1457,7 @@ export default function TillPage() {
           </div>
         )}
 
-        <div className="flex items-center gap-2 max-w-5xl xl:max-w-[1600px] mx-auto">
+        <div className="flex items-center gap-2 w-full min-w-0">
           <div className="min-w-0 flex-1">
             <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">{state.shopName}</p>
             <p className="text-sm font-bold text-gray-900 dark:text-white tabular-nums">
@@ -1304,7 +1533,7 @@ export default function TillPage() {
         </div>
 
         {showShift && (
-          <div className="max-w-5xl xl:max-w-[1600px] mx-auto mt-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 p-3">
+          <div className="w-full min-w-0 mt-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 p-3">
             {state.shift ? (
               <>
                 <div className="grid grid-cols-3 gap-2 text-center">
@@ -1363,7 +1592,7 @@ export default function TillPage() {
         )}
 
         {closeSummary && (
-          <div className={`max-w-5xl xl:max-w-[1600px] mx-auto mt-2 rounded-xl border p-3 ${
+          <div className={`w-full min-w-0 mt-2 rounded-xl border p-3 ${
             closeSummary.variance === 0
               ? "border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20"
               : "border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/10"
@@ -1381,9 +1610,14 @@ export default function TillPage() {
         )}
       </div>
 
-      <div className="max-w-5xl xl:max-w-[1600px] mx-auto p-3 lg:grid lg:grid-cols-[1fr_360px] xl:grid-cols-[1fr_440px] lg:gap-4 xl:gap-6 lg:items-start">
+      <div className="w-full min-w-0 p-3 md:p-5 lg:grid lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_400px] lg:gap-5 xl:gap-6 lg:items-start">
         {/* ---- catalogue -------------------------------------------------- */}
-        <div>
+        <div className="min-w-0">
+          <div className="mb-5 flex flex-wrap items-start justify-between gap-4 rounded-2xl bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 p-5 text-white md:p-6">
+            <div><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-300">Sales workspace</p><h1 className="mt-2 text-2xl font-semibold tracking-tight">{state.traits.includes("SERVICE") ? "Products & services" : "Product catalogue"}</h1><p className="mt-2 text-xs text-slate-300">Find an item, choose its options, and add it to the current sale.</p></div>
+            <span className="hidden rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[10px] text-slate-300 sm:block">F2 Search · F4 Full screen · F8 Display</span>
+          </div>
+          <div className="mb-4"><BusinessWorkspace traits={state.traits} profileKey={state.profileKey} actor={actor} /></div>
           <div className="relative flex gap-2">
             <Search className="absolute left-3 top-6 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none z-10" />
             <Input
@@ -1405,7 +1639,7 @@ export default function TillPage() {
                   void onScannerCode(query)
                 }
               }}
-              placeholder="Scan a barcode, or search by name"
+              placeholder="Search products, SKU or scan a barcode"
               className="h-12 pl-9 pr-9 rounded-xl text-base flex-1"
               autoComplete="off"
               autoFocus
@@ -1436,9 +1670,7 @@ export default function TillPage() {
               onClose={() => setScanning(false)}
               onDetected={(code) => {
                 setScanning(false)
-                // Straight into the search box, which already knows how to
-                // match a barcode exactly and add a single result.
-                setQuery(code)
+                void onScannerCode(code)
                 searchRef.current?.focus()
               }}
             />
@@ -1446,96 +1678,7 @@ export default function TillPage() {
 
           {error && view === "sell" && <div className="mt-2"><ErrorNote>{error}</ErrorNote></div>}
 
-          {results.length === 0 && !searching && (
-            <Card className="mt-3 p-5 text-center rounded-2xl">
-              <Package className="w-8 h-8 mx-auto text-gray-300 dark:text-gray-600" />
-              <p className="mt-2 text-sm font-semibold text-gray-900 dark:text-white">
-                {query ? "Nothing matches that" : "Your catalogue is empty"}
-              </p>
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-                {query
-                  ? "Check the spelling, or add this product to your catalogue first."
-                  : "A till needs something to ring up. Add your products and their prices."}
-              </p>
-              <Link href="/shopkeeper/products">
-                <Button variant="outline" size="sm" className="mt-3 h-9 rounded-lg text-xs gap-1">
-                  <Package className="w-3.5 h-3.5" /> Products &amp; Stock
-                </Button>
-              </Link>
-            </Card>
-          )}
-
-          {/* Two columns even at 390px, three from lg.
-              This started as one column below 420px and that was wrong: a
-              cashier could see six products at a time, so finding anything
-              meant scrolling mid-queue. Two columns roughly doubles what is
-              reachable without a scroll, and the tiles are still comfortably
-              above the 32px tap floor.
-
-              Four and five columns on a counter monitor, for the same reason
-              in reverse: at 1280 and 1920 a three-column grid left half the
-              screen empty and still made the cashier scroll. */}
-          <div className="mt-3 grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 xl:gap-3">
-            {results.map((p) => {
-              const inCart = cart.find((l) => l.product.id === p.id)
-              // Work has no stock to be out of. A garage whose "fit a
-              // filter, 1 hour" tile is greyed out cannot sell its labour.
-              const out = !p.isService && p.stock <= 0
-              return (
-                <button
-                  key={p.id}
-                  onClick={() => addProduct(p)}
-                  className={`relative text-left p-2.5 xl:p-3.5 rounded-xl border min-h-[72px] xl:min-h-[104px] active:scale-[0.98] transition-all ${
-                    inCart
-                      ? "border-primary bg-primary/5"
-                      : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-primary/50"
-                  }`}
-                >
-                  {/* The picture, where the shop has one.
-                      Small and square on purpose. The grid is read at arm's
-                      length by someone already holding the goods, so a photo
-                      is there to be matched in a glance; the name and the
-                      price still have to be the biggest things on the tile.
-                      A product with no picture simply has no box, rather than
-                      a grey placeholder, so a catalogue that was never
-                      photographed does not end up looking broken. */}
-                  {p.image && (
-                    <span className="float-right ml-2 mb-1 w-11 h-11 xl:w-14 xl:h-14 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 block">
-                      <img
-                        src={p.image}
-                        alt=""
-                        loading="lazy"
-                        decoding="async"
-                        className="w-full h-full object-cover"
-                        /* Offline, or a dead link: drop the box rather than
-                           leave a broken-image icon on the counter screen. */
-                        onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = "none" }}
-                      />
-                    </span>
-                  )}
-                  <p className="text-xs font-semibold text-gray-900 dark:text-white leading-tight line-clamp-2">{p.name}</p>
-                  <p className="mt-1 text-sm font-bold text-gray-900 dark:text-white tabular-nums">
-                    {shShort(p.price)}
-                    {p.unit !== "piece" && <span className="text-[10px] font-normal text-gray-400">/{p.unit}</span>}
-                  </p>
-                  <p className={`mt-0.5 text-[10px] tabular-nums ${out ? "text-red-500 font-semibold" : "text-gray-400"}`}>
-                    {out ? "out of stock" : `${shShort(p.stock)} ${p.unit === "piece" ? "left" : p.unit}`}
-                    {/* The total across sizes, with the count, so a cashier
-                        knows a tap opens a choice rather than adding
-                        something. */}
-                    {p.variants.length > 0 && (
-                      <span className="text-gray-400"> &middot; {p.variants.length} options</span>
-                    )}
-                  </p>
-                  {inCart && (
-                    <span className="absolute top-2 right-2 min-w-5 h-5 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center tabular-nums">
-                      {inCart.quantity || "0"}
-                    </span>
-                  )}
-                </button>
-              )
-            })}
-          </div>
+          <CatalogueBrowser products={results} catalogue={offline.catalogue} cart={cart} onAdd={addProduct} searching={searching} query={query} hasMore={hasMoreProducts} onLoadMore={() => void loadMoreProducts()} scope={actor ? `${actor.businessId}:${actor.storeId ?? "default"}` : null} />
 
           {results.length > 0 && (
             <div className="mt-3">
@@ -1550,7 +1693,7 @@ export default function TillPage() {
             cartOpen
               ? "fixed inset-x-0 bottom-0 top-14 z-40 overflow-y-auto bg-white dark:bg-gray-900 rounded-t-2xl shadow-2xl"
               : "hidden"
-          } lg:static lg:block lg:inset-auto lg:z-auto lg:overflow-visible lg:rounded-none lg:shadow-none lg:bg-transparent lg:dark:bg-transparent`}
+          } lg:sticky lg:top-24 lg:block lg:inset-x-auto lg:bottom-auto lg:z-auto lg:overflow-visible lg:rounded-none lg:shadow-none lg:bg-transparent lg:dark:bg-transparent`}
         >
           <div className="p-3 lg:p-0">
             <div className="flex items-center justify-between lg:hidden">
@@ -1564,7 +1707,8 @@ export default function TillPage() {
               </button>
             </div>
 
-            <Card className="mt-2 lg:mt-0 rounded-2xl overflow-hidden">
+            <Card className="mt-2 lg:mt-0 gap-0 rounded-2xl border-border py-0 overflow-hidden shadow-sm">
+              <div className="flex items-center justify-between border-b border-border bg-background p-4"><div><p className="text-sm font-semibold">Current sale</p><p className="mt-1 text-[11px] text-muted-foreground">{itemCount} {itemCount === 1 ? "item" : "items"} · {cashier?.name ?? actor?.name ?? "Counter"}</p></div><span className="rounded-xl bg-blue-50 p-2.5 text-blue-600 dark:bg-blue-950"><ShoppingCart className="h-5 w-5" /></span></div>
               {cart.length === 0 ? (
                 <div className="p-5 text-center">
                   <ShoppingCart className="w-7 h-7 mx-auto text-gray-300 dark:text-gray-600" />
@@ -1573,7 +1717,7 @@ export default function TillPage() {
                   </p>
                 </div>
               ) : (
-                <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                <div className="max-h-[45dvh] overflow-y-auto overscroll-contain divide-y divide-gray-100 dark:divide-gray-700">
                   {cart.map((l) => {
                     const key = lineKey(l.product.id, l.variant?.id ?? null)
                     return (
@@ -1697,7 +1841,7 @@ export default function TillPage() {
                   )}
                   {taxRate > 0 && (
                     <Row
-                      label={`Tax ${taxRate}%${taxInclusive ? " (included)" : ""}`}
+                      label={`VAT ${taxRate}%${taxInclusive ? " (included)" : ""}`}
                       value={sh(tax)}
                     />
                   )}
@@ -1714,7 +1858,7 @@ export default function TillPage() {
                         setError(unscanned[0].product.name + " is tracked individually — scan each unit before taking payment.")
                         return
                       }
-                      setView("pay"); setPayments([{ method: "CASH", amount: "", reference: "" }]); setError("")
+                      setView("pay"); setError("")
                     }}
                     disabled={total <= 0 || unscanned.length > 0}
                     className="w-full h-12 rounded-xl font-semibold mt-1"
@@ -1724,6 +1868,7 @@ export default function TillPage() {
                       : "Take payment"}
                     {unscanned.length === 0 && <ArrowRight className="w-4 h-4 ml-1" />}
                   </Button>
+                  <Button variant="outline" onClick={parkSale} disabled={busy || Object.values(prompts).some(prompt => prompt.state === "sending")} className="lg:hidden w-full h-12 rounded-xl gap-2"><Clock className="h-4 w-4" />Park sale & start next</Button>
                   <button onClick={clearSale} className="w-full py-2.5 text-[11px] text-gray-400 underline">
                     Cancel this sale
                   </button>
@@ -1735,10 +1880,13 @@ export default function TillPage() {
       </div>
 
       {/* ---- sticky basket bar (phones only) ------------------------------ */}
-      {itemCount > 0 && !cartOpen && (
+      {itemCount > 0 && !cartOpen && view === "sell" && (
+        <div className="lg:hidden fixed bottom-16 inset-x-3 z-30 flex gap-2 rounded-2xl border border-border bg-background p-2 shadow-lg">
         <button
+          type="button"
+          aria-label={`Open basket, ${itemCount} items, KSh ${sh(total)}`}
           onClick={() => setCartOpen(true)}
-          className="lg:hidden fixed bottom-16 inset-x-3 z-30 h-14 rounded-2xl bg-primary text-primary-foreground shadow-lg flex items-center justify-between px-4 active:scale-[0.98] transition-transform"
+          className="min-w-0 flex-1 rounded-xl bg-primary text-primary-foreground flex flex-col items-start justify-center px-3 py-2 active:scale-[0.98] transition-transform"
         >
           <span className="flex items-center gap-2 text-sm font-semibold">
             <ShoppingCart className="w-4 h-4" />
@@ -1746,6 +1894,8 @@ export default function TillPage() {
           </span>
           <span className="text-base font-bold tabular-nums">KSh {sh(total)}</span>
         </button>
+        <button type="button" onClick={parkSale} disabled={busy || Object.values(prompts).some(prompt => prompt.state === "sending")} className="flex w-32 shrink-0 items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-2 py-2 text-left text-xs font-semibold text-primary disabled:opacity-50"><Clock className="h-4 w-4 shrink-0" /><span>Park sale<br />&amp; start next</span></button>
+        </div>
       )}
 
       {/* ---- which size? ---------------------------------------------------
@@ -1890,6 +2040,21 @@ export default function TillPage() {
         )
       })()}
 
+      <Dialog open={receiptCustomerOpen} onOpenChange={open => { if (!busy) { setReceiptCustomerOpen(open); if (!open) receiptCustomerRequest.current++ } }}>
+        <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-md">
+          <DialogHeader><DialogTitle>Add customer points before the receipt?</DialogTitle><DialogDescription>Ask for the customer's registered phone number. Points are added when this sale is recorded, and the receipt shows points earned and their updated balance.</DialogDescription></DialogHeader>
+          {spendablePoints > 0 && member ? <p className="rounded-xl bg-muted p-3 text-sm">This sale redeems points from {member.name}. Keep this account attached to preserve the agreed payment total.</p> : <form onSubmit={event => { event.preventDefault(); void findReceiptCustomer() }} className="space-y-2">
+            <label htmlFor="receipt-customer-phone" className="text-sm font-medium">Customer phone number</label>
+            <div className="flex gap-2"><Input id="receipt-customer-phone" inputMode="tel" autoComplete="tel" placeholder="0712 345 678 or +254712345678" value={receiptCustomerPhone} onChange={event => { receiptCustomerRequest.current++; setReceiptCustomerBusy(false); setReceiptCustomerPhone(event.target.value); setReceiptCustomer(null); setReceiptCustomerError("") }} /><Button type="submit" disabled={receiptCustomerBusy || busy}>{receiptCustomerBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Find account"}</Button></div>
+          </form>}
+          {receiptCustomerError && <p role="alert" className="text-sm text-red-600">{receiptCustomerError}</p>}
+          {receiptCustomer && <div className="rounded-xl border border-primary/20 bg-primary/5 p-4"><p className="text-sm font-semibold">{receiptCustomer.name}</p><p className="mt-1 text-xs text-muted-foreground">{receiptCustomer.phone}</p><p className="mt-3 text-sm">Current balance: <strong>{receiptCustomer.pointsBalance} points</strong></p><p className="mt-1 text-xs text-muted-foreground">Points for this purchase and the new total will appear on the final receipt.</p></div>}
+          <Button disabled={!receiptCustomer || receiptCustomerBusy || busy} onClick={() => { if (receiptCustomer) { setMember(receiptCustomer); void takePayment(true, receiptCustomer) } }}>{busy ? "Recording…" : "Add points & finish sale"}</Button>
+          <Button variant="outline" disabled={busy || spendablePoints > 0} onClick={() => { setMember(null); void takePayment(true, null) }}>Skip & finish without points</Button>
+          <button type="button" onClick={() => setReceiptCustomerOpen(false)} disabled={busy} className="py-2 text-xs font-medium text-muted-foreground">Back to checkout</button>
+        </DialogContent>
+      </Dialog>
+
       {/* ---- payment sheet ------------------------------------------------ */}
       {view === "pay" && (
         <div className="fixed inset-0 z-50 flex items-end lg:items-center lg:justify-center bg-black/40">
@@ -1908,6 +2073,11 @@ export default function TillPage() {
               </div>
             </div>
 
+            <div className="flex flex-wrap gap-2 border-b border-border p-3">
+              <Button variant="outline" className="w-full" onClick={parkSale} disabled={busy || Object.values(prompts).some(prompt => prompt.state === "sending")}><Clock className="mr-2 h-4 w-4" />Park sale & start next</Button>
+              {payments.some(payment => payment.stkCheckoutId && !payment.mpesaTransactionId) && <Button variant="outline" className="w-full" onClick={() => void checkCurrentPayment()} disabled={checkingParked || busy}>{checkingParked ? "Checking…" : "Check this sale’s payment"}</Button>}
+              {manualCompletion && <p className="text-xs text-muted-foreground">Resumed sale: review the payment and click Record the sale when ready.</p>}
+            </div>
             <div className="p-3 space-y-3">
               {error && <ErrorNote>{error}</ErrorNote>}
 
@@ -1937,7 +2107,7 @@ export default function TillPage() {
                         return (
                           <button
                             key={m}
-                            onClick={() => setPayments((prev) => prev.map((q, i) => (i === idx ? { ...q, method: m } : q)))}
+                            onClick={() => setPayments((prev) => prev.map((q, i) => (i === idx ? { ...q, method: m, mpesaTransactionId: undefined, stkCheckoutId: undefined, stkPhone: undefined } : q)))}
                             aria-pressed={on}
                             className={`h-14 rounded-lg border flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-all ${
                               on ? "border-primary bg-primary/5 text-primary" : "border-gray-200 dark:border-gray-700 text-gray-500"
@@ -1955,7 +2125,7 @@ export default function TillPage() {
                       <Input
                         value={p.amount}
                         onChange={(e) => setPayments((prev) => prev.map((q, i) =>
-                          i === idx ? { ...q, amount: e.target.value.replace(/[^\d.]/g, "") } : q))}
+                          i === idx ? { ...q, amount: e.target.value.replace(/[^\d.]/g, ""), mpesaTransactionId: undefined, stkCheckoutId: undefined, stkPhone: undefined } : q))}
                         inputMode="decimal"
                         placeholder="Amount"
                         className="h-11 rounded-xl tabular-nums text-base"
@@ -2001,6 +2171,9 @@ export default function TillPage() {
                       const canPrompt = mpesa && mpesa.promptEnabled && !mpesa.promptBlockedReason
                       return (
                         <div className="mt-2 space-y-2">
+                          {mpesa?.env === "sandbox" && <p className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs font-semibold text-amber-800 dark:bg-amber-950/30 dark:text-amber-200">TEST MODE: sandbox confirmations do not represent real money. Switch the merchant connection to production before live trading.</p>}
+                          <MpesaPaymentPicker amount={Number(p.amount || 0) || shortBy || total} onSelect={row => { setPayments(current => current.map((entry, index) => index === idx ? { ...entry, amount: String(row.amount), reference: row.receipt || "", mpesaTransactionId: row.id, stkCheckoutId: undefined, stkPhone: undefined } : entry)); setError("") }} />
+                          {p.mpesaTransactionId && <p className="rounded-xl bg-emerald-50 p-3 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/30">Received payment selected: {p.reference}. It will be matched when this sale is recorded.</p>}
                           {/* The number on the wall, with the amount already
                               worked out. This is the part that helps every
                               shop, prompts or not. */}
@@ -2022,7 +2195,7 @@ export default function TillPage() {
                             </div>
                           )}
 
-                          {canPrompt && prompt?.state !== "paid" && (
+                          {canPrompt && !p.mpesaTransactionId && prompt?.state !== "paid" && (
                             <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-2.5">
                               <label className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
                                 Or send the prompt to their phone
@@ -2038,7 +2211,7 @@ export default function TillPage() {
                                 />
                                 <Button
                                   onClick={() => void sendPrompt(idx)}
-                                  disabled={promptPhone.replace(/\D/g, "").length < 9 || prompt?.state === "sending" || prompt?.state === "waiting"}
+                                  disabled={promptPhone.replace(/\D/g, "").length < 9 || prompt?.state === "sending" || prompt?.state === "waiting" || Boolean(p.stkCheckoutId && prompt?.state !== "failed")}
                                   className="h-11 rounded-xl text-xs whitespace-nowrap"
                                 >
                                   {prompt?.state === "sending" || prompt?.state === "waiting"
@@ -2062,14 +2235,14 @@ export default function TillPage() {
                             </div>
                           )}
 
-                          {prompt?.state === "paid" ? (
+                          {(prompt?.state === "paid" || p.mpesaTransactionId) ? (
                             /* The one case where the till genuinely knows.
                                Safaricom answered against the request we sent,
                                so this may say confirmed where nothing else in
                                the till is allowed to. */
                             <p className="flex items-start gap-1.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 leading-snug">
                               <Check className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" strokeWidth={3} />
-                              Paid. Confirmed by Safaricom{p.reference ? " (" + p.reference + ")" : ""}.
+                              Payment received and matched to this checkout{p.reference ? " (" + p.reference + ")" : ""}.
                             </p>
                           ) : (
                             /* Said plainly. Nothing here talks to Safaricom: the
@@ -2097,7 +2270,7 @@ export default function TillPage() {
 
               {payments.length < 3 && (
                 <button
-                  onClick={() => setPayments((prev) => [...prev, { method: "MPESA", amount: "", reference: "" }])}
+                  onClick={() => setPayments((prev) => [...prev, { draftKey: newKey(), method: "MPESA", amount: "", reference: "" }])}
                   className="w-full h-10 rounded-xl border border-dashed border-gray-300 dark:border-gray-600 text-[11px] font-semibold text-gray-500 active:scale-[0.99]"
                 >
                   + Split across another payment
@@ -2300,7 +2473,7 @@ export default function TillPage() {
                           value={memberQuery}
                           onChange={(e) => { setMemberQuery(e.target.value); void lookupMember(e.target.value) }}
                           inputMode="tel"
-                          placeholder="Their phone number"
+                          placeholder="07xx xxx xxx or +2547xx xxx xxx"
                           className="h-11 rounded-xl text-sm tabular-nums"
                         />
                         {memberSearching && <Loader2 className="w-4 h-4 animate-spin text-gray-400 self-center" />}
@@ -2416,8 +2589,8 @@ export default function TillPage() {
               </div>
 
               <Button
-                onClick={takePayment}
-                disabled={busy || (shortBy > 0 && !(asDeposit && canDeposit && paid > 0)) || cart.length === 0 || (needsAgeCheck && !ageConfirmed)
+                onClick={() => void takePayment()}
+                disabled={!state.shift || busy || (shortBy > 0 && !(asDeposit && canDeposit && paid > 0)) || cart.length === 0 || (needsAgeCheck && !ageConfirmed)
                   || (needsRegister && buyer.name.trim().length < 2)}
                 className="w-full h-14 rounded-xl text-base font-bold"
               >

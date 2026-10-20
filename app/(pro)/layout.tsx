@@ -1,5 +1,7 @@
 "use client"
 
+import { WorkspaceTools } from "@/frontend/components/workspace-tools"
+
 import type React from "react"
 import { useEffect, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
@@ -83,14 +85,14 @@ export default function SajiProLayout({ children }: { children: React.ReactNode 
   // never signed up for it.
   if (!user || (user.role !== "provider" && user.role !== "shopkeeper")) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div data-workspace="pro" className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div data-workspace="pro" className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Upgrades this session's city-level IP position to a real GPS fix in
           the background. Renders nothing and blocks nothing — the feed has
           already been served from the IP origin by the time it runs. */}
@@ -126,6 +128,7 @@ export default function SajiProLayout({ children }: { children: React.ReactNode 
             left the whole portal scrollable by that much — visible on any
             page built to fill the viewport exactly, such as Messages. */}
         <main id="main-content" className="min-h-[calc(100dvh-4rem)] pb-36 lg:pb-24">
+          <WorkspaceTools name="Saji Pro workspace" />
           {/* Progressive KYC deliberately adds nothing to this screen. The
               home screen is built to a fixed design (see the rebuild in
               c269f4d) in which the status card sits directly below the

@@ -1,3 +1,5 @@
+import { receiptVat, type ReceiptLoyalty } from "@/backend/domain/pos-receipt-details"
+
 /**
  * Getting a receipt out of a thermal printer.
  *
@@ -83,6 +85,8 @@ export type PrintableReceipt = {
   occurredAt: string
   cashierName?: string | null
   customerName?: string | null
+  customerPhone?: string | null
+  loyalty?: ReceiptLoyalty | null
   lines: PrintableLine[]
   subtotal: number
   discount: number
@@ -132,9 +136,10 @@ export function receiptHtml(r: PrintableReceipt): string {
   if (r.payTo) body.push(esc(r.payTo))
   body.push(rule("="))
   body.push(esc("Receipt: " + r.saleNumber))
-  body.push(esc(when.toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" })))
+  body.push(esc(when.toLocaleString("en-KE", { timeZone: "Africa/Nairobi", dateStyle: "medium", timeStyle: "short" })))
   if (r.cashierName) body.push(esc("Served by: " + r.cashierName))
   if (r.customerName) body.push(esc("Customer: " + r.customerName))
+  if (r.customerPhone) body.push(esc("Customer phone: " + r.customerPhone))
   body.push(rule())
 
   for (const l of r.lines) {
@@ -148,7 +153,11 @@ export function receiptHtml(r: PrintableReceipt): string {
   body.push(rule())
   body.push(row("Subtotal", sh(r.subtotal)))
   if (r.discount > 0) body.push(row("Discount", "-" + sh(r.discount)))
-  if (r.tax > 0) body.push(row("VAT" + (r.taxRate ? " " + r.taxRate + "%" : ""), sh(r.tax)))
+  if (r.tax > 0 || (r.taxRate ?? 0) > 0) {
+    body.push(row("Amount excl. VAT", sh(receiptVat(r.total, r.tax).net)))
+    body.push(row("VAT" + (r.taxRate ? " " + r.taxRate + "%" : ""), sh(r.tax)))
+    body.push(esc("VAT is included in the total."))
+  }
   body.push(rule("="))
   body.push(row("TOTAL", "KSh " + sh(r.total)))
   body.push(rule("="))
@@ -158,6 +167,15 @@ export function receiptHtml(r: PrintableReceipt): string {
     if (p.reference) body.push(esc("  " + p.reference))
   }
   if (r.change > 0) body.push(row("Change", sh(r.change)))
+
+  if (r.loyalty) {
+    body.push(rule())
+    body.push(esc("CUSTOMER LOYALTY"))
+    body.push(row("Points added", String(r.loyalty.earned)))
+    body.push(row("Points redeemed", String(r.loyalty.redeemed)))
+    body.push(row("Total points", String(r.loyalty.balance)))
+    body.push(esc("Balance after this sale"))
+  }
 
   if (r.copyLabel) {
     body.push("")

@@ -17,7 +17,7 @@ export default async function MaintenancePage() {
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
       <div className="max-w-md w-full text-center space-y-6">
         {logoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
+          // Images use the configured unoptimized rendering policy
           <img src={logoUrl} alt="Logo" className="h-12 mx-auto object-contain" />
         ) : null}
         <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">

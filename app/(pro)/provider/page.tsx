@@ -9,6 +9,7 @@ import {
   Plus, Store, Clock, Users, ChevronRight, MapPin, Loader2, Star, BadgeCheck,
   Wallet, Eye, MessageSquare, CheckCircle2, TrendingUp, Package, ClipboardList,
 } from "lucide-react"
+import { ProWorkspaceHub } from "@/frontend/components/pro-workspace-hub"
 import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 import { useProviderWorkspace } from "@/frontend/lib/hooks/useProviderWorkspace"
 import { useProCapabilities } from "@/frontend/lib/hooks/useProCapabilities"
@@ -274,9 +275,10 @@ export default function ProviderHomePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-3xl space-y-6 px-4 pb-6 pt-4 lg:max-w-6xl">
+      <div className="mx-auto max-w-[1500px] space-y-7 px-4 pb-8 pt-5 sm:px-6">
+        <ProWorkspaceHub />
         {/* Status + this week's numbers */}
-        <section className="rounded-2xl bg-[#0B2E20] p-4 text-white sm:p-5">
+        <section className="rounded-2xl bg-[#073b98] p-4 text-white sm:p-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             {/* Availability */}
             <div className="sm:w-44">

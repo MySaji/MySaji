@@ -1,4 +1,7 @@
 import type { Metadata, Viewport } from "next"
+import { TillInstallProvider } from "@/frontend/components/pos/install-provider"
+import { cookies } from "next/headers"
+import { publicTillBrand } from "@/backend/services/pos-install-brand"
 
 /**
  * Exists only to give the till its own web app manifest.
@@ -14,9 +17,28 @@ import type { Metadata, Viewport } from "next"
  * component and cannot export metadata, which is the other reason this
  * layout is here.
  */
-export const metadata: Metadata = {
-  title: "Till",
+const defaultMetadata: Metadata = {
+  title: "Saji Till — POS",
+  applicationName: "Saji Till",
+  appleWebApp: { capable: true, title: "Saji Till", statusBarStyle: "black-translucent" },
+  icons: {
+    icon: [
+      { url: "/pos/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/pos/favicon-48.png", sizes: "48x48", type: "image/png" },
+    ],
+    shortcut: "/pos/favicon.ico",
+    apple: "/pos/icon-192.png",
+  },
   manifest: "/till-manifest.json",
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const slug = (await cookies()).get("saji-till-shop")?.value
+  const brand = slug ? await publicTillBrand(slug).catch(() => null) : null
+  if (!brand) return defaultMetadata
+  const icon = brand.logo ? `/pos/brand/${brand.slug}/icon/512?v=${brand.revision}` : "/pos/icon-512.png"
+  return { ...defaultMetadata, applicationName: `${brand.name} · Saji Till`, manifest: `/pos/brand/${brand.slug}/manifest.webmanifest`,
+    appleWebApp: { capable: true, title: brand.name, statusBarStyle: "black-translucent" }, icons: { icon, apple: icon } }
 }
 
 /**
@@ -33,5 +55,5 @@ export const viewport: Viewport = {
 }
 
 export default function TillLayout({ children }: { children: React.ReactNode }) {
-  return children
+  return <TillInstallProvider>{children}</TillInstallProvider>
 }

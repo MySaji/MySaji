@@ -87,7 +87,7 @@ export function AccountMenu({ alwaysShowLabel = false }: { alwaysShowLabel?: boo
       >
         <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
           {user?.avatar ? (
-            // eslint-disable-next-line @next/next/no-img-element -- base64 data URLs (locally-uploaded avatars) aren't supported by next/image
+            // Images use the configured unoptimized rendering policy -- base64 data URLs (locally-uploaded avatars) aren't supported by next/image
             <img src={user.avatar} alt="" className="w-full h-full object-cover" />
           ) : (
             <span className="text-sm font-semibold text-primary">{user?.name?.charAt(0).toUpperCase() || "U"}</span>

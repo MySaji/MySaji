@@ -88,7 +88,7 @@ export default function ProviderProfilePage() {
               own photo when they have one, and their initial when they don't. */}
           <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-blue-400 to-blue-600">
             {info?.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
+              // Images use the configured unoptimized rendering policy
               <img src={info.avatarUrl} alt="" className="h-full w-full object-cover" />
             ) : (
               <span className="text-3xl font-bold text-white">{info?.displayName?.trim().charAt(0).toUpperCase() ?? ""}</span>

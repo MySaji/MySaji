@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import { WorkspaceHeading, PosCard as Card } from "@/frontend/components/pos/workspace-ui"
 import {
   ArrowLeft, AlertTriangle, Check, Loader2, Plus, ShieldCheck, User, UserCheck, UserMinus, X,
 } from "lucide-react"
-import { Card } from "@/frontend/components/ui/card"
 import { Button } from "@/frontend/components/ui/button"
 import { Input } from "@/frontend/components/ui/input"
 import {
@@ -94,7 +94,7 @@ export default function TillPeoplePage() {
   const managers = rows.filter((c) => c.isActive && c.role === "manager").length
 
   return (
-    <div className="p-4 max-w-2xl mx-auto space-y-3 pb-24">
+    <div className="p-4 md:p-6 xl:p-8 w-full min-w-0 space-y-5 pb-12">
       <div className="flex items-center gap-2">
         <Link
           href="/pos/settings"
@@ -104,12 +104,18 @@ export default function TillPeoplePage() {
         </Link>
       </div>
       <div>
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white">Who works the till</h1>
+        <WorkspaceHeading title="Who works the till" />
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
           Give each person a PIN and their name goes on every sale they ring up. They do not
           need a SAJI account, an email address or a password.
         </p>
       </div>
+
+      <Card className="border-primary/20 bg-primary/5 p-5">
+        <h2 className="text-sm font-semibold">Employee portals & feature permissions</h2>
+        <p className="mt-1 text-xs text-muted-foreground">To give an employee their own login and choose exactly which POS features they can use, add them in Team. This page manages shared-counter PINs.</p>
+        <Link href="/pos/team" className="mt-3 inline-flex rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground">Add employee & choose portal features</Link>
+      </Card>
 
       {error && (
         <div className="rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 px-3 py-2.5 flex items-start gap-2">

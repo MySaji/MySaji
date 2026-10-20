@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import { WorkspaceHeading, PosCard as Card } from "@/frontend/components/pos/workspace-ui"
 import {
   ArrowLeft, Loader2, AlertTriangle, HandCoins, Users, Check,
 } from "lucide-react"
-import { Card } from "@/frontend/components/ui/card"
 import {
   getCreditCustomers, getCustomerStatement, getCreditAgeing,
   setCreditLimit, recordCreditPayment, adjustCredit,
@@ -84,7 +84,7 @@ export default function CreditPage() {
   const overdue = rows.reduce((a, r) => a + r.overdue, 0)
 
   return (
-    <div className="p-4 max-w-3xl mx-auto space-y-3 pb-24">
+    <div className="p-4 md:p-6 xl:p-8 w-full min-w-0 space-y-5 pb-12">
       <Link
         href="/pos/sell"
         className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1 h-9 -ml-1 px-1 rounded-lg active:scale-95"
@@ -93,7 +93,7 @@ export default function CreditPage() {
       </Link>
 
       <div>
-        <h1 className="text-xl font-bold text-foreground">On the book</h1>
+        <WorkspaceHeading title="On the book" />
         <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
           Goods that have left the shop and have not come back as cash. A customer
           can only buy on the book up to a limit you set for them.

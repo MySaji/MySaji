@@ -13,22 +13,35 @@ const AUTO_ADVANCE_MS = 6000
 export function useActiveBanners(placement: "HOME_HERO" | "SERVICES_TOP") {
   const [banners, setBanners] = useState<PublicBanner[]>([])
   const [index, setIndex] = useState(0)
+  const [paused, setPaused] = useState(false)
+  const [reduceMotion, setReduceMotion] = useState(false)
   const [isLoaded, setIsLoaded] = useState(false)
 
   useEffect(() => {
+    let cancelled = false
     getActiveBanners(placement).then((b) => {
+      if (cancelled) return
+      setIndex(0)
       setBanners(b)
       setIsLoaded(true)
-    })
+    }).catch(() => { if (!cancelled) { setBanners([]); setIsLoaded(true) } })
+    return () => { cancelled = true }
   }, [placement])
 
   useEffect(() => {
-    if (banners.length < 2) return
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)")
+    const update = () => setReduceMotion(media.matches)
+    update(); media.addEventListener("change", update)
+    return () => media.removeEventListener("change", update)
+  }, [])
+
+  useEffect(() => {
+    if (banners.length < 2 || paused || reduceMotion) return
     const timer = setInterval(() => setIndex((i) => (i + 1) % banners.length), AUTO_ADVANCE_MS)
     return () => clearInterval(timer)
-  }, [banners.length])
+  }, [banners.length, paused, reduceMotion])
 
-  const goTo = (i: number) => setIndex((i + banners.length) % banners.length)
+  const goTo = (i: number) => setIndex(banners.length ? (i + banners.length) % banners.length : 0)
 
-  return { banners, index, isLoaded, goTo }
+  return { banners, index, isLoaded, goTo, paused, setPaused }
 }

@@ -1,11 +1,13 @@
 "use server"
 
+import type { PosPermission } from "@/backend/domain/pos-permissions"
 import { z } from "zod"
 import { Prisma } from "@prisma/client"
 import { auth } from "@/backend/auth"
 import { db } from "@/backend/db"
 import { posShopIdFor } from "@/backend/services/pos-tenant"
 import { reportRangeStart, type ReportRange } from "@/backend/domain/pos-reporting"
+import { requirePosPermission, resolvePosActor } from "@/backend/services/pos-access-core"
 
 /**
  * What the till took, and what it cost to take it.
@@ -22,7 +24,9 @@ import { reportRangeStart, type ReportRange } from "@/backend/domain/pos-reporti
  * backwards would make every report wrong the first time a till reconnects.
  */
 
-async function requireReportTenant() {
+async function requireReportTenant(permissions: PosPermission[] = ["report.sales"]) {
+  const actor = await resolvePosActor()
+  if (!actor || !permissions.some(permission => actor.can(permission))) return null
   const session = await auth()
   if (!session?.user?.id) return null
   if (session.user.role !== "provider" && session.user.role !== "shopkeeper") return null
@@ -44,6 +48,9 @@ export type TillReport = {
   shopName: string
   range: ReportRange
   from: string
+  to: string
+  limited: boolean
+  canSeeMargin: boolean
   takings: number
   saleCount: number
   averageSale: number
@@ -61,11 +68,14 @@ export type TillReport = {
 }
 
 export async function getTillReport(input: unknown): Promise<TillReport | null> {
+  const permission = await requirePosPermission("report.sales")
+  if (!permission.ok) return null
   const tenant = await requireReportTenant()
   if (!tenant) return null
   const parsed = z.object({ range: z.enum(["today", "7d", "30d"]).optional() }).safeParse(input ?? {})
   const range: ReportRange = parsed.success ? parsed.data.range ?? "today" : "today"
   const from = reportRangeStart(range)
+  const to = new Date()
 
   const [completed, voided] = await Promise.all([
     db.posSale.findMany({
@@ -74,7 +84,7 @@ export async function getTillReport(input: unknown): Promise<TillReport | null> 
         // A deposit is money taken, so it belongs in the day's takings —
         // but only the part actually handed over. See below.
         status: { in: ["COMPLETED", "DEPOSIT"] },
-        occurredAt: { gte: from },
+        occurredAt: { gte: from, lte: to },
       },
       select: {
         id: true, total: true, status: true, balanceDue: true, occurredAt: true, cashierName: true, paymentMethod: true,
@@ -87,7 +97,7 @@ export async function getTillReport(input: unknown): Promise<TillReport | null> 
       take: 20000,
     }),
     db.posSale.aggregate({
-      where: { shopkeeperId: tenant.shopkeeperId, status: "VOIDED", occurredAt: { gte: from } },
+      where: { shopkeeperId: tenant.shopkeeperId, status: "VOIDED", occurredAt: { gte: from, lte: to } },
       _sum: { total: true },
       _count: true,
     }),
@@ -137,7 +147,7 @@ export async function getTillReport(input: unknown): Promise<TillReport | null> 
       itemsSold += qty
       totalLines++
 
-      const key = item.name
+      const key = `${item.name}\u0000${item.unit}`
       const pRow = byProduct.get(key) ?? { name: item.name, unit: item.unit, quantity: 0, revenue: 0 }
       byProduct.set(key, { ...pRow, quantity: pRow.quantity + qty, revenue: pRow.revenue + revenue })
 
@@ -158,12 +168,15 @@ export async function getTillReport(input: unknown): Promise<TillReport | null> 
     shopName: tenant.shopName,
     range,
     from: from.toISOString(),
+    to: to.toISOString(),
+    limited: completed.length === 20000,
+    canSeeMargin: permission.actor.can("report.margin"),
     takings,
     saleCount: completed.length,
     averageSale: completed.length > 0 ? takings / completed.length : 0,
     itemsSold,
-    grossMargin,
-    costCoverage: totalLines > 0 ? linesWithCost / totalLines : 0,
+    grossMargin: permission.actor.can("report.margin") ? grossMargin : null,
+    costCoverage: permission.actor.can("report.margin") && totalLines > 0 ? linesWithCost / totalLines : 0,
     voidedCount: voided._count,
     voidedValue: n(voided._sum.total),
     byMethod: [...byMethod.entries()]
@@ -202,7 +215,7 @@ export type ShiftRow = {
  * rewrite what a cashier signed off on tonight.
  */
 export async function getShiftHistory(input: unknown): Promise<ShiftRow[]> {
-  const tenant = await requireReportTenant()
+  const tenant = await requireReportTenant(["report.sales", "till.open_shift", "till.close_shift"])
   if (!tenant) return []
   const parsed = z.object({ limit: z.number().int().min(1).max(100).optional() }).safeParse(input ?? {})
   const take = parsed.success ? parsed.data.limit ?? 30 : 30

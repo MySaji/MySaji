@@ -2,9 +2,9 @@
 
 import { z } from "zod"
 import { Prisma } from "@prisma/client"
-import { auth } from "@/backend/auth"
+import { requirePosPermission } from "@/backend/services/pos-access-core"
+import type { PosPermission } from "@/backend/domain/pos-permissions"
 import { db } from "@/backend/db"
-import { posShopIdFor } from "@/backend/services/pos-tenant"
 import { recordStockMovement } from "@/backend/services/pos-ledger"
 import { parsePosConfig } from "@/backend/domain/pos-config"
 import { effectiveTraits } from "@/backend/domain/pos-profiles"
@@ -24,15 +24,11 @@ import type { PosTrait } from "@/backend/domain/pos-traits"
  * function takes a shopkeeperId.
  */
 
-async function requireStockTenant() {
-  const session = await auth()
-  if (!session?.user?.id) return null
-  if (session.user.role !== "provider" && session.user.role !== "shopkeeper") return null
-
-  // The store this person is working in, which for a business with branches
-  // is not simply "the shop on their account". See services/pos-tenant.ts.
-  const shopId = await posShopIdFor(session.user.id)
-  if (!shopId) return null
+async function requireStockTenant(permission: PosPermission = "stock.view") {
+  const access = await requirePosPermission(permission)
+  if (!access.ok || !access.actor.shopkeeperId || !access.actor.userId) return null
+  const session = { user: { id: access.actor.userId } }
+  const shopId = access.actor.shopkeeperId
   const shop = await db.shopkeeperProfile.findUnique({
     where: { id: shopId },
     select: { id: true, posEnabled: true, posProfileKey: true, posTraits: true, posConfig: true, listedOnMarketplace: true },
@@ -394,7 +390,7 @@ const adjustSchema = z.object({
 
 /** Stock arriving from a supplier. */
 export async function receiveStock(input: unknown): Promise<StockActionResult> {
-  const tenant = await requireStockTenant()
+  const tenant = await requireStockTenant("stock.receive")
   if (!tenant) return { success: false, error: "There is no till on this account." }
   const parsed = adjustSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
@@ -450,7 +446,7 @@ export async function receiveStock(input: unknown): Promise<StockActionResult> {
  * settings page rather than merely hiding a button.
  */
 export async function recordWastage(input: unknown): Promise<StockActionResult> {
-  const tenant = await requireStockTenant()
+  const tenant = await requireStockTenant("stock.write_off")
   if (!tenant) return { success: false, error: "There is no till on this account." }
   if (!tenant.traits.includes("WASTAGE")) {
     return { success: false, error: 'Turn on "Record spoilage and loss" in POS Settings first.' }
@@ -493,7 +489,7 @@ const countSchema = z.object({
  * at when it happens three weeks running.
  */
 export async function recordStockCount(input: unknown): Promise<StockActionResult> {
-  const tenant = await requireStockTenant()
+  const tenant = await requireStockTenant("stock.count")
   if (!tenant) return { success: false, error: "There is no till on this account." }
   const parsed = countSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
@@ -642,7 +638,7 @@ export type VariantResult = { success: true; variantId: string } | { success: fa
  * this whole design exists to avoid.
  */
 export async function saveProductVariant(input: unknown): Promise<VariantResult> {
-  const tenant = await requireStockTenant()
+  const tenant = await requireStockTenant("product.edit")
   if (!tenant) return { success: false, error: "There is no till on this account." }
   const parsed = saveVariantSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
@@ -720,7 +716,7 @@ export async function saveProductVariant(input: unknown): Promise<VariantResult>
  * retired size counts.
  */
 export async function setVariantActive(input: unknown): Promise<VariantResult> {
-  const tenant = await requireStockTenant()
+  const tenant = await requireStockTenant("product.edit")
   if (!tenant) return { success: false, error: "There is no till on this account." }
   const parsed = z.object({
     variantId: z.string().trim().min(1),
@@ -818,7 +814,7 @@ export type BatchResult = { success: true; batchId: string; balance: number } | 
  * came from is on the record like everything else.
  */
 export async function receiveBatch(input: unknown): Promise<BatchResult> {
-  const tenant = await requireStockTenant()
+  const tenant = await requireStockTenant("stock.receive")
   if (!tenant) return { success: false, error: "There is no till on this account." }
   const parsed = receiveBatchSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
@@ -901,7 +897,7 @@ export async function receiveBatch(input: unknown): Promise<BatchResult> {
  * delete: a recalled batch is precisely the one whose history matters most.
  */
 export async function writeOffBatch(input: unknown): Promise<BatchResult> {
-  const tenant = await requireStockTenant()
+  const tenant = await requireStockTenant("stock.write_off")
   if (!tenant) return { success: false, error: "There is no till on this account." }
   const parsed = z.object({
     batchId: z.string().trim().min(1),
@@ -1025,7 +1021,7 @@ export async function getExpiringStock(): Promise<{ expired: ExpiringRow[]; soon
  * code to different things, and nothing here looks outside its own tenant.
  */
 export async function setProductBarcode(input: unknown): Promise<StockActionResult & { clashWith?: string }> {
-  const tenant = await requireStockTenant()
+  const tenant = await requireStockTenant("product.edit")
   if (!tenant) return { success: false, error: "There is no till on this account." }
   const parsed = z.object({
     productId: z.string().trim().min(1),
@@ -1065,7 +1061,7 @@ export async function setProductBarcode(input: unknown): Promise<StockActionResu
 }
 
 export async function setProductAgeRestricted(input: unknown): Promise<StockActionResult> {
-  const tenant = await requireStockTenant()
+  const tenant = await requireStockTenant("product.edit")
   if (!tenant) return { success: false, error: "There is no till on this account." }
   const parsed = z.object({
     productId: z.string().trim().min(1),
@@ -1101,7 +1097,7 @@ const bulkSchema = z.object({
  * both rather than leaving half a setting behind.
  */
 export async function setProductBulkUnit(input: unknown): Promise<StockActionResult> {
-  const tenant = await requireStockTenant()
+  const tenant = await requireStockTenant("product.edit")
   if (!tenant) return { success: false, error: "There is no till on this account." }
   const parsed = bulkSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
@@ -1153,7 +1149,7 @@ const fitmentSchema = z.object({
  * nobody can search.
  */
 export async function setProductFitment(input: unknown): Promise<StockActionResult> {
-  const tenant = await requireStockTenant()
+  const tenant = await requireStockTenant("product.edit")
   if (!tenant) return { success: false, error: "There is no till on this account." }
   const parsed = fitmentSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
@@ -1257,7 +1253,7 @@ export type ReceiveSerialsResult =
  * serial tracking.
  */
 export async function receiveSerials(input: unknown): Promise<ReceiveSerialsResult> {
-  const tenant = await requireStockTenant()
+  const tenant = await requireStockTenant("stock.receive")
   if (!tenant) return { success: false, error: "There is no till on this account." }
   if (!tenant.traits.includes("SERIALISED")) {
     return { success: false, error: 'Turn on "Track each item individually" in POS Settings first.' }
@@ -1338,7 +1334,7 @@ export async function receiveSerials(input: unknown): Promise<ReceiveSerialsResu
 
 /** Take a unit off the register — lost, damaged, returned to supplier. */
 export async function writeOffSerial(input: unknown): Promise<StockActionResult> {
-  const tenant = await requireStockTenant()
+  const tenant = await requireStockTenant("stock.write_off")
   if (!tenant) return { success: false, error: "There is no till on this account." }
   const parsed = z.object({
     serialId: z.string().trim().min(1),
@@ -1429,7 +1425,7 @@ export async function lookupSerial(input: unknown): Promise<{
 
 /** Mark a product as needing a register entry when sold, or clear it. */
 export async function setProductControlled(input: unknown): Promise<StockActionResult> {
-  const tenant = await requireStockTenant()
+  const tenant = await requireStockTenant("product.edit")
   if (!tenant) return { success: false, error: "There is no till on this account." }
   const parsed = z.object({
     productId: z.string().trim().min(1),

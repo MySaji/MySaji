@@ -1,372 +1,107 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import Link from "next/link"
-import {
-  ArrowLeft, Loader2, Calculator, TrendingUp, Banknote, Smartphone, CreditCard,
-  Landmark, HandCoins, Clock, AlertTriangle, Info, FileLock,
-} from "lucide-react"
-import { Card } from "@/frontend/components/ui/card"
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
+import { AlertTriangle, ArrowUpRight, Banknote, BarChart3, Download, FileLock, Info, Loader2, Package, RefreshCw, Search, ShieldCheck, TrendingUp, Users, Wallet } from "lucide-react"
+import { WorkspaceHero, PosCard } from "@/frontend/components/pos/workspace-ui"
 import { Button } from "@/frontend/components/ui/button"
-import {
-  getTillReport, getShiftHistory, getControlledRegister,
-  type TillReport, type ShiftRow, type RegisterEntry,
-} from "@/backend/actions/pos-reports"
-import {
-  REPORT_RANGES, REPORT_RANGE_LABEL as RANGE_LABEL, reportRangeStart as rangeStart,
-  type ReportRange,
-} from "@/backend/domain/pos-reporting"
+import { Input } from "@/frontend/components/ui/input"
+import { downloadCsv } from "@/frontend/lib/pos-export"
+import { getTillReport, getShiftHistory, getControlledRegister, type TillReport, type ShiftRow, type RegisterEntry } from "@/backend/actions/pos-reports"
+import { REPORT_RANGES, REPORT_RANGE_LABEL, reportRangeStart, reportTrend, type ReportRange } from "@/backend/domain/pos-reporting"
 
-/**
- * What the till took.
- *
- * Shillings, unconverted, like every other POS screen. Voided sales are
- * excluded from every figure and shown separately — a report that counts
- * money which was never taken is a report that argues with the drawer.
- */
-
-function sh(n: number): string {
-  return n.toLocaleString("en-KE", { maximumFractionDigits: 2 })
-}
-
-const METHOD_ICON: Record<string, typeof Banknote> = {
-  CASH: Banknote, MPESA: Smartphone, CARD: CreditCard, BANK: Landmark, CREDIT: HandCoins,
-}
-const METHOD_LABEL: Record<string, string> = {
-  CASH: "Cash", MPESA: "M-Pesa", CARD: "Card", BANK: "Bank", CREDIT: "On credit", SPLIT: "Split",
-}
+const money = (value: number) => `KSh ${value.toLocaleString("en-KE", { maximumFractionDigits: 2 })}`
+const qty = (value: number) => value.toLocaleString("en-KE", { maximumFractionDigits: 3 })
+const METHOD: Record<string, string> = { CASH: "Cash", MPESA: "M-Pesa", CARD: "Card", BANK: "Bank transfer", CREDIT: "On credit", SPLIT: "Split payment" }
+const TABS = [{ id: "overview", label: "Performance", icon: BarChart3 }, { id: "products", label: "Products", icon: Package }, { id: "team", label: "Cashiers", icon: Users }, { id: "shifts", label: "Shift reconciliation", icon: Wallet }, { id: "register", label: "Controlled register", icon: FileLock }] as const
+const datetime = (value: string) => new Date(value).toLocaleString("en-KE", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
 
 export default function TillReportsPage() {
   const [range, setRange] = useState<ReportRange>("today")
+  const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("overview")
   const [report, setReport] = useState<TillReport | null>(null)
   const [shifts, setShifts] = useState<ShiftRow[]>([])
   const [register, setRegister] = useState<RegisterEntry[]>([])
   const [loading, setLoading] = useState(true)
-  const [switching, setSwitching] = useState(false)
-
-  useEffect(() => {
-    Promise.all([
-      getTillReport({ range }),
-      getShiftHistory({ limit: 10 }),
-      // Returns [] for a shop without the trait, so this costs nothing
-      // for the 33 shop types that keep no register.
-      getControlledRegister({ from: rangeStart(range).toISOString(), limit: 200 }),
-    ])
-      .then(([r, s, g]) => { setReport(r); setShifts(s); setRegister(g) })
-      .finally(() => { setLoading(false); setSwitching(false) })
+  const [fetching, setFetching] = useState(false)
+  const [error, setError] = useState("")
+  const [updated, setUpdated] = useState<string | null>(null)
+  const [metric, setMetric] = useState<"amount" | "count">("amount")
+  const [query, setQuery] = useState("")
+  const [productSort, setProductSort] = useState("revenue")
+  const [shiftFilter, setShiftFilter] = useState("all")
+  const [registerFilter, setRegisterFilter] = useState("all")
+  const request = useRef(0)
+  const invalidate = useCallback(() => { request.current++ }, [])
+  const load = useCallback(async () => {
+    const token = ++request.current
+    setFetching(true); setError("")
+    try {
+      const result = await getTillReport({ range })
+      if (token !== request.current) return
+      if (!result) { setReport(null); setUpdated(null); setShifts([]); setRegister([]); return }
+      const [shiftResult, registerResult] = await Promise.allSettled([getShiftHistory({ limit: 10 }), getControlledRegister({ from: result.from || reportRangeStart(range).toISOString(), limit: 200 })])
+      if (token !== request.current) return
+      setReport(result)
+      setShifts(shiftResult.status === "fulfilled" ? shiftResult.value : [])
+      setRegister(registerResult.status === "fulfilled" ? registerResult.value : [])
+      if (shiftResult.status === "rejected" || registerResult.status === "rejected") setError("Sales loaded, but an additional report could not be loaded. Refresh to retry.")
+      setUpdated(new Date().toISOString())
+    } catch { if (token === request.current) setError("Could not refresh reports. Any figures still shown are from the last successful update.") }
+    finally { if (token === request.current) { setLoading(false); setFetching(false) } }
   }, [range])
-
-  if (loading) {
-    return <div className="flex items-center justify-center py-24"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
+  useEffect(() => { void load(); return invalidate }, [load, invalidate])
+  const trend = useMemo(() => report ? reportTrend(report.byDay, report.from, report.to ?? updated ?? new Date().toISOString()) : [], [report, updated])
+  const products = useMemo(() => [...(report?.topProducts ?? [])].filter(row => row.name.toLowerCase().includes(query.toLowerCase())).sort((a, b) => productSort === "name" ? a.name.localeCompare(b.name) : productSort === "quantity" ? b.quantity - a.quantity : b.revenue - a.revenue), [report, query, productSort])
+  const cashiers = useMemo(() => (report?.byCashier ?? []).filter(row => row.name.toLowerCase().includes(query.toLowerCase())), [report, query])
+  const visibleShifts = shifts.filter(row => `${row.cashierName ?? "Cashier"} ${row.deviceName ?? ""} ${row.note ?? ""}`.toLowerCase().includes(query.toLowerCase()) && (shiftFilter === "all" || (shiftFilter === "open" && !row.closedAt) || (shiftFilter === "variance" && row.variance !== null && Math.abs(row.variance) > 0.004)))
+  const visibleRegister = register.filter(row => `${row.productName} ${row.buyerName} ${row.buyerIdNumber ?? ""} ${row.prescriptionRef ?? ""} ${row.batchNumber ?? ""} ${row.serials.join(" ")}`.toLowerCase().includes(query.toLowerCase()) && (registerFilter === "all" || (registerFilter === "voided" ? row.voided : !row.voided)))
+  const exportReport = () => {
+    if (!report) return
+    let rows: unknown[][]
+    if (tab === "products") rows = [["Product", "Quantity", "Unit", "Revenue (KSh)"], ...products.map(row => [row.name, row.quantity, row.unit, row.revenue])]
+    else if (tab === "team") rows = [["Cashier", "Transactions", "Collected (KSh)", "Average collected (KSh)"], ...cashiers.map(row => [row.name, row.count, row.amount, row.count ? row.amount / row.count : 0])]
+    else if (tab === "shifts") rows = [["Cashier", "Counter", "Opened", "Closed", "Sales", "Opening float", "Expected cash", "Counted cash", "Variance", "Note"], ...visibleShifts.map(row => [row.cashierName, row.deviceName, row.openedAt, row.closedAt, row.saleCount, row.openingFloat, row.expectedCash, row.countedCash, row.variance, row.note])]
+    else if (tab === "register") rows = [["Date", "Product", "Variant", "Quantity", "Unit", "Buyer", "Buyer ID", "Buyer phone", "Prescriber", "Prescription", "Batch", "Serials", "Recorded by", "Voided"], ...visibleRegister.map(row => [row.occurredAt, row.productName, row.variantLabel, row.quantity, row.unit, row.buyerName, row.buyerIdNumber, row.buyerPhone, row.prescriberName, row.prescriptionRef, row.batchNumber, row.serials.join("; "), row.recordedByName, row.voided])]
+    else rows = [["Store", report.shopName], ["Period", REPORT_RANGE_LABEL[report.range]], ["From", report.from], ["Through", report.to ?? updated], ["Report capped", report.limited ? "Yes" : "No"], ["Collected (KSh)", report.takings], ["Transactions", report.saleCount], ["Average collected (KSh)", report.averageSale], ...(report.canSeeMargin !== false ? [["Gross margin on costed lines (KSh)", report.grossMargin], ["Cost coverage (%)", report.costCoverage * 100]] : []), ["Voided sales", report.voidedCount], ["Voided value (KSh)", report.voidedValue], [], ["UTC date", "Collected (KSh)", "Transactions"], ...trend.map(row => [row.day, row.amount, row.count]), [], ["Payment method", "Amount (KSh)", "Payment records"], ...report.byMethod.map(row => [METHOD[row.method] ?? row.method, row.amount, row.count])]
+    downloadCsv(tab === "shifts" ? "till-recent-shifts.csv" : `till-${tab}-${report.range}.csv`, rows)
   }
+  const switchTab = (value: typeof tab) => { setTab(value); setQuery("") }
+  const actualRange = report?.range ?? range
+  const paymentTotal = report?.byMethod.reduce((sum, row) => sum + row.amount, 0) ?? 0
+  const peak = trend.reduce<(typeof trend)[number] | null>((best, row) => !best || row.amount > best.amount ? row : best, null)
+  const coverage = Math.round(Math.max(0, Math.min(1, report?.costCoverage ?? 0)) * 100)
 
-  if (!report) {
-    return (
-      <div className="p-4 max-w-2xl mx-auto">
-        <Card className="p-6 text-center rounded-2xl">
-          <Calculator className="w-10 h-10 mx-auto text-gray-300 dark:text-gray-600" />
-          <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">There is no till on this account.</p>
-          <Link href="/provider/business-types"><Button variant="outline" className="mt-4 h-10 rounded-xl">My Business</Button></Link>
-        </Card>
-      </div>
-    )
-  }
+  return <div className="w-full min-w-0 space-y-5 p-4 pb-12 md:p-6 xl:p-8">
+    <WorkspaceHero title="Sales & reports" description="A clear view of sales, payment methods and counter performance, with the detail behind every figure."><div className="flex gap-2"><Button variant="secondary" disabled={fetching} onClick={() => void load()} className="rounded-xl"><RefreshCw className={`h-4 w-4 ${fetching ? "animate-spin" : ""}`} />Refresh</Button><Button disabled={!report || fetching} onClick={exportReport} className="rounded-xl"><Download className="h-4 w-4" />Export CSV</Button></div></WorkspaceHero>
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-background p-3"><div className="flex flex-wrap gap-1">{REPORT_RANGES.map(value => <button key={value} aria-pressed={range === value} onClick={() => setRange(value)} className={`rounded-xl px-4 py-2.5 text-xs font-semibold ${range === value ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}>{REPORT_RANGE_LABEL[value]}</button>)}</div><p role="status" className="flex items-center gap-2 px-2 text-[10px] text-muted-foreground">{fetching ? <><Loader2 className="h-3.5 w-3.5 animate-spin" />Updating report...</> : updated ? `Updated ${datetime(updated)}` : "No report loaded"}</p></div>
+    {error && <div role="alert" className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200"><AlertTriangle className="h-4 w-4 shrink-0" />{error}</div>}
+    {loading ? <div className="flex justify-center gap-2 p-20 text-sm text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" />Preparing reports</div> : !report ? <PosCard className="p-12 text-center"><ShieldCheck className="mx-auto h-10 w-10 text-muted-foreground/50" /><h2 className="mt-4 text-base font-semibold">Reports unavailable</h2><p className="mt-2 text-xs text-muted-foreground">This store needs an active Till and permission to view sales reports. Ask the owner to check your access.</p></PosCard> : <>
+      <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-muted-foreground"><p>{report.shopName} / {REPORT_RANGE_LABEL[actualRange]} / {datetime(report.from)} through {datetime(report.to ?? updated ?? new Date().toISOString())}</p><span className="inline-flex items-center gap-1"><ShieldCheck className="h-3.5 w-3.5" />Voids excluded from takings</span></div>
+      {report.limited && <div role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-800 dark:bg-amber-950/30 dark:text-amber-200">This report reached the 20,000-sale processing limit. Figures are partial; use a shorter reporting period.</div>}
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">{[{ label: "Collected takings", value: money(report.takings), sub: "Includes amounts paid on deposits", icon: Banknote }, { label: "Transactions", value: qty(report.saleCount), sub: "Completed sales and deposits", icon: BarChart3 }, { label: "Average collected", value: money(report.averageSale), sub: "Collected takings per transaction", icon: TrendingUp }, report.canSeeMargin !== false ? { label: "Gross margin", value: report.grossMargin === null ? "Not available" : money(report.grossMargin), sub: `${coverage}% of sold lines have recorded costs`, icon: Wallet } : { label: "Voided transactions", value: qty(report.voidedCount), sub: `${money(report.voidedValue)} excluded`, icon: Info }].map(stat => <PosCard key={stat.label} className="p-4 md:p-5"><div className="flex items-start justify-between gap-2"><p className="text-[11px] text-muted-foreground">{stat.label}</p><stat.icon className="h-4 w-4 shrink-0 text-primary" /></div><p className="mt-3 break-words text-xl font-semibold tracking-tight tabular-nums md:text-2xl">{stat.value}</p><p className="mt-2 text-[10px] leading-relaxed text-muted-foreground">{stat.sub}</p></PosCard>)}</div>
+      <nav aria-label="Report views" className="flex gap-1 overflow-x-auto rounded-2xl border border-border bg-background p-2">{TABS.map(item => <button key={item.id} onClick={() => switchTab(item.id)} aria-pressed={tab === item.id} className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-4 py-3 text-xs font-medium ${tab === item.id ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted"}`}><item.icon className="h-4 w-4" />{item.label}</button>)}</nav>
+      {tab === "overview" ? <>
+        <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_340px]"><Panel title="Sales performance" description="Daily totals grouped by UTC date, including days without sales." action={<select aria-label="Chart metric" value={metric} onChange={event => setMetric(event.target.value as typeof metric)} className="rounded-lg border border-border bg-background px-2 py-2 text-xs"><option value="amount">Collected takings</option><option value="count">Transactions</option></select>}><div className="h-72 w-full min-w-0" role="img" aria-label={`Daily ${metric === "amount" ? "takings" : "transactions"} for ${REPORT_RANGE_LABEL[actualRange]}`}><ResponsiveContainer width="100%" height="100%"><AreaChart data={trend} margin={{ top: 15, right: 15, bottom: 5, left: -12 }} accessibilityLayer><defs><linearGradient id="reports-trend-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--primary)" stopOpacity={0.25} /><stop offset="100%" stopColor="var(--primary)" stopOpacity={0.01} /></linearGradient></defs><CartesianGrid vertical={false} stroke="currentColor" className="text-border" strokeDasharray="4 4" /><XAxis dataKey="label" axisLine={false} tickLine={false} minTickGap={22} tick={{ fontSize: 10, fill: "#94a3b8" }} /><YAxis axisLine={false} tickLine={false} allowDecimals={metric !== "count"} tick={{ fontSize: 10, fill: "#94a3b8" }} tickFormatter={value => value >= 1000 ? `${value / 1000}k` : String(value)} /><Tooltip content={({ active, payload }) => active && payload?.length ? <div className="rounded-xl border border-border bg-background p-3 text-xs shadow-lg"><p className="text-muted-foreground">{payload[0].payload.day}</p><p className="mt-2 font-semibold">{metric === "amount" ? money(Number(payload[0].value)) : `${payload[0].value} transactions`}</p></div> : null} /><Area type="monotone" dataKey={metric} stroke="var(--primary)" strokeWidth={3} fill="url(#reports-trend-fill)" isAnimationActive={false} dot={trend.length === 1} /></AreaChart></ResponsiveContainer></div><div className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-4 text-xs"><div><p className="text-[10px] text-muted-foreground">Highest collected day</p><p className="mt-2 font-semibold">{peak && peak.amount > 0 ? `${peak.label} / ${money(peak.amount)}` : "No sales yet"}</p></div><div><p className="text-[10px] text-muted-foreground">Days with transactions</p><p className="mt-2 font-semibold">{trend.filter(row => row.count > 0).length} of {trend.length}</p></div></div></Panel>
+          <Panel title="Payment mix" description="Shares of recorded payment amounts. A split sale can have several payments.">{report.byMethod.length ? <div className="space-y-5">{report.byMethod.map(row => { const share = paymentTotal > 0 ? row.amount / paymentTotal * 100 : 0; return <div key={row.method}><div className="flex justify-between gap-3 text-xs"><span className="font-medium">{METHOD[row.method] ?? row.method}</span><span className="font-semibold tabular-nums">{money(row.amount)}</span></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary" style={{ width: `${Math.max(0, Math.min(100, share))}%`, opacity: row.method === "CASH" ? 1 : 0.6 }} /></div><p className="mt-2 text-[10px] text-muted-foreground">{share.toFixed(1)}% / {row.count} payment records</p></div> })}</div> : <Empty>No payments recorded in this period.</Empty>}</Panel></div>
+        <div className="grid gap-5 lg:grid-cols-3"><Panel title="Best sellers" description="Top products by recorded line revenue." action={<button onClick={() => switchTab("products")} aria-label="View product report"><ArrowUpRight className="h-4 w-4 text-primary" /></button>}>{report.topProducts.length ? <div className="space-y-4">{report.topProducts.slice(0, 4).map((row, index) => <div key={row.name + index} className="flex items-center gap-3"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-xs font-semibold text-primary">{index + 1}</span><div className="min-w-0 flex-1"><p className="truncate text-xs font-semibold">{row.name}</p><p className="mt-1 text-[10px] text-muted-foreground">{qty(row.quantity)} {row.unit} sold</p></div><p className="text-[11px] font-semibold">{money(row.revenue)}</p></div>)}</div> : <Empty>Products appear after completed sales.</Empty>}</Panel><Panel title="Reporting notes" description="Read the numbers in context."><div className="space-y-4 text-xs leading-relaxed text-muted-foreground"><p><strong className="text-foreground">{report.voidedCount} voided transactions</strong> worth {money(report.voidedValue)} are excluded from takings.</p><p>Deposits contribute only the amount collected. Their goods contribute to margin after completion.</p><p>Product revenue comes from sale lines; discounts and deposits can make it differ from collected takings.</p></div></Panel><Panel title="Cost coverage" description="How complete is your margin calculation?">{report.canSeeMargin === false ? <Empty>Your role does not include margin access.</Empty> : <><p className="text-3xl font-semibold">{coverage}%</p><div className="my-4 h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary" style={{ width: `${coverage}%` }} /></div><p className="text-xs leading-relaxed text-muted-foreground">{report.grossMargin === null ? "No sold lines have recorded costs. Margin is unknown, rather than zero." : coverage < 100 ? "Margin covers only lines with a cost recorded at sale. It is not a whole-store profit figure." : "All sold lines have costs recorded. Gross margin excludes operating expenses."}</p><Link href="/pos/products" className="mt-4 inline-block text-xs font-semibold text-primary">Review product costs</Link></>}</Panel></div>
+      </> : <Panel title={TABS.find(item => item.id === tab)?.label ?? "Report"} description={tab === "products" ? "Top 10 products by line revenue in the selected period. Quantities retain their individual units." : tab === "team" ? "Collected takings by recorded cashier in the selected period." : tab === "shifts" ? "Latest 10 shifts across all dates. These are not restricted to the sales date selector." : "Latest 200 records since the selected period began. Voided entries remain marked."}>
+        <div className="mb-5 flex flex-col gap-3 sm:flex-row"><div className="relative min-w-0 flex-1"><Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input aria-label="Search report rows" placeholder={tab === "register" ? "Search product, buyer, ID, batch or prescription" : tab === "shifts" ? "Search cashier, counter or note" : "Search by name"} value={query} onChange={event => setQuery(event.target.value)} className="h-10 rounded-xl pl-9" /></div>{tab === "products" && <select aria-label="Sort products" value={productSort} onChange={event => setProductSort(event.target.value)} className="rounded-xl border border-border bg-background px-3 text-xs"><option value="revenue">Highest revenue</option><option value="name">Name A-Z</option></select>}{tab === "shifts" && <select aria-label="Filter shifts" value={shiftFilter} onChange={event => setShiftFilter(event.target.value)} className="rounded-xl border border-border bg-background px-3 py-2 text-xs"><option value="all">All recent shifts</option><option value="open">Open shifts</option><option value="variance">Cash variance</option></select>}{tab === "register" && <select aria-label="Filter controlled register" value={registerFilter} onChange={event => setRegisterFilter(event.target.value)} className="rounded-xl border border-border bg-background px-3 py-2 text-xs"><option value="all">All entries</option><option value="active">Not voided</option><option value="voided">Voided</option></select>}</div>
+        {tab === "products" && <ReportTable headers={["Product", "Quantity", "Unit", "Line revenue"]} rows={products.map(row => [row.name, qty(row.quantity), row.unit, money(row.revenue)])} />}
+        {tab === "team" && <ReportTable headers={["Cashier", "Transactions", "Collected", "Average collected"]} rows={cashiers.map(row => [row.name, row.count, money(row.amount), money(row.count ? row.amount / row.count : 0)])} />}
+        {tab === "shifts" && <><div className="mb-4 flex flex-wrap gap-3 text-[11px] text-muted-foreground"><span>{shifts.filter(row => !row.closedAt).length} open</span><span>{shifts.filter(row => row.variance !== null && Math.abs(row.variance) > 0.004).length} with cash variance</span><Link href="/pos/shifts" className="font-semibold text-primary">View all shifts</Link></div><ReportTable headers={["Cashier / counter", "Opened / closed", "Sales", "Expected cash", "Counted cash", "Variance"]} rows={visibleShifts.map(row => [<div key="name"><p className="font-semibold">{row.cashierName ?? "Cashier"}</p><p className="mt-1 text-[10px] text-muted-foreground">{row.deviceName ?? "Counter not recorded"}</p>{row.note && <p className="mt-1 max-w-56 text-[10px] text-muted-foreground">{row.note}</p>}</div>, <div key="dates"><p>{datetime(row.openedAt)}</p><p className="mt-1 text-[10px] text-muted-foreground">{row.closedAt ? datetime(row.closedAt) : "Open now"}</p></div>, row.saleCount, row.expectedCash === null ? "Not closed" : money(row.expectedCash), row.countedCash === null ? "Not counted" : money(row.countedCash), row.variance === null ? "Pending" : <span key="variance" className={Math.abs(row.variance) < 0.005 ? "text-emerald-600" : "font-semibold text-amber-600"}>{Math.abs(row.variance) < 0.005 ? "Balanced" : `${row.variance > 0 ? "+" : ""}${money(row.variance)}`}</span>])} /></>}
+        {tab === "register" && (visibleRegister.length ? <div className="grid gap-3 lg:grid-cols-2">{visibleRegister.map(row => <article key={row.id} className="rounded-xl border border-border p-4"><div className="flex items-start justify-between gap-2"><h3 className="text-xs font-semibold">{row.productName}{row.variantLabel && ` / ${row.variantLabel}`}</h3><span className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-semibold ${row.voided ? "bg-amber-50 text-amber-700 dark:bg-amber-950/30" : "bg-muted text-muted-foreground"}`}>{row.voided ? "Voided" : "Recorded"}</span></div><p className="mt-2 text-xs">{qty(row.quantity)} {row.unit} / {row.buyerName}</p><div className="mt-3 space-y-1 text-[10px] leading-relaxed text-muted-foreground">{row.buyerIdNumber && <p>Buyer ID: {row.buyerIdNumber}</p>}{row.buyerPhone && <p>Phone: {row.buyerPhone}</p>}{row.prescriberName && <p>Prescriber: {row.prescriberName}</p>}{row.prescriptionRef && <p>Prescription: {row.prescriptionRef}</p>}{row.batchNumber && <p>Batch: {row.batchNumber}</p>}{row.serials.length > 0 && <p className="break-all">Serials: {row.serials.join(", ")}</p>}<p className="border-t border-border pt-2">{datetime(row.occurredAt)}{row.recordedByName && ` / ${row.recordedByName}`}</p></div></article>)}</div> : <Empty>No controlled records match this view.</Empty>)}
+      </Panel>}
+    </>}
+  </div>
+}
 
-  const peakDay = report.byDay.reduce((max, d) => (d.amount > max ? d.amount : max), 0)
-
-  return (
-    <div className="p-3 max-w-3xl mx-auto space-y-3 pb-24">
-      <Link href="/pos/sell" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 dark:hover:text-white active:scale-95 transition-transform">
-        <ArrowLeft className="w-4 h-4" /> Till
-      </Link>
-
-      <div className="flex gap-1.5">
-        {REPORT_RANGES.map((r) => (
-          <button
-            key={r}
-            onClick={() => { setSwitching(true); setRange(r) }}
-            aria-pressed={range === r}
-            className={`h-9 px-3 rounded-lg text-[11px] font-semibold active:scale-95 transition-all ${
-              range === r ? "bg-primary text-primary-foreground" : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300"
-            }`}
-          >
-            {RANGE_LABEL[r]}
-          </button>
-        ))}
-        {switching && <Loader2 className="w-4 h-4 animate-spin text-gray-400 self-center ml-1" />}
-      </div>
-
-      {/* ---- the headline ------------------------------------------------- */}
-      <Card className="p-4 rounded-2xl">
-        <p className="text-[11px] uppercase tracking-wide text-gray-400">Taken {RANGE_LABEL[range].toLowerCase()}</p>
-        <p className="text-3xl font-bold text-gray-900 dark:text-white tabular-nums">KSh {sh(report.takings)}</p>
-        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-          {report.saleCount} {report.saleCount === 1 ? "sale" : "sales"}
-          {report.saleCount > 0 && <> &middot; {sh(report.averageSale)} average</>}
-          {report.itemsSold > 0 && <> &middot; {sh(report.itemsSold)} items</>}
-        </p>
-
-        {report.voidedCount > 0 && (
-          <p className="mt-2 text-[11px] text-gray-500 dark:text-gray-400 flex items-start gap-1.5">
-            <Info className="w-3 h-3 mt-0.5 flex-shrink-0" />
-            {report.voidedCount} voided {report.voidedCount === 1 ? "sale" : "sales"} worth{" "}
-            {sh(report.voidedValue)} {report.voidedCount === 1 ? "is" : "are"} not counted above.
-          </p>
-        )}
-      </Card>
-
-      {/* ---- margin, with its own honesty about coverage ------------------ */}
-      <Card className="p-4 rounded-2xl">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-[11px] uppercase tracking-wide text-gray-400">Gross margin</p>
-            {report.grossMargin === null ? (
-              <>
-                <p className="text-lg font-bold text-gray-400">Not known</p>
-                <p className="mt-0.5 text-[11px] text-gray-500 dark:text-gray-400 leading-snug max-w-xs">
-                  None of these sales had a cost price recorded. Add what you pay for each
-                  product and this fills in by itself.
-                </p>
-              </>
-            ) : (
-              <>
-                <p className="text-lg font-bold text-gray-900 dark:text-white tabular-nums">
-                  KSh {sh(report.grossMargin)}
-                </p>
-                {/* Stated, not buried. A margin computed over 40% of lines
-                    is not the shop's margin, and presenting it as one would
-                    be the most misleading number on this page. */}
-                <p className="mt-0.5 text-[11px] text-gray-500 dark:text-gray-400 leading-snug max-w-xs">
-                  {report.costCoverage >= 0.999
-                    ? "Across every line sold."
-                    : `Across the ${Math.round(report.costCoverage * 100)}% of lines that have a cost price — not the whole shop.`}
-                </p>
-              </>
-            )}
-          </div>
-          <TrendingUp className="w-5 h-5 text-gray-300 dark:text-gray-600 flex-shrink-0" />
-        </div>
-      </Card>
-
-      {/* ---- how they paid ------------------------------------------------ */}
-      {report.byMethod.length > 0 && (
-        <Card className="p-4 rounded-2xl">
-          <h2 className="text-sm font-bold text-gray-900 dark:text-white">How they paid</h2>
-          <div className="mt-2 space-y-1.5">
-            {report.byMethod.map((m) => {
-              const Icon = METHOD_ICON[m.method] ?? Banknote
-              const share = report.takings > 0 ? (m.amount / report.takings) * 100 : 0
-              return (
-                <div key={m.method} className="flex items-center gap-2.5">
-                  <span className="w-7 h-7 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-500 flex items-center justify-center flex-shrink-0">
-                    <Icon className="w-3.5 h-3.5" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <span className="text-xs font-medium text-gray-900 dark:text-white">
-                        {METHOD_LABEL[m.method] ?? m.method}
-                      </span>
-                      <span className="text-xs font-bold text-gray-900 dark:text-white tabular-nums">{sh(m.amount)}</span>
-                    </div>
-                    <div className="mt-1 h-1.5 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
-                      <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, share)}%` }} />
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </Card>
-      )}
-
-      {/* ---- by day, where the range covers more than one ------------------ */}
-      {range !== "today" && report.byDay.length > 1 && (
-        <Card className="p-4 rounded-2xl">
-          <h2 className="text-sm font-bold text-gray-900 dark:text-white">Day by day</h2>
-          <div className="mt-2.5 flex items-end gap-1 h-24">
-            {report.byDay.map((d) => (
-              <div key={d.day} className="flex-1 flex flex-col items-center justify-end gap-1 min-w-0" title={`${d.day}: ${sh(d.amount)}`}>
-                <div
-                  className="w-full rounded-t bg-primary/80 min-h-[2px]"
-                  style={{ height: `${peakDay > 0 ? (d.amount / peakDay) * 100 : 0}%` }}
-                />
-                <span className="text-[8px] text-gray-400 truncate w-full text-center">{d.day.slice(8)}</span>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
-
-      {/* ---- best sellers --------------------------------------------------- */}
-      {report.topProducts.length > 0 && (
-        <Card className="p-4 rounded-2xl">
-          <h2 className="text-sm font-bold text-gray-900 dark:text-white">Best sellers</h2>
-          <ol className="mt-2 space-y-1.5">
-            {report.topProducts.map((p, i) => (
-              <li key={p.name} className="flex items-center gap-2.5">
-                <span className="w-5 text-[10px] font-bold text-gray-300 dark:text-gray-600 tabular-nums">{i + 1}</span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-medium text-gray-900 dark:text-white truncate">{p.name}</p>
-                  <p className="text-[10px] text-gray-400 tabular-nums">
-                    {sh(p.quantity)} {p.unit === "piece" ? "sold" : p.unit}
-                  </p>
-                </div>
-                <span className="text-xs font-bold text-gray-900 dark:text-white tabular-nums flex-shrink-0">{sh(p.revenue)}</span>
-              </li>
-            ))}
-          </ol>
-        </Card>
-      )}
-
-      {/* ---- who served ------------------------------------------------------ */}
-      {report.byCashier.length > 1 && (
-        <Card className="p-4 rounded-2xl">
-          <h2 className="text-sm font-bold text-gray-900 dark:text-white">By cashier</h2>
-          <div className="mt-2 space-y-1">
-            {report.byCashier.map((c) => (
-              <div key={c.name} className="flex items-baseline justify-between gap-2">
-                <span className="text-xs text-gray-900 dark:text-white truncate">{c.name}</span>
-                <span className="text-xs text-gray-500 tabular-nums flex-shrink-0">
-                  {c.count} &middot; <span className="font-bold text-gray-900 dark:text-white">{sh(c.amount)}</span>
-                </span>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
-
-      {/* ---- the controlled register ---------------------------------------- */}
-      {register.length > 0 && (
-        <Card className="p-4 rounded-2xl">
-          <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
-            <FileLock className="w-4 h-4 text-gray-400" /> Controlled register
-          </h2>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
-            Every controlled item that left the counter {RANGE_LABEL[range].toLowerCase()}, as it
-            was recorded at the time. These entries cannot be edited.
-          </p>
-          <div className="mt-2.5 space-y-1.5">
-            {register.map((e) => (
-              <div
-                key={e.id}
-                className={
-                  e.voided
-                    ? "rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40 p-2.5"
-                    : "rounded-xl border border-gray-200 dark:border-gray-700 p-2.5"
-                }
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold text-gray-900 dark:text-white">
-                      {e.productName}
-                      {e.variantLabel && <span className="font-normal text-gray-500"> &middot; {e.variantLabel}</span>}
-                      {e.voided && (
-                        <span className="ml-1.5 text-[10px] font-semibold text-gray-500 uppercase">voided</span>
-                      )}
-                    </p>
-                    <p className="text-[11px] text-gray-600 dark:text-gray-400">
-                      {sh(e.quantity)} {e.unit === "piece" ? "" : e.unit} to <span className="font-medium">{e.buyerName}</span>
-                      {e.buyerIdNumber && " (ID " + e.buyerIdNumber + ")"}
-                    </p>
-                    {(e.prescriberName || e.prescriptionRef) && (
-                      <p className="text-[10px] text-gray-500">
-                        {e.prescriberName}{e.prescriberName && e.prescriptionRef ? " · " : ""}{e.prescriptionRef}
-                      </p>
-                    )}
-                    {e.batchNumber && <p className="text-[10px] text-gray-400">batch {e.batchNumber}</p>}
-                    {e.serials.length > 0 && <p className="text-[10px] text-gray-400 font-mono">{e.serials.join(", ")}</p>}
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-[10px] text-gray-400">
-                      {new Date(e.occurredAt).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}
-                    </p>
-                    <p className="text-[10px] text-gray-400">
-                      {new Date(e.occurredAt).toLocaleTimeString("en-KE", { hour: "2-digit", minute: "2-digit" })}
-                    </p>
-                    {e.recordedByName && <p className="text-[10px] text-gray-400">{e.recordedByName}</p>}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-          {/* The claim NOT made, stated where the register is read. */}
-          <p className="mt-2.5 text-[11px] text-gray-400 dark:text-gray-500 leading-snug">
-            Saji keeps this record for you. It does not certify that it meets what the Pharmacy
-            and Poisons Board or the Veterinary Medicines Directorate require of your shop.
-          </p>
-        </Card>
-      )}
-
-      {/* ---- shifts ----------------------------------------------------------- */}
-      <Card className="p-4 rounded-2xl">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-sm font-bold text-gray-900 dark:text-white">Recent shifts</h2>
-          <Link
-            href="/pos/shifts"
-            className="h-9 inline-flex items-center px-2 -mr-2 rounded-lg text-[11px] font-semibold text-primary active:scale-95"
-          >
-            All shifts
-          </Link>
-        </div>
-        {shifts.length === 0 ? (
-          <p className="mt-1.5 text-[11px] text-gray-500 dark:text-gray-400 leading-snug">
-            No shifts recorded. Opening one before you start logs the cash you began with, so the
-            drawer can be checked against it at the end.
-          </p>
-        ) : (
-          <div className="mt-2 space-y-1.5">
-            {shifts.map((s) => {
-              const open = s.closedAt === null
-              const off = s.variance !== null && Math.abs(s.variance) > 0.004
-              return (
-                <div key={s.id} className={`rounded-xl border p-2.5 ${
-                  off ? "border-amber-300 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-900/10"
-                      : "border-gray-100 dark:border-gray-700"
-                }`}>
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold text-gray-900 dark:text-white">
-                        {s.cashierName ?? "Cashier"}
-                        {open && (
-                          <span className="ml-1.5 inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-400">
-                            <Clock className="w-2.5 h-2.5" /> open now
-                          </span>
-                        )}
-                      </p>
-                      <p className="text-[10px] text-gray-400">
-                        {new Date(s.openedAt).toLocaleString("en-KE", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
-                        {s.closedAt && ` – ${new Date(s.closedAt).toLocaleTimeString("en-KE", { hour: "2-digit", minute: "2-digit" })}`}
-                        {` · ${s.saleCount} ${s.saleCount === 1 ? "sale" : "sales"}`}
-                      </p>
-                    </div>
-                    {s.variance !== null && (
-                      <div className="text-right flex-shrink-0">
-                        <p className={`text-xs font-bold tabular-nums ${
-                          !off ? "text-emerald-700 dark:text-emerald-400"
-                          : s.variance < 0 ? "text-red-600 dark:text-red-400"
-                          : "text-amber-700 dark:text-amber-400"
-                        }`}>
-                          {!off ? "balanced" : `${s.variance > 0 ? "+" : ""}${sh(s.variance)}`}
-                        </p>
-                        <p className="text-[10px] text-gray-400 tabular-nums">
-                          counted {sh(s.countedCash ?? 0)}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                  {s.note && <p className="mt-1 text-[10px] text-gray-500 leading-snug">{s.note}</p>}
-                  {off && (
-                    <p className="mt-1 flex items-start gap-1 text-[10px] text-amber-700 dark:text-amber-400 leading-snug">
-                      <AlertTriangle className="w-2.5 h-2.5 mt-0.5 flex-shrink-0" />
-                      The drawer held {s.variance! < 0 ? "less" : "more"} than the sales account for.
-                    </p>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </Card>
-    </div>
-  )
+function Panel({ title, description, action, children }: { title: string; description: string; action?: ReactNode; children: ReactNode }) {
+  return <PosCard className="min-w-0 p-5 md:p-6"><div className="mb-5 flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-base font-semibold">{title}</h2><p className="mt-1 max-w-2xl text-[11px] leading-relaxed text-muted-foreground">{description}</p></div>{action}</div>{children}</PosCard>
+}
+function Empty({ children }: { children: ReactNode }) { return <p className="rounded-xl bg-muted/30 p-8 text-center text-xs leading-relaxed text-muted-foreground">{children}</p> }
+function ReportTable({ headers, rows }: { headers: string[]; rows: ReactNode[][] }) {
+  if (!rows.length) return <Empty>No records match this view.</Empty>
+  return <div className="overflow-x-auto rounded-xl border border-border"><table className="w-full min-w-[600px] text-left text-xs"><thead className="bg-muted/50 text-[10px] uppercase tracking-wider text-muted-foreground"><tr>{headers.map(header => <th key={header} className="px-4 py-3 font-medium">{header}</th>)}</tr></thead><tbody className="divide-y divide-border">{rows.map((row, index) => <tr key={index} className="hover:bg-muted/20">{row.map((value, cell) => <td key={cell} className="px-4 py-4 align-top tabular-nums">{value}</td>)}</tr>)}</tbody></table></div>
 }

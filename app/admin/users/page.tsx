@@ -30,6 +30,7 @@ export default function UsersPage() {
   const [totalCount, setTotalCount] = useState(0)
   const [page, setPage] = useState(1)
   const [searchTerm, setSearchTerm] = useState("")
+  useEffect(() => { const search = new URLSearchParams(window.location.search).get("search"); if (search) setSearchTerm(search.slice(0, 200)) }, [])
   const [activeFilter, setActiveFilter] = useState<"all" | AdminUserStatus>("all")
   const [showUserModal, setShowUserModal] = useState(false)
   const [selectedUser, setSelectedUser] = useState<AdminUserRow | null>(null)

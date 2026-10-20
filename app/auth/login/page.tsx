@@ -7,15 +7,15 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/frontend/components/ui/button"
 import { Input } from "@/frontend/components/ui/input"
 import { useAuthContext } from "@/frontend/lib/auth-context"
-import { Mail, Lock, Eye, EyeOff, Apple, Phone, Shield, Users, Zap, Info, Loader2, ShieldCheck, CheckCircle2 } from "lucide-react"
+import { Mail, Lock, Eye, EyeOff, Apple, Phone, Shield, Info, Loader2, ShieldCheck, CheckCircle2 } from "lucide-react"
 import { Checkbox } from "@/frontend/components/ui/checkbox"
 import { ROLE_HOME_PATH } from "@/backend/services/role-map"
 import { BrandLogo } from "@/frontend/components/brand-logo"
 import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 import { requestLoginOtp, verifyLoginOtp } from "@/backend/actions/otp"
 import { useOtpAutofill } from "@/frontend/lib/hooks/useOtpAutofill"
+import { AuthWelcomePanel, AuthJourney } from "@/frontend/components/auth/auth-welcome-panel"
 import { AuthMobileHeader } from "@/frontend/components/auth/auth-mobile-header"
-import { AuthHeroIllustration } from "@/frontend/components/auth/auth-hero-illustration"
 
 const OTP_LENGTH = 6
 const RESEND_COOLDOWN_SECONDS = 25
@@ -96,33 +96,45 @@ function LoginContent() {
   })()
 
   const completeSignIn = async (proof: string) => {
-    setIsLoading(true)
-    const result = await login(identifier, password, proof)
-    setIsLoading(false)
-    if (!result.success) {
-      setError(result.error)
-      setStep("credentials")
-      return
+    try {
+      setIsLoading(true)
+      const result = await login(identifier, password, proof)
+      setIsLoading(false)
+      if (!result.success) {
+        setError(result.error)
+        setStep("credentials")
+        return
+      }
+      router.push(safeNext ?? ROLE_HOME_PATH[result.role])
+    } catch {
+      setError("Could not connect. Please try again.")
+    } finally {
+      setIsLoading(false)
     }
-    router.push(safeNext ?? ROLE_HOME_PATH[result.role])
   }
 
   const handleSubmitCredentials = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
-    if (!identifier || !password) { setError(t("authPage.errors.fillAllFields")); return }
-    setIsLoading(true)
-    const result = await requestLoginOtp(identifier, password)
-    setIsLoading(false)
-    if (!result.success) {
-      setError(result.error)
-      return
+    try {
+      e.preventDefault()
+      setError("")
+      if (!identifier || !password) { setError(t("authPage.errors.fillAllFields")); return }
+      setIsLoading(true)
+      const result = await requestLoginOtp(identifier, password)
+      setIsLoading(false)
+      if (!result.success) {
+        setError(result.error)
+        return
+      }
+      setOtpDestination(result.destination)
+      setOtpFellBackToEmail(result.fellBackToEmail)
+      setOtpDigits(Array(OTP_LENGTH).fill(""))
+      setResendCooldown(RESEND_COOLDOWN_SECONDS)
+      setStep("otp")
+    } catch {
+      setError("Could not connect. Please try again.")
+    } finally {
+      setIsLoading(false)
     }
-    setOtpDestination(result.destination)
-    setOtpFellBackToEmail(result.fellBackToEmail)
-    setOtpDigits(Array(OTP_LENGTH).fill(""))
-    setResendCooldown(RESEND_COOLDOWN_SECONDS)
-    setStep("otp")
   }
 
   const handleOtpChange = (index: number, value: string) => {
@@ -138,16 +150,22 @@ function LoginContent() {
   }
 
   const submitOtpCode = async (code: string) => {
-    if (code.length !== OTP_LENGTH) { setError(t("authPage.login.enterFullCode")); return }
-    setError("")
-    setIsLoading(true)
-    const result = await verifyLoginOtp(identifier, code)
-    if (!result.success) {
+    try {
+      if (code.length !== OTP_LENGTH) { setError(t("authPage.login.enterFullCode")); return }
+      setError("")
+      setIsLoading(true)
+      const result = await verifyLoginOtp(identifier, code)
+      if (!result.success) {
+        setIsLoading(false)
+        setError(result.error)
+        return
+      }
+      await completeSignIn(result.proof)
+    } catch {
+      setError("Could not connect. Please try again.")
+    } finally {
       setIsLoading(false)
-      setError(result.error)
-      return
     }
-    await completeSignIn(result.proof)
   }
 
   // Shared by paste and WebOTP autofill — fills every box at once (rather
@@ -178,33 +196,45 @@ function LoginContent() {
   const handleVerifyOtp = () => submitOtpCode(otpDigits.join(""))
 
   const handleResendOtp = async () => {
-    if (resendCooldown > 0) return
-    setError("")
-    setIsLoading(true)
-    const result = await requestLoginOtp(identifier, password)
-    setIsLoading(false)
-    if (!result.success) { setError(result.error); return }
-    setOtpDestination(result.destination)
-    setOtpFellBackToEmail(result.fellBackToEmail)
-    setOtpDigits(Array(OTP_LENGTH).fill(""))
-    setResendCooldown(RESEND_COOLDOWN_SECONDS)
-    otpInputRefs.current[0]?.focus()
+    try {
+      if (resendCooldown > 0) return
+      setError("")
+      setIsLoading(true)
+      const result = await requestLoginOtp(identifier, password)
+      setIsLoading(false)
+      if (!result.success) { setError(result.error); return }
+      setOtpDestination(result.destination)
+      setOtpFellBackToEmail(result.fellBackToEmail)
+      setOtpDigits(Array(OTP_LENGTH).fill(""))
+      setResendCooldown(RESEND_COOLDOWN_SECONDS)
+      otpInputRefs.current[0]?.focus()
+    } catch {
+      setError("Could not connect. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleGoogleLogin = async () => {
-    setIsLoading(true)
-    // Read by auth.ts's signIn callback once Google's redirect comes back,
-    // so a Google account with no existing SAJI account can be rejected
-    // with "sign up first" instead of silently creating one from the login
-    // button.
-    document.cookie = "oauth_intent=login; path=/; max-age=300; samesite=lax"
-    const result = await loginWithGoogle(ROLE_HOME_PATH.customer)
-    setIsLoading(false)
-    if (!result.success) {
-      setError(result.error)
-      return
+    try {
+      setIsLoading(true)
+      // Read by auth.ts's signIn callback once Google's redirect comes back,
+      // so a Google account with no existing SAJI account can be rejected
+      // with "sign up first" instead of silently creating one from the login
+      // button.
+      document.cookie = "oauth_intent=login; path=/; max-age=300; samesite=lax"
+      const result = await loginWithGoogle(ROLE_HOME_PATH.customer)
+      setIsLoading(false)
+      if (!result.success) {
+        setError(result.error)
+        return
+      }
+      window.location.href = result.url
+    } catch {
+      setError("Could not connect. Please try again.")
+    } finally {
+      setIsLoading(false)
     }
-    window.location.href = result.url
   }
 
   const handleAppleLogin = () => {
@@ -212,62 +242,21 @@ function LoginContent() {
   }
 
   return (
-    <div className="min-h-screen flex justify-center bg-muted/20">
-    <div className="flex w-full max-w-[1360px] bg-background">
-      {/* Left Panel -- desktop hero */}
-      <div className="hidden lg:flex lg:w-[480px] xl:w-[520px] flex-col relative overflow-hidden bg-primary text-primary-foreground p-10">
-        {/* Decorative orbs */}
-        <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full bg-white/5 blur-3xl" />
-        <div className="absolute -bottom-32 -left-20 w-96 h-96 rounded-full bg-white/5 blur-3xl" />
-
-        {/* Logo */}
-        <div className="relative z-10 flex items-center gap-3">
-          <BrandLogo size="large" variant="translucent" />
-          <span className="text-xl font-bold tracking-tight">SAJI</span>
-        </div>
-
-        {/* Heading + features -- grouped and vertically centered in the
-            remaining space, instead of being pinned to opposite ends with a
-            large empty gap between them */}
-        <div className="relative z-10 flex-1 flex flex-col justify-center gap-12">
-          <div>
-            <h1 className="text-3xl font-bold leading-tight mb-3">{t("authPage.login.welcomeBack")}</h1>
-            <p className="text-white/70 text-sm leading-relaxed max-w-xs">{t("authPage.login.welcomeBackSubtitle")}</p>
-          </div>
-
-          <div className="space-y-5">
-            {[
-              { icon: Shield, title: t("authPage.login.feature1Title"), desc: t("authPage.login.feature1Desc") },
-              { icon: Zap, title: t("authPage.login.feature2Title"), desc: t("authPage.login.feature2Desc") },
-              { icon: Users, title: t("authPage.login.feature3Title"), desc: t("authPage.login.feature3Desc") },
-            ].map((item) => (
-              <div key={item.title} className="flex items-start gap-3">
-                <div className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
-                  <item.icon className="w-4 h-4" />
-                </div>
-                <div>
-                  <p className="font-semibold text-sm">{item.title}</p>
-                  <p className="text-white/60 text-xs">{item.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Footer */}
-        <p className="relative z-10 text-white/40 text-xs">&copy; {new Date().getFullYear()} SAJI. {t("authPage.login.allRightsReserved")}</p>
-      </div>
+    <div className="auth-screen min-h-screen">
+    <div className="auth-frame">
+      <AuthWelcomePanel mode="login" />
 
       {/* Right Panel -- form */}
-      <div className="flex-1 flex items-center justify-center px-4 py-8 sm:px-8 relative overflow-hidden">
+      <div className="auth-form-panel">
         {/* Subtle decorative accents so the wide-screen white space reads as
             intentional rather than empty -- echoes the left panel's orbs at
             far lower opacity, blurred and behind the form so it never
             competes with legibility. */}
         <div className="hidden lg:block absolute -top-24 -right-24 w-72 h-72 rounded-full bg-primary/5 blur-3xl" />
         <div className="hidden lg:block absolute -bottom-24 -left-16 w-72 h-72 rounded-full bg-primary/5 blur-3xl" />
-        <div className="w-full max-w-[420px] relative z-10">
+        <div className="auth-form-card">
           <AuthMobileHeader showBack={step === "credentials"} />
+          <AuthJourney mode="login" step={step} />
 
           {step === "credentials" && (
             <div className="flex items-start justify-between gap-3 mb-6 lg:hidden">
@@ -278,7 +267,7 @@ function LoginContent() {
                 </div>
                 <p className="text-xs text-muted-foreground">{t("authPage.tagline")}</p>
               </div>
-              <AuthHeroIllustration />
+
             </div>
           )}
 
@@ -297,7 +286,7 @@ function LoginContent() {
 
               {/* Error */}
               {error && (
-                <div className="mb-4 p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm">
+                <div role="alert" className="mb-4 p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm">
                   {error}
                 </div>
               )}
@@ -329,13 +318,13 @@ function LoginContent() {
                     {loginMethod === "email" ? (
                       <>
                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input id="credential" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="pl-9 pr-9 h-10 rounded-xl border-border bg-card" disabled={isLoading} />
+                        <Input autoComplete="username" id="credential" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="pl-9 pr-9 h-10 rounded-xl border-border bg-card" disabled={isLoading} />
                         {isEmailValid && <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500" />}
                       </>
                     ) : (
                       <>
                         <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input id="credential" type="tel" placeholder="+254700000000" value={phone} onChange={(e) => setPhone(e.target.value)} className="pl-9 h-10 rounded-xl border-border bg-card" disabled={isLoading} />
+                        <Input id="credential" type="tel" placeholder="0712 345 678" value={phone} onChange={(e) => setPhone(e.target.value)} className="pl-9 h-10 rounded-xl border-border bg-card" disabled={isLoading} />
                       </>
                     )}
                   </div>
@@ -346,8 +335,8 @@ function LoginContent() {
                   <label htmlFor="password" className="text-sm font-medium text-foreground mb-1.5 block">{t("auth.password")}</label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input id="password" type={showPassword ? "text" : "password"} placeholder={t("authPage.login.enterPassword")} value={password} onChange={(e) => setPassword(e.target.value)} className="pl-9 pr-9 h-10 rounded-xl border-border bg-card" disabled={isLoading} />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors" disabled={isLoading}>
+                    <Input autoComplete="current-password" id="password" type={showPassword ? "text" : "password"} placeholder={t("authPage.login.enterPassword")} value={password} onChange={(e) => setPassword(e.target.value)} className="pl-9 pr-9 h-10 rounded-xl border-border bg-card" disabled={isLoading} />
+                    <button type="button" aria-label={showPassword ? "Hide password" : "Show password"} onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors" disabled={isLoading}>
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
@@ -379,7 +368,7 @@ function LoginContent() {
               </div>
 
               {/* Social */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3">
                 <Button type="button" onClick={handleGoogleLogin} disabled={isLoading} variant="outline" className="h-10 rounded-xl bg-card gap-2 text-xs sm:text-sm font-medium px-2">
                   <svg width="16" height="16" viewBox="0 0 48 48" className="flex-shrink-0"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.64-.15-3.21-.43-4.73H24v9.01h12.4c-.54 2.91-2.18 5.38-4.65 7.04l7.2 5.59c4.21-3.88 6.65-9.6 6.65-16.91z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24s.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.9-5.81l-7.2-5.59c-2 1.35-4.56 2.15-8.7 2.15-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
                   <span className="truncate">{t("authPage.continueWithGoogle")}</span>

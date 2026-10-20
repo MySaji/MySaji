@@ -1,5 +1,7 @@
 "use client"
 
+import { WorkspaceTools } from "@/frontend/components/workspace-tools"
+
 import type React from "react"
 import { useEffect, useRef, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
@@ -122,7 +124,7 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
   const moreItems = menuItems.slice(4)
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+    <div data-workspace="agent" className="flex h-screen bg-gray-50 dark:bg-gray-900">
       <aside
         className={`fixed top-0 left-0 h-dvh ${isCollapsed ? "lg:w-20" : "lg:w-64"} w-64 bg-gradient-to-b from-indigo-700 to-indigo-800 text-white transform transition-[transform,width] z-40 ${
           menuOpen ? "translate-x-0" : "-translate-x-full"
@@ -296,6 +298,7 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
         </header>
 
         <main className="flex-1 overflow-auto pb-20 lg:pb-0">
+          <WorkspaceTools name="Agent workspace" />
           <div className="container mx-auto p-4 lg:p-6">{children}</div>
         </main>
 

@@ -1,5 +1,7 @@
 "use client"
 
+import { WalletLedger } from "@/frontend/components/payment/wallet-ledger"
+import { WorkspaceRecovery, WorkspaceRefresh } from "@/frontend/components/workspace-panels"
 import { useEffect, useState } from "react"
 import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 import { useGatedAction } from "@/frontend/lib/hooks/useGatedAction"
@@ -16,7 +18,7 @@ import {
   ArrowLeft,
 } from "lucide-react"
 
-export function CustomerWalletPage() {
+export function CustomerWalletPage({ returnPath = "/customer/wallet" }: { returnPath?: string }) {
   const { handleGateFailure } = useGatedAction()
   const { t, formatMoney, currency } = useLocalization()
   const [showBalance, setShowBalance] = useState(true)
@@ -33,19 +35,25 @@ export function CustomerWalletPage() {
 
   const [summary, setSummary] = useState<WalletSummary>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
+  const [updatedAt, setUpdatedAt] = useState<number>()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formError, setFormError] = useState("")
 
-  const refresh = () => getWalletSummary().then(setSummary)
+  const refresh = async () => {
+    setRefreshing(true); setLoadError(false)
+    try { const result = await getWalletSummary(); setSummary(result); setLoadError(!result); setUpdatedAt(Date.now()) }
+    catch { setLoadError(true) }
+    finally { setRefreshing(false); setIsLoading(false) }
+  }
 
   useEffect(() => {
-    refresh()
-    setIsLoading(false)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    void refresh()
   }, [])
 
   const returnMessage = useWalletTopupReturn({
-    returnPath: "/customer/wallet",
+    returnPath,
     onSettled: refresh,
     messages: {
       paypalSuccess: t("customer.wallet.paypalTopupSuccess"),
@@ -68,10 +76,11 @@ export function CustomerWalletPage() {
   const handleWithdraw = async () => {
     const amount = Number.parseFloat(withdrawAmount)
     if (!(amount > 0) || !withdrawMethodId) return
+    if (isSubmitting) return
     setIsSubmitting(true)
+    try {
     setFormError("")
     const result = await requestWithdrawal({ amount, paymentMethodId: withdrawMethodId })
-    setIsSubmitting(false)
     // A verification refusal opens the wizard rather than leaving the user
     // with a message and nowhere to act on it.
     if (!result.success) {
@@ -81,6 +90,8 @@ export function CustomerWalletPage() {
     }
     await refresh()
     setShowWithdraw(false); setWithdrawAmount(""); setWithdrawMethodId(null)
+    } catch { setFormError("The request could not be confirmed. Refresh your wallet before trying again.") }
+    finally { setIsSubmitting(false) }
   }
 
   const openWithdraw = () => {
@@ -88,17 +99,10 @@ export function CustomerWalletPage() {
     setShowWithdraw(true)
   }
 
-  const handleDownloadStatement = () => {
-    if (!summary) return
-    const headers = [t("customer.wallet.csvDate"), t("customer.wallet.csvType"), t("customer.wallet.csvDescription"), t("customer.wallet.csvAmount"), t("common.status")]
-    const rows = summary.transactions.map((tx) => [new Date(tx.createdAt).toLocaleDateString(), tx.category, tx.description, formatMoney(Math.abs(tx.amount)), tx.status])
-    const csv = [[t("customer.wallet.csvTitle")], [t("customer.wallet.csvBalance", { amount: formatMoney(summary.balance) })], [], headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(",")).join("\n")
-    const blob = new Blob([csv], { type: "text/csv" })
-    const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `wallet-statement-${new Date().toISOString().split('T')[0]}.csv`; link.click()
-  }
-
   const handleAddPaymentMethod = async () => {
+    if (isSubmitting) return
     setIsSubmitting(true)
+    try {
     setFormError("")
     const result = await addPaymentMethod({
       type: newMethodType,
@@ -107,7 +111,6 @@ export function CustomerWalletPage() {
       cvv: paymentForm.cvv,
       paypalEmail: paymentForm.paypalEmail,
     })
-    setIsSubmitting(false)
     // A verification refusal opens the wizard rather than leaving the user
     // with a message and nowhere to act on it.
     if (!result.success) {
@@ -118,19 +121,11 @@ export function CustomerWalletPage() {
     await refresh()
     setShowAddMethod(false)
     setPaymentForm({ mpesaPhone: "", cardNumber: "", cardName: "", expiryDate: "", cvv: "", paypalEmail: "" }); setNewMethodType("")
+    } catch { setFormError("The request could not be confirmed. Refresh your wallet before trying again.") }
+    finally { setIsSubmitting(false) }
   }
 
-  const txnConfig: Record<string, { icon: any; iconBg: string; iconColor: string }> = {
-    payment: { icon: ArrowUpRight, iconBg: "bg-red-100 dark:bg-red-900/20", iconColor: "text-red-600 dark:text-red-400" },
-    refund: { icon: ArrowDownLeft, iconBg: "bg-emerald-100 dark:bg-emerald-900/20", iconColor: "text-emerald-600 dark:text-emerald-400" },
-    withdrawal: { icon: ArrowUpRight, iconBg: "bg-amber-100 dark:bg-amber-900/20", iconColor: "text-amber-600 dark:text-amber-400" },
-    deposit: { icon: ArrowDownLeft, iconBg: "bg-blue-100 dark:bg-blue-900/20", iconColor: "text-blue-600 dark:text-blue-400" },
-  }
-
-  const txnStatusLabels: Record<string, string> = {
-    completed: t("customer.wallet.statusCompleted"),
-    pending: t("customer.referrals.pending"),
-  }
+  if (loadError) return <WorkspaceRecovery title="Wallet unavailable" retry={() => void refresh()} busy={refreshing} />
 
   if (isLoading || !summary) {
     return (
@@ -184,6 +179,7 @@ export function CustomerWalletPage() {
           </div>
         ) : (
           <WalletTopupMethods
+            returnPath={returnPath}
             amount={confirmedAddAmount}
             onSuccess={() => { handleTopupSuccess(); setTimeout(closeAddMoney, 1500) }}
           />
@@ -250,7 +246,7 @@ export function CustomerWalletPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-3xl mx-auto px-4 py-6 lg:py-8">
+      <div className="max-w-6xl mx-auto px-4 py-6 lg:py-8">
         {/* Header */}
         <div className="flex items-center gap-2 mb-6">
           <Wallet className="w-5 h-5 text-primary" />
@@ -263,8 +259,9 @@ export function CustomerWalletPage() {
           </Card>
         )}
 
+        {!returnPath.startsWith("/customer") && <p className="mb-5 rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm leading-6 text-blue-950">This is your account's personal wallet. Team and platform funds remain in their finance workspaces.</p>}
         {/* Balance Card */}
-        <Card className="overflow-hidden border-0 shadow-lg mb-6 bg-gradient-to-br from-primary via-primary to-primary/80 text-primary-foreground">
+        <Card className="overflow-hidden border-0 shadow-lg mb-6 bg-[#063b97] text-primary-foreground">
           <div className="p-6 lg:p-8">
             <div className="flex items-center justify-between mb-6">
               <p className="text-xs font-medium opacity-80">{t("customer.wallet.totalBalance")}</p>
@@ -321,6 +318,7 @@ export function CustomerWalletPage() {
           </Card>
         </div>
 
+        <WorkspaceRefresh refreshing={refreshing} updatedAt={updatedAt} refresh={() => void refresh()} />
         {/* Tabs */}
         <div className="flex gap-1 p-1 bg-muted/50 rounded-xl mb-6">
           {([
@@ -335,41 +333,7 @@ export function CustomerWalletPage() {
         </div>
 
         {/* Transactions */}
-        {activeTab === "transactions" && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-foreground text-xs">{t("customer.wallet.recentTransactions")}</h3>
-              <Button size="sm" variant="ghost" onClick={handleDownloadStatement} className="gap-1.5 text-[11px] h-8" disabled={transactions.length === 0}><Download className="w-3.5 h-3.5" />{t("customer.wallet.export")}</Button>
-            </div>
-            {transactions.length === 0 ? (
-              <Card className="p-8 text-center border-0 shadow-sm">
-                <p className="text-xs text-muted-foreground">{t("customer.wallet.noTransactions")}</p>
-              </Card>
-            ) : transactions.map((txn) => {
-              const config = txnConfig[txn.category]
-              const Icon = config.icon
-              return (
-                <Card key={txn.id} className="p-3.5 border-0 shadow-sm hover:shadow-md transition-all">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${config.iconBg}`}>
-                      <Icon className={`w-4 h-4 ${config.iconColor}`} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-xs text-foreground truncate">{txn.description}</p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-[11px] text-muted-foreground">{new Date(txn.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${txn.status === "completed" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400" : "bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400"}`}>{txnStatusLabels[txn.status] ?? txn.status}</span>
-                      </div>
-                    </div>
-                    <p className={`font-bold text-xs flex-shrink-0 ${txn.amount > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-foreground"}`}>
-                      {txn.amount > 0 ? "+" : ""}{formatMoney(Math.abs(txn.amount))}
-                    </p>
-                  </div>
-                </Card>
-              )
-            })}
-          </div>
-        )}
+        {activeTab === "transactions" && <WalletLedger entries={summary.transactions.map(entry => ({ id: entry.id, description: entry.description, amount: entry.amount, status: entry.status, date: entry.createdAt }))} />}
 
         {/* Escrow */}
         {activeTab === "escrow" && (

@@ -9,7 +9,24 @@ import { ChatbotWidget } from "@/frontend/components/chatbot-widget"
 export default function FloatingChatButton() {
   const [unreadCount, setUnreadCount] = useState(0)
   const [isOpen, setIsOpen] = useState(false)
+  const [initialPrompt, setInitialPrompt] = useState("")
+  useEffect(() => {
+    const openAssistant = (event: Event) => {
+      const prompt = (event as CustomEvent<{prompt?: string}>).detail?.prompt
+      if (typeof prompt !== "string" || !prompt.trim()) return
+      setInitialPrompt(prompt.slice(0, 2000)); setIsOpen(true)
+    }
+    window.addEventListener("saji:ask-assistant", openAssistant)
+    return () => window.removeEventListener("saji:ask-assistant", openAssistant)
+  }, [])
   const pathname = usePathname()
+  const closeChat = () => { setIsOpen(false); setInitialPrompt("") }
+  useEffect(() => {
+    if (!isOpen) return
+    const escape = (event: KeyboardEvent) => { if (event.key === "Escape") { setIsOpen(false); setInitialPrompt("") } }
+    window.addEventListener("keydown", escape)
+    return () => window.removeEventListener("keydown", escape)
+  }, [isOpen])
 
   useEffect(() => {
     const load = () => getChatbotUnreadCount().then(setUnreadCount).catch(() => {})
@@ -37,8 +54,10 @@ export default function FloatingChatButton() {
               desktop, a full-screen sheet on mobile where there's no room
               to float a panel over the rest of the page. */}
           <button
-            onClick={() => setIsOpen((v) => !v)}
+            onClick={() => { if (isOpen) closeChat(); else { setInitialPrompt(""); setIsOpen(true) } }}
             aria-label={isOpen ? "Close chat" : "Open chat"}
+            aria-expanded={isOpen}
+            aria-controls="saji-assistant-panel"
             className="relative w-14 h-14 md:w-16 md:h-16 bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-full shadow-lg hover:shadow-2xl flex items-center justify-center text-white transition-all duration-300 transform hover:scale-110"
           >
             <Bot className="w-6 h-6 md:w-7 md:h-7" />
@@ -69,13 +88,14 @@ export default function FloatingChatButton() {
               mobile where the panel already covers the full screen. */}
           <button
             aria-label="Close chat"
-            onClick={() => setIsOpen(false)}
+            onClick={closeChat}
             className="fixed inset-0 z-40 sm:z-[90] cursor-default"
           />
           <div
+            id="saji-assistant-panel" role="dialog" aria-label="Saji assistant" aria-modal="true"
             className="fixed inset-0 z-50 sm:z-[100] sm:inset-auto sm:bottom-24 sm:right-6 sm:h-[640px] sm:max-h-[85vh] sm:w-[380px] sm:rounded-2xl sm:shadow-2xl sm:overflow-hidden sm:border sm:border-border"
           >
-            <ChatbotWidget onClose={() => setIsOpen(false)} />
+            <ChatbotWidget initialPrompt={initialPrompt} onClose={closeChat} />
           </div>
         </>
       )}

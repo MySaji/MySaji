@@ -14,7 +14,7 @@ if (env.NODE_ENV === "production") {
 }
 for (const [label, names] of Object.entries({
   mpesa: ["MPESA_CONSUMER_KEY", "MPESA_CONSUMER_SECRET", "MPESA_SHORTCODE", "MPESA_PASSKEY"],
-  stripe: ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"], paypal: ["PAYPAL_CLIENT_ID", "PAYPAL_CLIENT_SECRET"],
+  stripe: ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"], paypal: ["PAYPAL_CLIENT_ID", "PAYPAL_CLIENT_SECRET", "PAYPAL_KES_TO_USD_RATE"],
   email: ["SMTP_HOST", "SMTP_USER", "SMTP_PASS"], turn: ["TURN_URL", "TURN_SHARED_SECRET"], monitoring: ["SENTRY_DSN", "NEXT_PUBLIC_SENTRY_DSN"],
 })) console.log(`${label}: ${names.every(name => Boolean(env[name])) ? "configured (not connectivity-tested)" : "incomplete or disabled"}`)
 process.exitCode = failures ? 1 : 0

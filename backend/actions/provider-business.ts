@@ -8,7 +8,7 @@ import { primaryShopOf } from "@/backend/services/shopkeeper-scope"
 import { buildProviderSlug } from "@/backend/domain/provider-slug"
 import { hashPassword } from "@/backend/services/password"
 import { sendEmail } from "@/backend/services/email"
-import { wrapEmailLayout, emailButton, siteOrigin } from "@/backend/services/email-templates"
+import { wrapEmailLayout, escapeEmailText, emailButton, siteOrigin } from "@/backend/services/email-templates"
 import { distanceKm } from "@/backend/services/google-maps"
 import { notifyUser } from "@/backend/services/notifications-core"
 import { BUSINESS_STAFF_MAX_CONCURRENT_JOBS } from "@/backend/services/job-limits"
@@ -246,7 +246,7 @@ export async function inviteStaffMember(input: unknown): Promise<InviteStaffResu
     const html = wrapEmailLayout({
       title: "You're invited to join a business on SAJI",
       bodyHtml: `
-        <p>${business.businessName || "A business"} has invited you to join their team on SAJI as a field provider.</p>
+        <p>${escapeEmailText(business.businessName || "A business")} has invited you to join their team on SAJI as a field provider.</p>
         <p>Click below to set up your account. This link expires in 7 days.</p>
         ${emailButton("Accept invite", url)}
       `,

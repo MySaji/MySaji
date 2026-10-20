@@ -1,7 +1,12 @@
+import { IncomingCallBanner } from "@/frontend/components/messages/incoming-call-banner"
+import { DevicePushSession } from "@/frontend/components/notifications/device-notifications"
 import type React from "react"
 import type { Metadata, Viewport } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
-import { Analytics } from "@vercel/analytics/next"
+import { headers } from "next/headers"
+import { isBusinessHost } from "@/backend/domain/pos-website"
+import { Geist } from "next/font/google"
+import { AnalyticsConsent } from "@/frontend/components/analytics-consent"
+import { siteUrl } from "@/frontend/lib/seo"
 import { SessionProvider } from "next-auth/react"
 import { auth } from "@/backend/auth"
 import { ThemeProvider } from "@/frontend/components/theme-provider"
@@ -11,9 +16,9 @@ import { AuthProvider } from "@/frontend/lib/auth-context"
 import { VerificationPromptProvider } from "@/frontend/lib/verification-prompt-context"
 import { EmailSubscriptionPopup } from "@/frontend/components/email-subscription-popup"
 import "./globals.css"
+import "./workspaces.css"
 
 const _geist = Geist({ subsets: ["latin"] })
-const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "SAJI - Marketplace",
@@ -56,6 +61,11 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  // Customer-facing business websites never receive marketplace sessions,
+  // notifications, account providers or the marketplace subscription popup.
+  if (isBusinessHost((await headers()).get("host") ?? "")) {
+    return <html lang="en"><body className={`font-sans antialiased ${_geist.className}`}>{children}</body></html>
+  }
   // Fetching the session server-side and handing it to SessionProvider lets
   // it skip its own client-side fetch on initial mount entirely (see
   // node_modules/next-auth/react.js: it only calls getSession() itself when
@@ -75,9 +85,6 @@ export default async function RootLayout({
     <html lang={session?.user?.language ?? "en"} suppressHydrationWarning>
       <head>
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="SAJI" />
       </head>
       <body className={`font-sans antialiased ${_geist.className}`}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} themes={["light", "dark"]} disableTransitionOnChange>
@@ -95,6 +102,8 @@ export default async function RootLayout({
                     Inside AuthProvider because the wizard reads and refreshes
                     the session through useAuthContext. */}
                 <VerificationPromptProvider>
+                  <DevicePushSession />
+                  <IncomingCallBanner />
                   {children}
                   <EmailSubscriptionPopup />
                 </VerificationPromptProvider>
@@ -102,7 +111,7 @@ export default async function RootLayout({
             </LocalizationProvider>
           </SessionProvider>
         </ThemeProvider>
-        <Analytics />
+        <AnalyticsConsent />
       </body>
     </html>
   )

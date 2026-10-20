@@ -34,7 +34,7 @@ export function Logo({ size = "md", showText = true, className = "" }: LogoProps
  * rounded-square card, so no extra background wrapper is needed here. */
 export function LogoMark({ size = 32, className = "" }: { size?: number, className?: string }) {
   return (
-    // eslint-disable-next-line @next/next/no-img-element
+    // Images use the configured unoptimized rendering policy
     <img
       src="/icon-192.png"
       alt="SAJI"

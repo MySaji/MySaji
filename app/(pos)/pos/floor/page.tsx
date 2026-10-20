@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import { WorkspaceHeading, PosCard as Card } from "@/frontend/components/pos/workspace-ui"
 import {
   ArrowLeft, Loader2, Plus, AlertTriangle, Send, Receipt, UtensilsCrossed, X, ChefHat,
 } from "lucide-react"
-import { Card } from "@/frontend/components/ui/card"
 import {
   getFloor, getTab, createTable, openTab, addTabLine, voidTabLine,
   sendToKitchen, markLineServed, cancelTab,
@@ -73,7 +73,7 @@ export default function FloorPage() {
   }
 
   return (
-    <div className="p-4 max-w-4xl mx-auto space-y-3 pb-24">
+    <div className="p-4 md:p-6 xl:p-8 w-full min-w-0 space-y-5 pb-12">
       <div className="flex items-center justify-between">
         <Link
           href="/pos/sell"
@@ -90,7 +90,7 @@ export default function FloorPage() {
       </div>
 
       <div>
-        <h1 className="text-xl font-bold text-foreground">Floor</h1>
+        <WorkspaceHeading title="Floor" />
         <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
           Who is sitting, how long they have been there, and what is on their tab.
           Nothing reaches the kitchen until it is sent.

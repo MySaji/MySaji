@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import { WorkspaceHeading, PosCard as Card } from "@/frontend/components/pos/workspace-ui"
 import {
   ArrowLeft, Loader2, Truck, AlertTriangle, Send, PackageCheck, ArrowRight,
 } from "lucide-react"
-import { Card } from "@/frontend/components/ui/card"
 import {
   getTransfers, dispatchTransfer, receiveTransfer, cancelTransfer,
   type TransferRow,
@@ -62,7 +62,7 @@ export default function TransfersPage() {
   }
 
   return (
-    <div className="p-4 max-w-3xl mx-auto space-y-3 pb-24">
+    <div className="p-4 md:p-6 xl:p-8 w-full min-w-0 space-y-5 pb-12">
       <Link
         href="/pos/sell"
         className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1 h-9 -ml-1 px-1 rounded-lg active:scale-95"
@@ -71,7 +71,7 @@ export default function TransfersPage() {
       </Link>
 
       <div>
-        <h1 className="text-xl font-bold text-foreground">Branch transfers</h1>
+        <WorkspaceHeading title="Branch transfers" />
         <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
           Stock leaves when it is sent and arrives when the other branch counts
           it in. In between it belongs to neither, which is where it actually is.

@@ -57,3 +57,5 @@ ops/secrets/
 *.backup
 *.key
 ops/wireguard/*.conf
+
+.pnpm-store/

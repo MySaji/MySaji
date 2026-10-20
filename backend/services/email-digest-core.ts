@@ -4,7 +4,7 @@ import { db } from "@/backend/db"
 
 import { sendEmail } from "@/backend/services/email"
 
-import { wrapEmailLayout } from "@/backend/services/email-templates"
+import { wrapEmailLayout, escapeEmailText } from "@/backend/services/email-templates"
 
 import type { NotificationPreferences } from "@/backend/actions/settings"
 
@@ -41,7 +41,7 @@ function buildDigestHtml(name: string, grouped: Map<NotificationType, { title: s
     .map(([type, items]) => {
       const rows = items
         .slice(0, 5)
-        .map((n) => `<li style="margin-bottom:8px;"><strong>${n.title}</strong><br/><span style="color:#4b5563;">${n.message}</span></li>`)
+        .map((n) => `<li style="margin-bottom:8px;"><strong>${escapeEmailText(n.title)}</strong><br/><span style="color:#4b5563;">${escapeEmailText(n.message)}</span></li>`)
         .join("")
       const more = items.length > 5 ? `<p style="color:#9ca3af;font-size:13px;">+${items.length - 5} more</p>` : ""
       return `<h2 style="margin-bottom:6px;">${SECTION_LABEL[type] ?? type}</h2><ul style="padding-left:18px;">${rows}</ul>${more}`
@@ -49,7 +49,7 @@ function buildDigestHtml(name: string, grouped: Map<NotificationType, { title: s
     .join("")
 
   const body = `
-    <p>Hi ${name}, here's a summary of what happened on your account over the past 7 days.</p>
+    <p>Hi ${escapeEmailText(name)}, here's a summary of what happened on your account over the past 7 days.</p>
     ${sections}
     <p style="margin-top:24px;color:#9ca3af;font-size:13px;">
       You're getting this because "Email Digest" is enabled in your notification settings.

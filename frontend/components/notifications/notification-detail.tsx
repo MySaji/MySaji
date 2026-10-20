@@ -32,15 +32,25 @@ const ACTION_LABEL: Record<string, string> = {
 export function NotificationDetail({ id, listHref }: { id: string; listHref: string }) {
   const [notification, setNotification] = useState<NotificationItem | null | undefined>(undefined)
   const [deleted, setDeleted] = useState(false)
+  const [error, setError] = useState("")
+  const [busy, setBusy] = useState(false)
 
   useEffect(() => {
-    getNotificationById(id).then(setNotification)
+    let cancelled = false
+    setNotification(undefined); setError("")
+    getNotificationById(id).then(result => { if (!cancelled) setNotification(result) }).catch(() => { if (!cancelled) { setError("This update could not be opened. Please try again."); setNotification(null) } })
+    return () => { cancelled = true }
   }, [id])
 
   const handleDelete = async () => {
-    await deleteNotification({ id })
-    setDeleted(true)
+    if (busy) return
+    setBusy(true); setError("")
+    try { const result = await deleteNotification({ id }); if (!result.success) { setError(result.error); return } setDeleted(true) }
+    catch { setError("This update could not be deleted. Please try again.") }
+    finally { setBusy(false) }
   }
+
+  if (error) return <div role="alert" className="mx-auto max-w-xl space-y-4 p-6"><p>{error}</p><Link href={listHref} className="text-sm text-primary underline">Back to notifications</Link></div>
 
   if (notification === undefined) {
     return (
@@ -107,7 +117,7 @@ export function NotificationDetail({ id, listHref }: { id: string; listHref: str
               </Button>
             </Link>
           )}
-          <Button variant="outline" onClick={handleDelete} className="bg-transparent">
+          <Button variant="outline" disabled={busy} onClick={handleDelete} className="bg-transparent">
             <Trash2 className="w-3.5 h-3.5 mr-2" />Delete
           </Button>
         </div>

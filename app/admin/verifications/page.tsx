@@ -6,6 +6,7 @@ import { Card } from "@/frontend/components/ui/card"
 import { Button } from "@/frontend/components/ui/button"
 import { Textarea } from "@/frontend/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/frontend/components/ui/dialog"
+import { WorkflowGuide, WorkspaceRefresh } from "@/frontend/components/workspace-panels"
 import { KycDocumentViewer, type KycDocumentItem } from "@/frontend/components/kyc/kyc-document-viewer"
 import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 import {
@@ -33,6 +34,14 @@ export default function VerificationsPage() {
   const [showRejectReason, setShowRejectReason] = useState(false)
   const [rejectReason, setRejectReason] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [pageError, setPageError] = useState("")
+  const [actionError, setActionError] = useState("")
+  const [notice, setNotice] = useState("")
+  const [refreshing, setRefreshing] = useState(false)
+  const [updatedAt, setUpdatedAt] = useState<number>()
+  const [roleFilter, setRoleFilter] = useState("ALL")
+  const [sort, setSort] = useState("oldest")
+  const [page, setPage] = useState(1)
 
   const STATUS_LABEL: Record<string, string> = {
     Pending: t("admin.verifications.statusPending"),
@@ -41,8 +50,10 @@ export default function VerificationsPage() {
   }
 
   const refresh = async () => {
-    const data = await getVerifications()
-    setVerifications(data)
+    setRefreshing(true); setPageError("")
+    try { setVerifications(await getVerifications()); setUpdatedAt(Date.now()) }
+    catch { setPageError("The verification queue could not be loaded. Try refreshing.") }
+    finally { setRefreshing(false) }
   }
 
   useEffect(() => {
@@ -53,10 +64,15 @@ export default function VerificationsPage() {
     () => verifications.filter((v) => {
       const matchesSearch = v.name.toLowerCase().includes(searchTerm.toLowerCase()) || v.email.toLowerCase().includes(searchTerm.toLowerCase())
       const matchesFilter = activeFilter === "All" || v.status === activeFilter
-      return matchesSearch && matchesFilter
-    }),
-    [searchTerm, activeFilter, verifications],
+      return matchesSearch && matchesFilter && (roleFilter === "ALL" || v.role === roleFilter)
+    }).sort((a, b) => sort === "oldest" ? Date.parse(a.submittedDate) - Date.parse(b.submittedDate) : Date.parse(b.submittedDate) - Date.parse(a.submittedDate)),
+    [searchTerm, activeFilter, verifications, roleFilter, sort],
   )
+
+  useEffect(() => { setPage(1) }, [searchTerm, activeFilter, roleFilter, sort])
+  const totalPages = Math.max(1, Math.ceil(filteredVerifications.length / 12))
+  const currentPage = Math.min(page, totalPages)
+  const visibleVerifications = filteredVerifications.slice((currentPage - 1) * 12, currentPage * 12)
 
   const filters = [
     { label: t("admin.verifications.filterAll"), type: "All", count: verifications.length },
@@ -90,25 +106,17 @@ export default function VerificationsPage() {
     window.URL.revokeObjectURL(url)
   }
 
-  const handleApprove = async (kycDocumentId: string) => {
-    setIsSubmitting(true)
-    const result = await approveVerification({ kycDocumentId })
-    setIsSubmitting(false)
-    if (!result.success) { alert(result.error); return }
-    setShowModal(false)
-    await refresh()
-  }
-
-  const handleReject = async (kycDocumentId: string) => {
-    if (!rejectReason.trim()) return
-    setIsSubmitting(true)
-    const result = await rejectVerification({ kycDocumentId, reason: rejectReason })
-    setIsSubmitting(false)
-    if (!result.success) { alert(result.error); return }
-    setShowModal(false)
-    setShowRejectReason(false)
-    setRejectReason("")
-    await refresh()
+  const review = async (kycDocumentId: string, decision: "approve" | "reject") => {
+    if (isSubmitting || (decision === "reject" && !rejectReason.trim())) return
+    setIsSubmitting(true); setActionError(""); setNotice("")
+    try {
+      const result = decision === "approve" ? await approveVerification({ kycDocumentId }) : await rejectVerification({ kycDocumentId, reason: rejectReason })
+      if (!result.success) { setActionError(result.error); return }
+      setShowModal(false); setShowRejectReason(false); setRejectReason("")
+      setNotice(decision === "approve" ? "Verification approved." : "Verification rejected with your reason.")
+      await refresh()
+    } catch { setActionError("We could not confirm this decision. Refresh the queue before repeating it.") }
+    finally { setIsSubmitting(false) }
   }
 
   if (isLoading) {
@@ -148,7 +156,7 @@ export default function VerificationsPage() {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
           <input
             type="text"
-            placeholder={t("admin.verifications.searchPlaceholder")}
+            aria-label="Search verifications" placeholder={t("admin.verifications.searchPlaceholder")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs"
@@ -160,6 +168,11 @@ export default function VerificationsPage() {
         </Button>
       </div>
 
+      <WorkflowGuide title="Verification review" steps={[{ title: "Prioritise the queue", description: "Use status and account filters. Review oldest submissions first." }, { title: "Inspect the evidence", description: "Open each record and inspect the submitted documents." }, { title: "Record a decision", description: "Approve the evidence or give a clear reason when rejecting it." }]} />
+      <WorkspaceRefresh refreshing={refreshing} updatedAt={updatedAt} refresh={() => void refresh()} />
+      {pageError && <p role="alert" className="rounded-xl border border-red-200 p-4 text-sm text-red-700">{pageError}</p>}
+      {notice && <p role="status" className="rounded-xl bg-blue-50 p-4 text-sm text-blue-950">{notice}</p>}
+      <div className="workspace-filterbar"><label>Account role<select value={roleFilter} onChange={event => setRoleFilter(event.target.value)}><option value="ALL">All roles</option>{[...new Set(verifications.map(item => item.role))].sort().map(role => <option key={role} value={role}>{role}</option>)}</select></label><label>Submission order<select value={sort} onChange={event => setSort(event.target.value)}><option value="oldest">Oldest first</option><option value="newest">Newest first</option></select></label></div>
       <div className="flex gap-2 overflow-x-auto pb-2">
         {filters.map((filter) => (
           <button
@@ -191,7 +204,7 @@ export default function VerificationsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {filteredVerifications.length > 0 ? filteredVerifications.map((verification) => (
+              {filteredVerifications.length > 0 ? visibleVerifications.map((verification) => (
                 <tr key={verification.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                   <td className="px-6 py-4 text-xs text-gray-700 dark:text-gray-300">{verification.name}</td>
                   <td className="px-6 py-4 text-xs text-gray-700 dark:text-gray-300">{verification.email}</td>
@@ -204,7 +217,7 @@ export default function VerificationsPage() {
                   </td>
                   <td className="px-6 py-4">
                     <button
-                      onClick={() => { setSelectedVerification(verification); setShowRejectReason(false); setRejectReason(""); setShowModal(true) }}
+                      aria-label={`Review verification for ${verification.name}`} onClick={() => { setActionError(""); setSelectedVerification(verification); setShowRejectReason(false); setRejectReason(""); setShowModal(true) }}
                       className="p-2 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors text-blue-600"
                     >
                       <Eye size={18} />
@@ -221,11 +234,13 @@ export default function VerificationsPage() {
         </div>
       </Card>
 
-      <Dialog open={showModal} onOpenChange={setShowModal}>
+      <nav aria-label="Verification pages" className="flex flex-wrap items-center justify-between gap-3"><p role="status" className="text-sm text-muted-foreground">{filteredVerifications.length} results. Page {currentPage} of {totalPages}.</p><div className="flex gap-2"><Button variant="outline" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>Previous</Button><Button variant="outline" disabled={currentPage === totalPages} onClick={() => setPage(currentPage + 1)}>Next</Button></div></nav>
+      <Dialog open={showModal} onOpenChange={open => { if (!isSubmitting) setShowModal(open) }}>
         <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{t("admin.verifications.modalTitle")}</DialogTitle>
           </DialogHeader>
+          {actionError && <p role="alert" className="rounded-lg border border-red-200 p-3 text-sm text-red-700">{actionError}</p>}
           {selectedVerification && (
             <div className="space-y-4 py-4">
               <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-3">
@@ -282,14 +297,14 @@ export default function VerificationsPage() {
                     {showRejectReason ? (
                       <>
                         <Button variant="outline" className="flex-1 bg-transparent" onClick={() => setShowRejectReason(false)} disabled={isSubmitting}>{t("common.cancel")}</Button>
-                        <Button className="flex-1 bg-red-600 hover:bg-red-700" onClick={() => handleReject(selectedVerification.id)} disabled={!rejectReason.trim() || isSubmitting}>
+                        <Button className="flex-1 bg-red-600 hover:bg-red-700" onClick={() => review(selectedVerification.id, "reject")} disabled={!rejectReason.trim() || isSubmitting}>
                           {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : t("admin.verifications.confirmReject")}
                         </Button>
                       </>
                     ) : (
                       <>
                         <Button variant="outline" className="flex-1 bg-transparent" onClick={() => setShowRejectReason(true)} disabled={isSubmitting}>{t("admin.verifications.reject")}</Button>
-                        <Button className="flex-1 bg-emerald-600 hover:bg-emerald-700" onClick={() => handleApprove(selectedVerification.id)} disabled={isSubmitting}>
+                        <Button className="flex-1 bg-emerald-600 hover:bg-emerald-700" onClick={() => review(selectedVerification.id, "approve")} disabled={isSubmitting}>
                           {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : t("admin.verifications.approve")}
                         </Button>
                       </>

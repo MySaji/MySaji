@@ -1,9 +1,12 @@
 import "server-only"
 
 import { db } from "@/backend/db"
+
 import { publicProductWhere } from "@/backend/domain/public-catalog"
+
 import { sendEmail } from "@/backend/services/email"
-import { wrapEmailLayout, emailButton, siteOrigin, emailBrand } from "@/backend/services/email-templates"
+
+import { wrapEmailLayout, escapeEmailText, emailButton, siteOrigin, emailBrand } from "@/backend/services/email-templates"
 
 const SETTING_KEY = "lastSubscriberDigestAt"
 
@@ -48,12 +51,6 @@ function priceHtml(p: DigestProduct): string {
   return `<span style="font-weight:700;color:#ffffff;">KES ${p.price.toLocaleString()}</span>`
 }
 
-// Product photos in this app are stored as inline base64 data URIs (no
-// object storage), and some run into multiple megabytes as a string — one
-// oversized photo could bloat the whole email. This caps any single image
-// at ~110KB of raw bytes (150,000 base64 chars) before it's allowed inline;
-// anything bigger silently falls back to the initial-letter placeholder
-// below rather than dragging the rest of the email down with it.
 const MAX_INLINE_IMAGE_CHARS = 150_000
 
 function safeImage(image: string | null): string | null {
@@ -66,9 +63,9 @@ function productCardHtml(p: DigestProduct, origin: string): string {
   const productUrl = `${origin}/customer/products/${p.id}`
   const image = safeImage(p.image)
   const imageHtml = image
-    ? `<img src="${image}" width="260" height="150" alt="${p.name}" style="display:block;width:100%;height:150px;object-fit:cover;background:#f3f4f6;" />`
+    ? `<img src="${image}" width="260" height="150" alt="${escapeEmailText(p.name)}" style="display:block;width:100%;height:150px;object-fit:cover;background:#f3f4f6;" />`
     : `<div style="width:100%;height:150px;background:#f3f4f6;text-align:center;line-height:150px;">
-        <span style="font-size:34px;font-weight:800;color:#9ca3af;">${p.name.charAt(0).toUpperCase()}</span>
+        <span style="font-size:34px;font-weight:800;color:#9ca3af;">${escapeEmailText(p.name.charAt(0).toUpperCase())}</span>
       </div>`
 
   return `
@@ -77,8 +74,8 @@ function productCardHtml(p: DigestProduct, origin: string): string {
       <tr>
         <td style="background:${emailBrand.dark};padding:12px 14px;">
           <span style="display:inline-block;font-size:10px;font-weight:700;letter-spacing:0.02em;padding:2px 9px;border-radius:999px;margin-bottom:6px;${BADGE_STYLE[p.badge]}">${p.badge.toUpperCase()}</span>
-          <div style="font-weight:600;color:#ffffff;font-size:14px;margin:2px 0;">${p.name}</div>
-          <div style="color:#93a5c9;font-size:12px;margin-bottom:10px;">${p.shopName}</div>
+          <div style="font-weight:600;color:#ffffff;font-size:14px;margin:2px 0;">${escapeEmailText(p.name)}</div>
+          <div style="color:#93a5c9;font-size:12px;margin-bottom:10px;">${escapeEmailText(p.shopName)}</div>
           <div style="margin-bottom:12px;">${priceHtml(p)}</div>
           <a href="${productUrl}" style="display:inline-block;background:${emailBrand.gold};color:${emailBrand.goldText};padding:8px 14px;text-decoration:none;border-radius:6px;font-weight:700;font-size:12px;">Shop Now</a>
         </td>
@@ -87,11 +84,6 @@ function productCardHtml(p: DigestProduct, origin: string): string {
   `
 }
 
-// Grid caps at 6 cards per section (3 rows of 2) — enough to feel like a
-// real catalog spread without letting a big section's image weight (up to
-// ~110KB each, uncapped in count) push the total email size too high.
-// Anything past the cap is still real, just linked as a "+N more" instead
-// of embedded.
 const GRID_CAP = 6
 
 function sectionHtml(heading: string, products: DigestProduct[], origin: string): string {
@@ -143,16 +135,6 @@ export type SubscriberDigestResult = {
   trendingProductCount: number
 }
 
-/** Entry point for the weekly subscriber-digest cron. Unlike the per-user
- * digest (lib/actions/email-digest.ts), every subscriber gets the exact
- * same content, so the "since" window is tracked once globally via
- * PlatformSetting rather than per-row. Skips sending entirely if nothing
- * genuinely new/restocked happened — an empty "nothing happened" email is
- * exactly the kind of noise a newsletter shouldn't send. The "Trending Now"
- * section is only ever bonus content riding along on a real new/restocked
- * week, not a reason to send on its own — otherwise every single week would
- * always have "something" to send (there's almost always a top-rated
- * product), which defeats the point of the gate. */
 export async function runWeeklySubscriberDigest(): Promise<SubscriberDigestResult> {
   const since = await getLastDigestAt()
   const now = new Date()
