@@ -11,7 +11,9 @@ import { isMaintenanceModeActive } from "@/backend/actions/admin-settings"
 // go down just because the front-end is in maintenance mode.
 const EXEMPT_PATHS = ["/auth", "/maintenance"]
 
-const platformProxy = auth(async (req) => {
+// The event parameter selects Auth.js's middleware overload rather than its
+// App Router route-handler overload (whose second argument requires params).
+const platformProxy = auth(async (req, _event: NextFetchEvent) => {
   const { pathname } = req.nextUrl
 
   if (pathname === "/sitemap.xml" || pathname === "/robots.txt") return NextResponse.next()
