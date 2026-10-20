@@ -9,6 +9,7 @@ const filters = z.object({
   storeId: z.string().max(60).optional(), employeeId: z.string().max(60).optional(),
   action: z.string().max(60).optional(), search: z.string().trim().max(100).default(""),
   page: z.number().int().min(1).max(200).default(1),
+  from: z.string().max(10).default(""), to: z.string().max(10).default(""),
 })
 
 export async function getPosEmployeeAudit(input: unknown = {}) {
@@ -20,15 +21,21 @@ export async function getPosEmployeeAudit(input: unknown = {}) {
   const parsed = filters.safeParse(input)
   if (!parsed.success) return { success: false as const, error: "Choose a valid date range and filters." }
   const f = parsed.data
+  const calendarDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value) && Number(value.slice(0, 4)) >= 1900 && Number.isFinite(Date.parse(`${value}T00:00:00Z`)) && new Date(`${value}T00:00:00Z`).toISOString().slice(0, 10) === value
+  if ((f.from || f.to) && (!f.from || !f.to || !calendarDate(f.from) || !calendarDate(f.to) || f.from > f.to)) {
+    return { success: false as const, error: "Choose valid From and To dates, with From on or before To." }
+  }
   const [staff, stores] = await Promise.all([
     db.posStaff.findMany({ where: { businessId: business.id }, select: { id: true, name: true, role: true, userId: true, isActive: true }, orderBy: { name: "asc" } }),
     db.posStore.findMany({ where: { businessId: business.id }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ])
   if (f.storeId && !stores.some(s => s.id === f.storeId)) return { success: false as const, error: "That branch is not part of your business." }
   if (f.employeeId && !staff.some(s => s.id === f.employeeId)) return { success: false as const, error: "That employee is not part of your business." }
-  const until = new Date()
-  const since = new Date(until.getTime() - f.days * 86_400_000)
-  const base = { businessId: business.id, createdAt: { gte: since, lte: until }, ...(f.storeId ? { storeId: f.storeId } : {}) }
+  // Calendar days include the whole selected day in East Africa Time (UTC+03).
+  const endExclusive = f.to ? new Date(new Date(`${f.to}T00:00:00+03:00`).getTime() + 86_400_000) : null
+  const until = endExclusive ? new Date(endExclusive.getTime() - 1) : new Date()
+  const since = f.from ? new Date(`${f.from}T00:00:00+03:00`) : new Date(until.getTime() - f.days * 86_400_000)
+  const base = { businessId: business.id, createdAt: { gte: since, ...(endExclusive ? { lt: endExclusive } : { lte: until }) }, ...(f.storeId ? { storeId: f.storeId } : {}) }
   const groups = await db.posAuditEvent.groupBy({
     by: ["actorStaffId", "actorUserId", "action"], where: base,
     _count: { _all: true }, _max: { createdAt: true },

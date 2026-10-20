@@ -88,3 +88,25 @@ test("shared account fallback cannot assign events to an arbitrary employee", as
   const events = service.queries.find(([kind]) => kind === "events")[1]
   assert.equal(events.where.OR.length, 1)
 })
+
+test("custom employee dates include both calendar days in East Africa Time", async () => {
+  const service = setup()
+  const result = await service.getPosEmployeeAudit({ employeeId: "cashier", from: "2026-10-01", to: "2026-10-15", page: 2 })
+  assert.equal(result.success, true)
+  for (const [kind, query] of service.queries.filter(([kind]) => ["groups", "count", "events"].includes(kind))) {
+    assert.equal(query.where.createdAt.gte.toISOString(), "2026-09-30T21:00:00.000Z", kind)
+    assert.equal(query.where.createdAt.lt.toISOString(), "2026-10-15T21:00:00.000Z", kind)
+  }
+  const events = service.queries.find(([kind]) => kind === "events")[1]
+  assert.equal(events.where.OR[0].actorStaffId, "cashier")
+  assert.equal(events.skip, 50)
+  assert.equal(result.data.until, "2026-10-15T20:59:59.999Z")
+})
+
+test("incomplete, impossible and reversed custom dates cannot query audit events", async () => {
+  for (const input of [{ from: "2026-10-01" }, { to: "2026-10-01" }, { from: "2026-02-30", to: "2026-03-01" }, { from: "2026-99-99", to: "2026-99-99" }, { from: "2026-10-15", to: "2026-10-01" }]) {
+    const service = setup()
+    assert.equal((await service.getPosEmployeeAudit(input)).success, false)
+    assert.equal(service.queries.some(([kind]) => ["groups", "count", "events"].includes(kind)), false)
+  }
+})
