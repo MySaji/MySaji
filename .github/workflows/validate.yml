@@ -172,7 +172,7 @@ jobs:
       - name: Deploy and verify
         run: |
           set -euo pipefail
-          docker save "mysaji:sha-$GITHUB_SHA" "mysaji-migration:sha-$GITHUB_SHA" \
+          docker save "mysaji:sha-$GITHUB_SHA" "mysaji-migration:sha-$GITHUB_SHA" | gzip -1 \
             | ssh -i ~/.ssh/staging -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes \
                 mysaji-deploy@172.18.0.1 "$GITHUB_SHA" | tee deployment.json
           echo "Deployed $(cat deployment.json)" >> "$GITHUB_STEP_SUMMARY"

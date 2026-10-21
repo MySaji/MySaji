@@ -18,15 +18,21 @@ ARG NEXT_PUBLIC_SENTRY_DSN
 ENV NEXT_TELEMETRY_DISABLED=1
 # Synthetic build-only URLs; no production secrets enter image layers.
 RUN NODE_OPTIONS=--max-old-space-size=4096 DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build DIRECT_URL=postgresql://build:build@127.0.0.1:5432/build pnpm build
-FROM build AS migration
+# Migrations need only the Prisma CLI and the migration files, not the build stage (6.6 GB):
+# this keeps the image small enough to stream to the server quickly. The CLI version is the
+# one package.json pins; its engines are fetched here because the migration container runs
+# on the internal database network without egress.
+FROM base AS migration
+WORKDIR /migrate
+RUN npm install --no-audit --no-fund --no-save prisma@6.19.3 && npx --no prisma --version >/dev/null && npm cache clean --force
+COPY backend/prisma/schema.prisma backend/prisma/schema.prisma
+COPY backend/prisma/migrations backend/prisma/migrations
 ARG APP_REVISION=development
 # Labelled like the runtime image so the server can verify both before migrating.
 LABEL org.opencontainers.image.source="https://github.com/MySaji/MySaji" org.opencontainers.image.revision=$APP_REVISION
 USER node
-# Runs on the internal database network without egress; corepack would try to
-# download pnpm for the node user, so invoke the locally installed CLI directly.
 ENV CHECKPOINT_DISABLE=1
-CMD ["node_modules/.bin/prisma", "migrate", "deploy"]
+CMD ["node_modules/.bin/prisma", "migrate", "deploy", "--schema", "backend/prisma/schema.prisma"]
 FROM base AS runtime
 ARG APP_REVISION=development
 LABEL org.opencontainers.image.source="https://github.com/MySaji/MySaji" org.opencontainers.image.revision=$APP_REVISION
