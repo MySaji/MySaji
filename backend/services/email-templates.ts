@@ -1,6 +1,15 @@
 ﻿// Served by the app itself (public/email-logo.png), copied unchanged from the former
 // Supabase Storage object so emails no longer depend on Supabase.
 const LOGO_PATH = "/email-logo.png"
+const PUBLIC_ORIGIN = "https://mysaji.com"
+
+/** Absolute HTTPS URL of the logo: email clients cannot load relative or private-network URLs,
+ *  so a non-HTTPS origin (staging, local) falls back to the public site. */
+export function emailLogoUrl(): string {
+  let origin = PUBLIC_ORIGIN
+  try { if (new URL(siteOrigin()).protocol === "https:") origin = siteOrigin() } catch { /* keep the public site */ }
+  return escapeEmailText(new URL(LOGO_PATH, origin).href)
+}
 const BRAND_DARK = "#0647b5"
 const BRAND_ACCENT = "#0647b5"
 const BRAND_GOLD = "#ff8a17"
@@ -26,7 +35,7 @@ export function wrapEmailLayout(opts: { title: string; bodyHtml: string; unsubsc
 <div style="display:none;max-height:0;overflow:hidden;opacity:0;font-size:1px;line-height:1px;mso-hide:all;">${preview}</div>
 <table role="presentation" width="100%" style="width:100%;background:#f3f6fb;"><tr><td class="outer" align="center" style="padding:35px 16px;">
 <table role="presentation" width="600" style="width:100%;max-width:600px;background:#ffffff;border:1px solid #e0e8f4;">
-<tr><td class="brand-header" style="padding:27px 36px;background:#0647b5;border-bottom:4px solid #ff8a17;"><table role="presentation"><tr><td style="padding-right:12px;vertical-align:middle;"><img src="${origin.replace(/\/$/, "")}${LOGO_PATH}" width="43" height="43" alt="MySaji" style="display:block;border:0;border-radius:9px;"></td><td style="vertical-align:middle;"><a href="${origin}" style="font-size:25px;letter-spacing:-1px;font-weight:700;color:#ffffff;text-decoration:none;">MySaji</a><div style="color:#c8dcff;font-size:10px;letter-spacing:1px;line-height:1.8;">SHOP &middot; WORK &middot; RENT &middot; LEARN &middot; GROW</div></td></tr></table></td></tr>
+<tr><td class="brand-header" style="padding:27px 36px;background:#0647b5;border-bottom:4px solid #ff8a17;"><table role="presentation"><tr><td style="padding-right:12px;vertical-align:middle;"><img src="${emailLogoUrl()}" width="43" height="43" alt="MySaji" style="display:block;border:0;border-radius:9px;"></td><td style="vertical-align:middle;"><a href="${origin}" style="font-size:25px;letter-spacing:-1px;font-weight:700;color:#ffffff;text-decoration:none;">MySaji</a><div style="color:#c8dcff;font-size:10px;letter-spacing:1px;line-height:1.8;">SHOP &middot; WORK &middot; RENT &middot; LEARN &middot; GROW</div></td></tr></table></td></tr>
 <tr><td class="content" style="padding:34px 36px;font-size:15px;line-height:1.8;color:#596b84;"><p style="margin:0 0 10px;font-size:10px;letter-spacing:1.8px;color:#8a9ab0;font-weight:700;">YOUR MYSAJI UPDATE</p><h1 class="email-title" style="margin:0 0 25px;font-size:29px;line-height:1.25;letter-spacing:-.7px;font-weight:700;color:#172b4d;">${title}</h1>${opts.bodyHtml}</td></tr>
 <tr><td style="padding:0 36px;"><div style="border-top:1px solid #e2e9f3;"></div></td></tr>
 <tr><td class="email-footer" style="padding:23px 36px 29px;font-size:12px;line-height:1.8;color:#8492a7;"><p style="margin:0 0 10px;">Need a hand? <a href="${origin}/knowledge/support" style="color:#0647b5;text-decoration:underline;">Visit the help centre</a>.</p><p style="margin:0 0 12px;">Keep your verification codes and passwords private. MySaji will never need you to share them in a chat.</p>${opts.unsubscribeUrl ? `<p style="margin:0 0 12px;"><a href="${emailUrl(opts.unsubscribeUrl)}" style="color:#0647b5;">Unsubscribe from these emails</a></p>` : ""}<p style="margin:0;color:#9aa6b8;font-size:11px;">&copy; ${new Date().getFullYear()} MySaji. This message was sent automatically.</p></td></tr>
