@@ -5,9 +5,19 @@ on:
   push:
     branches:
       - main
+      - staging
+      - infra/delivery-20261020
   pull_request:
     branches:
       - main
+      - staging
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   checks:
@@ -75,3 +85,101 @@ jobs:
         run: pnpm build
         env:
           NODE_OPTIONS: --max-old-space-size=4096
+
+  images:
+    needs: checks
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ghcr.io/mysaji/mysaji@${{ steps.app.outputs.digest }}
+      migration_image: ghcr.io/mysaji/mysaji-migration@${{ steps.migration.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        id: app
+        with:
+          context: .
+          target: runtime
+          push: true
+          tags: ghcr.io/mysaji/mysaji:sha-${{ github.sha }}
+          build-args: |
+            APP_REVISION=${{ github.sha }}
+            NEXT_PUBLIC_SITE_URL=http://127.0.0.1:13001
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - uses: docker/build-push-action@v6
+        id: migration
+        with:
+          context: .
+          target: migration
+          push: true
+          tags: ghcr.io/mysaji/mysaji-migration:sha-${{ github.sha }}
+          build-args: |
+            APP_REVISION=${{ github.sha }}
+            NEXT_PUBLIC_SITE_URL=http://127.0.0.1:13001
+          cache-from: type=gha
+
+  staging:
+    needs: images
+    if: github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/infra/delivery-20261020'
+    runs-on: ubuntu-latest
+    environment: staging
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Fetch the exact images CI built
+        env:
+          APP_IMAGE: ${{ needs.images.outputs.image }}
+          MIGRATION_IMAGE: ${{ needs.images.outputs.migration_image }}
+        run: |
+          docker pull -q "$APP_IMAGE"
+          docker pull -q "$MIGRATION_IMAGE"
+          docker tag "$APP_IMAGE" "mysaji:sha-$GITHUB_SHA"
+          docker tag "$MIGRATION_IMAGE" "mysaji-migration:sha-$GITHUB_SHA"
+      - name: Establish deployment-only VPN access
+        env:
+          WG_CONFIG: ${{ secrets.STAGING_WG_CONFIG }}
+          SSH_KEY: ${{ secrets.STAGING_SSH_KEY }}
+          HOST_KEYS: ${{ vars.STAGING_HOST_KEYS }}
+        run: |
+          set -eu
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq wireguard-tools
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/staging
+          printf '%s\n' "$HOST_KEYS" > ~/.ssh/known_hosts
+          printf '%s\n' "$WG_CONFIG" > "$RUNNER_TEMP/mysaji-ci.conf"
+          sudo wg-quick up "$RUNNER_TEMP/mysaji-ci.conf"
+      # The key's only command loads this stream, verifies both revision labels, dumps the
+      # database, migrates, switches and checks /revision.json and /api/health. Only the
+      # commit is sent; no GitHub token or registry credential reaches the server.
+      - name: Deploy and verify
+        run: |
+          set -euo pipefail
+          docker save "mysaji:sha-$GITHUB_SHA" "mysaji-migration:sha-$GITHUB_SHA" | gzip -1 \
+            | ssh -i ~/.ssh/staging -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes \
+                mysaji-deploy@172.18.0.1 "$GITHUB_SHA" | tee deployment.json
+          echo "Deployed $(cat deployment.json)" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: staging-deployment-${{ github.sha }}
+          path: deployment.json
+      - name: Disconnect VPN
+        if: always()
+        run: sudo wg-quick down "$RUNNER_TEMP/mysaji-ci.conf" || true

@@ -1,0 +1,15 @@
+.git
+node_modules
+.next
+.artifacts
+.task-tools
+.env*
+**/.env*
+*.log
+*.tsbuildinfo
+docs
+ops/secrets
+ops/*.env
+**/*.dump
+**/*.backup
+**/*.key

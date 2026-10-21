@@ -1,0 +1,99 @@
+name: saji
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+services:
+  app:
+    image: ${APP_IMAGE:?Set an immutable app image tag or digest}
+    env_file: ${APP_ENV_FILE:-./app.env}
+    environment:
+      NODE_ENV: production
+      HOSTNAME: 0.0.0.0
+      PORT: "3000"
+    restart: unless-stopped
+    init: true
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [edge, database]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 2g
+    cpus: 2
+    pids_limit: 256
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    logging: *logging
+  db:
+    image: ${DB_IMAGE:-postgis/postgis:17-3.5}
+    environment:
+      POSTGRES_DB: saji
+      POSTGRES_USER: saji_owner
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets: [db_password, app_db_password]
+    volumes:
+      - postgres:/var/lib/postgresql/data
+      - ./postgres/init.sh:/docker-entrypoint-initdb.d/20-saji.sh:ro
+    networks: [database]
+    restart: unless-stopped
+    shm_size: 256mb
+    mem_limit: 3g
+    cpus: 2
+    pids_limit: 256
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U saji_owner -d saji']
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    logging: *logging
+  proxy:
+    image: ${PROXY_IMAGE:-caddy:2}
+    environment:
+      DOMAIN: ${DOMAIN:-mysaji.com}
+      ACME_EMAIL: ${ACME_EMAIL:?Set the certificate contact email}
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [edge]
+    restart: unless-stopped
+    mem_limit: 256m
+    cpus: 0.5
+    logging: *logging
+  scheduler:
+    image: ${APP_IMAGE:?Set an immutable app image tag or digest}
+    profiles: [jobs]
+    env_file: ${APP_ENV_FILE:-./app.env}
+    entrypoint: [node, /scheduler.mjs]
+    volumes: ["./scheduler.mjs:/scheduler.mjs:ro"]
+    networks: [edge]
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 128m
+    cpus: 0.25
+    logging: *logging
+networks:
+  edge:
+  database:
+    internal: true
+volumes:
+  postgres:
+  caddy_data:
+  caddy_config:
+secrets:
+  db_password:
+    file: ./secrets/db_password
+  app_db_password:
+    file: ./secrets/app_db_password

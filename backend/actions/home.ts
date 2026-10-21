@@ -11,6 +11,7 @@ import {
 import { distanceKmSql, withinRadiusSql, noteSpatialFailure, noteSpatialSuccess, postgisUnavailable } from "@/backend/services/geo-sql"
 import { getMyLocationOrigin, resolveLocationOrigin } from "@/backend/actions/geo"
 import { PUBLIC_SHOP_WHERE } from "@/backend/domain/public-catalog"
+import { fetchCategories } from "@/backend/services/catalog-api"
 
 export type HomeServiceCategory = {
   id: string
@@ -20,6 +21,12 @@ export type HomeServiceCategory = {
 }
 
 export async function getServiceCategories(): Promise<HomeServiceCategory[]> {
+  // Served by the Python catalog API where it is deployed (SAJI_API_URL), with
+  // this query as the fallback; both apply the same rule: active SERVICE
+  // categories by name.
+  const fromApi = await fetchCategories("SERVICE")
+  if (fromApi) return fromApi.map((c) => ({ id: c.id, name: c.name, slug: c.slug, tier: c.tier }))
+
   const categories = await db.category.findMany({
     where: { type: "SERVICE", isActive: true },
     orderBy: { name: "asc" },

@@ -90,6 +90,7 @@ test('employees land in an assigned workspace instead of owner setup or an unaut
     '@/backend/db': { db: { posBusiness: { findUnique: async () => null } } },
     '@/backend/services/pos-billing': {}, '@/backend/services/pos-provision': {}, '@/backend/services/signup-proof': {}, '@/backend/services/rate-limit': {}, '@/backend/domain/pos-profiles': {}, '@/backend/domain/pos-onboarding-steps': {},
     '@/backend/services/pos-access-core': { resolvePosActor: async () => ({ can: p => grants.includes(p) }) },
+    '@/backend/services/pos-website-provision': { ensureBusinessWebsite: async () => { assert.fail('Employee routing must not provision an owner website') } },
   })
   for (const [permissions, destination] of [[['till.sell'], '/pos/sell'], [['stock.view', 'product.create'], '/pos/stock'], [['report.sales'], '/pos/reports'], [[], '/pos/home']]) {
     grants = permissions
