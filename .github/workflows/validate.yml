@@ -137,6 +137,20 @@ jobs:
       contents: read
       packages: read
     steps:
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Fetch the exact images CI built
+        env:
+          APP_IMAGE: ${{ needs.images.outputs.image }}
+          MIGRATION_IMAGE: ${{ needs.images.outputs.migration_image }}
+        run: |
+          docker pull -q "$APP_IMAGE"
+          docker pull -q "$MIGRATION_IMAGE"
+          docker tag "$APP_IMAGE" "mysaji:sha-$GITHUB_SHA"
+          docker tag "$MIGRATION_IMAGE" "mysaji-migration:sha-$GITHUB_SHA"
       - name: Establish deployment-only VPN access
         env:
           WG_CONFIG: ${{ secrets.STAGING_WG_CONFIG }}
@@ -152,19 +166,16 @@ jobs:
           printf '%s\n' "$HOST_KEYS" > ~/.ssh/known_hosts
           printf '%s\n' "$WG_CONFIG" > "$RUNNER_TEMP/mysaji-ci.conf"
           sudo wg-quick up "$RUNNER_TEMP/mysaji-ci.conf"
-      - name: Deploy immutable checked images and verify revision
-        env:
-          APP_IMAGE: ${{ needs.images.outputs.image }}
-          MIGRATION_IMAGE: ${{ needs.images.outputs.migration_image }}
-          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REGISTRY_USER: ${{ github.actor }}
-          REVISION: ${{ github.sha }}
+      # The key's only command loads this stream, verifies both revision labels, dumps the
+      # database, migrates, switches and checks /revision.json and /api/health. Only the
+      # commit is sent; no GitHub token or registry credential reaches the server.
+      - name: Deploy and verify
         run: |
           set -euo pipefail
-          python3 - <<'PY' | ssh -i ~/.ssh/staging -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes mysaji-deploy@172.18.0.1 | tee deployment.json
-          import json, os
-          print(json.dumps({"revision":os.environ["REVISION"],"image":os.environ["APP_IMAGE"],"migration_image":os.environ["MIGRATION_IMAGE"],"registry_token":os.environ["REGISTRY_TOKEN"],"registry_user":os.environ["REGISTRY_USER"]}))
-          PY
+          docker save "mysaji:sha-$GITHUB_SHA" "mysaji-migration:sha-$GITHUB_SHA" \
+            | ssh -i ~/.ssh/staging -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes \
+                mysaji-deploy@172.18.0.1 "$GITHUB_SHA" | tee deployment.json
+          echo "Deployed $(cat deployment.json)" >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         with:
           name: staging-deployment-${{ github.sha }}

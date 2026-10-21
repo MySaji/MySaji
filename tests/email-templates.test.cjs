@@ -22,3 +22,14 @@ test('email buttons escape their label and reject executable URL schemes',()=>{
  assert.doesNotMatch(templates.wrapEmailLayout({title:'Test',bodyHtml:'<p>Hello</p>'}),/>Unsubscribe/)
  assert.match(templates.otpCodeBlock('<script>'),/&lt;script&gt;/)
 })
+test('the email logo is served by the site itself, not Supabase Storage',()=>{
+ const previous=process.env.NEXT_PUBLIC_SITE_URL
+ process.env.NEXT_PUBLIC_SITE_URL='https://mysaji.com'
+ try{
+  const html=templates.wrapEmailLayout({title:'Hello',bodyHtml:'<p>Hi</p>'})
+  assert.match(html,/<img src="https:\/\/mysaji\.com\/email-logo\.png"/)
+  assert.doesNotMatch(html,/supabase/i)
+ }finally{
+  if(previous===undefined) delete process.env.NEXT_PUBLIC_SITE_URL; else process.env.NEXT_PUBLIC_SITE_URL=previous
+ }
+})

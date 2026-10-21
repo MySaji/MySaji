@@ -19,6 +19,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # Synthetic build-only URLs; no production secrets enter image layers.
 RUN NODE_OPTIONS=--max-old-space-size=4096 DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build DIRECT_URL=postgresql://build:build@127.0.0.1:5432/build pnpm build
 FROM build AS migration
+ARG APP_REVISION=development
+# Labelled like the runtime image so the server can verify both before migrating.
+LABEL org.opencontainers.image.source="https://github.com/MySaji/MySaji" org.opencontainers.image.revision=$APP_REVISION
 USER node
 # Runs on the internal database network without egress; corepack would try to
 # download pnpm for the node user, so invoke the locally installed CLI directly.
