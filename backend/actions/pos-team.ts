@@ -77,6 +77,11 @@ export type TeamView = {
  * sentence anybody wants to read on a settings page.
  */
 const FEATURE_LABEL: Record<PosPermission, { group: string; label: string }> = {
+  "salon.view": { group: "Salon", label: "Open salon appointments (assigned work only without reception access)" },
+  "salon.book": { group: "Salon", label: "Manage salon reception and all branch bookings" },
+  "salon.service": { group: "Salon", label: "Start and complete assigned services" },
+  "salon.manage": { group: "Salon", label: "Configure service durations and commission rates" },
+  "salon.commission": { group: "Salon", label: "See salon earnings and commission estimates" },
   "till.sell": { group: "The counter", label: "Ring up sales" },
   "till.void": { group: "The counter", label: "Void a sale" },
   "till.refund": { group: "The counter", label: "Give refunds" },
@@ -118,7 +123,7 @@ const FEATURE_LABEL: Record<PosPermission, { group: string; label: string }> = {
   "audit.view": { group: "The business", label: "See the audit history" },
 }
 
-const GROUP_ORDER = ["The counter", "Stock", "Products", "Buying", "Money", "The business"]
+const GROUP_ORDER = ["The counter", "Stock", "Products", "Buying", "Money", "Salon", "The business"]
 
 export async function getTeam(staffId?: string | null): Promise<TeamView | null> {
   const g = await gate("staff.view", staffId)

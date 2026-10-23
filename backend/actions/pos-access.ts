@@ -1,5 +1,6 @@
 "use server"
 
+import { db } from "@/backend/db"
 import { resolvePosActor } from "@/backend/services/pos-access-core"
 
 import { POS_ROLE_META, type PosRole, type PosPermission } from "@/backend/domain/pos-permissions"
@@ -30,6 +31,7 @@ export type PosWhoAmI = {
   roleDescription: string
   permissions: PosPermission[]
   storeId: string | null
+  profileKey?: string | null
   isOwner: boolean
 }
 
@@ -46,6 +48,7 @@ export async function getPosWhoAmI(staffId?: string | null): Promise<PosWhoAmI |
     roleDescription: POS_ROLE_META[actor.role].description,
     permissions: POS_PERMISSIONS.filter(p => actor.can(p)),
     storeId: actor.storeId,
+    profileKey: actor.shopkeeperId ? (await db.shopkeeperProfile.findUnique({ where: { id: actor.shopkeeperId }, select: { posProfileKey: true } }))?.posProfileKey ?? null : null,
     isOwner: actor.role === "OWNER",
   }
 }

@@ -11,6 +11,7 @@ import { checkRateLimit } from "@/backend/services/rate-limit"
 import { resolvePosProfile } from "@/backend/domain/pos-profiles"
 import { recordPosAudit, resolvePosActor } from "@/backend/services/pos-access-core"
 import { ONBOARDING_STEPS, type OnboardingStep } from "@/backend/domain/pos-onboarding-steps"
+import { starterWebsite, websiteContentSchema } from "@/backend/domain/pos-website"
 import { ensureBusinessWebsite } from "@/backend/services/pos-website-provision"
 
 /**
@@ -221,6 +222,7 @@ export async function posDestination(): Promise<string> {
   if (business) return business.setupCompletedAt ? "/pos/home" : "/pos/setup"
 
   const actor = await resolvePosActor()
+  if (actor?.can("salon.view") && !actor.can("till.sell")) return "/pos/salon"
   if (actor) return actor.can("till.sell") ? "/pos/sell" : actor.can("stock.view") ? "/pos/stock" : actor.can("product.view") ? "/pos/products" : actor.can("report.sales") ? "/pos/reports" : "/pos/home"
 
   // Signed in to SAJI with no till of any kind.
@@ -324,6 +326,10 @@ export async function saveBusinessStep(input: unknown): Promise<StepResult> {
       data: { name: d.name, phone: d.phone || null, county: d.county || null, town: d.town || null, street: d.street || null },
     })
   }
+
+  // Fill only the untouched private starter. Owner edits and published content are preserved.
+  const websiteDraft = websiteContentSchema.parse({ ...starterWebsite(d.name, profile.label), phone: d.phone && /^\+?[0-9 ()-]{7,30}$/.test(d.phone) ? d.phone : "", address: [d.street, d.town, d.county].filter(Boolean).join(", ") })
+  await db.posBusinessWebsite.updateMany({ where: { businessId: ctx.business.id, version: 1, publishedAt: null }, data: { draft: websiteDraft as never, version: { increment: 1 } } })
 
   return { success: true, nextStep: "configure" }
 }

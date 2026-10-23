@@ -1,4 +1,6 @@
 import { IncomingCallBanner } from "@/frontend/components/messages/incoming-call-banner"
+import { AppUpdateGate } from "@/frontend/components/app-update-gate"
+import { getAppRelease } from "@/backend/services/app-release"
 import { DevicePushSession } from "@/frontend/components/notifications/device-notifications"
 import type React from "react"
 import type { Metadata, Viewport } from "next"
@@ -87,6 +89,7 @@ export default async function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className={`font-sans antialiased ${_geist.className}`}>
+        <AppUpdateGate release={await getAppRelease()}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} themes={["light", "dark"]} disableTransitionOnChange>
           <SessionProvider session={session}>
             {/* Seeded from the session so the server renders the signed-in
@@ -112,6 +115,7 @@ export default async function RootLayout({
           </SessionProvider>
         </ThemeProvider>
         <AnalyticsConsent />
+        </AppUpdateGate>
       </body>
     </html>
   )

@@ -1231,6 +1231,8 @@ model ShopkeeperProfile {
   posCashMovements           PosCashMovement[]
   posStockCounts             PosStockCount[]
   posJobCards                PosJobCard[]
+  salonAppointments          PosSalonAppointment[]
+  salonServices              PosSalonService[]
   posCreditEntries           PosCreditEntry[]
   posPromotions              PosPromotion[]
   posPriceLists              PosPriceList[]
@@ -1844,6 +1846,8 @@ model Product {
 
   stockMovements StockMovement[]
   posSaleItems   PosSaleItem[]
+  salonServices PosSalonService[]
+  salonAppointments PosSalonAppointment[]
   posCountLines  PosStockCountLine[]
   posJobLines    PosJobLine[]
   posPromotions  PosPromotion[]
@@ -4723,6 +4727,7 @@ model PosSaleItem {
   variant     ProductVariant? @relation(fields: [variantId], references: [id])
   batch       ProductBatch?   @relation(fields: [batchId], references: [id])
   returnItems PosReturnItem[]
+  salonAppointment PosSalonAppointment?
 
   @@index([saleId])
   @@index([batchId])
@@ -5025,6 +5030,7 @@ model PosStaff {
   business PosBusiness @relation(fields: [businessId], references: [id], onDelete: Cascade)
   store    PosStore?   @relation(fields: [storeId], references: [id], onDelete: SetNull)
   user     User?       @relation("PosStaffUser", fields: [userId], references: [id], onDelete: SetNull)
+  salonAppointments PosSalonAppointment[]
 
   @@index([businessId])
   @@index([storeId])
@@ -6937,4 +6943,50 @@ model PosTableOrderLine {
   @@index([orderId])
   @@index([sentToKitchenAt])
   @@map("pos_table_order_lines")
+}
+model PosSalonService {
+  id String @id @default(cuid())
+  shopkeeperId String
+  productId String @unique
+  durationMinutes Int @default(60)
+  commissionBps Int @default(0)
+  updatedAt DateTime @updatedAt
+  shopkeeper ShopkeeperProfile @relation(fields: [shopkeeperId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  @@index([shopkeeperId])
+  @@map("pos_salon_services")
+}
+
+model PosSalonAppointment {
+  id String @id @default(cuid())
+  shopkeeperId String
+  stylistId String
+  stylistName String
+  serviceId String?
+  serviceName String
+  customerName String
+  customerPhone String?
+  startsAt DateTime
+  endsAt DateTime
+  status String @default("BOOKED")
+  notes String @default("")
+  commissionBps Int @default(0)
+  quotedPrice Decimal @db.Decimal(14, 2)
+  commissionBase Decimal? @db.Decimal(14, 2)
+  saleItemId String? @unique
+  version Int @default(1)
+  createdByUserId String?
+  checkedInAt DateTime?
+  startedAt DateTime?
+  completedAt DateTime?
+  cancellationReason String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  shopkeeper ShopkeeperProfile @relation(fields: [shopkeeperId], references: [id], onDelete: Cascade)
+  stylist PosStaff @relation(fields: [stylistId], references: [id], onDelete: Restrict)
+  service Product? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  saleItem PosSaleItem? @relation(fields: [saleItemId], references: [id], onDelete: Restrict)
+  @@index([shopkeeperId, startsAt])
+  @@index([stylistId, startsAt, endsAt])
+  @@map("pos_salon_appointments")
 }

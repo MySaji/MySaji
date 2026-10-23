@@ -5,6 +5,7 @@ export type WorkspaceTool = { label: string; description: string; href: string; 
 
 // Shared by every business profile; saved traits remain authoritative.
 export const WORKSPACE_TOOLS: WorkspaceTool[] = [
+  { label: "Salon appointments", description: "Book clients, assign stylists and review completed services and commissions.", href: "/pos/salon", permission: "salon.view", profiles: ["SALON"] },
   { label: "Tables & orders", description: "Seat guests, manage open tables and send orders to the kitchen.", href: "/pos/floor", permission: "till.sell", profiles: ["RESTAURANT", "CAFE", "BAR"] },
   { label: "Kitchen display", description: "Keep preparation tickets moving from ordered to ready.", href: "/pos/kitchen", permission: "till.sell", profiles: ["RESTAURANT", "CAFE", "BAR"] },
   { label: "Jobs & service tickets", description: "Track work received, progress and collection.", href: "/pos/jobs", permission: "till.sell", traits: ["JOB_CARD"] },

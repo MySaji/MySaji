@@ -97,6 +97,7 @@ export const POS_PERMISSIONS = [
   "expense.view",
   "expense.manage",
   "payment.settings",
+  "salon.view", "salon.book", "salon.service", "salon.manage", "salon.commission",
   // people and the business
   "staff.view",
   "staff.manage",
@@ -111,6 +112,7 @@ export type PosPermission = (typeof POS_PERMISSIONS)[number]
 const ALL: PosPermission[] = [...POS_PERMISSIONS]
 
 const MANAGER: PosPermission[] = [
+  "salon.view", "salon.book", "salon.service",
   "till.sell", "till.void", "till.refund", "till.discount", "till.open_shift", "till.close_shift",
   "till.cash_in_out",
   "stock.view", "stock.adjust", "stock.count", "stock.count_approve", "stock.receive", "stock.write_off",
@@ -124,6 +126,7 @@ const MANAGER: PosPermission[] = [
 ]
 
 const CASHIER: PosPermission[] = [
+  "salon.view", "salon.book", "salon.service",
   "till.sell",
   "till.open_shift", "till.close_shift",
   // Granted, unlike till.void. The cashier is the one holding the drawer

@@ -16,6 +16,7 @@ test("employee navigation follows permissions, including grants outside the role
 test("identity exposes all owner-selected permissions rather than intersecting the role", async () => {
   const permissions = loadService("backend/domain/pos-permissions.ts")
   const { getPosWhoAmI } = loadService("backend/actions/pos-access.ts", {
+    "@/backend/db": { db: {} },
     "@/backend/domain/pos-permissions": permissions,
     "@/backend/services/pos-access-core": {
       resolvePosActor: async () => ({ role: "CASHIER", can: p => ["till.sell", "report.sales"].includes(p) }),
