@@ -1,4 +1,9 @@
 {
+  "git": {
+    "deploymentEnabled": {
+      "feat/public-seo-sitelinks": false
+    }
+  },
   "regions": ["fra1"],
   "crons": [
     {

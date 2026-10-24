@@ -1,8 +1,9 @@
-﻿"use client"
+"use client"
 
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { ArrowUpRight, Menu, X } from "lucide-react"
+import { OFFERING_LINKS } from "@/backend/domain/public-site"
 import styles from "./information-home.module.css"
 
 export function MobileHomeMenu() {
@@ -26,10 +27,7 @@ export function MobileHomeMenu() {
       {open ? <X size={21} /> : <Menu size={21} />}
     </button>
     <nav id="mobile-home-navigation" aria-label="Mobile navigation" hidden={!open} className={styles.mobileLinks} onClick={event => { if ((event.target as Element).closest("a")) setOpen(false) }}>
-      <a href="#explore">Explore MySaji <ArrowUpRight size={16} /></a>
-      <Link href="/pos">Saji Till <ArrowUpRight size={16} /></Link>
-      <a href="#handbook">Help & guides <ArrowUpRight size={16} /></a>
-      <Link href="/knowledge">Knowledge base <ArrowUpRight size={16} /></Link>
+      {OFFERING_LINKS.map(link => <Link key={link.href} href={link.href}>{link.label} <ArrowUpRight size={16} aria-hidden="true" /></Link>)}
       <Link href="/auth/login">Sign in <ArrowUpRight size={16} /></Link>
     </nav>
   </div>

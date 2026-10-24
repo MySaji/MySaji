@@ -3,21 +3,12 @@
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { Mail, MapPin, Phone, Facebook, Twitter, Instagram, Linkedin } from "lucide-react"
+import { OFFERING_LINKS } from "@/backend/domain/public-site"
 import { NewsletterForm } from "@/frontend/components/newsletter-form"
 import { BrandLogo } from "@/frontend/components/brand-logo"
 import { getPublicSiteSettings, type PublicSiteSettings } from "@/backend/actions/admin-settings"
 
-const QUICK_LINKS = [
-  { label: "Knowledge Base", href: "/knowledge" },
-  { label: "Getting Started", href: "/knowledge/getting-started" },
-  { label: "Saji Till Guide", href: "/knowledge/pos-guide" },
-  { label: "Payments & Help", href: "/knowledge/payments-wallet" },
-  { label: "Home", href: "/" },
-  { label: "How It Works", href: "/knowledge/getting-started" },
-  { label: "Features", href: "/knowledge/provider-guide" },
-  { label: "Services", href: "/knowledge/customer-bookings" },
-  { label: "Become a Provider", href: "/auth/signup?role=provider" },
-]
+const QUICK_LINKS = OFFERING_LINKS
 
 const SUPPORT_LINKS = [
   { label: "FAQ", href: "/knowledge/support" },
@@ -64,10 +55,10 @@ export function Footer() {
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <BrandLogo size="large" />
-              <span className="font-bold text-lg">SAJI</span>
+              <span className="font-bold text-lg">MySaji</span>
             </div>
             <p className="text-sm text-muted-foreground">
-              Connecting you with trusted, verified service providers across Kenya.
+              Services, products and practical business tools for everyday life and work in Kenya.
             </p>
             {socials.length > 0 && (
               <div className="flex flex-wrap items-center gap-2 pt-1">
@@ -87,9 +78,9 @@ export function Footer() {
             )}
           </div>
 
-          {/* Quick Links */}
+          {/* Explore MySaji */}
           <div>
-            <h3 className="font-semibold mb-4 text-foreground">Quick Links</h3>
+            <h3 className="font-semibold mb-4 text-foreground">Explore MySaji</h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
               {QUICK_LINKS.map((link) => (
                 <li key={link.label}>
@@ -134,7 +125,7 @@ export function Footer() {
         {/* Bottom Bar */}
         <div className="pt-8 border-t border-border">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-muted-foreground">
-            <p>&copy; {new Date().getFullYear()} SAJI. All rights reserved.</p>
+            <p>&copy; {new Date().getFullYear()} MySaji. All rights reserved.</p>
             <div className="flex gap-6">
               <Link href="/privacy" className="hover:text-foreground transition-colors">
                 Privacy Policy

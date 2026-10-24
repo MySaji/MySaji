@@ -1,6 +1,7 @@
-import { PublicNavigation } from "@/frontend/components/public-navigation"
+import type { ReactNode } from "react"
+import { PublicHeader } from "@/frontend/components/public-header"
 import { Footer } from "@/frontend/components/footer"
 
-export default function KnowledgeLayout({ children }: { children: React.ReactNode }) {
-  return <div className="min-h-screen bg-slate-50 text-slate-900"><PublicNavigation />{children}<Footer /></div>
+export default function KnowledgeLayout({ children }: { children: ReactNode }) {
+  return <div className="bg-white text-slate-900"><PublicHeader />{children}<Footer /></div>
 }

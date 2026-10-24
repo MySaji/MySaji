@@ -28,7 +28,11 @@ const nextConfig = {
       { key: "Permissions-Policy", value: "camera=(self), microphone=(self), geolocation=(self)" },
       { key: "Content-Security-Policy", value: "frame-ancestors 'self'; object-src 'none'; base-uri 'self'" },
       ...(process.env.NODE_ENV === "production" ? [{ key: "Strict-Transport-Security", value: "max-age=31536000" }] : []),
-    ] }, { source: "/pos/sw.js", headers: [{ key: "Cache-Control", value: "no-cache, no-store, must-revalidate" }] }]
+    ] },
+    { source: "/:portal(customer|provider|shopkeeper|admin|sub-admin|secretary|agent|distributor|auth|team-login|verify|maintenance|till|till-display)/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },
+    { source: "/pos/:path+", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },
+    { source: "/api/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },
+    { source: "/pos/sw.js", headers: [{ key: "Cache-Control", value: "no-cache, no-store, must-revalidate" }] }]
   },
   images: {
     unoptimized: true,
