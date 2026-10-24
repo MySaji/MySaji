@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { getCallIceServers } from "@/backend/actions/call-configuration"
 import { sendCallSignal, getCallSignals, type CallSignalItem } from "@/backend/actions/calls"
+import { replaceCallCamera, type CameraFacing } from "@/frontend/lib/call-camera"
 import { startRinging, stopRinging } from "@/frontend/lib/ringtone"
 
 export type CallState = "idle" | "outgoing" | "incoming" | "connecting" | "connected" | "ended"
@@ -14,6 +15,10 @@ export function useVoiceCall(conversationId: string | null) {
   const [isMuted, setIsMuted] = useState(false)
   const [isVideo, setIsVideo] = useState(false)
   const [cameraEnabled, setCameraEnabled] = useState(true)
+  const [cameraFacing, setCameraFacing] = useState<CameraFacing>("user")
+  const [switchingCamera, setSwitchingCamera] = useState(false)
+  const cameraSwitch = useRef(false)
+  const facingRef = useRef<CameraFacing>("user")
   const [localStream, setLocalStream] = useState<MediaStream | null>(null)
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null)
   const remoteAudioRef = useRef<HTMLAudioElement>(null)
@@ -34,6 +39,7 @@ export function useVoiceCall(conversationId: string | null) {
   const setCallState = useCallback((state: CallState) => { stateRef.current = state; setState(state) }, [])
   const teardown = useCallback(() => {
     generation.current++
+    cameraSwitch.current = false; facingRef.current = "user"; setCameraFacing("user"); setSwitchingCamera(false)
     const pc = pcRef.current; pcRef.current = null
     if (pc) { pc.onconnectionstatechange = null; pc.ontrack = null; pc.onicecandidate = null; pc.close() }
     streamRef.current?.getTracks().forEach(track => track.stop()); streamRef.current = null
@@ -62,6 +68,8 @@ export function useVoiceCall(conversationId: string | null) {
     const version = generation.current
     const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true }, video: video ? { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } } : false })
     if (generation.current !== version) { stream.getTracks().forEach(track => track.stop()); throw new Error("Call cancelled.") }
+    facingRef.current = stream.getVideoTracks()[0]?.getSettings().facingMode === "environment" ? "environment" : "user"
+    setCameraFacing(facingRef.current)
     streamRef.current = stream; setLocalStream(stream)
     const iceServers = await getCallIceServers()
     if (generation.current !== version) { stream.getTracks().forEach(track => track.stop()); throw new Error("Call cancelled.") }
@@ -97,6 +105,28 @@ export function useVoiceCall(conversationId: string | null) {
   const endCall = useCallback(() => { void signal("hangup", { isCaller: caller.current, wasConnected: connected.current, durationSeconds: duration.current }).catch(() => {}); finish() }, [signal, finish])
   const toggleMute = useCallback(() => { const track = streamRef.current?.getAudioTracks()[0]; if (track) { track.enabled = !track.enabled; setIsMuted(!track.enabled) } }, [])
   const toggleCamera = useCallback(() => { const track = streamRef.current?.getVideoTracks()[0]; if (track) { track.enabled = !track.enabled; setCameraEnabled(track.enabled) } }, [])
+  const switchCamera = useCallback(async () => {
+    const pc = pcRef.current, stream = streamRef.current, version = generation.current
+    if (!pc || !stream?.getVideoTracks().length || cameraSwitch.current) return
+    cameraSwitch.current = true; setSwitchingCamera(true); setError("")
+    const current = () => generation.current === version && pcRef.current === pc
+    const facing = facingRef.current === "user" ? "environment" : "user"
+    try {
+      const track = await replaceCallCamera(pc, stream, facing, current)
+      if (track && current()) {
+        facingRef.current = track.getSettings().facingMode === "user" ? "user" : facing
+        setCameraFacing(facingRef.current)
+        setLocalStream(new MediaStream(stream.getTracks()))
+      }
+    } catch {
+      if (current()) {
+        setLocalStream(new MediaStream(stream.getTracks()))
+        setError("Could not switch cameras. Check camera permission and that this device has a front and rear camera.")
+      }
+    } finally {
+      if (current()) { cameraSwitch.current = false; setSwitchingCamera(false) }
+    }
+  }, [])
   const handle = useCallback(async (item: CallSignalItem) => {
     const payload = (item.payload || {}) as Offer & RTCIceCandidateInit
     if (item.type === "offer") {
@@ -127,5 +157,5 @@ export function useVoiceCall(conversationId: string | null) {
   useEffect(() => { if (callState === "incoming") startRinging(); else stopRinging(); return () => stopRinging() }, [callState])
   useEffect(() => { if (!["outgoing", "incoming", "connecting"].includes(callState)) return; const timer = setTimeout(() => { setError("No connection was established. Please try again."); endCall() }, callState === "connecting" ? 30000 : 60000); return () => clearTimeout(timer) }, [callState, endCall])
   useEffect(() => { if (callState !== "connected") return; const timer = setInterval(() => { duration.current++; setCallDuration(duration.current) }, 1000); return () => clearInterval(timer) }, [callState])
-  return { callState, callDuration, error, isMuted, isVideo, cameraEnabled, localStream, remoteStream, startCall, acceptCall, declineCall, endCall, toggleMute, toggleCamera, remoteAudioRef }
+  return { callState, callDuration, error, isMuted, isVideo, cameraEnabled, localStream, remoteStream, startCall, acceptCall, declineCall, endCall, toggleMute, toggleCamera, switchCamera, switchingCamera, cameraFacing, remoteAudioRef }
 }

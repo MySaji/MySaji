@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useJsApiLoader } from "@react-google-maps/api"
 import { GOOGLE_MAPS_LIBRARIES, GOOGLE_MAPS_LOADER_ID } from "@/backend/services/google-maps"
 import { Button } from "@/frontend/components/ui/button"
@@ -42,6 +42,11 @@ export function CustomerSavedAddressesPage() {
   const [formLng, setFormLng] = useState<number | null>(null)
   const [isLocating, setIsLocating] = useState(false)
   const [locateError, setLocateError] = useState("")
+  const locationRequest = useRef(0)
+  const cancelLocationLookup = () => { locationRequest.current++; setIsLocating(false) }
+  const changeFormOpen = (open: boolean) => { cancelLocationLookup(); setShowForm(open) }
+
+  useEffect(() => () => { locationRequest.current++ }, [])
 
   const mapsConfigured = isGoogleMapsConfigured()
   const { isLoaded: mapsLoaded } = useJsApiLoader({
@@ -57,56 +62,66 @@ export function CustomerSavedAddressesPage() {
   }, [])
 
   const openAdd = () => {
+    cancelLocationLookup()
     setEditingId(null); setFormLabel(""); setFormAddress(""); setFormType("home")
     setFormCity(null); setFormLat(null); setFormLng(null)
     setShowForm(true); setFormError(""); setLocateError("")
   }
   const openEdit = (a: AddressItem) => {
+    cancelLocationLookup()
     setEditingId(a.id); setFormLabel(a.label); setFormAddress(a.address); setFormType(TYPE_FROM_DB[a.type] ?? "other")
     setFormCity(a.city); setFormLat(a.latitude); setFormLng(a.longitude)
     setShowForm(true); setMenuOpen(null); setFormError(""); setLocateError("")
   }
 
   const handlePlaceSelected = (place: PlaceResult) => {
+    cancelLocationLookup()
     setFormAddress(place.address)
     setFormCity(place.city)
     setFormLat(place.latitude)
     setFormLng(place.longitude)
   }
 
-  // Was a no-op button before (onClick={() => {}}) — now a real geolocation
-  // + reverse-geocode lookup, same "degrade to raw coordinates" honesty as
-  // the rest of this feature when Maps isn't configured.
   const handleUseCurrentLocation = () => {
     if (!navigator.geolocation) { setLocateError(t("customer.savedAddresses.geoUnsupported")); return }
+    const request = ++locationRequest.current
     setIsLocating(true)
     setLocateError("")
     navigator.geolocation.getCurrentPosition(
       (position) => {
+        if (request !== locationRequest.current) return
         const { latitude, longitude } = position.coords
+        // A failed, denied or slow geocoder must never leave the address blank
+        // (or leave an old address attached to a newly detected GPS pin).
         setFormLat(latitude)
         setFormLng(longitude)
+        setFormCity(null)
+        setFormAddress(`${latitude.toFixed(5)}, ${longitude.toFixed(5)}`)
+        setIsLocating(false)
         if (mapsConfigured && mapsLoaded && typeof google !== "undefined") {
-          new google.maps.Geocoder().geocode({ location: { lat: latitude, lng: longitude } }, (results, status) => {
-            setIsLocating(false)
-            if (status === "OK" && results?.[0]) {
-              setFormAddress(results[0].formatted_address)
-              const cityComponent = results[0].address_components.find((c) => c.types.includes("locality"))
-              setFormCity(cityComponent?.long_name ?? null)
-            }
-          })
-        } else {
-          setIsLocating(false)
-          setFormAddress(`${latitude.toFixed(5)}, ${longitude.toFixed(5)}`)
+          try {
+            new google.maps.Geocoder().geocode({ location: { lat: latitude, lng: longitude } }, (results, status) => {
+              if (request !== locationRequest.current) return
+              if (status === "OK" && results?.[0]?.formatted_address) {
+                setFormAddress(results[0].formatted_address)
+                const cityComponent = results[0].address_components.find((c) => c.types.includes("locality"))
+                setFormCity(cityComponent?.long_name ?? null)
+              }
+            })
+          } catch { /* Keep the usable GPS address if the Maps lookup fails. */ }
         }
       },
-      () => { setIsLocating(false); setLocateError(t("customer.savedAddresses.geoError")) },
+      () => {
+        if (request !== locationRequest.current) return
+        setIsLocating(false); setLocateError(t("customer.savedAddresses.geoError"))
+      },
       { enableHighAccuracy: true, timeout: 10000 },
     )
   }
 
   const handleSave = async () => {
     if (!formLabel || !formAddress) return
+    cancelLocationLookup()
     setIsSaving(true)
     setFormError("")
     const payload = {
@@ -197,7 +212,7 @@ export function CustomerSavedAddressesPage() {
         </div>
 
         {/* Add/Edit Dialog */}
-        <Dialog open={showForm} onOpenChange={setShowForm}>
+        <Dialog open={showForm} onOpenChange={changeFormOpen}>
           <DialogContent className="max-w-md rounded-2xl" aria-describedby={undefined}>
             <DialogHeader><DialogTitle>{editingId ? t("customer.savedAddresses.editAddress") : t("customer.savedAddresses.addAddress")}</DialogTitle></DialogHeader>
             <div className="space-y-4 py-2">
@@ -214,7 +229,8 @@ export function CustomerSavedAddressesPage() {
                 <label className="text-xs font-medium mb-2 block">{t("customer.savedAddresses.fullAddress")}</label>
                 <AddressAutocompleteInput
                   value={formAddress}
-                  onChange={setFormAddress}
+                  ariaLabel={t("customer.savedAddresses.fullAddress")}
+                  onChange={(value) => { cancelLocationLookup(); setFormAddress(value) }}
                   onPlaceSelected={handlePlaceSelected}
                   placeholder={t("customer.savedAddresses.fullAddressPlaceholder")}
                   className="rounded-xl"
@@ -227,10 +243,10 @@ export function CustomerSavedAddressesPage() {
                 {isLocating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4" />}
                 {t("customer.savedAddresses.useCurrentLocation")}
               </Button>
-              {locateError && <p className="text-[11px] text-red-600">{locateError}</p>}
+              {locateError && <p role="alert" className="text-[11px] text-red-600">{locateError}</p>}
               {formError && <p className="text-[11px] text-red-600">{formError}</p>}
             </div>
-            <div className="flex gap-3"><Button variant="outline" onClick={() => setShowForm(false)} className="flex-1 rounded-xl bg-transparent" disabled={isSaving}>{t("common.cancel")}</Button><Button onClick={handleSave} className="flex-1 rounded-xl" disabled={!formLabel || !formAddress || isSaving}>{isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : t("common.save")}</Button></div>
+            <div className="flex gap-3"><Button variant="outline" onClick={() => changeFormOpen(false)} className="flex-1 rounded-xl bg-transparent" disabled={isSaving}>{t("common.cancel")}</Button><Button onClick={handleSave} className="flex-1 rounded-xl" disabled={!formLabel || !formAddress || isSaving || isLocating}>{isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : t("common.save")}</Button></div>
           </DialogContent>
         </Dialog>
       </div>

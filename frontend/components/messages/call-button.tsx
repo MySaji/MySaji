@@ -1,7 +1,8 @@
 "use client"
 
-import { useEffect, useRef } from "react"
-import { Phone, PhoneOff, Mic, MicOff, Video, VideoOff } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
+import { createPortal } from "react-dom"
+import { Phone, PhoneOff, Mic, MicOff, Video, VideoOff, SwitchCamera, Maximize, Minimize } from "lucide-react"
 import { useVoiceCall } from "@/frontend/lib/hooks/useVoiceCall"
 
 function formatDuration(totalSeconds: number): string {
@@ -28,11 +29,24 @@ export function CallButton({
    * call UI without the user clicking this button first. */
   autoStartToken?: number
 }) {
-  const { callState, callDuration, error, isMuted, isVideo, cameraEnabled, localStream, remoteStream, startCall, acceptCall, declineCall, endCall, toggleMute, toggleCamera, remoteAudioRef } = useVoiceCall(conversationId)
+  const { callState, callDuration, error, isMuted, isVideo, cameraEnabled, localStream, remoteStream, startCall, acceptCall, declineCall, endCall, toggleMute, toggleCamera, switchCamera, switchingCamera, cameraFacing, remoteAudioRef } = useVoiceCall(conversationId)
   const callPanel = useRef<HTMLDivElement>(null)
-  const localVideo = useRef<HTMLVideoElement>(null)
-  const remoteVideo = useRef<HTMLVideoElement>(null)
-  useEffect(() => { if (localVideo.current) localVideo.current.srcObject = localStream; if (remoteVideo.current) remoteVideo.current.srcObject = remoteStream }, [localStream, remoteStream, callState])
+  const [selfOnMain, setSelfOnMain] = useState(false)
+  const [fullscreen, setFullscreen] = useState(false)
+  const [fullscreenError, setFullscreenError] = useState("")
+  const videoStage = isVideo && ["outgoing", "connecting", "connected"].includes(callState)
+  useEffect(() => {
+    const changed = () => setFullscreen(document.fullscreenElement === callPanel.current)
+    document.addEventListener("fullscreenchange", changed)
+    return () => document.removeEventListener("fullscreenchange", changed)
+  }, [])
+  const toggleFullscreen = async () => {
+    try {
+      setFullscreenError("")
+      if (document.fullscreenElement === callPanel.current) await document.exitFullscreen()
+      else await callPanel.current?.requestFullscreen()
+    } catch { setFullscreenError("Your browser could not enter fullscreen. The call still fills this window.") }
+  }
   const consumedTokenRef = useRef<number | undefined>(undefined)
 
   useEffect(() => {
@@ -44,11 +58,13 @@ export function CallButton({
   const dialogOpen = callState !== "idle"
   useEffect(() => {
     if (!dialogOpen) return
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = "hidden"
     const previous = document.activeElement as HTMLElement | null
     const panel = callPanel.current
     panel?.querySelector<HTMLButtonElement>("button")?.focus()
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") { event.preventDefault(); if (callState === "incoming") declineCall(); else endCall() }
+      if (event.key === "Escape" && !document.fullscreenElement) { event.preventDefault(); if (callState === "incoming") declineCall(); else endCall() }
       if (event.key === "Tab" && panel) {
         const buttons = [...panel.querySelectorAll<HTMLButtonElement>("button:not(:disabled)")]
         const first = buttons[0], last = buttons[buttons.length - 1]
@@ -57,7 +73,7 @@ export function CallButton({
       }
     }
     document.addEventListener("keydown", onKey)
-    return () => { document.removeEventListener("keydown", onKey); previous?.focus() }
+    return () => { document.body.style.overflow = previousOverflow; document.removeEventListener("keydown", onKey); previous?.focus() }
   }, [dialogOpen, callState, declineCall, endCall])
 
   return (
@@ -80,10 +96,10 @@ export function CallButton({
           card floating over the chat behind it made an incoming call easy to
           mistake for a message. Dark, edge to edge, with the answer/decline
           controls in the thumb zone. */}
-      {dialogOpen && (
-        <div ref={callPanel} role="dialog" aria-modal="true" aria-label={isVideo ? "Video call" : "Audio call"} className="fixed inset-0 z-[70] flex flex-col overflow-y-auto bg-[#071b3b] text-white">
+      {dialogOpen && createPortal(
+        <div ref={callPanel} role="dialog" aria-modal="true" aria-label={isVideo ? "Video call" : "Audio call"} className="fixed inset-0 z-[100] isolate flex h-dvh w-full flex-col overflow-hidden bg-[#071b3b] text-white">
           {/* Status line */}
-          <div className="flex-shrink-0 pt-[max(2rem,env(safe-area-inset-top))] text-center">
+          <div className={`relative z-10 shrink-0 bg-gradient-to-b from-black/70 to-transparent px-4 pb-6 pt-[max(1rem,env(safe-area-inset-top))] text-center ${videoStage ? "pointer-events-none" : ""}`}>
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/50">
               {callState === "outgoing" && "Calling"}
               {callState === "incoming" && "Incoming call"}
@@ -94,10 +110,19 @@ export function CallButton({
             </p>
           </div>
 
-          {isVideo && (callState === "connected" || callState === "connecting" || callState === "outgoing") && <div className="relative mx-auto mt-5 min-h-40 w-[calc(100%-2rem)] max-w-4xl flex-1 overflow-hidden rounded-2xl bg-black"><video ref={remoteVideo} autoPlay playsInline muted className="absolute inset-0 h-full w-full object-contain" /><video ref={localVideo} autoPlay playsInline muted className="absolute bottom-3 right-3 h-28 w-24 rounded-xl border border-white/40 bg-slate-800 object-cover sm:h-40 sm:w-32" />{!remoteStream && <p className="absolute left-4 top-4 text-xs text-white/70">Waiting for the other camera...</p>}</div>}
+          {videoStage && <div className="absolute inset-0 bg-black">
+            <CallVideo stream={selfOnMain ? localStream : remoteStream} mirrored={selfOnMain && cameraFacing === "user"} className="h-full w-full object-cover" />
+            {((selfOnMain && !cameraEnabled) || (!selfOnMain && !remoteStream)) && <p className="absolute inset-x-4 top-1/2 text-center text-sm text-white/80">{selfOnMain ? "Your camera is off" : "Waiting for the other camera..."}</p>}
+            <button type="button" onClick={() => setSelfOnMain(value => !value)} aria-label={selfOnMain ? "Show other person on main display" : "Show my camera on main display"} title="Tap to swap videos" className="absolute bottom-[calc(9rem+env(safe-area-inset-bottom))] right-4 h-36 w-24 overflow-hidden rounded-2xl border-2 border-white/60 bg-slate-900 shadow-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white sm:h-48 sm:w-36">
+              <CallVideo stream={selfOnMain ? remoteStream : localStream} mirrored={!selfOnMain && cameraFacing === "user"} className="h-full w-full object-cover" />
+              {!selfOnMain && !cameraEnabled && <span className="absolute inset-0 flex items-center justify-center bg-slate-900"><VideoOff aria-hidden="true" /></span>}
+              <span className="absolute inset-x-0 bottom-0 bg-black/70 px-1 py-1 text-[11px]">{selfOnMain ? otherUserName : "You"} - Tap to swap</span>
+            </button>
+            {typeof document !== "undefined" && document.fullscreenEnabled && <button type="button" onClick={() => void toggleFullscreen()} aria-label={fullscreen ? "Exit fullscreen" : "Enter fullscreen"} className="absolute right-4 top-[max(1rem,env(safe-area-inset-top))] z-20 rounded-full bg-black/50 p-3 focus-visible:outline-2 focus-visible:outline-white">{fullscreen ? <Minimize size={20} /> : <Maximize size={20} />}</button>}
+          </div>}
           {/* Who, and for how long */}
-          <div className={`flex min-h-0 flex-col items-center justify-center gap-5 px-8 ${isVideo ? "py-5" : "flex-1"}`}>
-            <div className="relative">
+          <div className={`flex min-h-0 flex-col items-center justify-center gap-5 px-8 ${videoStage ? "pointer-events-none relative z-10 flex-1 justify-start! gap-1! pt-0" : "flex-1"}`}>
+            <div className={videoStage ? "hidden" : "relative"}>
               {/* The pulse is only while it is actually ringing — a live call
                   showing an animation reads as "still connecting". */}
               {(callState === "incoming" || callState === "outgoing") && (
@@ -114,19 +139,19 @@ export function CallButton({
             </div>
 
             <div className="text-center">
-              <h3 className="text-2xl font-semibold">{otherUserName}</h3>
+              <h3 className={videoStage ? "text-base font-semibold drop-shadow-lg" : "text-2xl font-semibold"}>{otherUserName}</h3>
               <p className="mt-1.5 text-sm tabular-nums text-white/60">
                 {callState === "connected" ? formatDuration(callDuration) : " "}
               </p>
             </div>
 
-            {error && (
-              <p role="alert" className="max-w-xs rounded-xl bg-red-500/15 px-4 py-2 text-center text-xs text-red-300">{error}</p>
+            {(error || fullscreenError) && (
+              <p role="alert" className="max-w-xs rounded-xl bg-red-500/15 px-4 py-2 text-center text-xs text-red-300">{error || fullscreenError}</p>
             )}
           </div>
 
           {/* Controls, kept low so they fall under the thumb */}
-          <div className="flex-shrink-0 pb-[max(3rem,env(safe-area-inset-bottom))] pt-6">
+          <div className="relative z-10 shrink-0 bg-gradient-to-t from-black/90 to-transparent px-3 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-6">
             {callState === "incoming" ? (
               <div className="flex items-center justify-center gap-16">
                 <CallAction label="Decline" onClick={declineCall} className="bg-red-500 hover:bg-red-600">
@@ -137,8 +162,9 @@ export function CallButton({
                 </CallAction>
               </div>
             ) : callState === "ended" ? null : (
-              <div className="flex items-center justify-center gap-6 sm:gap-10">
-                {isVideo && localStream && <CallAction label={cameraEnabled ? "Camera off" : "Camera on"} onClick={toggleCamera} className="bg-white/10 hover:bg-white/20">{cameraEnabled ? <Video size={24} /> : <VideoOff size={24} />}</CallAction>}
+              <div className="flex items-center justify-center gap-4 sm:gap-10">
+                {isVideo && localStream && <CallAction label={cameraEnabled ? "Camera off" : "Camera on"} onClick={toggleCamera} disabled={switchingCamera} className="bg-white/10 hover:bg-white/20">{cameraEnabled ? <Video size={24} /> : <VideoOff size={24} />}</CallAction>}
+                {isVideo && localStream && <CallAction label={switchingCamera ? "Switching..." : "Switch camera"} disabled={switchingCamera} onClick={() => void switchCamera()} className="bg-white/10 hover:bg-white/20"><SwitchCamera size={24} /></CallAction>}
                 {callState === "connected" && (
                   <CallAction
                     label={isMuted ? "Unmute" : "Mute"}
@@ -154,7 +180,7 @@ export function CallButton({
               </div>
             )}
           </div>
-        </div>
+        </div>, document.body
       )}
     </>
   )
@@ -163,19 +189,33 @@ export function CallButton({
 /** One round call control with its label underneath, so each button says
  *  what it does rather than relying on colour alone. */
 function CallAction({
-  children, label, onClick, className,
+  children, label, onClick, className, disabled,
 }: {
   children: React.ReactNode
   label: string
   onClick: () => void
   className: string
+  disabled?: boolean
 }) {
   return (
-    <button onClick={onClick} className="flex flex-col items-center gap-2" aria-label={label}>
-      <span className={`flex h-16 w-16 items-center justify-center rounded-full text-white shadow-lg transition-colors ${className}`}>
+    <button onClick={onClick} disabled={disabled} className="flex flex-col items-center gap-2 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white" aria-label={label}>
+      <span className={`flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-full text-white shadow-lg transition-colors ${className}`}>
         {children}
       </span>
       <span className="text-[11px] font-medium text-white/70">{label}</span>
     </button>
   )
+}
+
+/** Both video surfaces stay muted: the hook owns the single remote audio output. */
+function CallVideo({ stream, mirrored, className }: { stream: MediaStream | null; mirrored: boolean; className: string }) {
+  const video = useRef<HTMLVideoElement>(null)
+  useEffect(() => {
+    const element = video.current
+    if (!element) return
+    element.srcObject = stream
+    if (stream) void element.play().catch(() => {})
+    return () => { element.srcObject = null }
+  }, [stream])
+  return <video ref={video} autoPlay playsInline muted className={className} style={{ transform: mirrored ? "scaleX(-1)" : undefined }} />
 }
