@@ -56,3 +56,10 @@ export function websiteRoute(pathname: string) {
   if (["/about", "/products", "/services", "/contact", "/robots.txt", "/sitemap.xml", "/brand-icon"].includes(pathname)) return pathname
   return null
 }
+/** A customer-initiated enquiry, never a confirmed order, payment or booking. */
+export function websiteEnquiryHref(contact: { whatsapp: string; email: string }, item: { name: string; isService: boolean }) {
+  const message = item.isService ? `Hello, I would like to request an appointment for ${item.name}. Please confirm availability, price and the next steps.` : `Hello, I am interested in ${item.name}. Please confirm availability, price and collection or delivery options.`
+  if (/^\+?[0-9]{9,15}$/.test(contact.whatsapp)) return `https://wa.me/${contact.whatsapp.replace(/\D/g, "")}?text=${encodeURIComponent(message)}`
+  if (contact.email) return `mailto:${contact.email}?subject=${encodeURIComponent(`Enquiry: ${item.name}`)}&body=${encodeURIComponent(message)}`
+  return null
+}

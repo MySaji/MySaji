@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import { ScanButton } from "@/frontend/components/pos/barcode-scanner"
 import { WorkspaceHeading, PosCard as Card } from "@/frontend/components/pos/workspace-ui"
 import {
   ArrowLeft, ClipboardList, Loader2, Check, X, Send, Plus, AlertTriangle,
 } from "lucide-react"
 import {
   getStockCounts, getStockCount, startStockCount, enterCountedQuantity,
-  submitStockCount, approveStockCount, cancelStockCount,
+  submitStockCount, approveStockCount, cancelStockCount, getStockCountAssignmentOptions, assignStockCount,
   type StockCountRow, type StockCountLineRow,
 } from "@/backend/actions/pos-stocktake"
 
@@ -43,22 +44,26 @@ export default function StocktakePage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState("")
   const [scope, setScope] = useState("")
+  const [productQuery,setProductQuery] = useState("")
+  const [query, setQuery] = useState("")
+  const [assignment, setAssignment] = useState<{canAssign:boolean;staff:{id:string;name:string}[]}>({canAssign:false,staff:[]})
 
   const loadList = async () => setCounts(await getStockCounts())
 
   useEffect(() => {
-    getStockCounts().then(setCounts).finally(() => setLoading(false))
+    Promise.all([getStockCounts(),getStockCountAssignmentOptions()]).then(([rows,options])=>{setCounts(rows);setAssignment(options)}).catch(()=>setError("Could not load stock counts. Please refresh.")).finally(() => setLoading(false))
   }, [])
 
   const open = async (id: string) => {
     setOpenId(id)
+    setQuery("")
     setDetail(null)
     setDetail(await getStockCount(id))
   }
 
   const start = async () => {
     setBusy(true); setError("")
-    const r = await startStockCount({ scope: scope.trim() || "Whole shop" })
+    const r = await startStockCount({ scope: scope.trim() || "Whole shop", productQuery: productQuery.trim() || undefined })
     setBusy(false)
     if (!r.success) { setError(r.error); return }
     setScope("")
@@ -118,8 +123,9 @@ export default function StocktakePage() {
       <Card className="p-4 rounded-2xl">
         <h2 className="text-sm font-bold text-foreground">Start a count</h2>
         <p className="mt-0.5 text-[11px] text-muted-foreground leading-relaxed">
-          Say what you are counting. It is as often one shelf as the whole shop.
+          Name the shelf or area being counted. Standard stock is included; batch/serial tracked items use their specialised stock ledger.
         </p>
+        <label className="mt-3 grid gap-2 text-xs">Product filter (optional)<input className="min-h-11 rounded-xl border border-border bg-background px-3 text-sm" value={productQuery} onChange={e=>setProductQuery(e.target.value)} placeholder="Include only names or SKUs containing this text"/></label>
         <div className="mt-2 flex gap-2">
           <input
             value={scope}
@@ -164,6 +170,7 @@ export default function StocktakePage() {
                   </p>
                   <p className="mt-0.5 text-[11px] text-muted-foreground">
                     {c.countedLines} of {c.lineCount} counted
+                    {c.assignedStaffName ? ` / Assigned: ${c.assignedStaffName}` : ""}
                     {c.countedBy ? " · " + c.countedBy : ""}
                     {c.approvedBy ? " · approved by " + c.approvedBy : ""}
                   </p>
@@ -190,8 +197,11 @@ export default function StocktakePage() {
                   <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
                 ) : (
                   <>
+                    {assignment.canAssign && detail.count.status === "DRAFT" && <label className="mb-4 grid gap-2 text-sm font-medium">Assign this shelf/count<select className="min-h-11 rounded-xl border border-border bg-background px-3" value={detail.count.assignedStaffId??""} disabled={busy} onChange={e=>void act(()=>assignStockCount({id:c.id,assignedStaffId:e.target.value||null}))}><option value="">Any permitted counter</option>{assignment.staff.map(member=><option key={member.id} value={member.id}>{member.name}</option>)}</select><span className="text-xs font-normal text-muted-foreground">The employee still needs Count stock access in Team.</span></label>}
+                    <div className="mb-4 flex gap-2"><input aria-label="Find count item by name, SKU or barcode" className="min-h-11 min-w-0 flex-1 rounded-xl border border-border bg-background px-3 text-sm" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Find name, SKU or scan barcode"/><ScanButton label="stock count barcode" onScanned={code=>{setQuery(code);if(!detail.lines.some(l=>l.barcode===code||l.sku===code))setError("That barcode is not on this count. Clear the search or try its SKU.")}}/><button className="rounded-xl border border-border px-3 text-xs" onClick={()=>setQuery("")}>Clear</button></div>
+                    {detail.lines.filter(l=>[l.name,l.sku,l.barcode,l.variantLabel].some(value=>value?.toLowerCase().includes(query.toLowerCase()))).length===0&&<p role="status" className="mb-4 text-sm text-muted-foreground">No count lines match this search.</p>}
                     <ul className="divide-y divide-border">
-                      {detail.lines.map((l) => (
+                      {detail.lines.filter(l=>[l.name,l.sku,l.barcode,l.variantLabel].some(value=>value?.toLowerCase().includes(query.toLowerCase()))).map((l) => (
                         <li key={l.id} className="py-2 flex items-center gap-2">
                           <div className="min-w-0 flex-1">
                             <p className="text-xs font-medium text-foreground truncate">
@@ -204,6 +214,7 @@ export default function StocktakePage() {
 
                           {detail.count.status === "DRAFT" ? (
                             <input
+                              aria-label={`Counted quantity for ${l.name}${l.variantLabel ? ` ${l.variantLabel}` : ""}`}
                               inputMode="decimal"
                               defaultValue={l.counted === null ? "" : String(l.counted)}
                               onBlur={(e) => void enter(l.id, e.target.value)}

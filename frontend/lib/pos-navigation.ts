@@ -12,7 +12,7 @@ const ACCESS: Record<string, PosPermission[]> = {
   payments: ["till.sell", "report.sales", "payment.settings"],
   mpesa: ["payment.settings"], etims: ["payment.settings"],
   team: ["staff.view"], people: ["staff.manage"], stores: ["settings.store"],
-  audit: ["settings.business"],
+  audit: ["settings.business"], pulse: ["settings.business"],
   salon: ["salon.view"],
   website: ["settings.business"],
   devices: ["device.manage"], settings: ["settings.store"],

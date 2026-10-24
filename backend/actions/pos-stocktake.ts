@@ -58,6 +58,7 @@ export type StockCountLineRow = {
   name: string
   variantLabel: string | null
   sku: string | null
+  barcode: string | null
   unit: string
   expected: number
   counted: number | null
@@ -74,6 +75,8 @@ export type StockCountRow = {
   status: "DRAFT" | "SUBMITTED" | "APPROVED" | "CANCELLED"
   note: string | null
   countedBy: string | null
+  assignedStaffId: string | null
+  assignedStaffName: string | null
   approvedBy: string | null
   startedAt: string
   submittedAt: string | null
@@ -107,7 +110,7 @@ export async function getStockCounts(staffId?: string | null): Promise<StockCoun
   if (!g.ok) return []
 
   const rows = await db.posStockCount.findMany({
-    where: { shopkeeperId: g.shopkeeperId },
+    where: { shopkeeperId: g.shopkeeperId, ...((g.actor.role === "OWNER" || g.actor.can("stock.count_approve")) ? {} : { OR: [{ assignedStaffId: null }, { assignedStaffId: g.actor.staffId ?? "" }] }) },
     orderBy: { startedAt: "desc" },
     take: 50,
     include: { lines: { select: { expected: true, counted: true, variance: true, unitCost: true } } },
@@ -122,6 +125,7 @@ export async function getStockCounts(staffId?: string | null): Promise<StockCoun
       status: c.status,
       note: c.note,
       countedBy: c.countedByName,
+      assignedStaffId: c.assignedStaffId, assignedStaffName: c.assignedStaffName,
       approvedBy: c.approvedByName,
       startedAt: c.startedAt.toISOString(),
       submittedAt: c.submittedAt?.toISOString() ?? null,
@@ -142,8 +146,8 @@ export async function getStockCount(
   if (!g.ok) return null
 
   const c = await db.posStockCount.findFirst({
-    where: { id, shopkeeperId: g.shopkeeperId },
-    include: { lines: { orderBy: { name: "asc" } } },
+    where: { id, shopkeeperId: g.shopkeeperId, ...((g.actor.role === "OWNER" || g.actor.can("stock.count_approve")) ? {} : { OR: [{ assignedStaffId: null }, { assignedStaffId: g.actor.staffId ?? "" }] }) },
+    include: { lines: { orderBy: { name: "asc" }, include: { product: { select: { barcode: true } }, variant: { select: { barcode: true } } } } },
   })
   if (!c) return null
 
@@ -156,6 +160,7 @@ export async function getStockCount(
       status: c.status,
       note: c.note,
       countedBy: c.countedByName,
+      assignedStaffId: c.assignedStaffId, assignedStaffName: c.assignedStaffName,
       approvedBy: c.approvedByName,
       startedAt: c.startedAt.toISOString(),
       submittedAt: c.submittedAt?.toISOString() ?? null,
@@ -172,6 +177,7 @@ export async function getStockCount(
       name: l.name,
       variantLabel: l.variantLabel,
       sku: l.sku,
+      barcode: l.variant?.barcode ?? l.product.barcode,
       unit: l.unit,
       expected: qty(l.expected),
       counted: l.counted === null ? null : qty(l.counted),
@@ -191,6 +197,7 @@ const startSchema = z.object({
   scope: z.string().trim().min(1, "Say what is being counted.").max(120),
   /** Empty means the whole catalogue. */
   categoryId: z.string().trim().optional().nullable(),
+  productQuery: z.string().trim().max(80).optional(),
   note: z.string().trim().max(500).optional().nullable(),
   staffId: z.string().optional().nullable(),
 })
@@ -208,7 +215,7 @@ export async function startStockCount(input: unknown): Promise<CountResult> {
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message ?? "Check the details." }
   }
-  const { scope, categoryId, note, staffId } = parsed.data
+  const { scope, categoryId, productQuery, note, staffId } = parsed.data
 
   const g = await gate("stock.count", staffId)
   if (!g.ok) return { success: false, error: g.error }
@@ -231,15 +238,18 @@ export async function startStockCount(input: unknown): Promise<CountResult> {
     where: {
       shopkeeperId: g.shopkeeperId,
       isActive: true,
+      isService: false, tracksBatches: false, tracksSerials: false,
       ...(categoryId ? { categoryId } : {}),
+      ...(productQuery ? { OR: [{name:{contains:productQuery,mode:"insensitive" as const}},{sku:{contains:productQuery,mode:"insensitive" as const}}] } : {}),
     },
     select: {
       id: true, name: true, sku: true, unit: true, costPrice: true,
       inventory: { select: { currentStock: true, stockOnHand: true } },
       variants: { where: { isActive: true }, select: { id: true, label: true, sku: true, currentStock: true, stockOnHand: true } },
     },
-    take: 2000,
+    take: 2001,
   })
+  if(products.length>2000)return {success:false,error:"Narrow the product filter: a count can contain up to 2,000 products."}
   if (products.length === 0) {
     return { success: false, error: "There is nothing in that part of the catalogue to count." }
   }
@@ -327,7 +337,7 @@ export async function enterCountedQuantity(input: unknown): Promise<CountResult>
   if (!g.ok) return { success: false, error: g.error }
 
   const line = await db.posStockCountLine.findFirst({
-    where: { id: lineId, count: { shopkeeperId: g.shopkeeperId } },
+    where: { id: lineId, count: { shopkeeperId: g.shopkeeperId, ...((g.actor.role === "OWNER" || g.actor.can("stock.count_approve")) ? {} : { OR: [{ assignedStaffId: null }, { assignedStaffId: g.actor.staffId ?? "" }] }) } },
     include: { count: { select: { id: true, status: true, reference: true } } },
   })
   if (!line) return { success: false, error: "That line was not found." }
@@ -363,7 +373,7 @@ export async function submitStockCount(input: unknown): Promise<CountResult> {
   if (!g.ok) return { success: false, error: g.error }
 
   const c = await db.posStockCount.findFirst({
-    where: { id, shopkeeperId: g.shopkeeperId },
+    where: { id, shopkeeperId: g.shopkeeperId, ...((g.actor.role === "OWNER" || g.actor.can("stock.count_approve")) ? {} : { OR: [{ assignedStaffId: null }, { assignedStaffId: g.actor.staffId ?? "" }] }) },
     include: { lines: { select: { counted: true } } },
   })
   if (!c) return { success: false, error: "That count was not found." }
@@ -413,7 +423,7 @@ export async function approveStockCount(input: unknown): Promise<CountResult> {
   if (!g.ok) return { success: false, error: g.error }
 
   const c = await db.posStockCount.findFirst({
-    where: { id, shopkeeperId: g.shopkeeperId },
+    where: { id, shopkeeperId: g.shopkeeperId, ...((g.actor.role === "OWNER" || g.actor.can("stock.count_approve")) ? {} : { OR: [{ assignedStaffId: null }, { assignedStaffId: g.actor.staffId ?? "" }] }) },
     include: { lines: true },
   })
   if (!c) return { success: false, error: "That count was not found." }
@@ -424,10 +434,14 @@ export async function approveStockCount(input: unknown): Promise<CountResult> {
 
   const toPost = c.lines.filter((l) => l.counted !== null && l.variance !== null && !l.variance.isZero())
   const now = new Date()
+  const specialised = await db.product.count({where:{id:{in:toPost.map(l=>l.productId)},OR:[{tracksBatches:true},{tracksSerials:true},{isService:true}]}})
+  if(specialised) return {success:false,error:"This count contains batch/serial tracked items or services. Use the specialised stock ledger to reconcile them."}
 
   try {
     await db.$transaction(
       async (tx) => {
+        const claimed = await tx.posStockCount.updateMany({where:{id,status:"SUBMITTED"},data:{status:"APPROVED",approvedAt:now,approvedByUserId:g.actor.userId,approvedByName:g.actor.name}})
+        if(claimed.count!==1)throw new Error("This count was already processed. Refresh the page.")
         for (const l of toPost) {
           const variance = l.variance as Prisma.Decimal
           await tx.stockMovement.create({
@@ -447,17 +461,12 @@ export async function approveStockCount(input: unknown): Promise<CountResult> {
 
           // The projection the rest of the app reads. The ledger above is the
           // authority; this keeps the fast figure in step with it.
-          if (l.variantId) {
-            await tx.productVariant.update({
-              where: { id: l.variantId },
-              data: { stockOnHand: (l.counted as Prisma.Decimal), currentStock: Math.round(Number(l.counted)) },
-            })
-          } else {
-            await tx.inventory.updateMany({
-              where: { productId: l.productId },
-              data: { stockOnHand: (l.counted as Prisma.Decimal), currentStock: Math.round(Number(l.counted)) },
-            })
-          }
+          // Apply only the frozen variance to today's projection. Sales since
+          // the count started must remain in stock, never be overwritten.
+          const changed = l.variantId
+            ? await tx.$executeRaw`UPDATE "product_variants" SET "stockOnHand" = COALESCE("stockOnHand", "currentStock"::numeric) + ${variance}, "currentStock" = FLOOR(COALESCE("stockOnHand", "currentStock"::numeric) + ${variance})::int WHERE "id" = ${l.variantId}`
+            : await tx.$executeRaw`UPDATE "inventory" SET "stockOnHand" = COALESCE("stockOnHand", "currentStock"::numeric) + ${variance}, "currentStock" = FLOOR(COALESCE("stockOnHand", "currentStock"::numeric) + ${variance})::int WHERE "productId" = ${l.productId}`
+          if(changed!==1)throw new Error("Stock projection missing. Reconcile this product before posting the count.")
         }
 
         await tx.posStockCount.update({
@@ -511,7 +520,7 @@ export async function cancelStockCount(input: unknown): Promise<CountResult> {
   if (!g.ok) return { success: false, error: g.error }
 
   const c = await db.posStockCount.findFirst({
-    where: { id, shopkeeperId: g.shopkeeperId },
+    where: { id, shopkeeperId: g.shopkeeperId, ...((g.actor.role === "OWNER" || g.actor.can("stock.count_approve")) ? {} : { OR: [{ assignedStaffId: null }, { assignedStaffId: g.actor.staffId ?? "" }] }) },
     select: { status: true, reference: true, note: true },
   })
   if (!c) return { success: false, error: "That count was not found." }
@@ -538,4 +547,24 @@ export async function cancelStockCount(input: unknown): Promise<CountResult> {
   })
 
   return { success: true, id }
+}
+
+/** Assignment never grants a permission; the employee still needs stock.count. */
+export async function getStockCountAssignmentOptions() {
+  const g = await gate("stock.count_approve")
+  if (!g.ok) return { canAssign: false, staff: [] as { id: string; name: string }[] }
+  const staff = await db.posStaff.findMany({where:{businessId:g.actor.businessId,isActive:true,OR:[{storeId:null},{storeId:g.actor.storeId}]},select:{id:true,name:true},orderBy:{name:"asc"}})
+  return { canAssign: true, staff }
+}
+export async function assignStockCount(input: unknown): Promise<CountResult> {
+  const g = await gate("stock.count_approve")
+  if (!g.ok) return { success:false,error:g.error }
+  const parsed=z.object({id:z.string().min(1).max(60),assignedStaffId:z.string().min(1).max(60).nullable()}).safeParse(input)
+  if(!parsed.success)return {success:false,error:"Choose a count and employee."}
+  const staff=parsed.data.assignedStaffId?await db.posStaff.findFirst({where:{id:parsed.data.assignedStaffId,businessId:g.actor.businessId,isActive:true,OR:[{storeId:null},{storeId:g.actor.storeId}]},select:{id:true,name:true}}):null
+  if(parsed.data.assignedStaffId&&!staff)return {success:false,error:"Choose an active employee assigned to this branch."}
+  const result=await db.posStockCount.updateMany({where:{id:parsed.data.id,shopkeeperId:g.shopkeeperId,status:"DRAFT"},data:{assignedStaffId:staff?.id??null,assignedStaffName:staff?.name??null}})
+  if(!result.count)return {success:false,error:"This count is no longer available for assignment."}
+  await recordPosAudit({actor:g.actor,action:"stock.count_assign",entityType:"stock_count",entityId:parsed.data.id,summary:`Assigned stock count to ${staff?.name??"any permitted counter"}`})
+  return {success:true,id:parsed.data.id}
 }

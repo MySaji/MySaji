@@ -83,6 +83,7 @@ export default function PosContactPage() {
   return (
     <main className="min-h-screen bg-background">
       <header className="border-b border-border">
+        <nav aria-label="Main website" className="mx-auto max-w-3xl px-4 pt-3"><Link href="/" className="inline-flex min-h-8 items-center gap-2 text-xs font-medium text-blue-700 hover:underline"><ArrowLeft size={15} aria-hidden="true" />Back to MySaji</Link></nav>
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link
             href="/pos"

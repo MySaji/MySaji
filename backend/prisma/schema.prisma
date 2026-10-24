@@ -1230,6 +1230,7 @@ model ShopkeeperProfile {
   posExpenses                PosExpense[]
   posCashMovements           PosCashMovement[]
   posStockCounts             PosStockCount[]
+  businessPulse              PosBusinessPulse?
   posJobCards                PosJobCard[]
   salonAppointments          PosSalonAppointment[]
   salonServices              PosSalonService[]
@@ -6122,6 +6123,8 @@ enum PosStockCountStatus {
 }
 
 model PosStockCount {
+  assignedStaffId String?
+  assignedStaffName String?
   id           String @id @default(cuid())
   shopkeeperId String
   /// Sequential within the shop, like PosSale.saleNumber: quoted internally,
@@ -6989,4 +6992,14 @@ model PosSalonAppointment {
   @@index([shopkeeperId, startsAt])
   @@index([stylistId, startsAt, endsAt])
   @@map("pos_salon_appointments")
+}
+
+/// Owner-only planning rules and explicit customer outreach consent. Not accounting entries.
+model PosBusinessPulse {
+  shopkeeperId String @id
+  version Int @default(1)
+  settings Json @default("{}")
+  updatedAt DateTime @updatedAt
+  shopkeeper ShopkeeperProfile @relation(fields: [shopkeeperId], references: [id], onDelete: Cascade)
+  @@map("pos_business_pulse")
 }

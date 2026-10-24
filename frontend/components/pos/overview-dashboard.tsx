@@ -54,7 +54,7 @@ export function OverviewDashboard({ groups }: { groups: ActionGroup[] }) {
   if (!data) return <div className="w-full p-4 md:p-6"><div className={`${PANEL} p-10 text-center`}><ShoppingCart className="mx-auto h-12 w-12 text-blue-500" /><h1 className="mt-4 text-2xl font-semibold">{error ? "Overview is unavailable" : "Your business overview starts here"}</h1><p className="mt-2 text-sm text-muted-foreground">{error || "Sign in to your POS account or finish setting up your business to see your daily activity."}</p><div className="mt-5 flex flex-wrap justify-center gap-3"><button onClick={() => void refresh(days)} className="rounded-xl border border-border px-4 py-3 text-sm font-medium">Try again</button><Link href="/pos/setup" className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-medium text-white">Set up POS</Link></div></div></div>
 
   const can = (href: string) => canOpenPosPage(href, actor?.permissions ?? [])
-  const availableGroups = groups.map(group => ({ ...group, items: group.items.filter(item => can(item.href)) })).filter(group => group.items.length)
+  const availableGroups = groups.map(group => ({ ...group, items: group.items.filter(item => can(item.href) && (item.href !== "/pos/pulse" || actor?.isOwner)) })).filter(group => group.items.length)
   const totalRevenue = data.trend.reduce((sum, day) => sum + day.total, 0)
   const transactions = data.trend.reduce((sum, day) => sum + day.transactions, 0)
   const actualDays = data.periodDays ?? 7

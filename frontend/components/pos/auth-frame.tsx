@@ -38,7 +38,7 @@ export function AuthFrame({ mode, step, children }: AuthFrameProps) {
           <div className={styles.form}>{children}</div>
           <div className={styles.support}><ShieldCheck size={15} /><span>Keep your password and verification codes private.</span></div>
         </div>
-        <footer className={styles.formFooter}><span>Saji Till · Your business workspace</span><Link href="/pos/contact">Need a hand?</Link></footer>
+        <footer className={styles.formFooter}><Link href="/">Back to MySaji main website</Link><Link href="/pos/contact">Need a hand?</Link></footer>
       </section>
     </main>
   )

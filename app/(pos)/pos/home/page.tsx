@@ -1,7 +1,7 @@
 "use client"
 
 import {
-  BadgeCheck, BarChart3, Boxes, ClipboardCheck, ClipboardList, Clock, FileText, Gift, Hammer, HandCoins, Monitor, Package, Receipt, Settings, ShoppingCart, Smartphone, Store, Tag, Truck, UserCog, Users, UtensilsCrossed, Wallet, Wrench,
+  Activity, BadgeCheck, BarChart3, Boxes, ClipboardCheck, ClipboardList, Clock, FileText, Gift, Hammer, HandCoins, Monitor, Package, Receipt, Settings, ShoppingCart, Smartphone, Store, Tag, Truck, UserCog, Users, UtensilsCrossed, Wallet, Wrench,
 } from "lucide-react"
 import { OverviewDashboard } from "@/frontend/components/pos/overview-dashboard"
 
@@ -36,6 +36,7 @@ const GROUPS: { title: string; blurb: string; items: { href: string; icon: typeo
     blurb: "The drawer, the costs, and what the month actually did.",
     items: [
       { href: "/pos/shifts", icon: Clock, label: "Shifts" },
+      { href: "/pos/pulse", icon: Activity, label: "Business pulse" },
       { href: "/pos/expenses", icon: Wallet, label: "Costs" },
       { href: "/pos/reports", icon: BarChart3, label: "Reports" },
       { href: "/pos/orders", icon: Hammer, label: "Deposits" },
