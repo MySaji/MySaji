@@ -371,3 +371,14 @@ export async function clearOfflineStore(): Promise<void> {
     t.onerror = () => reject(t.error)
   })
 }
+
+/** Import never overwrites an existing sale or changes its idempotency key. */
+export async function restoreOutboxEntries(entries:QueuedSale[],expected:{userId:string;shopId:string}):Promise<number>{
+ const scope=offlineScope();if(!scope||scope.userId!==expected.userId||scope.shopId!==expected.shopId)throw Error("This backup belongs to another account or branch.")
+ const db=await open();if(offlineScope()?.userId!==expected.userId||offlineScope()?.shopId!==expected.shopId)throw Error("The active account or branch changed.")
+ return new Promise((resolve,reject)=>{
+  const transaction=db.transaction([STORE_OUTBOX],"readwrite"),store=transaction.objectStore(STORE_OUTBOX);let added=0
+  for(const entry of entries){const request=store.get(entry.key);request.onsuccess=()=>{if(!request.result){store.add({...entry,status:"pending",attempts:0,lastError:null});added++}}}
+  transaction.oncomplete=()=>resolve(added);transaction.onerror=()=>reject(transaction.error);transaction.onabort=()=>reject(transaction.error??Error("Restore was not committed."))
+ })
+}

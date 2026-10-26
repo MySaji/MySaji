@@ -1,6 +1,8 @@
 "use server"
 
+import { randomUUID } from "node:crypto"
 import { z } from "zod"
+import { getEffectivePlatformPreferences } from "@/backend/actions/admin-settings"
 import { auth } from "@/backend/auth"
 import { db } from "@/backend/db"
 import { requireVerified } from "@/backend/services/verification-gate"
@@ -406,6 +408,7 @@ const checkoutSchema = z.object({
   shippingPhone: z.string().trim().min(7, "Enter a valid phone number"),
   notes: z.string().trim().optional(),
   promoCode: z.string().trim().optional(),
+  paymentChoice: z.enum(["DIRECT", "WALLET"]).default("DIRECT"),
   expectedTotal: z.number().finite().nonnegative().optional(),
 })
 
@@ -415,7 +418,7 @@ const checkoutSchema = z.object({
 // app/shopkeeper/settings, so this constant is not the source of truth anymore.
 const DEFAULT_SHIPPING_COST = 500
 
-export type CheckoutResult = { success: true; orderIds: string[]; jobIds: string[]; totalAmount: number } | { success: false; error: string }
+export type CheckoutResult = { success: true; orderIds: string[]; jobIds: string[]; totalAmount: number; paymentMode: "DIRECT" | "WALLET" } | { success: false; error: string }
 
 /**
  * The Checkout Splitter: one customer payment (a single wallet debit) fans
@@ -441,6 +444,10 @@ export async function checkout(input: unknown): Promise<CheckoutResult> {
   const parsed = checkoutSchema.safeParse(input)
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
   const { shippingAddress, shippingLatitude, shippingLongitude, shippingPhone, notes, promoCode } = parsed.data
+  const policy = await getEffectivePlatformPreferences()
+  const direct = parsed.data.paymentChoice === "DIRECT"
+  if (!direct && !policy.customerAppPaymentsEnabled) return { success: false, error: "In-app payments are disabled. Choose payment directly to the owner." }
+  if (!direct && policy.jobPaymentMode === "DIRECT") return { success: false, error: "Choose direct payment for this checkout." }
   const destination: Coordinates | null =
     shippingLatitude != null && shippingLongitude != null
       ? { latitude: shippingLatitude, longitude: shippingLongitude }
@@ -595,9 +602,9 @@ export async function checkout(input: unknown): Promise<CheckoutResult> {
     offerItems.length > 0 ? `${offerItems.length} Pro offer${offerItems.length > 1 ? "s" : ""}` : null,
   ].filter(Boolean).join(", ")
 
-  const wallet = await db.wallet.findUnique({ where: { userId: customerId } })
-  if (!wallet) return { success: false, error: "Wallet not found." }
-  if (Number(wallet.balance) < grandTotal) return { success: false, error: "Insufficient wallet balance for this order." }
+  const wallet = direct ? null : await db.wallet.findUnique({ where: { userId: customerId } })
+  if (!direct && !wallet) return { success: false, error: "Wallet not found." }
+  if (!direct && wallet && Number(wallet.balance) < grandTotal) return { success: false, error: "Insufficient wallet balance for this order." }
 
   const orderIds: string[] = []
   const jobIds: string[] = []
@@ -607,10 +614,17 @@ export async function checkout(input: unknown): Promise<CheckoutResult> {
 
   try {
   await db.$transaction(async (tx) => {
-    const balanceBefore = Number(wallet.balance)
+    // Serialize checkouts for one account; stale concurrent requests see an empty cart.
+    await tx.$queryRaw`SELECT true AS locked FROM pg_advisory_xact_lock(hashtext('customer-checkout'), hashtext(${customerId}))`
+    const stillPresent = await tx.cartItem.count({ where: { customerId, id: { in: cartItems.map(item => item.id) } } })
+    if (stillPresent !== cartItems.length) throw new Error("Cart changed during checkout")
+    const currentWallet = direct ? null : await tx.wallet.findUnique({ where: { userId: customerId } })
+    const balanceBefore = Number(currentWallet?.balance ?? 0)
     const balanceAfter = balanceBefore - grandTotal
-
-    await tx.wallet.update({ where: { userId: customerId }, data: { balance: balanceAfter } })
+    if (!direct) {
+      const debited = await tx.wallet.updateMany({ where: { userId: customerId, balance: { gte: grandTotal } }, data: { balance: { decrement: grandTotal } } })
+      if (debited.count !== 1) throw new Error("Insufficient wallet balance")
+    }
 
     const address = productItems.length > 0
       // Coordinates are stored when known, so the order carries where it
@@ -663,12 +677,13 @@ export async function checkout(input: unknown): Promise<CheckoutResult> {
       await tx.payment.create({
         data: {
           amount: shopTotal,
-          status: "COMPLETED",
+          status: direct ? "PENDING" : "COMPLETED",
+          externalRef: direct ? `DIRECT:${randomUUID()}` : undefined,
           contextType: "ORDER",
           orderId: order.id,
           payerId: customerId,
           payeeId: shopkeeperUserId,
-          paidAt: new Date(),
+          paidAt: direct ? undefined : new Date(),
         },
       })
 
@@ -717,7 +732,7 @@ export async function checkout(input: unknown): Promise<CheckoutResult> {
       // ever receives the net payout. A promo code is the shop's own
       // promotion, so the discount comes out of their payout, not the
       // platform's commission or the customer's total.
-      if (shopkeeperUserId) {
+      if (shopkeeperUserId && !direct) {
         const deliveredOrderCount = await tx.order.count({ where: { shopkeeperId, status: "DELIVERED" } })
         const rate = await getEffectiveCommissionRate("SHOPKEEPER", deliveredOrderCount)
         const { commissionAmount, payoutAmount } = splitByCommission(shopSubtotal - shopDiscount, rate)
@@ -775,6 +790,12 @@ export async function checkout(input: unknown): Promise<CheckoutResult> {
       }
     }
 
+    if (direct) for (const [shopkeeperId] of byShop) {
+      const shopkeeperUserId = shopkeeperUserIdById.get(shopkeeperId)
+      const orderId = orderIds[[...byShop.keys()].indexOf(shopkeeperId)]
+      if (shopkeeperUserId) await tx.notification.create({ data: { userId: shopkeeperUserId, title: "New order - payment direct", message: "Review the order and send your payment instructions in Messages. No money was collected by MySaji.", type: "JOB", relatedType: "ORDER", relatedId: orderId, actionUrl: "/shopkeeper/orders" } })
+    }
+
     for (const item of serviceItems) {
       const service = item.service!
       const price = Number(item.servicePackage?.price ?? service.basePrice) * item.quantity
@@ -809,12 +830,13 @@ export async function checkout(input: unknown): Promise<CheckoutResult> {
       await tx.payment.create({
         data: {
           amount: price,
-          status: "COMPLETED",
+          status: direct ? "PENDING" : "COMPLETED",
+          externalRef: direct ? `DIRECT:${randomUUID()}` : undefined,
           contextType: "JOB",
           jobId: job.id,
           payerId: customerId,
           payeeId: service.provider.userId,
-          paidAt: new Date(),
+          paidAt: direct ? undefined : new Date(),
         },
       })
 
@@ -872,12 +894,13 @@ export async function checkout(input: unknown): Promise<CheckoutResult> {
       await tx.payment.create({
         data: {
           amount: price,
-          status: "COMPLETED",
+          status: direct ? "PENDING" : "COMPLETED",
+          externalRef: direct ? `DIRECT:${randomUUID()}` : undefined,
           contextType: "JOB",
           jobId: job.id,
           payerId: customerId,
           payeeId: offer.provider.userId,
-          paidAt: new Date(),
+          paidAt: direct ? undefined : new Date(),
         },
       })
 
@@ -895,7 +918,7 @@ export async function checkout(input: unknown): Promise<CheckoutResult> {
       providerNotifications.push({ providerUserId: offer.provider.userId, serviceTitle: offer.title, jobId: job.id })
     }
 
-    await tx.transaction.create({
+    if (!direct && wallet) await tx.transaction.create({
       data: {
         walletId: wallet.id,
         type: "DEBIT",
@@ -978,7 +1001,7 @@ export async function checkout(input: unknown): Promise<CheckoutResult> {
   const receiptAdjustments: ReceiptAdjustment[] = []
   if (shippingTotal > 0) receiptAdjustments.push({ label: "Shipping", amount: shippingTotal })
   if (discountAmount > 0) receiptAdjustments.push({ label: "Discount", amount: -discountAmount })
-  void createAndEmailReceipt({
+  if (!direct) void createAndEmailReceipt({
     userId: customerId,
     type: "PAYMENT",
     paymentMethod: "Wallet",
@@ -988,5 +1011,5 @@ export async function checkout(input: unknown): Promise<CheckoutResult> {
     totalAmount: grandTotal,
   })
 
-  return { success: true, orderIds, jobIds, totalAmount: grandTotal }
+  return { success: true, orderIds, jobIds, totalAmount: grandTotal, paymentMode: direct ? "DIRECT" : "WALLET" }
 }

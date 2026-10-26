@@ -103,6 +103,8 @@ export default function SignupPage() {
   const [showConfirm, setShowConfirm] = useState(false)
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [phoneOtpChannel, setPhoneOtpChannel] = useState<"sms" | "whatsapp">("sms")
+  const [deliveredChannel, setDeliveredChannel] = useState("sms")
   const [otpDigits, setOtpDigits] = useState<string[]>(Array(OTP_LENGTH).fill(""))
   const [resendCooldown, setResendCooldown] = useState(0)
   const [verificationProof, setVerificationProof] = useState("")
@@ -227,11 +229,12 @@ export default function SignupPage() {
       setError("")
       if (!validateDetails()) return
       setIsLoading(true)
-      const result = await sendSignupOtp(primaryIdentifier, formData.email)
+      const result = await sendSignupOtp(primaryIdentifier, formData.email, phoneOtpChannel)
       setIsLoading(false)
       if (!result.success) { setError(result.error); return }
       setOtpSentTo(result.destination)
       setOtpFellBackToEmail(result.fellBackToEmail)
+      setDeliveredChannel(result.channel)
       setOtpDigits(Array(OTP_LENGTH).fill(""))
       setResendCooldown(RESEND_COOLDOWN_SECONDS)
       setStep("otp")
@@ -303,11 +306,12 @@ export default function SignupPage() {
       if (resendCooldown > 0) return
       setError("")
       setIsLoading(true)
-      const result = await sendSignupOtp(primaryIdentifier, formData.email)
+      const result = await sendSignupOtp(primaryIdentifier, formData.email, phoneOtpChannel)
       setIsLoading(false)
       if (!result.success) { setError(result.error); return }
       setOtpSentTo(result.destination)
       setOtpFellBackToEmail(result.fellBackToEmail)
+      setDeliveredChannel(result.channel)
       setOtpDigits(Array(OTP_LENGTH).fill(""))
       setResendCooldown(RESEND_COOLDOWN_SECONDS)
       otpInputRefs.current[0]?.focus()
@@ -745,6 +749,7 @@ export default function SignupPage() {
                     <Input autoComplete="email" id="email" type="email" placeholder="you@example.com" value={formData.email} onChange={(e) => handleChange("email", e.target.value)} className="pl-9 h-10 rounded-xl border-border bg-card" disabled={isLoading} />
                   </div>
                 </div>
+                {signupMethod === "phone" && <label className="block text-sm font-medium">Send my verification code using<select value={phoneOtpChannel} onChange={event => setPhoneOtpChannel(event.target.value as "sms" | "whatsapp")} disabled={isLoading} className="mt-2 min-h-11 w-full rounded-xl border bg-background px-3"><option value="sms">SMS text message</option><option value="whatsapp">WhatsApp</option></select><span className="mt-1 block text-xs font-normal text-muted-foreground">Use a number registered on WhatsApp for WhatsApp verification.</span></label>}
                 <p className="text-xs text-muted-foreground">
                   {signupMethod === "phone" ? t("authPage.signup.otpWillGoToPhone") : t("authPage.signup.otpWillGoToEmail")}
                 </p>
@@ -794,7 +799,7 @@ export default function SignupPage() {
                 {t((otpSentTo || primaryIdentifier).includes("@") ? "authPage.otp.verifyEmailTitle" : "authPage.otp.verifyPhoneTitle")}
               </h2>
               <p className="text-sm text-muted-foreground mb-6">
-                {t("authPage.otp.codeSentTo", { destination: otpSentTo || primaryIdentifier })}
+                {t("authPage.otp.codeSentTo", { destination: otpSentTo || primaryIdentifier })} / {deliveredChannel === "whatsapp" ? "WhatsApp" : deliveredChannel === "sms" ? "SMS" : "Email"}
               </p>
               {/* Said plainly, because the code arrived somewhere other than
                   where they asked for it and silence would just look broken. */}

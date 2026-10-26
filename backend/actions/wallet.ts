@@ -58,7 +58,7 @@ const METHOD_TYPE_FROM_DB: Record<string, WalletPaymentMethod["type"]> = {
 
 export async function getWalletSummary(): Promise<WalletSummary> {
   const session = await auth()
-  if (!session?.user?.id) return null
+  if (!session?.user?.id || session.user.role === "admin") return null
 
   const account = await db.user.findUnique({ where: { id: session.user.id }, select: { isActive: true, deletedAt: true } })
   if (!account?.isActive || account.deletedAt) return null
@@ -154,6 +154,8 @@ export type BankTransferTopupResult =
 export async function initiateBankTransferTopup(input: unknown): Promise<BankTransferTopupResult> {
   // Progressive KYC: money entering the platform is the point an
   // unverified identity stops being acceptable.
+  const walletSession = await auth()
+  if (walletSession?.user?.role === "admin") return { success: false, error: "Administrators do not have a personal wallet." }
   const gate = await requireVerified("wallet.deposit")
   if (!gate.ok) return { success: false, error: gate.error }
 
@@ -187,7 +189,7 @@ export async function initiateBankTransferTopup(input: unknown): Promise<BankTra
  * gateway path does. */
 export async function getWalletTopupIdByExternalRef(externalRef: string): Promise<string | null> {
   const session = await auth()
-  if (!session?.user?.id) return null
+  if (!session?.user?.id || session.user.role === "admin") return null
   const payment = await db.payment.findFirst({ where: { externalRef, contextType: "WALLET_TOPUP", payerId: session.user.id } })
   return payment?.id ?? null
 }
@@ -200,7 +202,7 @@ export type WalletTopupStatus = { status: "PENDING" | "COMPLETED" | "FAILED"; fa
  * environment has no public webhook URL to be called back on. */
 export async function checkWalletTopupStatus(paymentId: string): Promise<WalletTopupStatus | null> {
   const session = await auth()
-  if (!session?.user?.id) return null
+  if (!session?.user?.id || session.user.role === "admin") return null
 
   const payment = await db.payment.findUnique({ where: { id: paymentId } })
   if (!payment || payment.payerId !== session.user.id || payment.contextType !== "WALLET_TOPUP") return null
@@ -234,6 +236,8 @@ const DB_METHOD_TO_WITHDRAWAL: Record<string, "MPESA" | "CARD" | "PAYPAL"> = { M
 export async function requestWithdrawal(input: unknown): Promise<WalletActionResult> {
   // Progressive KYC: money leaving the platform is the highest-risk
   // action here, so it is gated like every other cash movement.
+  const walletSession = await auth()
+  if (walletSession?.user?.role === "admin") return { success: false, error: "Administrators do not have a personal wallet." }
   const gate = await requireVerified("wallet.withdraw")
   if (!gate.ok) return { success: false, error: gate.error }
 
@@ -324,6 +328,8 @@ export async function addPaymentMethod(input: unknown): Promise<WalletActionResu
   // Progressive KYC: gated at attach time rather than only at payout,
   // so an unverified account cannot quietly stage a destination for
   // funds it is not yet allowed to move.
+  const walletSession = await auth()
+  if (walletSession?.user?.role === "admin") return { success: false, error: "Administrators do not have a personal wallet." }
   const gate = await requireVerified("wallet.addPaymentMethod")
   if (!gate.ok) return { success: false, error: gate.error }
 

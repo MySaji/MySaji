@@ -9,7 +9,7 @@ import { db } from "@/backend/db"
 import { recordOrderMovements, orderStockDelta } from "@/backend/services/pos-ledger"
 
 export type OrderReversalResult =
-  | { success: true; total: number; orderNumber: string; customerId: string; shopkeeperUserId: string }
+  | { success: true; directPayment: boolean; total: number; orderNumber: string; customerId: string; shopkeeperUserId: string }
   | { success: false; error: string }
 
 /** Reverses a not-yet-shipped order: restocks inventory, refunds the
@@ -30,6 +30,8 @@ export async function reverseOrder(orderId: string): Promise<OrderReversalResult
   const shopkeeperProfile = await db.shopkeeperProfile.findUnique({ where: { id: order.shopkeeperId } })
   if (!shopkeeperProfile) return { success: false, error: "Shop not found." }
 
+  const platformPayment = await db.payment.findFirst({ where: { orderId: order.id, status: "COMPLETED", OR: [{ externalRef: null }, { NOT: { externalRef: { startsWith: "DIRECT:" } } }] }, select: { id: true } })
+  const directPayment = !platformPayment
   const subtotal = Number(order.subtotal)
   const total = Number(order.total)
 
@@ -37,7 +39,8 @@ export async function reverseOrder(orderId: string): Promise<OrderReversalResult
   const payoutToReverse = revenueEntry ? Number(revenueEntry.payoutAmount) : subtotal
 
   await db.$transaction(async (tx) => {
-    await tx.order.update({ where: { id: order.id }, data: { status: "CANCELLED", cancelledAt: new Date() } })
+    const claimed = await tx.order.updateMany({ where: { id: order.id, status: { in: ["PENDING", "PROCESSING"] } }, data: { status: "CANCELLED", cancelledAt: new Date() } })
+    if (claimed.count !== 1) throw new Error("Order already processed")
 
     if (revenueEntry && !revenueEntry.reversedAt) {
       await tx.platformRevenue.update({ where: { id: revenueEntry.id }, data: { reversedAt: new Date() } })
@@ -64,6 +67,7 @@ export async function reverseOrder(orderId: string): Promise<OrderReversalResult
       await tx.product.update({ where: { id: item.productId }, data: { totalSold: { decrement: item.quantity } } })
     }
 
+    if (!directPayment) {
     const customerWallet = await tx.wallet.upsert({
       where: { userId: order.customerId },
       update: {},
@@ -110,8 +114,9 @@ export async function reverseOrder(orderId: string): Promise<OrderReversalResult
         balanceAfter: shopAfter,
       },
     })
-    await tx.shopkeeperProfile.update({ where: { id: shopkeeperProfile.id }, data: { totalSales: { decrement: subtotal } } })
+    }
+    if (!directPayment) await tx.shopkeeperProfile.update({ where: { id: shopkeeperProfile.id }, data: { totalSales: { decrement: subtotal } } })
   }, { timeout: 20000, maxWait: 10000 })
 
-  return { success: true, total, orderNumber: order.orderNumber, customerId: order.customerId, shopkeeperUserId: shopkeeperProfile.userId }
+  return { success: true, directPayment, total, orderNumber: order.orderNumber, customerId: order.customerId, shopkeeperUserId: shopkeeperProfile.userId }
 }

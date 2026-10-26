@@ -1,5 +1,6 @@
 import "server-only"
 import { z } from "zod"
+import { finalizeBookingDeposit } from "@/backend/services/pos-booking-core"
 import { db } from "@/backend/db"
 import { confirmStkQuery, mpesaTokenHash } from "@/backend/services/pos-mpesa-core"
 
@@ -51,10 +52,11 @@ export async function receiveStk(token: string, body: unknown) {
     if (existing && existing.id !== request.id) {
       if (existing.shopkeeperId !== request.shopkeeperId || Number(existing.amount) !== amount.data) throw Error("Conflicting provider receipt")
       await tx.posMpesaTransaction.update({ where: { id: request.id }, data: { status: "MERGED", checkoutId: null, callbackTokenHash: null } })
-      await tx.posMpesaTransaction.update({ where: { id: existing.id }, data: { checkoutId: callback.CheckoutRequestID, callbackTokenHash: request.callbackTokenHash, source: "STK", status: "PAID", phone: request.phone, confirmedAt: existing.confirmedAt ?? new Date() } })
+      await tx.posMpesaTransaction.update({ where: { id: existing.id }, data: { checkoutId: callback.CheckoutRequestID, callbackTokenHash: request.callbackTokenHash, source: "STK", status: "PAID", accountReference: request.accountReference || existing.accountReference, phone: request.phone, confirmedAt: existing.confirmedAt ?? new Date() } })
     } else {
       await tx.posMpesaTransaction.update({ where: { id: request.id }, data: { checkoutId: callback.CheckoutRequestID, receipt: receipt.data, status: "PAID", confirmedAt: request.confirmedAt ?? new Date(), resultDescription: null } })
     }
   })
+  await finalizeBookingDeposit(callback.CheckoutRequestID)
   return true
 }

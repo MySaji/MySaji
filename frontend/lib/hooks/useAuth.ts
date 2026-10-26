@@ -46,6 +46,9 @@ export function useAuth() {
     : null
 
   const login = useCallback(async (identifier: string, password: string, otpProof?: string): Promise<LoginResult> => {
+    // Clear before Auth.js broadcasts the new session; otherwise an old idle
+    // timestamp can sign a freshly authenticated user out during getSession().
+    clearSessionHeartbeat()
     const result = await nextAuthSignIn("credentials", { identifier, password, otpProof, redirect: false })
     if (!result || result.error) {
       // NextAuth splits a CredentialsSignin error into two fields: `error`
@@ -74,14 +77,7 @@ export function useAuth() {
     if (!freshSession?.user?.role) {
       return { success: false, error: "Signed in, but could not load your account. Please try again." }
     }
-    // SessionGuard bounces a user straight back to login if it finds a
-    // heartbeat older than ~45s in localStorage — real and correct for a
-    // truly abandoned, reopened tab, but that same stale value can be left
-    // over from the sign-out that just brought the user to this login page
-    // (or from typing credentials slowly enough for it to go stale while
-    // still on the page). Without clearing here, a perfectly fresh login
-    // gets immediately treated as "abandoned" and kicked straight back out
-    // — clear it now so SessionGuard starts counting from this login instead.
+    // A fresh successful login starts a new inactivity window on this device.
     clearSessionHeartbeat()
     return { success: true, role: freshSession.user.role }
   }, [])

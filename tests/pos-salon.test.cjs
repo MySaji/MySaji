@@ -18,7 +18,7 @@ function setup(options={}){
   posSaleItem:{findUnique:async()=>({sale:{saleNumber:'POS-001'}})},posSalonService:{upsert:async q=>{updates.push(q);return q}},
  };
  const db={...tx,$transaction:async fn=>fn(tx),shopkeeperProfile:{findUnique:async()=>({posProfileKey:options.profile||'SALON'})}};
- const service=loadService('backend/actions/pos-salon.ts',{zod:require('zod'),'@prisma/client':{Prisma},'@/backend/db':{db},'@/backend/services/pos-access-core':{requirePosPermission:async p=>grants.has(p)?{ok:true,actor}:{ok:false,error:'Denied'},recordPosAudit:async e=>audit.push(e)},'@/backend/domain/pos-salon':domain});
+ const service=loadService('backend/actions/pos-salon.ts',{zod:require('zod'),'@prisma/client':{Prisma},'@/backend/db':{db},'@/backend/services/pos-access-core':{requirePosPermission:async p=>grants.has(p)?{ok:true,actor}:{ok:false,error:'Denied'},recordPosAudit:async e=>audit.push(e)},'@/backend/services/pos-booking-core':{occupiedAppointments:()=>({OR:[{status:{in:['BOOKED','CHECKED_IN','IN_SERVICE']}},{status:'AWAITING_DEPOSIT',holdExpiresAt:{gt:new Date()}}]})},'@/backend/domain/pos-salon':domain});
  return{...service,queries,audit,updates,getCreated:()=>created,getAppointment:()=>appointment,setAppointment:values=>{appointment={...appointment,...values}},sale};
 }
 const booking=()=>({requestId:'2b74d659-80e5-47cc-b2cc-53d1c2c5bb8b',serviceId:'service',stylistId:'staff',startsAt:new Date(Date.now()+10800000).toISOString().slice(0,16),customerName:'Jane',customerPhone:'0712345678',notes:''});

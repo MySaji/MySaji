@@ -29,6 +29,7 @@ const METHOD_LABEL: Record<string, string> = { MPESA: "M-Pesa", CARD: "Card", BA
 function deriveMethod(payment: { paymentMethod: { type: string } | null; externalRef: string | null; contextType: string }): string {
   if (payment.paymentMethod) return METHOD_LABEL[payment.paymentMethod.type] ?? payment.paymentMethod.type
   const ref = payment.externalRef ?? ""
+  if (ref.startsWith("DIRECT:")) return "Direct to owner (not verified by MySaji)"
   if (ref.startsWith("mpesa") || ref.startsWith("ws_CO_")) return "M-Pesa"
   if (ref.startsWith("cs_") || ref.startsWith("stripe")) return "Stripe"
   if (ref.toLowerCase().includes("paypal")) return "PayPal"

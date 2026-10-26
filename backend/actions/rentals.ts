@@ -2,6 +2,8 @@
 import { settleConfirmedPayment } from "@/backend/services/payment-settlement"
 
 import { z } from "zod"
+import { getEffectivePlatformPreferences } from "@/backend/actions/admin-settings"
+import { randomUUID } from "node:crypto"
 import { confirmRentalBookingPayment } from "@/backend/services/settlement-core"
 import { auth } from "@/backend/auth"
 import { db } from "@/backend/db"
@@ -114,13 +116,12 @@ export async function returnRentalBooking(input: unknown): Promise<RentalActionR
   if (!booking || booking.providerId !== providerId) return { success: false, error: "Booking not found." }
   if (booking.status !== "PICKED_UP") return { success: false, error: "This booking hasn't been picked up yet." }
 
-  const refund = Math.min(parsed.data.depositRefundAmount, Number(booking.depositAmount))
+  const platformPaid = await db.payment.aggregate({ where: { rentalBookingId: booking.id, status: "COMPLETED", OR: [{ externalRef: null }, { NOT: { externalRef: { startsWith: "DIRECT:" } } }] }, _sum: { amount: true } })
+  const refund = Math.min(parsed.data.depositRefundAmount, Number(booking.depositAmount), Number(platformPaid._sum.amount ?? 0))
 
   await db.$transaction(async (tx) => {
-    await tx.rentalBooking.update({
-      where: { id: booking.id },
-      data: { status: "RETURNED", returnedAt: new Date(), depositRefundAmount: refund, depositRefundNote: parsed.data.depositRefundNote ?? null },
-    })
+    const claimed = await tx.rentalBooking.updateMany({ where: { id: booking.id, status: "PICKED_UP" }, data: { status: "RETURNED", returnedAt: new Date(), depositRefundAmount: refund, depositRefundNote: Number(platformPaid._sum.amount ?? 0) > 0 ? parsed.data.depositRefundNote ?? null : `Direct payment: any deposit refund must be settled with the owner. ${parsed.data.depositRefundNote ?? ""}` } })
+    if (claimed.count !== 1) throw new Error("Rental already returned")
 
     if (refund > 0) {
       const wallet = await tx.wallet.upsert({
@@ -172,12 +173,14 @@ export async function cancelRentalBooking(input: unknown): Promise<RentalActionR
     return { success: false, error: "This booking can no longer be cancelled." }
   }
 
+  const platformPaid = await db.payment.aggregate({ where: { rentalBookingId: booking.id, status: "COMPLETED", OR: [{ externalRef: null }, { NOT: { externalRef: { startsWith: "DIRECT:" } } }] }, _sum: { amount: true } })
   await db.$transaction(async (tx) => {
-    const wasPaid = booking.status === "CONFIRMED"
-    await tx.rentalBooking.update({ where: { id: booking.id }, data: { status: "CANCELLED", cancellationReason: parsed.data.reason ?? null } })
+    const wasPaid = Number(platformPaid._sum.amount ?? 0) > 0
+    const claimed = await tx.rentalBooking.updateMany({ where: { id: booking.id, status: { in: ["PENDING_PAYMENT", "CONFIRMED"] } }, data: { status: "CANCELLED", cancellationReason: parsed.data.reason ?? null } })
+    if (claimed.count !== 1) throw new Error("Rental already cancelled")
 
     if (wasPaid) {
-      const refund = Number(booking.totalAmount)
+      const refund = Math.min(Number(booking.totalAmount), Number(platformPaid._sum.amount ?? 0))
       const wallet = await tx.wallet.upsert({ where: { userId: booking.customerId }, update: {}, create: { userId: booking.customerId, balance: 0 } })
       const balanceBefore = Number(wallet.balance)
       const balanceAfter = balanceBefore + refund
@@ -260,7 +263,7 @@ const createRentalBookingSchema = z.object({
   location: z.string().trim().min(1, "Location is required"),
 })
 
-export type CreateRentalBookingResult = { success: true; bookingId: string; amount: number } | { success: false; error: string }
+export type CreateRentalBookingResult = { success: true; bookingId: string; amount: number; directPayment: boolean } | { success: false; error: string }
 
 export async function createRentalBooking(input: unknown): Promise<CreateRentalBookingResult> {
   const session = await auth()
@@ -280,12 +283,14 @@ export async function createRentalBooking(input: unknown): Promise<CreateRentalB
   const offer = await db.offer.findFirst({ where: { id: parsed.data.offerId, status: "LIVE", actionType: "RENT" } })
   if (!offer || offer.price == null) return { success: false, error: "This rental listing is no longer available." }
 
-  const start = new Date(`${parsed.data.startDate}T00:00:00`)
-  const end = new Date(`${parsed.data.endDate}T00:00:00`)
+  const direct = !(await getEffectivePlatformPreferences()).customerAppPaymentsEnabled
+  const start = new Date(`${parsed.data.startDate}T00:00:00+03:00`)
+  const end = new Date(`${parsed.data.endDate}T00:00:00+03:00`)
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) {
     return { success: false, error: "Pick a valid end date after the start date." }
   }
-  if (start < new Date(new Date().toDateString())) {
+  const todayEAT = new Date(Date.now() + 3 * 3600000).toISOString().slice(0, 10)
+  if (parsed.data.startDate < todayEAT) {
     return { success: false, error: "Start date can't be in the past." }
   }
 
@@ -308,28 +313,27 @@ export async function createRentalBooking(input: unknown): Promise<CreateRentalB
   const depositAmount = Number(offer.depositAmount)
   const totalAmount = rentalFee + depositAmount
 
-  const booking = await db.rentalBooking.create({
-    data: {
-      offerId: offer.id,
-      customerId: session.user.id,
-      providerId: offer.providerId,
-      startDate: start,
-      endDate: end,
-      days,
-      rentalFee,
-      depositAmount,
-      totalAmount,
-      location: parsed.data.location,
-      status: "PENDING_PAYMENT",
-    },
-  })
+  try {
+    const booking = await db.$transaction(async tx => {
+      await tx.$queryRaw`SELECT true AS locked FROM pg_advisory_xact_lock(hashtext('rental-booking'), hashtext(${offer.id}))`
+      const clash = await tx.rentalBooking.findFirst({ where: { offerId: offer.id, status: { in: ["CONFIRMED", "PICKED_UP"] }, startDate: { lt: end }, endDate: { gt: start } } })
+      if (clash) throw new Error("DATES_TAKEN")
+      const created = await tx.rentalBooking.create({ data: { offerId: offer.id, customerId: session.user.id, providerId: offer.providerId, startDate: start, endDate: end, days, rentalFee, depositAmount, totalAmount, location: parsed.data.location, status: direct ? "CONFIRMED" : "PENDING_PAYMENT" } })
+      if (direct) {
+        const provider = await tx.providerProfile.findUnique({ where: { id: offer.providerId }, select: { userId: true } })
+        await tx.payment.create({ data: { amount: totalAmount, contextType: "RENTAL", rentalBookingId: created.id, payerId: session.user.id, payeeId: provider?.userId, externalRef: `DIRECT:${randomUUID()}`, status: "PENDING" } })
+        if (provider) await tx.notification.create({ data: { userId: provider.userId, title: "New rental reservation - pay direct", message: `${offer.title} reserved for ${parsed.data.startDate} to ${parsed.data.endDate}. Arrange payment and any security deposit directly with the customer. MySaji collected no money.`, type: "JOB", actionUrl: "/provider/offers", relatedType: "RENTAL", relatedId: created.id } })
+      }
+      await tx.offer.update({ where: { id: offer.id }, data: { bookingCount: { increment: 1 } } })
+      return created
+    }, { timeout: 20000, maxWait: 10000 })
+    return { success: true, bookingId: booking.id, amount: totalAmount, directPayment: direct }
+  } catch (error) { return { success: false, error: error instanceof Error && error.message === "DATES_TAKEN" ? "Those dates were just booked. Choose another range." : "We could not reserve those dates. Check your bookings before trying again." } }
 
-  await db.offer.update({ where: { id: offer.id }, data: { bookingCount: { increment: 1 } } })
-
-  return { success: true, bookingId: booking.id, amount: totalAmount }
 }
 
 export type RentalBookingForPayment = {
+  directPayment: boolean
   bookingId: string
   listingTitle: string
   startDate: string
@@ -348,7 +352,9 @@ export async function getRentalBookingForPayment(bookingId: string): Promise<Ren
   const booking = await db.rentalBooking.findUnique({ where: { id: bookingId }, include: { offer: true } })
   if (!booking || booking.customerId !== session.user.id) return null
 
+  const directPayment = !!(await db.payment.findFirst({ where: { rentalBookingId: booking.id, externalRef: { startsWith: "DIRECT:" } }, select: { id: true } }))
   return {
+    directPayment,
     bookingId: booking.id,
     listingTitle: booking.offer.title,
     startDate: booking.startDate.toISOString(),

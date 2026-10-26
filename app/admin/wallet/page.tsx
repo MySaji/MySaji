@@ -1,7 +1,5 @@
-"use client"
+import { redirect } from "next/navigation"
 
-import { CustomerWalletPage } from "@/frontend/components/pages/customer-wallet-page"
-
-export default function AccountWalletPage() {
-  return <CustomerWalletPage returnPath="/admin/wallet" />
+export default function AdminWalletPage() {
+  redirect("/admin/payments")
 }

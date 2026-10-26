@@ -1,6 +1,7 @@
 "use server"
 
 import { z } from "zod"
+import { normalizeKenyanPhone } from "@/backend/services/sms"
 import { activeUser } from "@/backend/services/active-user"
 import { randomInt } from "node:crypto"
 import { db } from "@/backend/db"
@@ -21,7 +22,8 @@ const registerSchema = z.object({
   phone: z
     .string()
     .trim()
-    .regex(/^\+?\d{9,15}$/, "Please enter a valid phone number"),
+    .regex(/^\+?\d{9,15}$/, "Please enter a valid phone number")
+    .transform(value => normalizeKenyanPhone(value) ?? value),
   password: z.string().min(8, "Password must be at least 8 characters").max(72),
   // Proves the applicant actually controls the email or phone above — see
   // sendSignupOtp/verifySignupOtp in lib/actions/otp.ts. Required so

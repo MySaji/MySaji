@@ -40,7 +40,7 @@ test("checkout refuses an unreviewed price change before reading or debiting the
   const dependencies = Object.fromEntries([...fs.readFileSync(filename, "utf8").matchAll(/from "([^"]+)"/g)].map(match => [match[1], {}]))
   let walletReads = 0, writes = 0
   Object.assign(dependencies, {
-    zod: require("zod"), "@/backend/auth": { auth: async () => ({ user: { id: "current-customer" } }) },
+    zod: require("zod"), "@/backend/actions/admin-settings": { getEffectivePlatformPreferences: async () => ({ customerAppPaymentsEnabled: false, jobPaymentMode: "DIRECT" }) }, "@/backend/auth": { auth: async () => ({ user: { id: "current-customer" } }) },
     "@/backend/services/verification-gate": { requireVerified: async () => ({ ok: true }) },
     "@/backend/db": { db: {
       cartItem: { findMany: async () => [{ offerId: "offer", quantity: 1, offer: { title: "Garden kit", status: "LIVE", actionType: "BUY", price: 500, stockQuantity: 4, providerId: "provider", provider: { user: { name: "Alex" } } } }] },
@@ -65,7 +65,7 @@ test("cart delivery quotes use the current customer's records, distinct shop IDs
   let query
   const quotes = []
   Object.assign(dependencies, {
-    zod: require("zod"), "@/backend/auth": { auth: async () => ({ user: { id: "current-customer" } }) },
+    zod: require("zod"), "@/backend/actions/admin-settings": { getEffectivePlatformPreferences: async () => ({ customerAppPaymentsEnabled: false, jobPaymentMode: "DIRECT" }) }, "@/backend/auth": { auth: async () => ({ user: { id: "current-customer" } }) },
     "@/backend/db": { db: { cartItem: { findMany: async value => { query = value; return shops.map((shop, index) => ({ productId: `product-${index}`, quantity: 1, product: { name: "Basket", price: 400, images: [], shopkeeperId: shop.id, shopkeeper: shop, inventory: { currentStock: 5, reservedStock: 1 } } })) } } } },
     "@/backend/domain/format": { resolveShopHoursForToday: () => ({}), isShopCurrentlyOpen: () => true },
     "@/backend/domain/geo": { toCoordinates: (latitude, longitude) => ({ latitude, longitude }) },

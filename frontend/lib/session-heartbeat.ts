@@ -1,9 +1,11 @@
-/** Shared constant between `SessionGuard` (which reads/writes it) and
- * `AuthProvider`'s logout path (which must clear it) — without clearing on
- * every deliberate logout, a fresh login right after would immediately see
- * the old stale timestamp and bounce the user straight back out. */
+/** Clear legacy heartbeat and account-scoped idle timestamps on deliberate logout/login. */
 export const SESSION_HEARTBEAT_KEY = "saji_session_heartbeat"
 
 export function clearSessionHeartbeat() {
-  if (typeof window !== "undefined") localStorage.removeItem(SESSION_HEARTBEAT_KEY)
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.removeItem(SESSION_HEARTBEAT_KEY)
+      for (const key of Object.keys(localStorage)) if (key.startsWith("saji.session.activity.")) localStorage.removeItem(key)
+    } catch { /* Storage restrictions must never prevent logout. */ }
+  }
 }

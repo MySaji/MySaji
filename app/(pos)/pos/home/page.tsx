@@ -25,6 +25,7 @@ const GROUPS: { title: string; blurb: string; items: { href: string; icon: typeo
     items: [
       { href: "/pos/products", icon: Package, label: "Products" },
       { href: "/pos/stock", icon: Boxes, label: "Stock" },
+      { href: "/pos/operations", icon: Wrench, label: "Operations desk" },
       { href: "/pos/stocktake", icon: ClipboardCheck, label: "Count" },
       { href: "/pos/purchasing", icon: ClipboardList, label: "Buying" },
       { href: "/pos/transfers", icon: Truck, label: "Transfers" },

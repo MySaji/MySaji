@@ -36,6 +36,8 @@ declare module "next-auth" {
 
 declare module "next-auth/jwt" {
   interface JWT {
+    sessionStartedAt?: number
+    lastActivityAt?: number
     id: string
     role: UserRole
     phone: string | null
@@ -49,6 +51,8 @@ declare module "next-auth/jwt" {
 
 declare module "@auth/core/jwt" {
   interface JWT {
+    sessionStartedAt?: number
+    lastActivityAt?: number
     id: string
     role: UserRole
     phone: string | null

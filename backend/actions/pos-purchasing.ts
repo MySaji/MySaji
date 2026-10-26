@@ -326,6 +326,8 @@ export type ReceiptResult =
   | { success: false; error: string }
 
 const receiveSchema = z.object({
+  requestId: z.string().uuid().optional(),
+  expectedShopId: z.string().min(1).max(60).optional(),
   /** Optional: goods bought off a lorry have no order behind them. */
   orderId: z.string().trim().min(1).optional(),
   supplierId: z.string().trim().min(1).optional(),
@@ -336,8 +338,8 @@ const receiveSchema = z.object({
     productId: z.string().trim().min(1),
     variantId: z.string().trim().min(1).optional(),
     orderItemId: z.string().trim().min(1).optional(),
-    quantity: z.union([z.number(), z.string()]),
-    unitCost: z.number().min(0).max(10_000_000),
+    quantity: z.union([z.number(), z.string()]).refine(value=>{try{const q=new Prisma.Decimal(value);return q.isFinite()&&q.greaterThan(0)&&q.lessThanOrEqualTo(1_000_000)&&q.decimalPlaces()<=3}catch{return false}},"Use a positive quantity with up to three decimal places"),
+    unitCost: z.number().min(0).max(10_000_000).multipleOf(0.01),
     batchNumber: z.string().trim().max(60).optional(),
     expiryDate: z.string().datetime().optional(),
   })).min(1).max(300),
@@ -356,6 +358,7 @@ export async function receiveGoods(input: unknown): Promise<ReceiptResult> {
   if (!g.ok) return { success: false, error: g.error }
   const d = parsed.data
   const shopkeeperId = g.t.shopkeeperId
+  if(d.expectedShopId && d.expectedShopId!==shopkeeperId)return {success:false,error:"The active branch changed. Reload before receiving stock."}
 
   let order: { id: string; supplierId: string; orderNumber: string } | null = null
   if (d.orderId) {
@@ -412,6 +415,11 @@ export async function receiveGoods(input: unknown): Promise<ReceiptResult> {
 
   try {
     const result = await db.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT true AS locked FROM pg_advisory_xact_lock(hashtext('saji-goods-receive'),hashtext(${shopkeeperId}))`
+      if(d.requestId){
+        const previous=await tx.posGoodsReceipt.findUnique({where:{id:d.requestId},include:{_count:{select:{items:true}}}})
+        if(previous){if(previous.shopkeeperId!==shopkeeperId)throw new Error("Start a new delivery request.");return {id:previous.id,receiptNumber:previous.receiptNumber,replayed:true,totalCost:Number(previous.totalCost),linesReceived:previous._count.items}}
+      }
       const count = await tx.posGoodsReceipt.count({ where: { shopkeeperId } })
       const receiptNumber = "GRN-" + String(count + 1).padStart(4, "0")
 
@@ -420,6 +428,7 @@ export async function receiveGoods(input: unknown): Promise<ReceiptResult> {
           shopkeeperId,
           supplierId,
           orderId: order?.id ?? null,
+          ...(d.requestId?{id:d.requestId}:{}),
           receiptNumber,
           supplierRef: d.supplierRef || null,
           totalCost: total,
@@ -564,8 +573,9 @@ export async function receiveGoods(input: unknown): Promise<ReceiptResult> {
         })
       }
 
-      return receipt
+      return {...receipt,replayed:false,totalCost:money(total),linesReceived:lines.length}
     }, { timeout: 40000 })
+    if(result.replayed)return {success:true,receiptId:result.id,receiptNumber:result.receiptNumber,totalCost:result.totalCost,linesReceived:result.linesReceived}
 
     await recordPosAudit({
       actor: g.t.actor, action: "stock.receive",

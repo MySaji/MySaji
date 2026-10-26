@@ -21,6 +21,7 @@ export function RegisterNavigation({ actor }: { actor: PosWhoAmI | null }) {
     { href: "/pos/customers", label: "Customers", icon: Users },
     { href: "/pos/payments", label: "Payments", icon: Smartphone },
     { href: "/pos/reports", label: "Reports", icon: BarChart3 },
+    { href: "/pos/operations", label: "Operations", icon: Wrench },
     { href: "/pos/pulse", label: "Business pulse", icon: BarChart3 },
     { href: "/pos/audit", label: "Audit log", icon: ClipboardList },
     ...(actor?.profileKey === "SALON" ? [{ href: "/pos/salon", label: "Salon", icon: Users }] : []),

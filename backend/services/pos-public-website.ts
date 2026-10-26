@@ -2,6 +2,7 @@ import "server-only"
 import { db } from "@/backend/db"
 import { activeUser } from "@/backend/services/active-user"
 import { validBusinessSubdomain, websiteContentSchema } from "@/backend/domain/pos-website"
+import { readOperationsSettings } from "@/backend/domain/pos-operations"
 import { validInstallLogo } from "@/backend/services/pos-install-brand"
 
 export async function loadBusinessWebsite(subdomain: string, preview = false) {
@@ -17,13 +18,14 @@ export async function loadBusinessWebsite(subdomain: string, preview = false) {
   if (!parsed.success) return null
   const content = parsed.data
   const shopIds = site.business.stores.map(s => s.shopkeeperId)
-  const [products, logoShop] = await Promise.all([
+  const [products, logoShop, bookingConfig] = await Promise.all([
     content.productIds.length ? db.product.findMany({ where: { id: { in: content.productIds }, shopkeeperId: { in: shopIds }, isActive: true },
-      select: { id: true, name: true, description: true, price: true, discountPrice: true, images: true, isService: true, unit: true, hasVariants: true, inventory: {select:{currentStock:true,stockOnHand:true,reservedStock:true}}, variants:{where:{isActive:true},select:{currentStock:true,stockOnHand:true}} }, take: 24 }) : Promise.resolve([]),
+      select: { id: true, shopkeeperId: true, name: true, description: true, price: true, discountPrice: true, images: true, isService: true, unit: true, hasVariants: true, inventory: {select:{currentStock:true,stockOnHand:true,reservedStock:true}}, variants:{where:{isActive:true},select:{currentStock:true,stockOnHand:true}} }, take: 24 }) : Promise.resolve([]),
     shopIds[0] ? db.shopkeeperProfile.findUnique({ where: { id: shopIds[0] }, select: { posConfig: true } }) : Promise.resolve(null),
+    db.posOperationsConfig.findMany({where:{shopkeeperId:{in:shopIds}},select:{shopkeeperId:true,settings:true}}),
   ])
   const config = logoShop?.posConfig as Record<string, unknown> | null
-  return { subdomain: site.subdomain, content, currency: site.business.currency, updatedAt: site.updatedAt.toISOString(), preview,
+  return { onlineBooking: bookingConfig.some(c=>{const settings=readOperationsSettings(c.settings);return settings.bookingEnabled&&settings.publicStaffIds.length>0&&products.some(p=>p.shopkeeperId===c.shopkeeperId&&p.isService)}), subdomain: site.subdomain, content, currency: site.business.currency, updatedAt: site.updatedAt.toISOString(), preview,
     logo: validInstallLogo(config?.installLogo) ? config.installLogo : null,
     products: products.map(p => ({ id: p.id, name: p.name, description: p.description, price: Number(p.discountPrice ?? p.price), isService: p.isService, unit: p.unit,
       availability: p.isService ? "Ask for an appointment" : p.hasVariants ? (p.variants.some(v=>Number(v.stockOnHand??v.currentStock)>0) ? "Some variants in stock" : "Ask about restocking") : p.inventory ? (Number(p.inventory.stockOnHand??p.inventory.currentStock)-p.inventory.reservedStock>0 ? "In stock at last update" : "Ask about restocking") : "Contact to confirm availability",

@@ -1,6 +1,7 @@
-export const SALON_STATES = ["BOOKED", "CHECKED_IN", "IN_SERVICE", "COMPLETED", "CANCELLED", "NO_SHOW"] as const
+export const SALON_STATES = ["AWAITING_DEPOSIT", "BOOKED", "CHECKED_IN", "IN_SERVICE", "COMPLETED", "CANCELLED", "NO_SHOW"] as const
 export type SalonStatus = typeof SALON_STATES[number]
 export const SALON_TRANSITIONS: Record<SalonStatus, readonly SalonStatus[]> = {
+  AWAITING_DEPOSIT: ["CANCELLED"],
   BOOKED: ["CHECKED_IN", "CANCELLED", "NO_SHOW"], CHECKED_IN: ["IN_SERVICE", "CANCELLED"],
   IN_SERVICE: ["COMPLETED"], COMPLETED: [], CANCELLED: [], NO_SHOW: [],
 }

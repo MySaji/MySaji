@@ -34,6 +34,7 @@ function callbacks({ existing = null, providerConfirmed = true } = {}) {
   }
   const action = loadService('backend/services/pos-mpesa-callbacks.ts', {
     zod: require('zod'),
+    '@/backend/services/pos-booking-core':{finalizeBookingDeposit:async()=>{}},
     '@/backend/services/pos-mpesa-core': { mpesaTokenHash: token => token, confirmStkQuery: async () => { providerQueries++; return providerConfirmed } },
     '@/backend/db': { db: {
       $transaction: callback => callback(tx),

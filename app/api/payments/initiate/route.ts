@@ -40,6 +40,7 @@ export async function POST(req: Request) {
     }
 
     if (body.context === "wallet-topup") {
+      if (session.user.role === "admin") return NextResponse.json({ success: false, message: "Administrators do not have a personal wallet." }, { status: 403 })
       const amount = Number(body.amount)
       if (!(amount > 0) || amount > 1_000_000) {
         return NextResponse.json({ success: false, message: "Enter a valid amount." }, { status: 400 })
@@ -165,6 +166,12 @@ export async function POST(req: Request) {
       }
     }
 
+    // Enforce the admin switch before any rental/job gateway or wallet movement.
+    const customerPolicy = await getEffectivePlatformPreferences()
+    if (!customerPolicy.customerAppPaymentsEnabled || (body.context !== "rental-booking" && customerPolicy.jobPaymentMode === "DIRECT")) {
+      return NextResponse.json({ success: false, message: "In-app customer payments are disabled. Pay the owner directly using their confirmed payment instructions." }, { status: 403 })
+    }
+
     if (body.context === "rental-booking") {
       const bookingId = body.bookingId
       if (!bookingId) return NextResponse.json({ success: false, message: "Missing bookingId" }, { status: 400 })
@@ -179,6 +186,8 @@ export async function POST(req: Request) {
       if (booking.status !== "PENDING_PAYMENT") {
         return NextResponse.json({ success: false, message: "This booking is not awaiting payment" }, { status: 409 })
       }
+      const directBooking = await db.payment.findFirst({ where: { rentalBookingId: booking.id, externalRef: { startsWith: "DIRECT:" } }, select: { id: true } })
+      if (directBooking) return NextResponse.json({ success: false, message: "This reservation uses direct payment to the owner." }, { status: 409 })
       const amount = Number(booking.totalAmount)
 
       const origin = process.env.CALLBACK_URL || new URL(req.url).origin
@@ -242,6 +251,8 @@ export async function POST(req: Request) {
     if (job.status !== "PENDING_PAYMENT") {
       return NextResponse.json({ success: false, message: "This job is not awaiting payment" }, { status: 409 })
     }
+    const directJob = await db.payment.findFirst({ where: { jobId: job.id, externalRef: { startsWith: "DIRECT:" } }, select: { id: true } })
+    if (directJob) return NextResponse.json({ success: false, message: "This order uses direct payment to the owner." }, { status: 409 })
     const amount = Number(job.price)
 
     // CALLBACK_URL isn't configured in this environment; Stripe/PayPal need

@@ -32,6 +32,7 @@ function setup({ primaryFailure = 0 } = {}) {
   const queries = [], audits = []
   const business = { id: "business", name: "James Bond", currency: "KES", profileKey: "retail", stores: [{ id: "branch", shopkeeperId: "shop", phone: "0712345678" }] }
   const db = {
+    posOperationsConfig: {findMany:async()=>[]},
     posBusiness: { findUnique: async ({ where }) => where.ownerUserId === "owner" ? business : null },
     posBusinessWebsite: {
       findUnique: async () => site,
@@ -50,7 +51,7 @@ function setup({ primaryFailure = 0 } = {}) {
     "@/backend/services/ai/gemini-client": { getGeminiClient: () => ({ models: { generateContent: async input => { aiCall = input; aiRequests.push(input.model); if (primaryFailure && input.model === (process.env.POS_WEBSITE_MODEL || "gemini-3.6-flash")) throw Object.assign(new Error("Provider failure"), { status: primaryFailure }); return { text: JSON.stringify({ headline: "Meet James Bond", introduction: "A local business in Nairobi welcoming your enquiries.", about: "Our local business welcomes customers in Nairobi. Contact us to discuss your needs.", suggestions: ["Add opening hours."] }) } } } }) },
     "@/backend/services/ai/credentials": { isGeminiConfigured: () => true, noteGeminiFailure: () => {} },
   }, { AbortSignal })
-  const publicService = loadService("backend/services/pos-public-website.ts", { "@/backend/db": { db }, "@/backend/services/active-user": { activeUser: async () => user }, "@/backend/domain/pos-website": domain, "@/backend/services/pos-install-brand": { validInstallLogo: () => false } })
+  const publicService = loadService("backend/services/pos-public-website.ts", { "@/backend/domain/pos-operations": {readOperationsSettings:()=>({bookingEnabled:false,publicStaffIds:[]})}, "@/backend/db": { db }, "@/backend/services/active-user": { activeUser: async () => user }, "@/backend/domain/pos-website": domain, "@/backend/services/pos-install-brand": { validInstallLogo: () => false } })
   return { ...actions, ...publicService, queries, audits, setUser: v => { user = v }, getSite: () => site, getAi: () => aiCall, aiRequests }
 }
 

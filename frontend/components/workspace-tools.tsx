@@ -23,7 +23,7 @@ export function WorkspaceTools({ name }: { name: string }) {
     const prefix = pathname.startsWith("/provider") || pathname.startsWith("/shopkeeper") ? ["/provider", "/shopkeeper"] : ["/" + pathname.split("/")[1]]
     const available = new Map<string, string>()
     if (["/customer", "/provider", "/shopkeeper", "/admin", "/sub-admin", "/secretary", "/agent", "/distributor"].includes(accountRoot)) {
-      available.set(`${accountRoot}/wallet`, "My wallet")
+      if (accountRoot !== "/admin") available.set(`${accountRoot}/wallet`, "My wallet")
       available.set(`${accountRoot}/messages`, "Messages")
       available.set(`${accountRoot}/notifications`, "Notifications")
     }
@@ -44,7 +44,7 @@ export function WorkspaceTools({ name }: { name: string }) {
   // Keep the finder mounted without reducing the conversation composer space.
   const isConversation = pathname.endsWith("/messages")
   return <>
-    {!isConversation && <nav aria-label="Workspace tools" className="workspace-tools"><span>{name}</span><WorkspaceFlow /><button onClick={show}><Search size={14} />Find a page <kbd>Ctrl K</kbd></button><button onClick={async () => { try { await navigator.clipboard.writeText(window.location.href); setCopied(true); setCopyError(false) } catch { setCopyError(true) } }}><Copy size={14} />{copied ? "Link copied" : "Copy page link"}</button><Link href={`${accountRoot}/wallet`}><Wallet size={14} />My wallet</Link><Link href="/knowledge" target="_blank" rel="noopener noreferrer"><BookOpen size={14} />Guides</Link>{copyError && <span role="status">Copy the address from your browser’s address bar.</span>}</nav>}
+    {!isConversation && <nav aria-label="Workspace tools" className="workspace-tools"><span>{name}</span><WorkspaceFlow /><button onClick={show}><Search size={14} />Find a page <kbd>Ctrl K</kbd></button><button onClick={async () => { try { await navigator.clipboard.writeText(window.location.href); setCopied(true); setCopyError(false) } catch { setCopyError(true) } }}><Copy size={14} />{copied ? "Link copied" : "Copy page link"}</button>{accountRoot !== "/admin" && <Link href={`${accountRoot}/wallet`}><Wallet size={14} />My wallet</Link>}<Link href="/knowledge" target="_blank" rel="noopener noreferrer"><BookOpen size={14} />Guides</Link>{copyError && <span role="status">Copy the address from your browser’s address bar.</span>}</nav>}
     <Dialog open={open} onOpenChange={setOpen}><DialogContent><DialogTitle>Find a page in {name}</DialogTitle><DialogDescription>Search the pages available in your workspace navigation.</DialogDescription><Input aria-label="Search workspace pages" placeholder="Try orders, messages or reports" value={query} onChange={event => setQuery(event.target.value)} /><div className="max-h-[55dvh] space-y-1 overflow-y-auto">{links.filter(link => link.label.toLowerCase().includes(query.toLowerCase())).map(link => <Link key={link.href} href={link.href} onClick={() => setOpen(false)} className="flex min-h-11 items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm hover:bg-muted">{link.label}<ArrowUpRight size={15} /></Link>)}{!links.some(link => link.label.toLowerCase().includes(query.toLowerCase())) && <p className="p-4 text-sm text-muted-foreground">No matching page. Try another name.</p>}</div></DialogContent></Dialog>
   </>
 }

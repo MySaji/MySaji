@@ -1,5 +1,6 @@
 "use client"
 
+import { DirectPaymentNote } from "@/frontend/components/booking/direct-payment-note"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
@@ -148,6 +149,7 @@ export function CustomerOrderDetailPage({ orderId }: { orderId: string }) {
         </div>
 
         {/* Timeline */}
+        {order.directPayment && <DirectPaymentNote />}
         <Card className="p-5 border-0 shadow-sm rounded-2xl mb-4">
           <h2 className="text-xs font-bold text-foreground mb-4">{t("customer.orderDetail.timelineTitle")}</h2>
           {isCancelled ? (
@@ -311,7 +313,7 @@ export function CustomerOrderDetailPage({ orderId }: { orderId: string }) {
         <DialogContent className="max-w-md rounded-2xl">
           <DialogHeader><DialogTitle>{t("customer.orderDetail.cancelModalTitle")}</DialogTitle></DialogHeader>
           {cancelSubmitted ? (
-            <p className="text-xs text-emerald-600 py-4">{t("customer.orderDetail.cancelSubmitted")}</p>
+            <p className="text-xs text-emerald-600 py-4">{order.directPayment ? "Your order was cancelled. Arrange any refund directly with the owner; no wallet credit was issued." : t("customer.orderDetail.cancelSubmitted")}</p>
           ) : (
             <div className="space-y-4 py-2">
               <div>

@@ -12,6 +12,8 @@ import {
   getRentalOfferDetail, getRentalBookedRanges, createRentalBooking, getRentalBookingForPayment,
   checkRentalBookingPaymentStatus, type RentalOfferDetail, type RentalBookingForPayment,
 } from "@/backend/actions/rentals"
+import { getEffectivePlatformPreferences } from "@/backend/actions/admin-settings"
+import { DirectPaymentNote } from "@/frontend/components/booking/direct-payment-note"
 import { capturePaypalOrder } from "@/backend/actions/payments"
 import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 import { useGatedAction } from "@/frontend/lib/hooks/useGatedAction"
@@ -26,6 +28,7 @@ export default function RentalDetailPage() {
   const searchParams = useSearchParams()
   const { formatMoney } = useLocalization()
 
+  const [appPayments, setAppPayments] = useState(false)
   const [listing, setListing] = useState<RentalOfferDetail>(null)
   const [bookedRanges, setBookedRanges] = useState<{ startDate: string; endDate: string }[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -50,8 +53,8 @@ export default function RentalDetailPage() {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
-    Promise.all([getRentalOfferDetail(id), getRentalBookedRanges(id)])
-      .then(([l, ranges]) => { setListing(l); setBookedRanges(ranges) })
+    Promise.all([getRentalOfferDetail(id), getRentalBookedRanges(id), getEffectivePlatformPreferences()])
+      .then(([l, ranges, policy]) => { setListing(l); setBookedRanges(ranges); setAppPayments(policy.customerAppPaymentsEnabled) })
       .finally(() => setIsLoading(false))
   }, [id])
 
@@ -136,6 +139,7 @@ export default function RentalDetailPage() {
     setBookingId(result.bookingId)
     const details = await getRentalBookingForPayment(result.bookingId)
     setBooking(details)
+    if (result.directPayment) setView("success")
   }
 
   const initiatePayment = async (provider: "mpesa" | "paypal" | "card") => {
@@ -197,8 +201,9 @@ export default function RentalDetailPage() {
           <Card className="border-0 border-emerald-200 bg-emerald-50 p-6 text-center shadow-sm dark:border-emerald-900/40 dark:bg-emerald-900/20">
             <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-600" />
             <p className="mt-2 font-semibold text-emerald-700 dark:text-emerald-400">Booking confirmed</p>
-            <p className="mt-1 text-[11px] text-muted-foreground">The provider will prepare the item for pickup on your start date.</p>
+            <p className="mt-1 text-[11px] text-muted-foreground">Your dates are reserved. Agree pickup and payment directly with the owner in Messages. A reservation does not confirm that money was received.</p>
             <Button variant="outline" size="sm" className="mt-3 bg-transparent" onClick={() => router.push("/customer/jobs")}>My Bookings</Button>
+            {booking?.directPayment && <div className="mt-4 text-left"><DirectPaymentNote /></div>}
           </Card>
         )}
 
@@ -307,16 +312,16 @@ export default function RentalDetailPage() {
                 {days > 0 && (
                   <div className="rounded-xl bg-muted p-3 text-xs">
                     <div className="flex justify-between"><span className="text-muted-foreground">{days} day{days > 1 ? "s" : ""} × {formatMoney(listing.pricePerDay)}</span><span>{formatMoney(listing.pricePerDay * days)}</span></div>
-                    {listing.depositAmount > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Security deposit</span><span>{formatMoney(listing.depositAmount)}</span></div>}
-                    <div className="mt-1 flex justify-between border-t border-border/50 pt-1 font-semibold"><span>Total due now</span><span>{formatMoney(estimatedTotal)}</span></div>
+                    {listing.depositAmount > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Security deposit (arranged with owner)</span><span>{formatMoney(listing.depositAmount)}</span></div>}
+                    <div className="mt-1 flex justify-between border-t border-border/50 pt-1 font-semibold"><span>Estimated amount to agree with owner</span><span>{formatMoney(estimatedTotal)}</span></div>
                   </div>
                 )}
                 {formError && <p className="text-xs text-red-600">{formError}</p>}
                 <Button className="h-11 w-full rounded-xl" disabled={isSubmitting || days <= 0} onClick={handleReserve}>
-                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Reserve & Pay"}
+                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : appPayments ? "Reserve & review payment" : "Reserve - pay owner directly"}
                 </Button>
               </Card>
-            ) : booking ? (
+            ) : booking?.directPayment ? <DirectPaymentNote /> : booking && appPayments ? (
               <Card className="border-0 p-5 shadow-sm space-y-4">
                 <h3 className="font-semibold text-foreground">Pay {formatMoney(booking.totalAmount)}</h3>
                 <p className="text-[11px] text-muted-foreground">{new Date(booking.startDate).toLocaleDateString()} – {new Date(booking.endDate).toLocaleDateString()} ({booking.days} day{booking.days > 1 ? "s" : ""})</p>

@@ -55,6 +55,8 @@ test("the actual credentials authorizer refuses password-only login", async () =
   const db = { user: { findFirst: async () => ({ id: "alice", password: "hashed", role: "CUSTOMER", deletedAt: null }) } }
   const NextAuth = options => { configuration = options; return { handlers: {}, auth: async () => null } }
   loadService("backend/auth.ts", {
+    "@/backend/services/sms": { normalizeKenyanPhone: value => value },
+    "@/backend/domain/session-policy": loadService("backend/domain/session-policy.ts"),
     "next-auth": { __esModule: true, default: NextAuth, CredentialsSignin: class extends Error {} },
     "next-auth/providers/credentials": { __esModule: true, default: value => value },
     "next-auth/providers/google": { __esModule: true, default: value => value },
@@ -65,6 +67,10 @@ test("the actual credentials authorizer refuses password-only login", async () =
     "@/backend/services/rate-limit": { checkRateLimit: async () => ({ allowed: true }) },
     "@/backend/services/login-proof": { consumeLoginProof: async (_id, proof) => proof === "verified-proof" },
   })
+  assert.equal(configuration.session.maxAge, 12 * 60 * 60)
+  const now = Date.now()
+  assert.equal(await configuration.callbacks.jwt({ token: { id: "alice", sessionStartedAt: now - 13 * 3600000, lastActivityAt: now }, trigger: "update", session: { userActivity: true, sessionStartedAt: now } }), null)
+  assert.equal(await configuration.callbacks.jwt({ token: { id: "alice", sessionStartedAt: now - 2 * 3600000, lastActivityAt: now - 3600001 }, trigger: "update", session: { userActivity: true } }), null)
   const authorize = configuration.providers[0].authorize
   assert.equal(await authorize({ identifier: "alice@example.invalid", password: "valid" }), null)
   assert.equal((await authorize({ identifier: "alice@example.invalid", password: "valid", otpProof: "verified-proof" })).id, "alice")

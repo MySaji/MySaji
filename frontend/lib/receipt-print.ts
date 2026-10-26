@@ -1,4 +1,5 @@
 import { receiptVat, type ReceiptLoyalty } from "@/backend/domain/pos-receipt-details"
+import QRCode from "qrcode"
 
 /**
  * Getting a receipt out of a thermal printer.
@@ -102,6 +103,15 @@ export type PrintableReceipt = {
 
 const COLS = 32
 
+/** Receipt details only: never encode a customer's phone or loyalty account. */
+export function receiptQrSvg(r: Pick<PrintableReceipt, "shopName" | "saleNumber" | "total">): string {
+  const code = QRCode.create(`SAJI TILL\n${r.shopName.slice(0, 120)}\nReceipt: ${r.saleNumber.slice(0, 100)}\nTotal: KSh ${r.total.toFixed(2)}`, { errorCorrectionLevel: "M" })
+  const size = code.modules.size
+  const cells: string[] = []
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) if (code.modules.get(y, x)) cells.push(`M${x + 4},${y + 4}h1v1h-1z`)
+  return `<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Receipt details QR code" viewBox="0 0 ${size + 8} ${size + 8}" shape-rendering="crispEdges"><rect width="100%" height="100%" fill="white"/><path d="${cells.join("")}" fill="black"/></svg>`
+}
+
 function sh(n: number): string {
   return n.toLocaleString("en-KE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
@@ -131,7 +141,6 @@ export function receiptHtml(r: PrintableReceipt): string {
   const when = new Date(r.occurredAt)
   const body: string[] = []
 
-  body.push(esc((r.header || r.shopName).toUpperCase()))
   if (r.taxPin) body.push(esc("PIN: " + r.taxPin))
   if (r.payTo) body.push(esc(r.payTo))
   body.push(rule("="))
@@ -222,18 +231,24 @@ export function receiptHtml(r: PrintableReceipt): string {
      browser margin on top of it pushes the slip off the paper. */
   @page { size: 80mm auto; margin: 0; }
   html, body { margin: 0; padding: 0; background: #fff; }
+  body { width: 80mm; max-width: 100%; }
   pre {
     margin: 0;
     padding: 4mm 3mm;
     font-family: "Courier New", ui-monospace, monospace;
-    font-size: 11pt;
+    font-size: 10pt;
     line-height: 1.25;
     color: #000;
     white-space: pre-wrap;
     word-break: break-word;
   }
+  .receipt-heading { padding: 4mm 3mm 0; text-align: center; color: #000; font-family: Arial, sans-serif; }
+  .receipt-heading h1 { margin: 0; font-size: 17pt; font-weight: 800; overflow-wrap: anywhere; }
+  .receipt-heading p { margin: 2mm 0 0; font-size: 10pt; white-space: pre-wrap; }
+  .receipt-qr { width: 34mm; margin: 0 auto 4mm; text-align: center; break-inside: avoid; font: 9pt Arial, sans-serif; }
+  .receipt-qr svg { display: block; width: 34mm; height: 34mm; }
 </style></head>
-<body><pre>${body.join("\n")}</pre></body></html>`
+<body><header class="receipt-heading"><h1>${esc(r.shopName.toUpperCase())}</h1>${r.header && r.header !== r.shopName ? `<p>${esc(r.header)}</p>` : ""}<p>${r.etims ? "TAX INVOICE / RECEIPT" : "SALES RECEIPT"}</p></header><pre>${body.join("\n")}</pre><footer class="receipt-qr">${receiptQrSvg(r)}<p>Scan for receipt details</p></footer></body></html>`
 }
 
 /**

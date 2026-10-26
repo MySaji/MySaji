@@ -6,6 +6,7 @@ import { requireAdmin } from "@/backend/actions/admin-dashboard"
 import { logAdminAction } from "@/backend/services/admin-audit-core"
 
 export type PlatformPreferences = {
+  customerAppPaymentsEnabled: boolean
   platformFee: number
   /**
    * How a customer pays for a job.
@@ -55,6 +56,7 @@ export type PlatformPreferences = {
 const DEFAULT_PREFERENCES: PlatformPreferences = {
   platformFee: 5, autoApprove: true, requireVerification: true, enableDisputeResolution: true, maintenanceMode: false,
   jobPaymentMode: "DIRECT",
+  customerAppPaymentsEnabled: false,
   commissionDebtCap: 1500,
   cancellationDispatchFee: 300,
   protectionCoverageLimit: 100000,
@@ -66,7 +68,8 @@ export async function getPlatformPreferences(): Promise<PlatformPreferences> {
   const admin = await requireAdmin()
   if (!admin) return DEFAULT_PREFERENCES
 
-  return getEffectivePlatformPreferences()
+  const setting = await db.platformSetting.findUnique({ where: { key: "general" } })
+  return { ...DEFAULT_PREFERENCES, ...(setting?.value as Partial<PlatformPreferences> | undefined) }
 }
 
 /** Unlike `getPlatformPreferences`, this has no admin gate — it's the real
@@ -75,7 +78,9 @@ export async function getPlatformPreferences(): Promise<PlatformPreferences> {
 export async function getEffectivePlatformPreferences(): Promise<PlatformPreferences> {
   const setting = await db.platformSetting.findUnique({ where: { key: "general" } })
   const stored = setting?.value as Partial<PlatformPreferences> | undefined
-  return { ...DEFAULT_PREFERENCES, ...stored }
+  const effective = { ...DEFAULT_PREFERENCES, ...stored }
+  if (!effective.customerAppPaymentsEnabled) effective.jobPaymentMode = "DIRECT"
+  return effective
 }
 
 // Read on every non-admin page navigation (see middleware.ts) — a raw DB hit
@@ -101,6 +106,9 @@ export type AdminSettingsActionResult = { success: true } | { success: false; er
 
 const preferencesSchema = z.object({
   platformFee: z.number().min(1).max(20),
+  jobPaymentMode: z.enum(["DIRECT", "IN_APP", "BOTH"]).default("DIRECT"),
+  commissionDebtCap: z.number().finite().min(0).max(1000000).default(1500),
+  customerAppPaymentsEnabled: z.boolean().default(false),
   autoApprove: z.boolean(),
   requireVerification: z.boolean(),
   enableDisputeResolution: z.boolean(),

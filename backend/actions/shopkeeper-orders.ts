@@ -56,6 +56,7 @@ export async function getMyOrders(): Promise<ShopkeeperOrder[]> {
     orderBy: { createdAt: "desc" },
     include: {
       customer: true,
+      payments: { select: { externalRef: true, status: true } },
       address: true,
       items: { include: { product: true } },
     },
@@ -88,7 +89,7 @@ export async function getMyOrders(): Promise<ShopkeeperOrder[]> {
     status: o.status.toLowerCase() as ShopkeeperOrderStatus,
     location: o.address ? [o.address.address, o.address.city].filter(Boolean).join(", ") : "N/A",
     createdAt: o.createdAt.toISOString(),
-    paymentMethod: "Wallet",
+    paymentMethod: o.payments.some(p => p.externalRef?.startsWith("DIRECT:")) ? "Pay owner directly ? not verified by MySaji" : "Wallet",
     notes: o.notes,
   }))
 }
@@ -180,7 +181,7 @@ export async function cancelMyOrder(input: unknown): Promise<ShopkeeperOrderActi
     data: {
       userId: result.customerId,
       title: "Order cancelled",
-      message: `Your order ${result.orderNumber} was cancelled and KES ${result.total.toLocaleString()} has been refunded to your wallet.`,
+      message: `Your order ${result.orderNumber} was cancelled and KES ${result.total.toLocaleString()} ${result.directPayment ? "was arranged directly; contact the owner about any refund. No wallet refund was issued." : "has been refunded to your wallet."}`,
       type: "PAYMENT",
       relatedType: "ORDER",
       relatedId: parsed.data.orderId,
@@ -189,7 +190,7 @@ export async function cancelMyOrder(input: unknown): Promise<ShopkeeperOrderActi
   })
   await pushToUser(result.customerId, {
     title: "Order cancelled",
-    body: `Your order ${result.orderNumber} was cancelled and KES ${result.total.toLocaleString()} has been refunded to your wallet.`,
+    body: `Your order ${result.orderNumber} was cancelled and KES ${result.total.toLocaleString()} ${result.directPayment ? "was arranged directly; contact the owner about any refund. No wallet refund was issued." : "has been refunded to your wallet."}`,
     url: "/customer/orders",
   }, "payment")
 
@@ -261,14 +262,17 @@ export async function acceptShopReturnRequest(input: unknown): Promise<Shopkeepe
   const shopkeeperProfile = await db.shopkeeperProfile.findUnique({ where: { id: shopkeeper.shopkeeperId } })
   if (!shopkeeperProfile) return { success: false, error: "Shop not found." }
 
+  const platformPayment = await db.payment.findFirst({ where: { orderId: order.id, status: "COMPLETED", OR: [{ externalRef: null }, { NOT: { externalRef: { startsWith: "DIRECT:" } } }] }, select: { id: true } })
+  const directPayment = !platformPayment
   const subtotal = Number(order.subtotal)
   const total = Number(order.total)
   const revenueEntry = await db.platformRevenue.findUnique({ where: { sourceId: order.id } })
   const payoutToReverse = revenueEntry ? Number(revenueEntry.payoutAmount) : subtotal
 
   await db.$transaction(async (tx) => {
-    await tx.order.update({ where: { id: order.id }, data: { status: "REFUNDED" } })
-    await tx.dispute.update({ where: { id: dispute.id }, data: { status: "RESOLVED", resolution: "Return accepted by shop, refunded.", refundAmount: total, resolvedAt: new Date() } })
+    const claimed = await tx.order.updateMany({ where: { id: order.id, status: { notIn: ["CANCELLED", "REFUNDED"] } }, data: { status: directPayment ? "CANCELLED" : "REFUNDED" } })
+    if (claimed.count !== 1) throw new Error("Return already processed")
+    await tx.dispute.update({ where: { id: dispute.id }, data: { status: "RESOLVED", resolution: directPayment ? "Return accepted. Any external payment refund must be settled directly with the owner; no wallet credit issued." : "Return accepted by shop, refunded.", refundAmount: directPayment ? 0 : total, resolvedAt: new Date() } })
 
     if (revenueEntry && !revenueEntry.reversedAt) {
       await tx.platformRevenue.update({ where: { id: revenueEntry.id }, data: { reversedAt: new Date() } })
@@ -293,6 +297,7 @@ export async function acceptShopReturnRequest(input: unknown): Promise<Shopkeepe
       await tx.product.update({ where: { id: item.productId }, data: { totalSold: { decrement: item.quantity } } })
     }
 
+    if (!directPayment) {
     const customerWallet = await tx.wallet.upsert({ where: { userId: order.customerId }, update: {}, create: { userId: order.customerId } })
     const custBefore = Number(customerWallet.balance)
     const custAfter = custBefore + total
@@ -319,12 +324,13 @@ export async function acceptShopReturnRequest(input: unknown): Promise<Shopkeepe
       },
     })
     await tx.shopkeeperProfile.update({ where: { id: shopkeeper.shopkeeperId }, data: { totalSales: { decrement: subtotal } } })
+    }
 
     await tx.notification.create({
       data: {
         userId: order.customerId,
         title: "Return accepted",
-        message: `Your return for order ${order.orderNumber} was accepted. KES ${total.toLocaleString()} has been refunded to your wallet.`,
+        message: `Your return for order ${order.orderNumber} was accepted. KES ${total.toLocaleString()} ${directPayment ? "was arranged directly. Contact the owner about the external refund; no wallet credit was issued." : "has been refunded to your wallet."}`,
         type: "PAYMENT", relatedType: "ORDER", relatedId: order.id, actionUrl: "/customer/orders",
       },
     })
@@ -332,7 +338,7 @@ export async function acceptShopReturnRequest(input: unknown): Promise<Shopkeepe
 
   await pushToUser(order.customerId, {
     title: "Return accepted",
-    body: `Your return for order ${order.orderNumber} was accepted and refunded.`,
+    body: `Your return for order ${order.orderNumber} was accepted. ${directPayment ? "Arrange any refund directly with the owner." : "A wallet refund was issued."}`,
     url: "/customer/orders",
   }, "payment")
 

@@ -2,7 +2,7 @@ const { test } = require('node:test')
 const assert = require('node:assert/strict')
 const { loadService } = require('./load-service.cjs')
 const details = loadService('backend/domain/pos-receipt-details.ts')
-const { receiptHtml } = loadService('frontend/lib/receipt-print.ts', { '@/backend/domain/pos-receipt-details': details })
+const { receiptHtml } = loadService('frontend/lib/receipt-print.ts', { '@/backend/domain/pos-receipt-details': details, qrcode: require('qrcode') })
 
 test('VAT totals add up and thermal slips include the customer and loyalty balance', () => {
   const receipt = { shopName: 'Test shop', saleNumber: '000001', occurredAt: '2026-10-18T09:00:00Z', customerName: '<Customer>', customerPhone: '+254712345678', lines: [], subtotal: 1160, discount: 0, tax: 160, taxRate: 16, total: 1160, payments: [], amountPaid: 1160, change: 0, loyalty: { earned: 11, redeemed: 5, balance: 106 } }

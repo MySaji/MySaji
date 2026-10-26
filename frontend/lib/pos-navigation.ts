@@ -14,6 +14,7 @@ const ACCESS: Record<string, PosPermission[]> = {
   team: ["staff.view"], people: ["staff.manage"], stores: ["settings.store"],
   audit: ["settings.business"], pulse: ["settings.business"],
   salon: ["salon.view"],
+  operations: ["purchase.view","stock.view","stock.adjust","salon.book","settings.business","till.sell","report.sales"],
   website: ["settings.business"],
   devices: ["device.manage"], settings: ["settings.store"],
   subscription: ["settings.business"], customers: ["till.sell"],

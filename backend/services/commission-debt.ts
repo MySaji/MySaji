@@ -89,10 +89,6 @@ export async function commissionDebtCap(): Promise<number> {
  * the provider again would take it twice.
  */
 export async function jobIsProviderPaid(jobId: string): Promise<boolean> {
-  const mode = await jobPaymentMode()
-  if (mode === "IN_APP") return false
-  if (mode === "DIRECT") return true
-
   const paid = await db.payment.findFirst({
     where: { jobId, status: "COMPLETED" },
     select: { id: true },

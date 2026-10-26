@@ -100,6 +100,7 @@ function PlatformTab() {
           </p>
         </div>
 
+        <label className="mb-5 flex max-w-2xl items-start gap-3 rounded-xl border p-4"><input type="checkbox" className="mt-1 h-5 w-5" checked={preferences.customerAppPaymentsEnabled ?? false} onChange={event => setPreferences({ ...preferences, customerAppPaymentsEnabled: event.target.checked, ...(event.target.checked && preferences.jobPaymentMode === "DIRECT" ? { jobPaymentMode: "BOTH" as const } : {}) })} /><span><strong className="block text-sm">Enable customer payments inside MySaji</strong><span className="mt-1 block text-xs leading-5 text-muted-foreground">Off by default. Customers pay owners directly by M-Pesa, cash or an agreed method. This controls goods, rentals and service bookings; Saji Till merchant payments and business subscriptions stay separate.</span></span></label>
         <div className="space-y-2 max-w-2xl">
           {([
             {
@@ -132,6 +133,7 @@ function PlatformTab() {
                 type="button"
                 role="radio"
                 aria-checked={on}
+                disabled={!preferences.customerAppPaymentsEnabled && opt.key !== "DIRECT"}
                 onClick={() => setPreferences({ ...preferences, jobPaymentMode: opt.key })}
                 className={
                   on

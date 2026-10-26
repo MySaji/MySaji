@@ -20,12 +20,12 @@ export function DirectPaymentNote({ compact = false }: { compact?: boolean }) {
       </p>
       <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
         Nothing is charged now and SAJI does not hold your money. Agree the final amount with
-        the provider, and pay them on their phone once the work is done and you are happy with
-        it.
+        the provider, confirm their M-Pesa number, till/paybill, bank or cash instructions in Messages,
+        and agree when payment is due. External transfers are not automatically verified by MySaji.
       </p>
       {!compact && (
         <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
-          Paying inside the app is coming soon.
+          In-app payments are available only when enabled by the platform administrator. Your direct-payment arrangement stays between you and the owner.
         </p>
       )}
     </div>

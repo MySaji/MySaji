@@ -164,6 +164,7 @@ export type CustomerOrderDetail = {
   shippingCost: number
   tax: number
   total: number
+  directPayment: boolean
   notes: string | null
   shopName: string
   shopId: string
@@ -191,6 +192,7 @@ export async function getCustomerOrderById(orderId: string): Promise<CustomerOrd
     include: {
       shopkeeper: { select: { id: true, shopName: true } },
       address: true,
+      payments: { select: { externalRef: true } },
       items: { include: { product: { select: { id: true, name: true, images: true } } } },
       disputes: { orderBy: { createdAt: "desc" }, take: 1 },
     },
@@ -208,6 +210,7 @@ export async function getCustomerOrderById(orderId: string): Promise<CustomerOrd
     shippingCost: Number(order.shippingCost),
     tax: Number(order.tax),
     total: Number(order.total),
+    directPayment: order.payments.some(p => p.externalRef?.startsWith("DIRECT:")),
     notes: order.notes,
     shopName: order.shopkeeper.shopName,
     shopId: order.shopkeeper.id,
@@ -333,7 +336,7 @@ export async function cancelOrder(input: unknown): Promise<OrderActionResult> {
     data: {
       userId: result.shopkeeperUserId,
       title: "Order cancelled by customer",
-      message: `Order ${result.orderNumber} was cancelled by the customer (${reasonLabel}). KES ${result.total.toLocaleString()} has been refunded.`,
+      message: `Order ${result.orderNumber} was cancelled by the customer (${reasonLabel}). ${result.directPayment ? "Payment was arranged directly; settle any refund with the owner. No wallet credit was issued." : `KES ${result.total.toLocaleString()} has been refunded.`}`,
       type: "PAYMENT",
       relatedType: "ORDER",
       relatedId: parsed.data.orderId,

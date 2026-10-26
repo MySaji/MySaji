@@ -73,11 +73,17 @@ export async function resolveDispute(input: unknown): Promise<AdminDisputeAction
   if (!dispute) return { success: false, error: "Dispute not found." }
   if (dispute.status === "RESOLVED" || dispute.status === "CLOSED") return { success: false, error: "This dispute is already closed." }
 
+  if (refundAmount && refundAmount > 0 && (dispute.orderId || dispute.jobId)) {
+    const collected = await db.payment.aggregate({ where: { ...(dispute.orderId ? { orderId: dispute.orderId } : { jobId: dispute.jobId! }), status: "COMPLETED", OR: [{ externalRef: null }, { NOT: { externalRef: { startsWith: "DIRECT:" } } }] }, _sum: { amount: true } })
+    if (refundAmount > Number(collected._sum.amount ?? 0)) return { success: false, error: "A wallet refund cannot exceed payments collected through MySaji. For direct payments, record the resolution without a wallet credit and arrange any refund with the owner." }
+  }
+
   await db.$transaction(async (tx) => {
-    await tx.dispute.update({
-      where: { id: disputeId },
+    const claimed = await tx.dispute.updateMany({
+      where: { id: disputeId, status: { notIn: ["RESOLVED", "CLOSED"] } },
       data: { status: "RESOLVED", resolution, refundAmount: refundAmount || undefined, resolvedAt: new Date() },
     })
+    if (claimed.count !== 1) throw new Error("This dispute was already resolved")
 
     if (refundAmount && refundAmount > 0) {
       const wallet = await tx.wallet.upsert({

@@ -1231,6 +1231,11 @@ model ShopkeeperProfile {
   posCashMovements           PosCashMovement[]
   posStockCounts             PosStockCount[]
   businessPulse              PosBusinessPulse?
+  operationsConfig           PosOperationsConfig?
+  invoiceDrafts              PosInvoiceDraft[]
+  materialUsage              PosMaterialUsage[]
+  expiryPlans                PosExpiryPlan[]
+  bookingWaitlist            PosBookingWaitlist[]
   posJobCards                PosJobCard[]
   salonAppointments          PosSalonAppointment[]
   salonServices              PosSalonService[]
@@ -4473,6 +4478,9 @@ enum StockMovementKind {
   TRANSFER_IN
   TRANSFER_OUT
   BULK_BREAK_IN // the pieces a broken bale produced
+  SERVICE_USAGE
+  SERVICE_USAGE_REVERSAL
+  SUPPLIER_RETURN
   BULK_BREAK_OUT // the bale that was broken
 }
 
@@ -6961,6 +6969,13 @@ model PosSalonService {
 }
 
 model PosSalonAppointment {
+  customerUserId String?
+  onlineCancellationHours Int?
+  bookingSource String @default("COUNTER")
+  depositAmount Decimal @default(0) @db.Decimal(14, 2)
+  depositCheckoutId String? @unique
+  depositState String @default("NONE")
+  holdExpiresAt DateTime?
   id String @id @default(cuid())
   shopkeeperId String
   stylistId String
@@ -7002,4 +7017,89 @@ model PosBusinessPulse {
   updatedAt DateTime @updatedAt
   shopkeeper ShopkeeperProfile @relation(fields: [shopkeeperId], references: [id], onDelete: Cascade)
   @@map("pos_business_pulse")
+}
+
+model PosOperationsConfig {
+  shopkeeperId String @id
+  settings Json @default("{}")
+  version Int @default(1)
+  updatedAt DateTime @default(now()) @updatedAt
+  shopkeeper ShopkeeperProfile @relation(fields: [shopkeeperId], references: [id], onDelete: Cascade)
+  @@map("pos_operations_config")
+}
+model PosInvoiceDraft {
+  id String @id
+  shopkeeperId String
+  sourceHash String
+  fileName String
+  mimeType String
+  sourceBase64 String
+  extracted Json
+  reviewed Json?
+  status String @default("DRAFT")
+  receiptId String? @unique
+  version Int @default(1)
+  createdByUserId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  shopkeeper ShopkeeperProfile @relation(fields: [shopkeeperId], references: [id], onDelete: Cascade)
+  @@unique([shopkeeperId, sourceHash])
+  @@index([shopkeeperId, createdAt])
+  @@map("pos_invoice_drafts")
+}
+model PosMaterialUsage {
+  id String @id
+  shopkeeperId String
+  serviceId String
+  contextType String
+  contextId String
+  lines Json
+  status String @default("POSTED")
+  note String
+  actorUserId String?
+  actorName String
+  postedAt DateTime @default(now())
+  reversedAt DateTime?
+  reversedByUserId String?
+  reversalReason String?
+  shopkeeper ShopkeeperProfile @relation(fields: [shopkeeperId], references: [id], onDelete: Cascade)
+  @@index([shopkeeperId, contextType, contextId])
+  @@index([shopkeeperId, postedAt])
+  @@map("pos_material_usage")
+}
+model PosExpiryPlan {
+  id String @id
+  shopkeeperId String
+  batchId String
+  action String
+  quantity Decimal @db.Decimal(14, 3)
+  target String
+  note String
+  status String @default("PLANNED")
+  resolution String?
+  completedAt DateTime?
+  actorUserId String?
+  createdAt DateTime @default(now())
+  shopkeeper ShopkeeperProfile @relation(fields: [shopkeeperId], references: [id], onDelete: Cascade)
+  @@index([shopkeeperId, status, createdAt])
+  @@map("pos_expiry_plans")
+}
+model PosBookingWaitlist {
+  id String @id
+  shopkeeperId String
+  serviceId String
+  customerUserId String
+  fromDate DateTime
+  toDate DateTime
+  status String @default("WAITING")
+  consentAt DateTime
+  offeredStartsAt DateTime?
+  offeredStylistId String?
+  offerExpiresAt DateTime?
+  appointmentId String?
+  createdAt DateTime @default(now())
+  shopkeeper ShopkeeperProfile @relation(fields: [shopkeeperId], references: [id], onDelete: Cascade)
+  @@index([shopkeeperId, status, fromDate])
+  @@index([customerUserId, status])
+  @@map("pos_booking_waitlist")
 }

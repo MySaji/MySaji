@@ -1,3 +1,5 @@
+import { normalizeKenyanPhone } from "@/backend/services/sms"
+import { SESSION_ABSOLUTE_MS, sessionExpired } from "@/backend/domain/session-policy"
 import { consumeLoginProof } from "@/backend/services/login-proof"
 import NextAuth, { CredentialsSignin } from "next-auth"
 import type { JWT } from "next-auth/jwt"
@@ -82,7 +84,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   // Otherwise retain Auth.js's environment-specific host trust policy.
   ...(canonicalAuthUrl ? { trustHost: true } : {}),
   adapter: PrismaAdapter(db),
-  session: { strategy: "jwt" },
+  session: { strategy: "jwt", maxAge: SESSION_ABSOLUTE_MS / 1000 },
   pages: {
     signIn: "/auth/login",
   },
@@ -96,7 +98,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         otpProof: { label: "Verification proof", type: "text" },
       },
       async authorize(credentials) {
-        const identifier = credentials?.identifier as string | undefined
+        const rawIdentifier = credentials?.identifier as string | undefined
+        const identifier = rawIdentifier?.includes("@") ? rawIdentifier.trim().toLowerCase() : normalizeKenyanPhone(rawIdentifier ?? "") ?? rawIdentifier?.trim()
         const password = credentials?.password as string | undefined
         if (!identifier || !password) return null
 
@@ -216,7 +219,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
       return true
     },
-    async jwt({ token: rawToken, user, trigger }) {
+    async jwt({ token: rawToken, user, trigger, session: updateData }) {
       // NextAuth v5 beta's inferred `token` type inside this callback
       // doesn't pick up the `next-auth/jwt` module augmentation above
       // (a known beta type-plumbing gap — every custom field resolves to
@@ -226,6 +229,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // `user.kycStatus`, applied once here instead of at every assignment.
       const token = rawToken as unknown as JWT
       if (user) {
+        token.sessionStartedAt = Date.now()
+        token.lastActivityAt = Date.now()
         // The `user` handed here is the object the adapter built, which for an
         // OAuth signup is read *before* events.createUser runs. Re-reading means
         // the role assigned there lands in the very first token, instead of the
@@ -267,6 +272,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.language = user.language ?? "en"
         token.currency = user.currency ?? "KES"
       }
+
+      const startedAt = token.sessionStartedAt ?? (Number(token.iat) * 1000 || Date.now())
+      const lastActivityAt = token.lastActivityAt ?? startedAt
+      if (sessionExpired(startedAt, lastActivityAt)) return null
+      token.sessionStartedAt = startedAt
+      token.lastActivityAt = trigger === "update" && updateData?.userActivity === true ? Date.now() : lastActivityAt
 
       // Client called useSession().update() (see lib/hooks/useAuth.ts's
       // refreshSession) — a server action changed role/kycStatus/phone/image

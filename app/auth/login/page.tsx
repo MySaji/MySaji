@@ -8,7 +8,6 @@ import { Button } from "@/frontend/components/ui/button"
 import { Input } from "@/frontend/components/ui/input"
 import { useAuthContext } from "@/frontend/lib/auth-context"
 import { Mail, Lock, Eye, EyeOff, Apple, Phone, Shield, Info, Loader2, ShieldCheck, CheckCircle2 } from "lucide-react"
-import { Checkbox } from "@/frontend/components/ui/checkbox"
 import { ROLE_HOME_PATH } from "@/backend/services/role-map"
 import { BrandLogo } from "@/frontend/components/brand-logo"
 import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
@@ -31,12 +30,13 @@ function LoginContent() {
   const [phone, setPhone] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
-  const [rememberMe, setRememberMe] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [otpDestination, setOtpDestination] = useState("")
   /** True when the text could not be sent and the code went to email instead. */
   const [otpFellBackToEmail, setOtpFellBackToEmail] = useState(false)
+  const [phoneOtpChannel, setPhoneOtpChannel] = useState<"sms" | "whatsapp">("sms")
+  const [deliveredChannel, setDeliveredChannel] = useState("sms")
   const [otpDigits, setOtpDigits] = useState<string[]>(Array(OTP_LENGTH).fill(""))
   const [resendCooldown, setResendCooldown] = useState(0)
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([])
@@ -119,7 +119,7 @@ function LoginContent() {
       setError("")
       if (!identifier || !password) { setError(t("authPage.errors.fillAllFields")); return }
       setIsLoading(true)
-      const result = await requestLoginOtp(identifier, password)
+      const result = await requestLoginOtp(identifier, password, phoneOtpChannel)
       setIsLoading(false)
       if (!result.success) {
         setError(result.error)
@@ -127,6 +127,7 @@ function LoginContent() {
       }
       setOtpDestination(result.destination)
       setOtpFellBackToEmail(result.fellBackToEmail)
+      setDeliveredChannel(result.channel)
       setOtpDigits(Array(OTP_LENGTH).fill(""))
       setResendCooldown(RESEND_COOLDOWN_SECONDS)
       setStep("otp")
@@ -200,11 +201,12 @@ function LoginContent() {
       if (resendCooldown > 0) return
       setError("")
       setIsLoading(true)
-      const result = await requestLoginOtp(identifier, password)
+      const result = await requestLoginOtp(identifier, password, phoneOtpChannel)
       setIsLoading(false)
       if (!result.success) { setError(result.error); return }
       setOtpDestination(result.destination)
       setOtpFellBackToEmail(result.fellBackToEmail)
+      setDeliveredChannel(result.channel)
       setOtpDigits(Array(OTP_LENGTH).fill(""))
       setResendCooldown(RESEND_COOLDOWN_SECONDS)
       otpInputRefs.current[0]?.focus()
@@ -330,6 +332,7 @@ function LoginContent() {
                   </div>
                 </div>
 
+                {loginMethod === "phone" && <label className="block text-sm font-medium">Send my verification code using<select value={phoneOtpChannel} onChange={event => setPhoneOtpChannel(event.target.value as "sms" | "whatsapp")} disabled={isLoading} className="mt-2 min-h-11 w-full rounded-xl border bg-background px-3"><option value="sms">SMS text message</option><option value="whatsapp">WhatsApp</option></select><span className="mt-1 block text-xs font-normal text-muted-foreground">Choose WhatsApp only if this number has a WhatsApp account.</span></label>}
                 {/* Password */}
                 <div>
                   <label htmlFor="password" className="text-sm font-medium text-foreground mb-1.5 block">{t("auth.password")}</label>
@@ -342,12 +345,9 @@ function LoginContent() {
                   </div>
                 </div>
 
-                {/* Remember + Forgot */}
+                {/* Session policy and account recovery */}
                 <div className="flex items-center justify-between">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <Checkbox checked={rememberMe} onCheckedChange={(checked) => setRememberMe(checked === true)} disabled={isLoading} />
-                    <span className="text-sm text-muted-foreground">{t("auth.rememberMe")}</span>
-                  </label>
+                  <span className="max-w-[55%] text-xs leading-5 text-muted-foreground">Sessions lock after 1 hour of inactivity.</span>
                   <Link href="/auth/forgot-password" className="text-sm font-medium text-primary hover:underline">
                     {t("auth.forgotPassword")}
                   </Link>
@@ -404,7 +404,7 @@ function LoginContent() {
               <h2 className="text-2xl font-bold text-foreground mb-1">
                 {t((otpFellBackToEmail || otpDestination.includes("@")) ? "authPage.otp.verifyEmailTitle" : "authPage.otp.verifyPhoneTitle")}
               </h2>
-              <p className="text-sm text-muted-foreground mb-6">{t("authPage.otp.codeSentTo", { destination: otpDestination })}</p>
+              <p className="text-sm text-muted-foreground mb-6">{t("authPage.otp.codeSentTo", { destination: otpDestination })} / {deliveredChannel === "whatsapp" ? "WhatsApp (check your messages)" : deliveredChannel === "sms" ? "SMS" : "Email"}</p>
               {/* The code went somewhere other than the number they signed in
                   with. Saying nothing would look like it never arrived. */}
               {otpFellBackToEmail && (

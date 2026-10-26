@@ -60,6 +60,9 @@ export type StockMovementKind =
   | "ORDER_RESTOCK"
   | "RETURN"
   | "COUNT_ADJUSTMENT"
+  | "SERVICE_USAGE"
+  | "SERVICE_USAGE_REVERSAL"
+  | "SUPPLIER_RETURN"
   | "WASTAGE"
   | "TRANSFER_IN"
   | "TRANSFER_OUT"
@@ -84,6 +87,9 @@ export const MOVEMENT_DIRECTION: Record<StockMovementKind, "in" | "out" | "eithe
   RETURN: "in",
   COUNT_ADJUSTMENT: "either",
   WASTAGE: "out",
+  SERVICE_USAGE: "out",
+  SERVICE_USAGE_REVERSAL: "in",
+  SUPPLIER_RETURN: "out",
   TRANSFER_IN: "in",
   TRANSFER_OUT: "out",
   BULK_BREAK_IN: "in",

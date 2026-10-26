@@ -45,6 +45,7 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
     { icon: Home, label: t("nav.home"), href: "/customer/home" },
     { icon: Store, label: t("customer.layout.navMarketplace"), href: "/customer/services" },
     { icon: Briefcase, label: t("nav.myJobs"), href: "/customer/jobs" },
+    { icon: Briefcase, label: "Salon appointments", href: "/customer/bookings" },
     { icon: Users, label: t("customer.layout.navCommunity"), href: "/customer/community" },
     { icon: MessageCircle, label: t("customer.layout.navChat"), href: "/customer/messages" },
   ]

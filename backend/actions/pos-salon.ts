@@ -4,6 +4,7 @@ import { z } from "zod"
 import { Prisma } from "@prisma/client"
 import { db } from "@/backend/db"
 import { requirePosPermission, recordPosAudit } from "@/backend/services/pos-access-core"
+import { occupiedAppointments } from "@/backend/services/pos-booking-core"
 import { SALON_STATES, SALON_TRANSITIONS, salonDay, salonStart, salonCommission, salonPhone, type SalonStatus } from "@/backend/domain/pos-salon"
 import type { PosPermission } from "@/backend/domain/pos-permissions"
 
@@ -41,6 +42,8 @@ export async function getSalonWorkspace(input: unknown = {}) {
       db.product.findMany({ where: { shopkeeperId: g.shopId, isService: true, isActive: true }, select: { id: true, name: true, price: true, salonServices: { select: { durationMinutes: true, commissionBps: true } } }, orderBy: { name: "asc" }, take: 300 }),
       db.posStaff.findMany({ where: { businessId: g.actor.businessId, OR: [{ storeId: null }, { storeId: g.storeId }], ...(!teamScope ? { id: g.actor.staffId! } : {}) }, select: { id: true, name: true, isActive: true }, orderBy: { name: "asc" } }),
     ])
+    const checkoutIds=appointments.flatMap(a=>a.depositCheckoutId?[a.depositCheckoutId]:[])
+    const bookingDeposits=checkoutIds.length&&(reception||financial)?await db.posMpesaTransaction.findMany({where:{shopkeeperId:g.shopId,checkoutId:{in:checkoutIds},status:"PAID"},select:{checkoutId:true,receipt:true,consumedSaleId:true}}):[]
     return { success: true as const, data: { canBook: reception, canTeamView: teamScope, canService: g.actor.can("salon.service"), canManage: manage, canFinancial: financial,
       links: { sell: g.actor.can("till.sell"), products: g.actor.can("product.view"), customers: g.actor.can("till.sell"), stock: g.actor.can("stock.view") },
       canMatch: reception && (g.actor.can("till.sell") || financial), truncated: appointments.length > 500,
@@ -50,7 +53,7 @@ export async function getSalonWorkspace(input: unknown = {}) {
         const earned = a.commissionBase !== null && a.saleItem ? salonCommission(Number(a.commissionBase), a.commissionBps, returned, a.saleItem.sale.status) : null
         return { id: a.id, version: a.version, stylistId: a.stylistId, stylistName: a.stylistName, serviceName: a.serviceName, customerName: a.customerName, customerPhone: a.customerPhone, startsAt: a.startsAt.toISOString(), endsAt: a.endsAt.toISOString(), status: a.status as SalonStatus, notes: a.notes,
           quotedPrice: reception || financial ? Number(a.quotedPrice) : null, commission: financial ? earned : null, saleNumber: a.saleItem?.sale.saleNumber ?? null,
-          paymentState: !a.saleItem ? "Not matched" : ["VOIDED", "REFUNDED"].includes(a.saleItem.sale.status) ? "Reversed" : returned > 0 ? "Returned / adjusted" : "Receipt matched", cancellationReason: a.cancellationReason }
+          paymentState: !a.saleItem ? "Not matched" : ["VOIDED", "REFUNDED"].includes(a.saleItem.sale.status) ? "Reversed" : returned > 0 ? "Returned / adjusted" : "Receipt matched", cancellationReason: a.cancellationReason, depositAmount: reception || financial ? Number(a.depositAmount??0) : null, depositState: a.depositState??"NONE", bookingSource: a.bookingSource??"COUNTER", depositReceipt: bookingDeposits.find(p=>p.checkoutId===a.depositCheckoutId)?.receipt??null, depositApplied: !!bookingDeposits.find(p=>p.checkoutId===a.depositCheckoutId)?.consumedSaleId }
       }) } }
   } catch (error) {
     const code = typeof error === "object" && error && "code" in error ? String(error.code) : error instanceof Error ? error.name : "UNKNOWN"
@@ -92,7 +95,7 @@ export async function bookSalonAppointment(input: unknown) {
       const config = service.salonServices[0], endsAt = new Date(startsAt.getTime() + (config?.durationMinutes ?? 60) * 60_000)
       // Stylist lock spans all branches: one person cannot be booked in two places.
       await tx.$queryRaw`SELECT true AS locked FROM pg_advisory_xact_lock(hashtext('saji-salon-stylist'), hashtext(${staff.id}))`
-      const overlap = await tx.posSalonAppointment.findFirst({ where: { stylistId: staff.id, status: { in: ["BOOKED", "CHECKED_IN", "IN_SERVICE"] }, startsAt: { lt: endsAt }, endsAt: { gt: startsAt } }, select: { id: true } })
+      const overlap = await tx.posSalonAppointment.findFirst({ where: { stylistId: staff.id, ...occupiedAppointments(), startsAt: { lt: endsAt }, endsAt: { gt: startsAt } }, select: { id: true } })
       if (overlap) return fail("That stylist already has a booking during this time. Choose another time or stylist.")
       const appointment = await tx.posSalonAppointment.create({ data: { id: d.requestId, shopkeeperId: g.shopId, stylistId: staff.id, stylistName: staff.name, serviceId: d.serviceId, serviceName: service.name, customerName: d.customerName, customerPhone: d.customerPhone || null, startsAt, endsAt, notes: d.notes, quotedPrice: service.price, commissionBps: config?.commissionBps ?? 0, createdByUserId: g.actor.userId } })
       return { success: true as const, id: appointment.id, replayed: false }
@@ -170,7 +173,7 @@ export async function rescheduleSalonAppointment(input: unknown) {
     if (!a || a.version !== parsed.data.version || !["BOOKED", "CHECKED_IN"].includes(a.status)) return fail("Only an unchanged booking that has not started can be rescheduled.")
     await tx.$queryRaw`SELECT true AS locked FROM pg_advisory_xact_lock(hashtext('saji-salon-stylist'), hashtext(${a.stylistId}))`
     const endsAt = new Date(start.getTime() + a.endsAt.getTime() - a.startsAt.getTime())
-    const overlap = await tx.posSalonAppointment.findFirst({ where: { id: { not: a.id }, stylistId: a.stylistId, status: { in: ["BOOKED", "CHECKED_IN", "IN_SERVICE"] }, startsAt: { lt: endsAt }, endsAt: { gt: start } }, select: { id: true } })
+    const overlap = await tx.posSalonAppointment.findFirst({ where: { id: { not: a.id }, stylistId: a.stylistId, ...occupiedAppointments(), startsAt: { lt: endsAt }, endsAt: { gt: start } }, select: { id: true } })
     if (overlap) return fail("The stylist is already booked at that time.")
     await tx.posSalonAppointment.update({ where: { id: a.id }, data: { startsAt: start, endsAt, version: { increment: 1 } } })
     return { success: true as const }

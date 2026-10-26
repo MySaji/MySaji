@@ -1,3 +1,4 @@
+import { siteUrl } from "@/frontend/lib/seo"
 import type { CSSProperties } from "react"
 import type { PublicBusinessWebsite } from "@/backend/services/pos-public-website"
 import { websiteEnquiryHref, WEBSITE_PAGES, type WebsitePage } from "@/backend/domain/pos-website"
@@ -24,7 +25,7 @@ export function PublicWebsite({ site, page = "home", base = "", preview = false 
       <nav aria-label="Business navigation" className={styles.desktopNav}>{navigation.map(p => <a key={p} aria-current={page === p ? "page" : undefined} href={href(p === "home" ? "" : `/${p}`)}>{titles[p]}</a>)}</nav>
       <details className={styles.mobileNav}><summary aria-label="Open business navigation">☰</summary><nav aria-label="Mobile business navigation">{navigation.map(p => <a key={p} aria-current={page === p ? "page" : undefined} href={href(p === "home" ? "" : `/${p}`)}>{titles[p]}</a>)}</nav></details>
     </div></header>
-    <main>
+    <main>{site.onlineBooking&&<div className={`${styles.container} ${styles.actions}`}><a className={styles.primary} href={`${base ? "" : siteUrl}/book/${site.subdomain}`}>Book an appointment online</a></div>}
       {page === "home" ? <>
         <section className={styles.hero}><div className={`${styles.container} ${styles.heroGrid}`}><div><p className={styles.kicker}>{d.category || d.name}</p><h1>{d.headline}</h1><p className={styles.intro}>{d.introduction}</p><div className={styles.actions}><a className={styles.primary} href={href("/contact")}>Let’s talk <span aria-hidden="true">↗</span></a>{site.products.length > 0 && <a className={styles.secondary} href={href("/products")}>Explore our selection →</a>}</div>{d.address && <p className={styles.heroLocation}>Find us · {d.address}</p>}</div><div className={styles.heroVisual}>{site.products.find(p => p.image)?.image ? <img src={site.products.find(p => p.image)!.image!} alt={`A selection from ${d.name}`} /> : <div className={styles.businessCard}><span>{d.category || "Welcome"}</span><strong>{d.name}</strong><p>{d.headline}</p><span>Explore. Ask. Visit.</span></div>}<div className={styles.visualCaption}><strong>{d.name}</strong><span>{d.category || "Meet the business"}</span></div></div></div></section>
         <section className={`${styles.container} ${styles.section} ${styles.story}`}><div><p className={styles.kicker}>A little about us</p><h2>Meet {d.name}.</h2><a href={href("/about")} className={styles.textLink}>Read our story ↗</a></div><p className={styles.aboutExcerpt}>{d.about.length > 500 ? `${d.about.slice(0, 500)}…` : d.about}</p></section>

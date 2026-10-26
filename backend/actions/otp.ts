@@ -13,6 +13,7 @@ import { wrapEmailLayout, otpCodeBlock } from "@/backend/services/email-template
 import { sendInfobipPin, verifyInfobipPin, normalizeKenyanPhone } from "@/backend/services/sms"
 
 import crypto from "crypto"
+import { sendWhatsAppOtp } from "@/backend/services/whatsapp-otp"
 
 import { issueLoginProof } from "@/backend/services/login-proof"
 
@@ -43,7 +44,7 @@ function maskDestination(value: string): string {
 }
 
 type SendOutcome =
-  | { sent: true; channel: "email" | "sms"; destination: string; fellBackToEmail: boolean }
+  | { sent: true; channel: "email" | "sms" | "whatsapp"; destination: string; fellBackToEmail: boolean }
   | { sent: false; error: string }
 
 async function sendEmailCode(identifierKey: string, destination: string): Promise<{ sent: true } | { sent: false; error: string }> {
@@ -81,12 +82,24 @@ async function issueAndSendCode(
   identifierKey: string,
   destination: string,
   fallbackEmail?: string,
+  phoneChannel: "sms" | "whatsapp" = "sms",
 ): Promise<SendOutcome> {
   if (looksLikeEmail(destination)) {
     const r = await sendEmailCode(identifierKey, destination)
     return r.sent
       ? { sent: true, channel: "email", destination, fellBackToEmail: false }
       : { sent: false, error: r.error }
+  }
+
+  if (phoneChannel === "whatsapp") {
+    const code = generateCode()
+    const salt = crypto.randomBytes(16).toString("hex")
+    const token = `wa:${salt}:${crypto.createHash("sha256").update(`${salt}:${code}`).digest("hex")}`
+    await db.verificationToken.deleteMany({ where: { identifier: identifierKey } })
+    await db.verificationToken.create({ data: { identifier: identifierKey, token, expires: new Date(Date.now() + 10 * 60 * 1000) } })
+    const sent = await sendWhatsAppOtp(destination, code)
+    if (!sent.sent) { await db.verificationToken.deleteMany({ where: { identifier: identifierKey, token } }); return sent }
+    return { sent: true, channel: "whatsapp", destination, fellBackToEmail: false }
   }
 
   // Phone destinations: Infobip's 2FA API generates, stores, and verifies
@@ -116,7 +129,7 @@ async function issueAndSendCode(
   return { sent: true, channel: "email", destination: email, fellBackToEmail: true }
 }
 
-async function checkCode(identifierKey: string, code: string, destination: string, rateLimitBucket: string): Promise<{ valid: true } | { valid: false; error: string }> {
+async function checkCode(identifierKey: string, code: string, destination: string, rateLimitBucket: string): Promise<{ valid: true; token: string } | { valid: false; error: string }> {
   const rateLimit = await checkRateLimit(rateLimitBucket, "otp-verify", 5, 15 * 60 * 1000)
   if (!rateLimit.allowed) {
     return { valid: false, error: `Too many attempts. Please try again in ${Math.ceil(rateLimit.retryAfterSeconds / 60)} minute(s).` }
@@ -128,19 +141,27 @@ async function checkCode(identifierKey: string, code: string, destination: strin
 
   if (looksLikeEmail(destination)) {
     if (stored.token !== crypto.createHash("sha256").update(code).digest("hex")) return { valid: false, error: "Invalid verification code." }
-    return { valid: true }
+    return { valid: true, token: stored.token }
+  }
+
+  if (stored.token.startsWith("wa:")) {
+    const [, salt, expected] = stored.token.split(":")
+    if (!/^\d{6}$/.test(code) || !salt || !expected || !/^[a-f0-9]{64}$/.test(expected)) return { valid: false, error: "Invalid verification code." }
+    const actual = crypto.createHash("sha256").update(`${salt}:${code}`).digest()
+    return crypto.timingSafeEqual(actual, Buffer.from(expected, "hex")) ? { valid: true, token: stored.token } : { valid: false, error: "Invalid verification code." }
   }
 
   // Phone: `stored.token` is Infobip's pinId, not the code itself — Infobip
   // is the source of truth for whether the submitted digits match.
-  return verifyInfobipPin(stored.token, code)
+  const verified = await verifyInfobipPin(stored.token, code)
+  return verified.valid ? { valid: true, token: stored.token } : verified
 }
 
 export type RequestLoginOtpResult =
-  | { success: true; destination: string; fellBackToEmail: boolean }
+  | { success: true; destination: string; channel: "email" | "sms" | "whatsapp"; fellBackToEmail: boolean }
   | { success: false; error: string }
 
-export async function requestLoginOtp(identifier: string, password: string): Promise<RequestLoginOtpResult> {
+export async function requestLoginOtp(identifier: string, password: string, phoneChannel: "sms" | "whatsapp" = "sms"): Promise<RequestLoginOtpResult> {
   if (!identifier || !password) return { success: false, error: "Please fill in all fields." }
 
   // Separate, more generous bucket than the strict login:* one authorize()
@@ -151,7 +172,9 @@ export async function requestLoginOtp(identifier: string, password: string): Pro
     return { success: false, error: `Too many attempts. Please try again in ${Math.ceil(precheck.retryAfterSeconds / 60)} minute(s).` }
   }
 
-  const user = await db.user.findFirst({ where: { OR: [{ email: identifier }, { phone: identifier }] } })
+  const canonical = canonicalIdentifier(identifier)
+  if (!canonical || !["sms", "whatsapp"].includes(phoneChannel)) return { success: false, error: "Enter a valid phone/email and verification method." }
+  const user = await db.user.findFirst({ where: { OR: [{ email: canonical }, { phone: canonical }] } })
   if (!user || !user.password || user.deletedAt) return { success: false, error: "Invalid email/phone or password" }
 
   const valid = await verifyPassword(password, user.password)
@@ -172,12 +195,13 @@ export async function requestLoginOtp(identifier: string, password: string): Pro
   // Signing in by phone on an account that has an email: if the text cannot
   // be sent, the code goes to that email rather than locking the owner out
   // of their own shop over our SMS bill.
-  const result = await issueAndSendCode(`login-otp:${destination}`, destination, user.email ?? undefined)
+  const result = await issueAndSendCode(`login-otp:${destination}`, destination, user.email ?? undefined, phoneChannel)
   if (!result.sent) return { success: false, error: result.error }
 
   return {
     success: true,
     destination: maskDestination(result.destination),
+    channel: result.channel,
     fellBackToEmail: result.fellBackToEmail,
   }
 }
@@ -205,7 +229,7 @@ export async function verifyLoginOtp(identifier: string, code: string): Promise<
 
   const user = await db.user.findFirst({ where: { OR: [{ email: destination }, { phone: destination }], deletedAt: null } })
   if (!user) return { success: false, error: "Account unavailable." }
-  const consumed = await db.verificationToken.deleteMany({ where: { identifier: usedKey, expires: { gt: new Date() } } })
+  const consumed = await db.verificationToken.deleteMany({ where: { identifier: usedKey, token: result.token, expires: { gt: new Date() } } })
   if (consumed.count !== 1) return { success: false, error: "This code has already been used. Request another." }
   return { success: true, proof: await issueLoginProof(user.id) }
 }
@@ -215,14 +239,15 @@ export type SendSignupOtpResult =
       success: true
       /** Where the code really went — may not be what was asked for. */
       destination: string
-      channel: "email" | "sms"
+      channel: "email" | "sms" | "whatsapp"
       /** True when a text could not be sent and the email was used instead. */
       fellBackToEmail: boolean
     }
   | { success: false; error: string }
 
-export async function sendSignupOtp(rawIdentifier: string, fallbackEmail?: string): Promise<SendSignupOtpResult> {
+export async function sendSignupOtp(rawIdentifier: string, fallbackEmail?: string, phoneChannel: "sms" | "whatsapp" = "sms"): Promise<SendSignupOtpResult> {
   const destination = canonicalIdentifier(rawIdentifier)
+  if (!["sms", "whatsapp"].includes(phoneChannel)) return { success: false, error: "Choose SMS or WhatsApp verification." }
   if (!destination) return { success: false, error: "Please enter a valid email or phone number." }
 
   const existing = await db.user.findFirst({ where: { OR: [{ email: destination }, { phone: destination }] } })
@@ -244,7 +269,7 @@ export async function sendSignupOtp(rawIdentifier: string, fallbackEmail?: strin
     if (!taken) usableFallback = email
   }
 
-  const result = await issueAndSendCode(`signup-otp:${destination}`, destination, usableFallback)
+  const result = await issueAndSendCode(`signup-otp:${destination}`, destination, usableFallback, phoneChannel)
   if (!result.sent) return { success: false, error: result.error }
   return {
     success: true,
@@ -263,7 +288,8 @@ export async function verifySignupOtp(rawIdentifier: string, code: string): Prom
   const result = await checkCode(`signup-otp:${destination}`, code, destination, `otp-verify:${destination}`)
   if (!result.valid) return { success: false, error: result.error }
 
-  await db.verificationToken.deleteMany({ where: { identifier: `signup-otp:${destination}` } })
+  const consumed = await db.verificationToken.deleteMany({ where: { identifier: `signup-otp:${destination}`, token: result.token, expires: { gt: new Date() } } })
+  if (consumed.count !== 1) return { success: false, error: "This code has already been used. Request another." }
 
   const proof = generateProofToken()
   await db.verificationToken.create({

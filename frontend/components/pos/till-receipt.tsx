@@ -5,7 +5,7 @@ import { Check, AlertTriangle, RotateCcw, Printer, Loader2 } from "lucide-react"
 import { receiptVat } from "@/backend/domain/pos-receipt-details"
 import type { Receipt } from "@/backend/actions/pos-sales"
 import {
-  printReceipt, autoPrintEnabled, setAutoPrint, type PrintableReceipt,
+  printReceipt, receiptQrSvg, autoPrintEnabled, setAutoPrint, type PrintableReceipt,
 } from "@/frontend/lib/receipt-print"
 
 /**
@@ -172,7 +172,9 @@ export function TillReceipt({
       {/* The slip itself. */}
       <div className="mt-2 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 font-mono text-[11px] text-gray-900 dark:text-gray-100">
         <div className="text-center">
-          <p className="text-xs font-bold uppercase tracking-wide">{receipt.header}</p>
+          <p className="text-xs font-bold uppercase tracking-wide">{receipt.shopName}</p>
+          {receipt.header && receipt.header !== receipt.shopName && <p className="mt-1 text-[10px]">{receipt.header}</p>}
+          <p className="mt-1 text-[10px]">SALES RECEIPT</p>
           {receipt.taxPin && <p className="mt-0.5 text-[10px] text-gray-500">PIN: {receipt.taxPin}</p>}
         </div>
 
@@ -253,6 +255,8 @@ export function TillReceipt({
           </p>
         )}
       </div>
+
+      <div className="my-3 text-center"><img alt="Receipt details QR code" width={132} height={132} className="mx-auto" src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(receiptQrSvg(receipt))}`} /><p className="mt-1 text-[10px] text-muted-foreground">Scan for receipt details</p></div>
 
       {/* What the printer did, said out loud.
           A cashier needs to know whether paper came out without having to
