@@ -28,8 +28,12 @@ export type LoginResult = { success: true; role: UserRole } | { success: false; 
 export function useAuth() {
   const { data: session, status, update } = useSession()
 
-  const isLoading = status === "loading"
-  const isAuthenticated = status === "authenticated"
+  // Auth.js retains the current session while update() briefly reports
+  // "loading". Keep mounted portal forms during that background refresh.
+  // Initial loading and a confirmed sign-out still hide protected content.
+  const hasSession = Boolean(session?.user?.id)
+  const isLoading = status === "loading" && !hasSession
+  const isAuthenticated = hasSession && status !== "unauthenticated"
 
   const user: AuthUser | null = session?.user
     ? {

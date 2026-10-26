@@ -25,7 +25,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     if (mounted && !isLoading && (!isAuthenticated || user?.role !== "admin")) {
       router.push("/")
     }
-  }, [isAuthenticated, isLoading, user, router, mounted])
+  }, [isAuthenticated, isLoading, user?.role, router, mounted])
 
   if (isLoading || !mounted) {
     return <LoadingScreen />

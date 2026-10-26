@@ -28,6 +28,8 @@ The thermal receipt prints the business name in a bold centered title, custom he
 
 Sessions expire after **one hour without real activity**, with a two-minute warning, and have a server-enforced **12-hour absolute limit**. Choosing Continue working renews activity; polling and visibility changes do not. Activity is scoped to the account and shared across tabs. Waking a phone or pausing a background tab for 45 seconds no longer signs the user out. The old unused Remember me checkbox is replaced with an accurate policy notice.
 
+Background session refreshes retain an already authenticated portal while Auth.js temporarily reports loading. The idle guard uses the latest update function without restarting its timer when that function changes identity. This prevents clicks from repeatedly remounting admin forms or restarting the one-minute activity throttle. Initial session loading and confirmed sign-out still hide protected content.
+
 The signed JWT holds server timestamps. Expired JWTs cannot be revived through a client update. Automatic logout suspends offline Till scope and attempts device-push cleanup before completing sign-out. It awaits cookie clearing before navigation; a failed request leaves the screen blocked and retries. Automatic expiry routes Till users to Till login and other roles to the main login. Storage restrictions do not prevent logout. A fresh login clears old local inactivity before Auth.js broadcasts the new session, preventing an immediate sign-out loop. Unsynced sales are preserved.
 
 ## WhatsApp OTP

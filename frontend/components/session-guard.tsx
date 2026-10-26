@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { signOut, useSession } from "next-auth/react"
 import { useAuthContext } from "@/frontend/lib/auth-context"
 import { SESSION_IDLE_MS, SESSION_WARNING_MS } from "@/backend/domain/session-policy"
@@ -13,6 +13,10 @@ import { clearSessionHeartbeat } from "@/frontend/lib/session-heartbeat"
 export function SessionGuard() {
   const { isAuthenticated, user } = useAuthContext()
   const { update } = useSession()
+  const updateRef = useRef(update)
+  // Auth.js recreates update() when loading/session changes. Its identity
+  // must not restart the idle guard or reset the one-minute sync throttle.
+  useEffect(() => { updateRef.current = update }, [update])
   const [remaining, setRemaining] = useState<number | null>(null)
   const [failed, setFailed] = useState(false)
   useEffect(() => {
@@ -57,7 +61,7 @@ export function SessionGuard() {
       setRemaining(null)
       if (now - syncedAt >= 60_000) {
         syncedAt = now
-        void update({ userActivity: true }).then(session => { if (!disposed && !session) void end() }).catch(() => { syncedAt = 0 })
+        void updateRef.current({ userActivity: true }).then(session => { if (!disposed && session === null) void end() }).catch(() => { syncedAt = 0 })
       }
     }
     const onStorage = (event: StorageEvent) => { if (event.key === key) check() }
@@ -68,7 +72,7 @@ export function SessionGuard() {
     window.addEventListener("storage", onStorage)
     document.addEventListener("visibilitychange", check)
     return () => { disposed = true; clearInterval(timer); events.forEach(event => window.removeEventListener(event, activity)); window.removeEventListener("storage", onStorage); document.removeEventListener("visibilitychange", check) }
-  }, [isAuthenticated, user?.id, update])
+  }, [isAuthenticated, user?.id])
   if (!isAuthenticated || remaining === null) return null
   return <Dialog open><DialogContent showCloseButton={false} aria-label="Session expiry" onEscapeKeyDown={event => event.preventDefault()} onPointerDownOutside={event => event.preventDefault()} className="z-[200] max-w-sm rounded-2xl"><DialogTitle>{remaining > 0 ? "Are you still there?" : "Your session has expired"}</DialogTitle><DialogDescription className="text-sm leading-6">{remaining > 0 ? `You will be signed out in ${remaining} seconds after an hour of inactivity. Select Continue working to stay signed in.` : failed ? "We could not finish signing out. Check your connection; we will retry automatically." : "Signing you out safely. Your saved records will remain available after login."}</DialogDescription>{remaining > 0 && <button onClick={() => { window.dispatchEvent(new KeyboardEvent("keydown")) }} className="min-h-11 w-full rounded-lg bg-primary px-4 font-medium text-primary-foreground">Continue working</button>}</DialogContent></Dialog>
 }
