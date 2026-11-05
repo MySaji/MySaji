@@ -1,3 +1,4 @@
+import { businessSupportsPage, posBusinessFeatures, type PosBusinessFeatures } from "./pos-business-features"
 import type { PosTrait } from "./pos-traits"
 import type { PosPermission } from "./pos-permissions"
 
@@ -6,8 +7,8 @@ export type WorkspaceTool = { label: string; description: string; href: string; 
 // Shared by every business profile; saved traits remain authoritative.
 export const WORKSPACE_TOOLS: WorkspaceTool[] = [
   { label: "Salon appointments", description: "Book clients, assign stylists and review completed services and commissions.", href: "/pos/salon", permission: "salon.view", profiles: ["SALON"] },
-  { label: "Tables & orders", description: "Seat guests, manage open tables and send orders to the kitchen.", href: "/pos/floor", permission: "till.sell", profiles: ["RESTAURANT", "CAFE", "BAR"] },
-  { label: "Kitchen display", description: "Keep preparation tickets moving from ordered to ready.", href: "/pos/kitchen", permission: "till.sell", profiles: ["RESTAURANT", "CAFE", "BAR"] },
+  { label: "Tables & orders", description: "Seat guests, manage open tables and send orders to the kitchen.", href: "/pos/floor", permission: "till.sell" },
+  { label: "Kitchen display", description: "Keep preparation tickets moving from ordered to ready.", href: "/pos/kitchen", permission: "till.sell" },
   { label: "Jobs & service tickets", description: "Track work received, progress and collection.", href: "/pos/jobs", permission: "till.sell", traits: ["JOB_CARD"] },
   { label: "Deposits & orders", description: "Take a deposit and follow the balance through to handover.", href: "/pos/orders", permission: "till.sell", traits: ["MADE_TO_ORDER"] },
   { label: "Serials & compatibility", description: "Manage tracked units, IMEIs and product fitment.", href: "/pos/products", permission: "product.view", traits: ["SERIALISED", "FITMENT"] },
@@ -20,8 +21,9 @@ export const WORKSPACE_TOOLS: WorkspaceTool[] = [
   { label: "Stock counts", description: "Compare the shelf count with the stock ledger.", href: "/pos/stocktake", permission: "stock.count" },
 ]
 
-export function workspaceTools(traits: readonly PosTrait[], profileKey: string | undefined, permissions: readonly PosPermission[]): WorkspaceTool[] {
-  return WORKSPACE_TOOLS.filter(tool => permissions.includes(tool.permission)
+export function workspaceTools(traits: readonly PosTrait[], profileKey: string | undefined, permissions: readonly PosPermission[], features?: PosBusinessFeatures): WorkspaceTool[] {
+  const business = features ?? posBusinessFeatures({ posProfileKey: profileKey, posTraits: traits })
+  return WORKSPACE_TOOLS.filter(tool => businessSupportsPage(tool.href, business) && permissions.includes(tool.permission)
     && (!tool.traits || tool.traits.some(trait => traits.includes(trait)))
     && (!tool.profiles || tool.profiles.includes(profileKey ?? "")))
 }

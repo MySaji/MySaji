@@ -1,6 +1,7 @@
 "use server"
 
 import { z } from "zod"
+import { loadPosBusinessFeatures } from "@/backend/services/pos-business-features"
 import { Prisma } from "@prisma/client"
 import { db } from "@/backend/db"
 import { requirePosPermission, recordPosAudit } from "@/backend/services/pos-access-core"
@@ -38,6 +39,7 @@ async function gate(permission: Parameters<typeof requirePosPermission>[0], staf
   const g = await requirePosPermission(permission, staffId)
   if (!g.ok) return { ok: false as const, error: g.error }
   if (!g.actor.shopkeeperId) return { ok: false as const, error: "This business has no shop set up yet." }
+  if (!(await loadPosBusinessFeatures(g.actor.shopkeeperId))?.tableService) return { ok: false as const, error: "Enable Tables and kitchen in Till Settings to use this workflow." }
   return { ok: true as const, shopkeeperId: g.actor.shopkeeperId, actor: g.actor }
 }
 

@@ -1,4 +1,5 @@
 "use server"
+import { posBusinessFeatures } from "@/backend/domain/pos-business-features"
 import { z } from "zod"
 import { Prisma } from "@prisma/client"
 import crypto from "node:crypto"
@@ -14,8 +15,8 @@ import { decryptAccountNumber } from "@/backend/services/payment-method-crypto"
 export async function saveOnlineBookingSettings(input:unknown){
  const p=z.object({shopId:z.string(),version:z.number().int().min(0),settings:operationsSettingsSchema}).safeParse(input);if(!p.success)return fail("Check opening hours, weekdays, notice periods and deposit rules.")
  const actor=await operationsActor("settings.business",p.data.shopId);if(!actor?.shopkeeperId||actor.role!=="OWNER")return fail("Only the owner can publish online booking settings.")
- const shop=await db.shopkeeperProfile.findUnique({where:{id:actor.shopkeeperId},select:{posProfileKey:true,mpesaEnv:true,mpesaUseDemoCreds:true,mpesaShortcode:true,mpesaConsumerKey:true,mpesaConsumerSecret:true,mpesaPasskey:true,mpesaPromptEnabled:true}})
- if(shop?.posProfileKey!=="SALON"&&p.data.settings.bookingEnabled)return fail("Online appointments require a Salon, barber & spa branch.")
+ const shop=await db.shopkeeperProfile.findUnique({where:{id:actor.shopkeeperId},select:{posProfileKey:true,posTraits:true,posConfig:true,mpesaEnv:true,mpesaUseDemoCreds:true,mpesaShortcode:true,mpesaConsumerKey:true,mpesaConsumerSecret:true,mpesaPasskey:true,mpesaPromptEnabled:true}})
+ if((!shop||!posBusinessFeatures(shop).salon)&&p.data.settings.bookingEnabled)return fail("Online appointments require a Salon, barber & spa branch.")
  if(p.data.settings.bookingEnabled){const count=await db.posStaff.count({where:{id:{in:p.data.settings.publicStaffIds},businessId:actor.businessId,isActive:true,OR:[{storeId:null},{storeId:actor.storeId}]}});if(!count||count!==new Set(p.data.settings.publicStaffIds).size)return fail("Choose active staff assigned to this branch for the public diary.")}
  if(p.data.settings.depositAmount>0){if(!shop||shop.mpesaEnv!=="production"||shop.mpesaUseDemoCreds||!shop.mpesaShortcode||!shop.mpesaConsumerKey||!shop.mpesaConsumerSecret||!shop.mpesaPasskey||!shop.mpesaPromptEnabled)return fail("Enable the branch's live merchant M-Pesa credentials/prompts before requiring online deposits.");try{mpesaPublicUrl()}catch{return fail("Configure a public HTTPS M-Pesa callback address before enabling deposits.")}}
  try{return await db.$transaction(async tx=>{

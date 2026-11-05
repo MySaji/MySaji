@@ -4,6 +4,7 @@ import { z } from "zod"
 import { Prisma } from "@prisma/client"
 import { db } from "@/backend/db"
 import { parsePosConfig } from "@/backend/domain/pos-config"
+import { posBusinessFeatures } from "@/backend/domain/pos-business-features"
 import { effectiveTraits } from "@/backend/domain/pos-profiles"
 import { requirePosPermission, recordPosAudit } from "@/backend/services/pos-access-core"
 import { refusalFor } from "@/backend/domain/pos-permissions"
@@ -91,6 +92,7 @@ export type CatalogueRow = {
   tracksBatches: boolean
   tracksSerials: boolean
   hasVariants: boolean
+  isService: boolean
   /** The soonest expiry across this product's batches, where it has any. */
   expiresOn: string | null
   soldAllTime: number
@@ -112,6 +114,7 @@ export type CatalogueSummary = {
 }
 
 export type CatalogueView = {
+  features: ReturnType<typeof posBusinessFeatures>
   summary: CatalogueSummary
   rows: CatalogueRow[]
   /** Marketplace categories, for the shops that do sell on SAJI. */
@@ -165,7 +168,7 @@ export async function getCatalogue(input?: unknown): Promise<CatalogueView> {
     select: {
       id: true, name: true, sku: true, barcode: true, images: true, unit: true,
       price: true, costPrice: true, categoryId: true, ageRestricted: true, isActive: true,
-      tracksBatches: true, tracksSerials: true, hasVariants: true, totalSold: true, createdAt: true,
+      tracksBatches: true, tracksSerials: true, hasVariants: true, isService: true, totalSold: true, createdAt: true,
       category: { select: { name: true } },
       inventory: { select: { currentStock: true, stockOnHand: true, lowStockThreshold: true } },
     },
@@ -212,7 +215,7 @@ export async function getCatalogue(input?: unknown): Promise<CatalogueView> {
       marginPercent: margin === null || price <= 0 ? null : Number(((margin / price) * 100).toFixed(1)),
       stock,
       lowStockThreshold: low,
-      status: statusOf(p.isActive, stock, low),
+      status: p.isService && p.isActive ? "selling" : statusOf(p.isActive, stock, low),
       categoryId: p.categoryId,
       categoryName: p.category?.name ?? null,
       ageRestricted: p.ageRestricted,
@@ -220,6 +223,7 @@ export async function getCatalogue(input?: unknown): Promise<CatalogueView> {
       tracksBatches: p.tracksBatches,
       tracksSerials: p.tracksSerials,
       hasVariants: p.hasVariants,
+      isService: p.isService,
       expiresOn: expiresOn ? expiresOn.toISOString() : null,
       soldAllTime: p.totalSold,
       createdAt: p.createdAt.toISOString(),
@@ -248,6 +252,7 @@ export async function getCatalogue(input?: unknown): Promise<CatalogueView> {
     : []
 
   return {
+    features: posBusinessFeatures(shop),
     summary,
     rows,
     categories,
@@ -278,6 +283,7 @@ const saveShape = z.object({
   description: z.string().trim().max(2000).optional(),
   image: z.string().trim().max(2_000_000).optional(),
   ageRestricted: z.boolean().optional(),
+  isService: z.boolean().optional(),
   lowStockThreshold: z.number().int().min(0).max(1_000_000).optional(),
   /** Stock to open with. Only honoured on create, and written as a movement. */
   openingStock: z.number().min(0).max(10_000_000).optional(),
@@ -314,11 +320,21 @@ export async function saveProduct(input: unknown): Promise<CatalogueResult> {
         where: { id: body.id, shopkeeperId: g.shopkeeperId },
         select: {
           id: true, name: true, price: true, costPrice: true, sku: true, isActive: true,
-          tracksBatches: true, images: true, description: true,
+          tracksBatches: true, tracksSerials: true, hasVariants: true, isService: true, ageRestricted: true, images: true, description: true,
         },
       })
     : null
   if (body.id && !existing) return { success: false, error: "That product is not in this shop." }
+
+  const shopFeatures = await db.shopkeeperProfile.findUnique({ where: { id: g.shopkeeperId }, select: { posProfileKey: true, posTraits: true, posConfig: true } })
+  if (!shopFeatures) return { success: false, error: "Select an active business first." }
+  const features = posBusinessFeatures(shopFeatures)
+  const isService = body.isService ?? existing?.isService ?? false
+  if (isService && !existing?.isService && !features.services) return { success: false, error: "Enable service selling in Till Settings before adding a service." }
+  if (body.ageRestricted && !existing?.ageRestricted && !features.traits.includes("AGE_RESTRICTED")) return { success: false, error: "Enable age checks in Till Settings before marking restricted products." }
+  if (isService && (body.openingStock ?? 0) > 0) return { success: false, error: "Services do not have opening stock." }
+  if (existing && isService !== existing.isService) return { success: false, error: "Create a separate product or service to preserve this item's stock and sales history." }
+
 
   const priceChanged = existing ? !D(existing.price).equals(D(body.price)) : body.price > 0
   if (priceChanged && !g.actor.can("product.price")) {
@@ -343,8 +359,12 @@ export async function saveProduct(input: unknown): Promise<CatalogueResult> {
   })
   if (skuClash) return { success: false, error: "The code " + sku + " is already on " + skuClash.name + "." }
 
+  const optionClash = await db.productVariant.findFirst({ where: { shopkeeperId: g.shopkeeperId, OR: [{ sku }, ...(body.barcode ? [{ barcode: body.barcode }] : [])] }, select: { label: true } })
+  if (optionClash) return { success: false, error: "That code or barcode belongs to option " + optionClash.label + "." }
+
   const data: Prisma.ProductUncheckedUpdateInput = {
     name: body.name,
+    isService,
     sku,
     barcode: body.barcode && body.barcode.length > 0 ? body.barcode : null,
     price: D(body.price),
@@ -399,13 +419,14 @@ export async function saveProduct(input: unknown): Promise<CatalogueResult> {
       unit: body.unit,
       categoryId: body.categoryId ?? null,
       ageRestricted: body.ageRestricted ?? false,
+      isService,
       images: body.image && body.image.length > 0 ? [body.image] : [],
       isActive: body.isActive ?? true,
       // A product added at a counter is on sale from the moment it is added.
       // publishedAt is the marketplace's record of going live, so it is set
       // only for a shop that is actually a storefront.
       publishedAt: null,
-      inventory: {
+      inventory: isService ? undefined : {
         create: {
           currentStock: 0,
           ...(body.lowStockThreshold !== undefined ? { lowStockThreshold: body.lowStockThreshold } : {}),

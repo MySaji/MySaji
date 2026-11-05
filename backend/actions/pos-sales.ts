@@ -734,6 +734,7 @@ const saleSchema = z.object({
     prescriberName: z.string().trim().max(120).optional(),
     prescriptionRef: z.string().trim().max(60).optional(),
   }).optional(),
+  salonCashAppointment: z.object({ id: z.string().min(1).max(60), version: z.number().int().positive() }).optional(),
   customerName: z.string().trim().max(120).optional(),
   customerPhone: z.string().trim().max(30).optional(),
   /** The loyalty member this is rung up for, chosen at the till. */
@@ -824,6 +825,12 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
   const body = parsed.data
   if (body.expectedShopId !== till.shopkeeperId || body.expectedUserId !== till.userId) return { success: false, error: "This sale belongs to a different account or store. Return to its original store to synchronize." }
   const occurredAt = body.occurredAt ? new Date(body.occurredAt) : new Date()
+
+  if (body.salonCashAppointment) {
+    const access = await requirePosPermission("salon.book")
+    if (!access.ok || access.actor.shopkeeperId !== till.shopkeeperId || till.profileKey !== "SALON" || !till.traits.includes("SERVICE")) return { success: false, error: "Salon cash checkout requires reception and sales access in this salon." }
+    if (body.idempotencyKey !== `salon-cash:${body.salonCashAppointment.id}` || body.lines.length !== 1 || body.lines[0].quantity !== "1" || body.lines[0].variantId || body.lines[0].unitPriceOverride !== undefined || body.lines[0].lineDiscount || body.saleDiscount || body.redeemPoints || body.posCustomerId || body.deposit || body.payments.length !== 1 || body.payments[0].method !== "CASH") return { success: false, error: "Use the salon cash checkout form for one completed service." }
+  }
 
   // --- a replay returns the original receipt, not an error -----------------
   const already = await db.posSale.findUnique({
@@ -1553,6 +1560,16 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
         // Lock the shift until this sale commits so it cannot close mid-sale.
         const activeShift = await tx.$queryRaw<{ id: string }[]>`SELECT id FROM till_sessions WHERE id = ${openShift.id} AND "closedAt" IS NULL FOR UPDATE`
         if (!activeShift.length) throw new PosSaleError("This shift has closed. Open a shift before starting a sale.")
+        // Share the appointment lock with manual receipt matching. The receipt
+        // and appointment link must commit together, including concurrent retries.
+        if (body.salonCashAppointment) {
+          await tx.$queryRaw`SELECT true AS locked FROM pg_advisory_xact_lock(hashtext('saji-salon'), hashtext(${till.shopkeeperId}))`
+          const a = await tx.posSalonAppointment.findFirst({ where: { id: body.salonCashAppointment.id, shopkeeperId: till.shopkeeperId } })
+          if (!a || a.status !== "COMPLETED" || a.version !== body.salonCashAppointment.version || a.saleItemId) throw new PosSaleError("This appointment changed or already has a receipt. Refresh before taking payment again.")
+          if (a.depositCheckoutId || D(a.depositAmount ?? 0).greaterThan(0)) throw new PosSaleError("This visit has a booking deposit. Settle it in Register and match its receipt to avoid collecting twice.")
+          const service = byId.get(body.lines[0].productId)
+          if (!a.serviceId || a.serviceId !== service?.id || !service.isService || service.hasVariants || body.customerName !== a.customerName || (body.customerPhone ?? "") !== (a.customerPhone ?? "")) throw new PosSaleError("The service or customer does not match this appointment. Refresh and use Register if it needs changing.")
+        }
         const last = await tx.posSale.findFirst({
           where: { shopkeeperId: till.shopkeeperId },
           orderBy: { saleNumber: "desc" },
@@ -1638,6 +1655,14 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
           },
           include: { items: true, payments: true },
         })
+
+        if (body.salonCashAppointment) {
+          const line = sale.items[0]
+          if (!line || !sale.subtotal.greaterThan(0)) throw new PosSaleError("Use Register for a zero-priced service.")
+          const commissionBase = Prisma.Decimal.max(0, line.totalPrice.mul(sale.total.minus(sale.tax)).div(sale.subtotal)).toDecimalPlaces(2)
+          await tx.posSalonAppointment.update({ where: { id: body.salonCashAppointment.id }, data: { saleItemId: line.id, commissionBase, version: { increment: 1 } } })
+          await tx.posAuditEvent.create({ data: { businessId: till.businessId, storeId: till.storeId, actorUserId: till.userId, actorStaffId: till.staffId, action: "salon.cash_checkout", entityType: "salon_appointment", entityId: body.salonCashAppointment.id, summary: `Recorded and matched cash receipt ${sale.saleNumber}`, detail: { saleId: sale.id, total: money(sale.total), cashReceived: money(sale.amountPaid), changeGiven: money(sale.changeGiven) } } })
+        }
 
         const references = body.payments.flatMap((payment, index) => payment.method === "MPESA" ? [receivedPayments.get(index)?.receipt ?? payment.reference?.trim().toUpperCase()] : []).filter((reference): reference is string => !!reference).sort()
         if (new Set(references).size !== references.length) throw new PosSaleError("The same M-Pesa receipt cannot pay two lines.")
@@ -1955,6 +1980,23 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
   }
 
   return { success: false, error: "The till is busy. Try that sale again." }
+}
+
+/** Record cash already received for a completed salon visit; never a payment flag. */
+export async function recordSalonCashPayment(input: unknown): Promise<TillActionResult<Receipt>> {
+  const parsed = z.object({ id: z.string().min(1).max(60), version: z.number().int().positive(), cashReceived: z.number().positive().max(100_000_000).multipleOf(0.01) }).safeParse(input)
+  if (!parsed.success) return { success: false, error: "Enter the cash received in shillings and cents." }
+  const access = await requirePosPermission("salon.book")
+  if (!access.ok || !access.actor.can("till.sell") || !access.actor.shopkeeperId) return { success: false, error: "Cash checkout requires salon booking and sales access." }
+  const a = await db.posSalonAppointment.findFirst({ where: { id: parsed.data.id, shopkeeperId: access.actor.shopkeeperId } })
+  if (!a || !a.serviceId || a.status !== "COMPLETED") return { success: false, error: "Complete this service before recording cash payment." }
+  return recordPosSale({
+    expectedShopId: access.actor.shopkeeperId, expectedUserId: access.actor.userId,
+    idempotencyKey: `salon-cash:${a.id}`, salonCashAppointment: { id: a.id, version: parsed.data.version },
+    lines: [{ productId: a.serviceId, quantity: "1" }],
+    payments: [{ method: "CASH", amount: parsed.data.cashReceived }],
+    customerName: a.customerName, ...(a.customerPhone ? { customerPhone: a.customerPhone } : {}),
+  })
 }
 
 /** Thrown to abort a sale transaction with a message worth showing a cashier. */

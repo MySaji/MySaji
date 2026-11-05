@@ -46,6 +46,8 @@ export const EXPIRED_STOCK_POLICY_LABEL: Record<ExpiredStockPolicy, string> = {
 }
 
 export const posConfigSchema = z.object({
+  /** Null follows the business preset; owners may enable a mixed-use counter. */
+  tableService: z.boolean().nullable().default(null),
   installLogo: z.string().max(2_000_000).nullable().optional(),
   primaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Use a six-digit hex colour, such as #2563eb").default("#2563eb"),
   /** Printed at the top of the receipt. Defaults to the shop name. */

@@ -1,4 +1,5 @@
 import "server-only"
+import { loadPosBusinessFeatures } from "@/backend/services/pos-business-features"
 import { db } from "@/backend/db"
 import { resolvePosActor } from "@/backend/services/pos-access-core"
 import { readOperationsSettings } from "@/backend/domain/pos-operations"
@@ -6,7 +7,8 @@ import { readPulseSettings } from "@/backend/domain/pos-pulse"
 import { isGeminiConfigured } from "@/backend/services/ai/credentials"
 export async function loadOperationsWorkspace(){
  const actor=await resolvePosActor();if(!actor?.shopkeeperId)return null
- const can={invoice:actor.can("purchase.view"),capture:actor.can("purchase.create"),receive:actor.can("stock.receive")&&actor.can("purchase.approve"),materials:actor.can("stock.adjust"),expiry:actor.can("stock.view"),booking:actor.can("salon.book"),settings:actor.role==="OWNER",handover:actor.can("report.sales")&&actor.can("expense.view"),health:actor.can("till.sell")||actor.role==="OWNER"}
+ const features=await loadPosBusinessFeatures(actor.shopkeeperId);if(!features)return null
+ const can={invoice:actor.can("purchase.view"),capture:actor.can("purchase.create"),receive:actor.can("stock.receive")&&actor.can("purchase.approve"),materials:features.services&&actor.can("stock.adjust"),expiry:features.batches&&actor.can("stock.view"),booking:features.salon&&actor.can("salon.book"),settings:features.salon&&actor.role==="OWNER",handover:actor.can("report.sales")&&actor.can("expense.view"),health:actor.can("till.sell")||actor.role==="OWNER"}
  if(!Object.values(can).some(Boolean))return null
  const shopId=actor.shopkeeperId
  const [config,invoices,materials,products,batches,plans,appointments,jobs,receiptLines,waitlist,staff,pulse,site,shop]=await Promise.all([

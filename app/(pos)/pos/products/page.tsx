@@ -7,6 +7,7 @@ import {
   ArrowLeft, AlertTriangle, Check, Loader2, Package, Plus, Search, X,
   Pencil, Pause, Play, Camera, Tag, CalendarClock, History, Coins, ShieldAlert,
 } from "lucide-react"
+import { ProductBusinessSetup } from "@/frontend/components/pos/product-business-setup"
 import { RowActions } from "@/frontend/components/pos/row-actions"
 import { ManagementTable } from "@/frontend/components/pos/management-table"
 import { ProductPhotoField } from "@/frontend/components/pos/product-photo-field"
@@ -78,15 +79,17 @@ type Draft = {
   description: string
   image: string
   ageRestricted: boolean
+  isService: boolean
   lowStockThreshold: string
   openingStock: string
+  configureOptions: boolean
 }
 
-function emptyDraft(unit: string): Draft {
+function emptyDraft(unit: string, configureOptions = false): Draft {
   return {
     name: "", sku: "", barcode: "", price: "", costPrice: "", unit,
-    categoryId: "", description: "", image: "", ageRestricted: false,
-    lowStockThreshold: "", openingStock: "",
+    categoryId: "", description: "", image: "", ageRestricted: false, isService: false,
+    lowStockThreshold: "", openingStock: "", configureOptions,
   }
 }
 
@@ -103,9 +106,10 @@ function draftOf(row: CatalogueRow): Draft {
     description: "",
     image: row.image ?? "",
     ageRestricted: row.ageRestricted,
+    isService: row.isService,
     lowStockThreshold: String(row.lowStockThreshold),
     openingStock: "",
-  }
+    configureOptions: row.hasVariants,  }
 }
 
 export default function TillProductsPage() {
@@ -118,6 +122,7 @@ export default function TillProductsPage() {
   const [error, setError] = useState("")
   const [saved, setSaved] = useState("")
 
+  const [businessSetup, setBusinessSetup] = useState<{ id: string; name: string; startWithOptions?: boolean } | null>(null)
   const [photoBusy, setPhotoBusy] = useState(false)
   const [draft, setDraft] = useState<Draft | null>(null)
   const [costFor, setCostFor] = useState<CatalogueRow | null>(null)
@@ -155,6 +160,7 @@ export default function TillProductsPage() {
   const submit = async () => {
     if (!draft || photoBusy) return
     setBusy("save"); setError("")
+    try {
     const r = await saveProduct({
       ...(draft.id ? { id: draft.id } : {}),
       name: draft.name.trim(),
@@ -167,14 +173,18 @@ export default function TillProductsPage() {
       ...(draft.description.trim() ? { description: draft.description.trim() } : {}),
       image: draft.image.trim(),
       ageRestricted: draft.ageRestricted,
+      isService: draft.isService,
+      ...(!draft.id && draft.configureOptions ? { isActive: false } : {}),
       ...(draft.lowStockThreshold.trim() ? { lowStockThreshold: Math.floor(Number(draft.lowStockThreshold)) } : {}),
-      ...(!draft.id && draft.openingStock.trim() ? { openingStock: Number(draft.openingStock) } : {}),
+      ...(!draft.id && !draft.configureOptions && draft.openingStock.trim() ? { openingStock: Number(draft.openingStock) } : {}),
     })
-    setBusy(null)
     if (!r.success) { setError(r.error); return }
     await reload()
     flash(draft.id ? draft.name + " saved" : draft.name + " added to the catalogue")
+    if (!draft.id && draft.configureOptions) setBusinessSetup({ id: r.productId, name: draft.name, startWithOptions: true })
     setDraft(null)
+    } catch { setError("Could not confirm this save. Check the catalogue before trying again.") }
+    finally { setBusy(null) }
   }
 
   const toggleSelling = async (row: CatalogueRow) => {
@@ -292,7 +302,7 @@ export default function TillProductsPage() {
         {view.canCreate && (
           <Button
             aria-label="Add product"
-            onClick={() => { setDraft(emptyDraft(view.defaultUnit)); setError("") }}
+            onClick={() => { setDraft(emptyDraft(view.defaultUnit, ["CLOTHES", "SHOES", "MITUMBA"].includes(view.features.profileKey))); setError("") }}
             className="h-11 px-3 rounded-xl flex-shrink-0"
           >
             <Plus className="w-4 h-4" />
@@ -354,7 +364,7 @@ export default function TillProductsPage() {
           )}
         </Card>
       ) : (
-        <ManagementTable canDelete={view.canEdit} onDeleted={reload} kind="products" rows={rows.map(row => ({ id: row.id, name: row.name, code: row.sku, quantity: row.stock, price: row.price, status: STATUS[row.status].text, detail: `${row.categoryName || "General"} / ${row.unit}${row.marginPercent === null ? " / Cost missing" : ` / ${row.marginPercent.toFixed(1)}% margin`}`, actions: <>{(view.canEdit || view.canPrice) && <button onClick={() => { setDraft(draftOf(row)); setError("") }}>Edit</button>}{view.canEdit && <><button disabled={busy === row.id} onClick={() => void toggleSelling(row)}>{row.isActive ? "Pause" : "Resume"}</button><button onClick={() => { setCostFor(row); setCostValue("") }}>Set cost</button></>}</> }))}>
+        <ManagementTable canDelete={view.canEdit} onDeleted={reload} kind="products" rows={rows.map(row => ({ id: row.id, name: row.name, code: row.sku, quantity: row.stock, price: row.price, status: STATUS[row.status].text, detail: `${row.categoryName || "General"} / ${row.unit}${row.marginPercent === null ? " / Cost missing" : ` / ${row.marginPercent.toFixed(1)}% margin`}`, actions: <>{(view.canEdit || view.canPrice) && <button onClick={() => { setDraft(draftOf(row)); setError("") }}>Edit</button>}{view.canEdit && <><button disabled={busy === row.id} onClick={() => void toggleSelling(row)}>{row.isActive ? "Pause" : "Resume"}</button><button onClick={() => { setCostFor(row); setCostValue("") }}>Set cost</button><button onClick={() => setBusinessSetup(row)}>Business setup</button></>}</> }))}>
         <div className="space-y-2">
           {rows.map((row) => (
             <Card key={row.id} className="p-3 rounded-2xl">
@@ -459,6 +469,7 @@ export default function TillProductsPage() {
                         {row.isActive ? "Stop selling" : "Sell again"}
                       </button>
                     )}
+                    {view.canEdit && <button className="h-9 rounded-lg border px-3 text-[11px] font-semibold" onClick={() => setBusinessSetup(row)}>Business setup</button>}
                     <Link
                       href="/pos/stock"
                       className="inline-flex items-center gap-1 h-9 px-2.5 rounded-lg border border-gray-200 dark:border-gray-700 text-[11px] font-semibold text-gray-600 dark:text-gray-300 active:scale-95"
@@ -489,6 +500,8 @@ export default function TillProductsPage() {
               />
             </Field>
 
+            {!draft.id && view?.features.variants && <label className="flex items-start gap-3 rounded-xl border p-3 text-sm"><input type="checkbox" checked={draft.configureOptions} onChange={event => setDraft({ ...draft, configureOptions: event.target.checked, openingStock: "" })} /><span><strong>Set up sizes, colours or packs next</strong><span className="mt-1 block text-xs text-muted-foreground">After saving, enter each option and its opening quantity separately. The new item stays paused until setup is finished.</span></span></label>}
+            {(view?.features.services || draft.isService) && <Field label="Item type"><select aria-label="Item type" className="h-11 w-full rounded-xl border bg-background px-3 text-sm" value={draft.isService ? "service" : "product"} disabled={!!draft.id} onChange={event => setDraft({ ...draft, isService: event.target.value === "service", openingStock: "" })}><option value="product">Physical product</option><option value="service">Service / treatment / labour</option></select><p className="mt-1 text-xs text-muted-foreground">Services are sold without stock. Salon duration and commission are configured in Business setup after saving.</p></Field>}
             <div className="grid grid-cols-2 gap-2">
               <Field label="You sell it for (KSh)">
                 <Input
@@ -563,7 +576,7 @@ export default function TillProductsPage() {
               </div>
             </Field>
 
-            {!draft.id && (
+            {!draft.id && !draft.isService && !draft.configureOptions && (
               <Field label="On the shelf right now" hint="Written into the stock history as an opening balance.">
                 <Input
                   value={draft.openingStock}
@@ -614,6 +627,7 @@ export default function TillProductsPage() {
               </>
             )}
 
+            {(view?.features.traits.includes("AGE_RESTRICTED") || draft.ageRestricted) && (
             <button
               type="button"
               role="switch"
@@ -641,6 +655,7 @@ export default function TillProductsPage() {
                 </span>
               </span>
             </button>
+            )}
 
             {error && (
               <div className="rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 px-3 py-2.5">
@@ -722,6 +737,8 @@ export default function TillProductsPage() {
           )}
         </Sheet>
       )}
+      {businessSetup && <ProductBusinessSetup productId={businessSetup.id} name={businessSetup.name} startWithOptions={businessSetup.startWithOptions} onClose={() => setBusinessSetup(null)} onSaved={() => { void reload(); setBusinessSetup(null) }} />}
+
     </div>
   )
 }
@@ -769,6 +786,7 @@ function Sheet({ title, onClose, children }: { title: string; onClose: () => voi
         </div>
         {children}
       </div>
+
     </div>
   )
 }

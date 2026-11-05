@@ -46,7 +46,7 @@ function usageFixture(){
  const {Prisma}=require('@prisma/client'),actor={shopkeeperId:'shop',businessId:'business',storeId:'store',userId:'owner',staffId:null,name:'Owner'},state={writes:0,usage:null},queries=[]
  const db={product:{findFirst:async q=>q.where.isService?{id:'service'}:q.where.id==='bad'?null:{id:q.where.id,name:'Shampoo',unit:'l',costPrice:new Prisma.Decimal(200),tracksBatches:false,tracksSerials:false}},posSalonAppointment:{findFirst:async()=>({id:'appointment'})},productBatch:{findFirst:async()=>null},productVariant:{findFirst:async()=>null},posMaterialUsage:{findUnique:async()=>null,findFirst:async()=>state.usage,create:async({data})=>{state.usage=data;return{id:data.id}},update:async()=>{}},posAuditEvent:{create:async()=>{}},$queryRaw:async()=>{}}
  db.$transaction=async fn=>{const copy={...state};try{return await fn(db)}catch(e){Object.assign(state,copy);throw e}}
- const service=loadService('backend/actions/pos-material-usage.ts',{zod,'@/backend/db':{db},'@/backend/services/pos-operations-access':{operationsActor:async()=>actor,operationsFail:e=>({success:false,error:e})},'@/backend/domain/pos-operations':domain,'@/backend/services/pos-ledger':{recordStockMovement:async(_tx,input)=>{queries.push(input);state.writes++;return{ok:true}}}})
+ const service=loadService('backend/actions/pos-material-usage.ts',{'@/backend/services/pos-business-features':{loadPosBusinessFeatures:async()=>({services:true})},zod,'@/backend/db':{db},'@/backend/services/pos-operations-access':{operationsActor:async()=>actor,operationsFail:e=>({success:false,error:e})},'@/backend/domain/pos-operations':domain,'@/backend/services/pos-ledger':{recordStockMovement:async(_tx,input)=>{queries.push(input);state.writes++;return{ok:true}}}})
  return {service,state,queries,db}
 }
 const usageInput={shopId:'shop',requestId:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',serviceId:'service',contextType:'APPOINTMENT',contextId:'appointment',note:'Treatment materials',lines:[{productId:'good',quantity:0.05},{productId:'bad',quantity:1}]}
@@ -62,7 +62,7 @@ function finalizerFixture({late=false,amount=500,foreign=false}={}){
  const at=new Date(),appointment={id:'booking',shopkeeperId:'shop',stylistId:'stylist',depositAmount:500,customerPhone:'254712345678',depositState:'PENDING',status:'AWAITING_DEPOSIT',holdExpiresAt:new Date(+at+(late?-60000:60000)),startsAt:new Date(+at+86400000),endsAt:new Date(+at+90000000)}
  const payment={id:'payment',shopkeeperId:foreign?'foreign':'shop',status:'PAID',amount,phone:'254712345678'}
  const db={posSalonAppointment:{findUnique:async()=>appointment,findFirst:async()=>null,update:async({data})=>Object.assign(appointment,data)},posMpesaTransaction:{findUnique:async()=>payment},$queryRaw:async()=>{}};db.$transaction=async fn=>fn(db)
- const {finalizeBookingDeposit}=loadService('backend/services/pos-booking-core.ts',{'@/backend/db':{db},'@/backend/domain/pos-website':{},'@/backend/domain/pos-operations':domain,'@/backend/domain/pos-salon':salon})
+ const {finalizeBookingDeposit}=loadService('backend/services/pos-booking-core.ts',{'@/backend/domain/pos-business-features':require('./pos-feature-fixture.cjs').features,'@/backend/db':{db},'@/backend/domain/pos-website':{},'@/backend/domain/pos-operations':domain,'@/backend/domain/pos-salon':salon})
  return {finalizeBookingDeposit,appointment}
 }
 test('verified exact booking deposits confirm once; late, wrong-amount or foreign payments never claim a slot',async()=>{

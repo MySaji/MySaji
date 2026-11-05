@@ -12,6 +12,8 @@ const GROUPS: { title: string; blurb: string; items: { href: string; icon: typeo
     items: [
       { href: "/pos/customers", icon: Users, label: "Customers" },
       { href: "/pos/sell", icon: ShoppingCart, label: "New sale" },
+      { href: "/pos/salon", icon: Users, label: "Salon diary" },
+      { href: "/pos/kitchen", icon: UtensilsCrossed, label: "Kitchen" },
       { href: "/pos/floor", icon: UtensilsCrossed, label: "Floor" },
       { href: "/pos/jobs", icon: Wrench, label: "Jobs" },
       { href: "/pos/quotes", icon: FileText, label: "Quotes" },

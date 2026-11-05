@@ -2,6 +2,7 @@
 
 import { db } from "@/backend/db"
 import { resolvePosActor } from "@/backend/services/pos-access-core"
+import { posBusinessFeatures, type PosBusinessFeatures } from "@/backend/domain/pos-business-features"
 
 import { POS_ROLE_META, type PosRole, type PosPermission } from "@/backend/domain/pos-permissions"
 
@@ -32,6 +33,7 @@ export type PosWhoAmI = {
   permissions: PosPermission[]
   storeId: string | null
   profileKey?: string | null
+  features?: PosBusinessFeatures
   isOwner: boolean
 }
 
@@ -39,6 +41,7 @@ export async function getPosWhoAmI(staffId?: string | null): Promise<PosWhoAmI |
   const actor = await resolvePosActor(staffId)
   if (!actor) return null
   const { POS_PERMISSIONS } = await import("@/backend/domain/pos-permissions")
+  const shop = actor.shopkeeperId ? await db.shopkeeperProfile.findUnique({ where: { id: actor.shopkeeperId }, select: { posProfileKey: true, posTraits: true, posConfig: true } }) : null
   return {
     businessId: actor.businessId,
     businessName: actor.businessName,
@@ -48,7 +51,8 @@ export async function getPosWhoAmI(staffId?: string | null): Promise<PosWhoAmI |
     roleDescription: POS_ROLE_META[actor.role].description,
     permissions: POS_PERMISSIONS.filter(p => actor.can(p)),
     storeId: actor.storeId,
-    profileKey: actor.shopkeeperId ? (await db.shopkeeperProfile.findUnique({ where: { id: actor.shopkeeperId }, select: { posProfileKey: true } }))?.posProfileKey ?? null : null,
+    profileKey: shop?.posProfileKey ?? null,
+    features: shop ? posBusinessFeatures(shop) : undefined,
     isOwner: actor.role === "OWNER",
   }
 }

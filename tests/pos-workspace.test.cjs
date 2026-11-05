@@ -1,7 +1,7 @@
 const { test } = require("node:test")
 const assert = require("node:assert/strict")
 const { loadService } = require("./load-service.cjs")
-const { filterCatalogue, workspaceTools } = loadService("backend/domain/pos-workspace.ts")
+const { filterCatalogue, workspaceTools } = loadService("backend/domain/pos-workspace.ts", { "./pos-business-features": require("./pos-feature-fixture.cjs").features })
 const permissions = loadService("backend/domain/pos-permissions.ts")
 const traits = loadService("backend/domain/pos-traits.ts")
 const { POS_PROFILES } = loadService("backend/domain/pos-profiles.ts", { "./pos-traits": traits })

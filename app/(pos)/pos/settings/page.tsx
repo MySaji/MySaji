@@ -1,5 +1,6 @@
 "use client"
 
+import { posBusinessFeatures } from "@/backend/domain/pos-business-features"
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import {
@@ -333,6 +334,8 @@ export default function PosSettingsPage() {
       </section>
       <section hidden={activeSection !== "features"} aria-label="Selling feature settings" className="space-y-4">
       <SectionHeading id="features" title="What the till can do" blurb="Switch on only what your shop actually needs. Each one changes what the counter asks for." />
+      {<Card className="rounded-2xl p-4"><label className="flex items-start gap-3"><input type="checkbox" className="mt-1 h-5 w-5" disabled={busy !== null} checked={posBusinessFeatures({ posProfileKey: setup.profileKey, posTraits: setup.traits, posConfig: setup.config }).tableService} onChange={event => void saveConfig({ tableService: event.target.checked }, "tableService")} /><span><strong className="block text-sm">Tables and kitchen</strong><span className="mt-1 block text-xs leading-5 text-muted-foreground">Enable table orders and kitchen tickets for businesses that serve seated guests. This choice is saved immediately.</span></span></label></Card>}
+
 
       <Card className="p-4 rounded-2xl">
         <h2 className="text-sm font-bold text-gray-900 dark:text-white">How you sell</h2>

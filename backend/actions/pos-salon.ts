@@ -1,6 +1,7 @@
 "use server"
 
 import { z } from "zod"
+import { posBusinessFeatures } from "@/backend/domain/pos-business-features"
 import { Prisma } from "@prisma/client"
 import { db } from "@/backend/db"
 import { requirePosPermission, recordPosAudit } from "@/backend/services/pos-access-core"
@@ -12,8 +13,8 @@ async function gate(permission: PosPermission) {
   const result = await requirePosPermission(permission)
   if (!result.ok) return result
   if (!result.actor.shopkeeperId || !result.actor.storeId) return { ok: false as const, error: "Select an active salon branch first." }
-  const shop = await db.shopkeeperProfile.findUnique({ where: { id: result.actor.shopkeeperId }, select: { posProfileKey: true } })
-  if (shop?.posProfileKey !== "SALON") return { ok: false as const, error: "Select Salon, barber & spa in Till settings to use this workspace." }
+  const shop = await db.shopkeeperProfile.findUnique({ where: { id: result.actor.shopkeeperId }, select: { posProfileKey: true, posTraits: true, posConfig: true } })
+  if (!shop || !posBusinessFeatures(shop).salon) return { ok: false as const, error: "Select Salon, barber & spa in Till settings to use this workspace." }
   return { ok: true as const, actor: result.actor, shopId: result.actor.shopkeeperId, storeId: result.actor.storeId }
 }
 async function lock(tx: Prisma.TransactionClient, shop: string) { await tx.$queryRaw`SELECT true AS locked FROM pg_advisory_xact_lock(hashtext('saji-salon'), hashtext(${shop}))` }
@@ -46,7 +47,7 @@ export async function getSalonWorkspace(input: unknown = {}) {
     const bookingDeposits=checkoutIds.length&&(reception||financial)?await db.posMpesaTransaction.findMany({where:{shopkeeperId:g.shopId,checkoutId:{in:checkoutIds},status:"PAID"},select:{checkoutId:true,receipt:true,consumedSaleId:true}}):[]
     return { success: true as const, data: { canBook: reception, canTeamView: teamScope, canService: g.actor.can("salon.service"), canManage: manage, canFinancial: financial,
       links: { sell: g.actor.can("till.sell"), products: g.actor.can("product.view"), customers: g.actor.can("till.sell"), stock: g.actor.can("stock.view") },
-      canMatch: reception && (g.actor.can("till.sell") || financial), truncated: appointments.length > 500,
+      canCash: reception && g.actor.can("till.sell"), canMatch: reception && (g.actor.can("till.sell") || financial), truncated: appointments.length > 500,
       services: services.map(s => ({ id: s.id, name: s.name, price: Number(s.price), duration: s.salonServices[0]?.durationMinutes ?? 60, commissionBps: manage || financial ? s.salonServices[0]?.commissionBps ?? 0 : null })), staff,
       appointments: appointments.slice(0, 500).map(a => {
         const returned = a.saleItem?.returnItems.reduce((sum, r) => sum + Number(r.quantity), 0) ?? 0

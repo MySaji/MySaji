@@ -1,4 +1,5 @@
 "use server"
+import { loadPosBusinessFeatures } from "@/backend/services/pos-business-features"
 import { z } from "zod"
 import { Prisma } from "@prisma/client"
 import { db } from "@/backend/db"
@@ -14,6 +15,7 @@ export async function postMaterialUsage(input:unknown){
  const p=z.object({shopId:z.string(),requestId:z.string().uuid(),serviceId:z.string().min(1).max(60),contextType:z.enum(["APPOINTMENT","JOB","SALE_ITEM"]),contextId:z.string().min(1).max(60),note:z.string().trim().min(3).max(300),lines:z.array(materialLineSchema).min(1).max(50)}).safeParse(input)
  if(!p.success)return fail("Select a service, a valid appointment/job/receipt line and actual material quantities.")
  const actor=await operationsActor("stock.adjust",p.data.shopId);if(!actor?.shopkeeperId)return fail("Recording material consumption requires stock adjustment access for this branch.")
+ if(!(await loadPosBusinessFeatures(p.data.shopId))?.services)return fail("Enable service selling in Till Settings before recording service materials.")
  const d=p.data,shopId=actor.shopkeeperId
  const keys=d.lines.map(l=>`${l.productId}:${l.variantId}:${l.batchId}`);if(new Set(keys).size!==keys.length)return fail("List each product/variant/batch once.")
  try{return await db.$transaction(async tx=>{

@@ -3,7 +3,7 @@ const assert = require("node:assert/strict")
 const { loadService } = require("./load-service.cjs")
 
 test("employee navigation follows permissions, including grants outside the role", () => {
-  const { canOpenPosPage } = loadService("frontend/lib/pos-navigation.ts")
+  const { canOpenPosPage } = loadService("frontend/lib/pos-navigation.ts", { "@/backend/domain/pos-business-features": require("./pos-feature-fixture.cjs").features })
   assert.equal(canOpenPosPage("/pos/home", []), true)
   assert.equal(canOpenPosPage("/pos/sell", ["product.view"]), false)
   assert.equal(canOpenPosPage("/pos/settings", ["till.sell"]), false)
@@ -16,6 +16,7 @@ test("employee navigation follows permissions, including grants outside the role
 test("identity exposes all owner-selected permissions rather than intersecting the role", async () => {
   const permissions = loadService("backend/domain/pos-permissions.ts")
   const { getPosWhoAmI } = loadService("backend/actions/pos-access.ts", {
+    "@/backend/domain/pos-business-features": require("./pos-feature-fixture.cjs").features,
     "@/backend/db": { db: {} },
     "@/backend/domain/pos-permissions": permissions,
     "@/backend/services/pos-access-core": {

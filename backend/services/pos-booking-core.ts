@@ -1,4 +1,5 @@
 import "server-only"
+import { posBusinessFeatures } from "@/backend/domain/pos-business-features"
 import { Prisma } from "@prisma/client"
 import { db } from "@/backend/db"
 import { validBusinessSubdomain,websiteContentSchema } from "@/backend/domain/pos-website"
@@ -12,9 +13,9 @@ export async function publicBookingBusiness(slug:string,tx:Prisma.TransactionCli
  const content=websiteContentSchema.safeParse(site.publishedContent);if(!content.success)return null
  const branches=[]
  for(const store of site.business.stores){
-  const [config,shop]=await Promise.all([tx.posOperationsConfig.findUnique({where:{shopkeeperId:store.shopkeeperId}}),tx.shopkeeperProfile.findUnique({where:{id:store.shopkeeperId},select:{posEnabled:true,posProfileKey:true}})])
+  const [config,shop]=await Promise.all([tx.posOperationsConfig.findUnique({where:{shopkeeperId:store.shopkeeperId}}),tx.shopkeeperProfile.findUnique({where:{id:store.shopkeeperId},select:{posEnabled:true,posProfileKey:true,posTraits:true,posConfig:true}})])
   const settings=readOperationsSettings(config?.settings)
-  if(!settings.bookingEnabled||!shop?.posEnabled||shop.posProfileKey!=="SALON"||!settings.publicStaffIds.length)continue
+  if(!settings.bookingEnabled||!shop?.posEnabled||!posBusinessFeatures(shop).salon||!settings.publicStaffIds.length)continue
   const [services,staff]=await Promise.all([tx.product.findMany({where:{id:{in:content.data.productIds},shopkeeperId:store.shopkeeperId,isActive:true,isService:true},select:{id:true,name:true,price:true,discountPrice:true,salonServices:{select:{durationMinutes:true}}},orderBy:{name:"asc"}}),tx.posStaff.findMany({where:{id:{in:settings.publicStaffIds},businessId:site.businessId,isActive:true,OR:[{storeId:null},{storeId:store.id}]},select:{id:true,name:true},orderBy:{name:"asc"}})])
   if(!services.length||!staff.length)continue
   branches.push({id:store.id,name:store.name,shopkeeperId:store.shopkeeperId,settings,services:services.map(s=>({id:s.id,name:s.name,price:Number(s.discountPrice??s.price),duration:s.salonServices[0]?.durationMinutes??60})),staff})

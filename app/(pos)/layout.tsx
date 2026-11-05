@@ -74,7 +74,7 @@ function PosShell({ children }: { children: React.ReactNode }) {
           {actor?.permissions.includes("till.sell") && <Link href="/pos/sell" className="inline-flex h-10 shrink-0 items-center gap-2 rounded-xl bg-blue-600 px-4 text-xs font-semibold text-white hover:bg-blue-700"><ShoppingCart className="h-4 w-4" />New sale</Link>}</div>
         </div>
       </header>
-      <main className="w-full min-w-0">{actor && !canOpenPosPage(pathname, actor.permissions) ? <div className="m-6 rounded-2xl border border-border bg-background p-8"><h1 className="text-xl font-semibold">Access restricted</h1><p className="mt-3 text-sm text-muted-foreground">Your owner has not enabled this feature for your account.</p><Link href="/pos/home" className="mt-4 inline-block text-sm font-semibold text-primary">Return to your workspace</Link></div> : children}</main>
+      <main className="w-full min-w-0">{actor && !canOpenPosPage(pathname, actor.permissions, actor.features) ? <div className="m-6 rounded-2xl border border-border bg-background p-8"><h1 className="text-xl font-semibold">Access restricted</h1><p className="mt-3 text-sm text-muted-foreground">Your owner has not enabled this feature for your account.</p><Link href="/pos/home" className="mt-4 inline-block text-sm font-semibold text-primary">Return to your workspace</Link></div> : children}</main>
     </div>
   )
 }
