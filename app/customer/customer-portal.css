@@ -1,0 +1,164 @@
+/* Scoped customer design system; conversation/call screens retain their own layout. */
+.customer-portal-frame {
+  --customer-space: 1.25rem;
+  max-width: 1600px;
+  margin-inline: auto;
+  min-width: 0;
+  color: var(--foreground);
+}
+.customer-context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+}
+.customer-context-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 40px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  background: var(--background);
+}
+.customer-context-link:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.customer-content {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  background: color-mix(in srgb, var(--muted) 32%, var(--background));
+}
+.customer-content > :first-child {
+  min-height: 0;
+}
+[data-workspace="customer"] .customer-content [data-slot="card"] {
+  border-color: var(--border);
+  border-radius: 18px;
+  box-shadow: 0 2px 9px #0b224705;
+  min-width: 0;
+}
+[data-workspace="customer"] .customer-content h1 {
+  font-size: clamp(1.5rem, 2.1vw, 2rem);
+  line-height: 1.2;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+[data-workspace="customer"] .customer-content h2 {
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+}
+[data-workspace="customer"]
+  .customer-content
+  :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), select) {
+  min-height: 44px;
+  max-width: 100%;
+}
+[data-workspace="customer"] .customer-content :is(input, select, textarea):focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+[data-workspace="customer"] .customer-content textarea {
+  line-height: 1.6;
+  max-width: 100%;
+}
+[data-workspace="customer"] .customer-content table {
+  font-variant-numeric: tabular-nums;
+}
+[data-workspace="customer"] .customer-content img {
+  max-width: 100%;
+}
+.customer-portal-frame[data-density="compact"] [data-customer-panel] {
+  padding: 1rem;
+}
+.customer-portal-frame[data-density="compact"] [data-slot="card"] {
+  gap: 0.75rem;
+}
+.customer-portal-frame[data-density="compact"] .customer-page-grid {
+  gap: 0.75rem;
+}
+.customer-page-grid {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+}
+.customer-surface {
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--card);
+  padding: var(--customer-space);
+  min-width: 0;
+}
+@media (max-width: 639px) {
+  .customer-context {
+    padding: 0.75rem 1rem;
+  }
+  .customer-context > div {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .customer-context-link {
+    font-size: 0.7rem;
+  }
+  [data-workspace="customer"]
+    .customer-content
+    :is(
+      input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+      select,
+      textarea
+    ) {
+    font-size: 16px;
+  }
+  .customer-portal-frame {
+    --customer-space: 1rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .customer-portal-frame * {
+    scroll-behavior: auto;
+    transition-duration: 0.01ms;
+    animation-duration: 0.01ms;
+  }
+}
+
+[data-workspace="customer"] .customer-content [data-slot="button"] {
+  min-height: 42px;
+}
+body:has([data-workspace="customer"])
+  [role="dialog"]
+  :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  min-height: 44px;
+}
+@media (max-width: 639px) {
+  body:has([data-workspace="customer"])
+    [role="dialog"]
+    :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+    font-size: 16px;
+  }
+}
+
+[data-workspace="customer"] .workspace-tools {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+}
+[data-workspace="customer"] .workspace-tools > span:first-child {
+  display: none;
+}
+[data-workspace="customer"] .workspace-tools > :is(a, button) {
+  flex-shrink: 0;
+}
+
+.customer-portal-frame[data-density="compact"] {
+  --customer-space: 1rem;
+}

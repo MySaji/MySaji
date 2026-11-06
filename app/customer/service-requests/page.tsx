@@ -101,7 +101,7 @@ export default function CustomerServiceRequestsPage() {
     return (
       <div className="min-h-screen bg-background pb-10">
         <div className="sticky top-0 z-30 bg-gradient-to-r from-primary to-primary/90 px-4 py-4 text-primary-foreground">
-          <div className="mx-auto flex max-w-2xl items-center gap-4">
+          <div className="mx-auto flex max-w-6xl items-center gap-4">
             <button onClick={() => setSelectedId(null)} className="rounded-lg p-2 hover:bg-white/20"><ArrowLeft className="h-6 w-6" /></button>
             <h1 className="text-base font-bold truncate">{detail.title}</h1>
           </div>

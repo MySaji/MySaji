@@ -1,9 +1,11 @@
 "use client"
 
+import { usePlatformGoogleMaps } from "@/frontend/lib/maps-provider"
+import { OsmAddressInput } from "@/frontend/components/maps/osm-address-input"
+
 import { useRef } from "react"
-import { useJsApiLoader, Autocomplete } from "@react-google-maps/api"
+import { Autocomplete } from "@react-google-maps/api"
 import { Input } from "@/frontend/components/ui/input"
-import { GOOGLE_MAPS_LIBRARIES, GOOGLE_MAPS_LOADER_ID, isGoogleMapsConfigured } from "@/backend/services/google-maps"
 
 export type PlaceResult = { address: string; city: string | null; latitude: number; longitude: number }
 
@@ -22,12 +24,8 @@ export function AddressAutocompleteInput({
   disabled?: boolean
   ariaLabel?: string
 }) {
-  const configured = isGoogleMapsConfigured()
-  const { isLoaded } = useJsApiLoader({
-    id: GOOGLE_MAPS_LOADER_ID,
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
-    libraries: GOOGLE_MAPS_LIBRARIES,
-  })
+  const { isLoaded, mapConfig, osm } = usePlatformGoogleMaps()
+  const configured = Boolean(mapConfig?.googleConfigured)
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null)
 
   const handlePlaceChanged = () => {
@@ -43,6 +41,8 @@ export function AddressAutocompleteInput({
       longitude: place.geometry.location.lng(),
     })
   }
+
+  if (osm) return <OsmAddressInput value={value} onChange={onChange} onPlaceSelected={onPlaceSelected} placeholder={placeholder} className={className} disabled={disabled} ariaLabel={ariaLabel} />
 
   if (!configured || !isLoaded) {
     return (

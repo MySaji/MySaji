@@ -1,8 +1,8 @@
 "use client"
 
+import { useMapSettings, reverseMapLocation } from "@/frontend/lib/maps-provider"
+
 import { useState, useEffect } from "react"
-import { useJsApiLoader } from "@react-google-maps/api"
-import { GOOGLE_MAPS_LIBRARIES, GOOGLE_MAPS_LOADER_ID, isGoogleMapsConfigured } from "@/backend/services/google-maps"
 import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 import { useGatedAction } from "@/frontend/lib/hooks/useGatedAction"
 import { Card } from "@/frontend/components/ui/card"
@@ -145,12 +145,7 @@ export function CustomerServicesPage() {
 
   const timeSlots = ["09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "02:00 PM", "03:00 PM", "04:00 PM", "05:00 PM"]
 
-  const mapsConfigured = isGoogleMapsConfigured()
-  const { isLoaded: mapsLoaded } = useJsApiLoader({
-    id: GOOGLE_MAPS_LOADER_ID,
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
-    libraries: GOOGLE_MAPS_LIBRARIES,
-  })
+  const { data: mapConfig } = useMapSettings()
 
   // Silent, non-intrusive resolution used on page load — never prompts for
   // geolocation permission on its own, just falls back to the customer's
@@ -169,7 +164,7 @@ export function CustomerServicesPage() {
   // click (the pointer/arrow buttons below), so the browser's location
   // permission prompt only ever appears after a deliberate tap. Resolves to
   // a real formatted address ("Final Destination Wines, Embakasi, Nairobi,
-  // Kenya"-style) via the Google Geocoder when a Maps key is configured and
+  // Kenya"-style) via the selected map provider when address lookup is configured and
   // loaded, same pattern as the saved-addresses page's "use current
   // location". Falls back to the saved default address if geolocation is
   // denied/unsupported, and to raw coordinates if a live fix succeeds but no
@@ -186,19 +181,11 @@ export function CustomerServicesPage() {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords
-          if (mapsConfigured && mapsLoaded && typeof google !== "undefined") {
-            new google.maps.Geocoder().geocode({ location: { lat: latitude, lng: longitude } }, (results, status) => {
-              setIsLocating(false)
-              const resolved = status === "OK" && results?.[0] ? results[0].formatted_address : `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`
-              setCurrentLocation(resolved)
-              resolve(resolved)
-            })
-          } else {
-            const resolved = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`
-            setCurrentLocation(resolved)
-            setIsLocating(false)
-            resolve(resolved)
-          }
+          const fallback = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`
+          void reverseMapLocation(mapConfig?.provider, latitude, longitude).then(place => {
+            const resolved = place?.address ?? fallback
+            setCurrentLocation(resolved); setIsLocating(false); resolve(resolved)
+          }).catch(() => { setCurrentLocation(fallback); setIsLocating(false); resolve(fallback) })
         },
         () => {
           setLocateError(t("customer.savedAddresses.geoError"))

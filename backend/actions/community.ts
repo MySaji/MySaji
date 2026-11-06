@@ -1,6 +1,7 @@
 "use server"
 
 import { z } from "zod"
+import type { Prisma } from "@prisma/client"
 import { auth } from "@/backend/auth"
 import { db } from "@/backend/db"
 
@@ -38,15 +39,35 @@ export type PostItem = {
   isMine: boolean
 }
 
-export async function getPosts(postId?: string, savedOnly = false): Promise<PostItem[]> {
+const feedOptionsSchema = z.object({
+  query: z.string().trim().max(200).default(""),
+  view: z.enum(["all", "following", "mine", "unanswered"]).default("all"),
+  mediaOnly: z.boolean().default(false),
+  period: z.enum(["all", "week", "month"]).default("all"),
+  before: z.object({ createdAt: z.string().datetime(), id: z.string().min(1).max(100) }).optional(),
+})
+
+export async function getPosts(postId?: string, savedOnly = false, options?: unknown): Promise<PostItem[]> {
   const session = await auth()
   const myId = session?.user?.id ?? null
   if ((postId !== undefined && (typeof postId !== "string" || !postId.trim() || postId.length > 200)) || (savedOnly === true && !myId)) return []
 
+  const parsed = options === undefined ? null : feedOptionsSchema.safeParse(options)
+  if (parsed && !parsed.success) throw new Error("Check the community search filters.")
+  const filters = parsed?.success ? parsed.data : null
+  if (filters && !myId) throw new Error("Sign in to browse your community feed.")
+  const AND: Prisma.PostWhereInput[] = []
+  if (filters?.query) AND.push({ OR: [{content:{contains:filters.query,mode:"insensitive"}},{location:{contains:filters.query,mode:"insensitive"}},{author:{name:{contains:filters.query,mode:"insensitive"}}}] })
+  if (filters?.view === "following") AND.push({ author: { followedBy: { some: { followerId: myId! } } } })
+  if (filters?.view === "mine") AND.push({ authorId: myId! })
+  if (filters?.view === "unanswered") AND.push({ commentCount: 0 })
+  if (filters?.mediaOnly) AND.push({ OR: [{ images: { isEmpty: false } }, { video: { not: null } }] })
+  if (filters && filters.period !== "all") AND.push({ createdAt:{gte:new Date(Date.now()-(filters.period==="week"?7:30)*86_400_000)} })
+  if (filters?.before && !postId) AND.push({ OR:[{createdAt:{lt:new Date(filters.before.createdAt)}},{createdAt:new Date(filters.before.createdAt),id:{lt:filters.before.id}}] })
   const posts = await db.post.findMany({
-    where: { isArchived: false, ...(postId ? { id: postId } : {}), ...(savedOnly === true && myId ? { saves: { some: { userId: myId } } } : {}) },
-    orderBy: { createdAt: "desc" },
-    take: 50,
+    where: { isArchived: false, ...(postId ? { id: postId } : {}), ...(savedOnly === true && myId ? { saves: { some: { userId: myId } } } : {}), ...(AND.length ? {AND} : {}) },
+    orderBy: [{createdAt:"desc"},{id:"desc"}],
+    take: filters ? 31 : 50,
     include: {
       author: {
         include: {
@@ -246,6 +267,19 @@ export async function deletePost(input: unknown): Promise<CommunityActionResult>
   return { success: true }
 }
 
+export async function editMyCommunityPost(input: unknown): Promise<CommunityActionResult> {
+  const session=await auth()
+  if(!session?.user?.id)return {success:false,error:"Sign in to edit your post."}
+  const parsed=z.object({postId:z.string().min(1).max(100),content:z.string().trim().max(2000),expectedContent:z.string().max(2000)}).safeParse(input)
+  if(!parsed.success)return {success:false,error:"Keep your post within 2,000 characters."}
+  const d=parsed.data
+  const post=await db.post.findFirst({where:{id:d.postId,authorId:session.user.id,isArchived:false},select:{images:true,video:true}})
+  if(!post)return {success:false,error:"Only the author can edit an available post."}
+  if(!d.content&&!post.images.length&&!post.video)return {success:false,error:"Write something or keep the attached media."}
+  const changed=await db.post.updateMany({where:{id:d.postId,authorId:session.user.id,isArchived:false,content:d.expectedContent},data:{content:d.content}})
+  return changed.count===1?{success:true}:{success:false,error:"This post changed. Refresh before editing again."}
+}
+
 const reportPostSchema = z.object({ postId: z.string().trim().min(1), reason: z.string().trim().min(3).max(300) })
 
 /** Writes a real ContentReport — the same table Admin's Moderation queue
@@ -302,6 +336,7 @@ export async function reportComment(input: unknown): Promise<CommunityActionResu
 }
 
 export type GroupItem = {
+  isCreator: boolean
   id: string
   name: string
   description: string | null
@@ -332,6 +367,7 @@ export async function getGroups(): Promise<GroupItem[]> {
     image: g.image,
     memberCount: g._count.members,
     isJoined: joinedIds.has(g.id),
+    isCreator: g.createdById === myId,
   }))
 }
 
@@ -364,11 +400,14 @@ export async function toggleJoinGroup(input: unknown): Promise<ToggleResult> {
   const { groupId } = parsed.data
   const userId = session.user.id
 
+  const group=await db.group.findUnique({where:{id:groupId},select:{createdById:true}})
+  if(!group)return {success:false,error:"This group is no longer available."}
   const existing = await db.groupMembership.findUnique({ where: { groupId_userId: { groupId, userId } } })
+  if(existing&&group.createdById===userId)return {success:false,error:"The group creator keeps their membership. Use group settings to manage or delete your group."}
   if (existing) {
     await db.groupMembership.delete({ where: { id: existing.id } })
   } else {
-    await db.groupMembership.create({ data: { groupId, userId } })
+    await db.groupMembership.create({ data: { groupId, userId, isAdmin: group.createdById===userId } })
   }
   const count = await db.groupMembership.count({ where: { groupId } })
   return { success: true, isActive: !existing, count }
@@ -409,9 +448,20 @@ export async function getGroupDetail(groupId: string): Promise<GroupDetail> {
   }
 }
 
+export async function updateMyCommunityGroup(input: unknown): Promise<CommunityActionResult> {
+  const session=await auth()
+  if(!session?.user?.id)return {success:false,error:"Sign in to manage your group."}
+  const parsed=z.object({groupId:z.string().min(1).max(100),name:z.string().trim().min(2).max(100),description:z.string().trim().min(1).max(1000),expectedName:z.string().max(100),expectedDescription:z.string().max(1000).nullable()}).safeParse(input)
+  if(!parsed.success)return {success:false,error:"Enter a name (2-100 characters) and description (up to 1,000 characters)."}
+  const d=parsed.data
+  const result=await db.group.updateMany({where:{id:d.groupId,createdById:session.user.id,name:d.expectedName,description:d.expectedDescription},data:{name:d.name,description:d.description}})
+  return result.count===1?{success:true}:{success:false,error:"Only the creator can update an unchanged group. Refresh and try again."}
+}
+
 export type GroupMemberItem = { id: string; name: string; avatar: string | null; isAdmin: boolean; joinedAt: string }
 
 export async function getGroupMembers(groupId: string): Promise<GroupMemberItem[]> {
+  if(!(await auth())?.user?.id)return []
   const memberships = await db.groupMembership.findMany({
     where: { groupId },
     orderBy: [{ isAdmin: "desc" }, { joinedAt: "asc" }],
@@ -440,14 +490,15 @@ export type GroupPostItem = {
   isMine: boolean
 }
 
-export async function getGroupPosts(groupId: string): Promise<GroupPostItem[]> {
+export async function getGroupPosts(groupId: string, before?: { createdAt: string; id: string }): Promise<GroupPostItem[]> {
   const session = await auth()
   const myId = session?.user?.id ?? null
 
+  if(!z.string().min(1).max(100).safeParse(groupId).success || before && !z.object({createdAt:z.string().datetime(),id:z.string().min(1).max(100)}).safeParse(before).success) return []
   const posts = await db.groupPost.findMany({
-    where: { groupId },
-    orderBy: { createdAt: "desc" },
-    take: 50,
+    where: { groupId, ...(before?{OR:[{createdAt:{lt:new Date(before.createdAt)}},{createdAt:new Date(before.createdAt),id:{lt:before.id}}]}:{}) },
+    orderBy: [{createdAt:"desc"},{id:"desc"}],
+    take: 31,
     include: { author: true },
   })
 
@@ -475,7 +526,7 @@ export async function getGroupPosts(groupId: string): Promise<GroupPostItem[]> {
 const createGroupPostSchema = z.object({
   groupId: z.string().trim().min(1),
   content: z.string().trim().max(2000).optional().default(""),
-  images: z.array(z.string()).max(4).optional().default([]),
+  images: z.array(postImageSchema).max(4).optional().default([]),
 })
 
 export type CreateGroupPostResult = { success: true; postId: string } | { success: false; error: string }
@@ -505,6 +556,8 @@ export async function toggleGroupPostLike(input: unknown): Promise<ToggleResult>
   const { groupPostId } = parsed.data
   const userId = session.user.id
 
+  const target=await db.groupPost.findUnique({where:{id:groupPostId},select:{groupId:true}})
+  if(!target||!await db.groupMembership.findUnique({where:{groupId_userId:{groupId:target.groupId,userId}}}))return {success:false,error:"Join this group before reacting to its posts."}
   const existing = await db.groupPostLike.findUnique({ where: { groupPostId_userId: { groupPostId, userId } } })
   if (existing) {
     const [, post] = await db.$transaction([
@@ -543,7 +596,7 @@ export async function getGroupPostComments(groupPostId: string): Promise<GroupCo
   }))
 }
 
-const addGroupCommentSchema = z.object({ groupPostId: z.string().trim().min(1), content: z.string().trim().min(1, "Write a comment") })
+const addGroupCommentSchema = z.object({ groupPostId: z.string().trim().min(1), content: z.string().trim().min(1, "Write a comment").max(2000) })
 
 export async function addGroupPostComment(input: unknown): Promise<CommunityActionResult> {
   const session = await auth()
@@ -552,6 +605,8 @@ export async function addGroupPostComment(input: unknown): Promise<CommunityActi
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" }
   const { groupPostId, content } = parsed.data
 
+  const target=await db.groupPost.findUnique({where:{id:groupPostId},select:{groupId:true}})
+  if(!target||!await db.groupMembership.findUnique({where:{groupId_userId:{groupId:target.groupId,userId:session.user.id}}}))return {success:false,error:"Join this group before adding a comment."}
   await db.$transaction([
     db.groupPostComment.create({ data: { groupPostId, userId: session.user.id, content } }),
     db.groupPost.update({ where: { id: groupPostId }, data: { commentCount: { increment: 1 } } }),
@@ -587,7 +642,7 @@ export async function deleteGroup(input: unknown): Promise<CommunityActionResult
 export type TrendingTopic = { tag: string; postCount: number }
 
 export async function getTrendingTopics(): Promise<TrendingTopic[]> {
-  const posts = await db.post.findMany({ select: { content: true }, orderBy: { createdAt: "desc" }, take: 200 })
+  const posts = await db.post.findMany({ where: {isArchived:false}, select: { content: true }, orderBy: { createdAt: "desc" }, take: 200 })
   const counts = new Map<string, number>()
   const hashtagRegex = /#(\w+)/g
   for (const post of posts) {

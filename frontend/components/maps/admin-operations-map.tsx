@@ -1,14 +1,16 @@
 "use client"
 
+import { usePlatformGoogleMaps } from "@/frontend/lib/maps-provider"
+import { OsmMap, type OsmHandle } from "@/frontend/components/maps/osm-map"
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import useSWRInfinite from "swr/infinite"
-import { GoogleMap, OverlayViewF, CircleF, TrafficLayerF, useJsApiLoader } from "@react-google-maps/api"
+import { GoogleMap, OverlayViewF, CircleF, TrafficLayerF } from "@react-google-maps/api"
 import { MapPin, Search, RefreshCw, Maximize2, Minimize2, Layers, LocateFixed, Crosshair, X, Store, Wrench, Warehouse, ListFilter, Loader2, ArrowUpRight } from "lucide-react"
 import { useAuthContext } from "@/frontend/lib/auth-context"
 import { getAdminOperationsMap, type OperationsMapPage, type OperationsMapCursor } from "@/backend/actions/admin-operations-map"
 import { clusterOperationsLocations, insideMapBounds, locationDistanceKm, type MapBounds, type OperationsLocation } from "@/backend/domain/admin-operations-map"
-import { GOOGLE_MAPS_LIBRARIES, GOOGLE_MAPS_LOADER_ID, isGoogleMapsConfigured } from "@/backend/services/google-maps"
 import { Button } from "@/frontend/components/ui/button"
 import { Input } from "@/frontend/components/ui/input"
 import { MAP_STYLE_LIGHT } from "@/frontend/components/geo/map-style"
@@ -38,25 +40,27 @@ export default function AdminOperationsMap() {
   const [notice, setNotice] = useState("")
   const [listPage, setListPage] = useState(1)
   const mapRef = useRef<google.maps.Map | null>(null)
+  const osmRef = useRef<OsmHandle | null>(null)
   const regionRef = useRef<HTMLElement>(null)
   const originalFocus = useRef<HTMLElement | null>(null)
-  const configured = isGoogleMapsConfigured()
-  const { isLoaded, loadError } = useJsApiLoader({ id: GOOGLE_MAPS_LOADER_ID, googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "", libraries: GOOGLE_MAPS_LIBRARIES })
+  const { isLoaded, loadError, mapConfig, osm } = usePlatformGoogleMaps()
+  const configured = osm || Boolean(mapConfig?.googleConfigured)
   const [slowMap, setSlowMap] = useState(false)
   const [mapAuthError, setMapAuthError] = useState(false)
-  const mapReady = configured && isLoaded && !loadError && !mapAuthError
+  const mapReady = osm || (configured && isLoaded && !loadError && !mapAuthError)
   useEffect(() => {
+    if (osm) return
     const browser = window as Window & { gm_authFailure?: () => void }
     const previous = browser.gm_authFailure
     const handler = () => { setMapAuthError(true); previous?.() }
     browser.gm_authFailure = handler
     return () => { if (browser.gm_authFailure === handler) browser.gm_authFailure = previous }
-  }, [])
+  }, [osm])
   useEffect(() => {
-    if (!configured || isLoaded || loadError) return
+    if (osm || !configured || isLoaded || loadError) return
     const timer = window.setTimeout(() => setSlowMap(true), 12_000)
     return () => window.clearTimeout(timer)
-  }, [configured, isLoaded, loadError])
+  }, [osm, configured, isLoaded, loadError])
   const { data, error, isLoading, isValidating, size, setSize, mutate } = useSWRInfinite<OperationsMapPage>(
     (index, previous) => !user || user.role !== "admin" || (index > 0 && !previous?.next) ? null : ["admin-operations-map", user.id, index === 0 ? undefined : previous.next],
     async ([, , cursor]: [string, string, OperationsMapCursor | undefined]) => {
@@ -86,6 +90,7 @@ export default function AdminOperationsMap() {
   const pins = useMemo(() => filtered.filter(hasCoordinates), [filtered])
   const clusters = useMemo(() => clusterOperationsLocations(pins, zoom), [pins, zoom])
   const fit = useCallback((points: OperationsLocation[]) => {
+    if (osm) { osmRef.current?.fit(points.filter(p => p.latitude != null && p.longitude != null).map(p => ({latitude:p.latitude!,longitude:p.longitude!}))); return }
     const map = mapRef.current
     const available = points.filter(point => point.latitude != null && point.longitude != null)
     if (!map || !available.length) return
@@ -93,7 +98,7 @@ export default function AdminOperationsMap() {
     available.forEach(point => box.extend({ lat: point.latitude!, lng: point.longitude! }))
     map.fitBounds(box, 60)
     if (available.length === 1) map.setZoom(13)
-  }, [])
+  }, [osm])
   const initialiseMap = useCallback((map: google.maps.Map) => { mapRef.current = map; fit(locations) }, [fit, locations])
   const readViewport = () => {
     const map = mapRef.current, box = map?.getBounds()
@@ -105,6 +110,7 @@ export default function AdminOperationsMap() {
   }
   const selectPoint = (point: OperationsLocation) => {
     setSelectedId(point.id); setNotice("")
+    if (osm && hasCoordinates(point)) osmRef.current?.focus({latitude:point.latitude!,longitude:point.longitude!},13)
     if (hasCoordinates(point) && mapRef.current) { mapRef.current.panTo({ lat: point.latitude!, lng: point.longitude! }); mapRef.current.setZoom(Math.max(13, mapRef.current.getZoom() ?? 6)) }
     else if (!hasCoordinates(point)) setNotice("This record has no mapped business location. Ask the owner to set it in their business profile.")
   }
@@ -135,12 +141,18 @@ export default function AdminOperationsMap() {
     <div className={styles.metrics}>{[{label:"Registered business locations",value:total},{label:"POS branches",value:data?.[0]?.totals.pos ?? 0},{label:"Mapped in loaded records",value:mapped},{label:"Need a location / remote",value:locations.length - mapped}].map(metric => <div key={metric.label}><strong>{metric.value.toLocaleString()}</strong><span>{metric.label}</span></div>)}</div>
     <div className={styles.filters}><div className={styles.search}><Search size={17} /><Input aria-label="Search operations locations" placeholder="Business, owner, area or record ID" value={query} onChange={event => setQuery(event.target.value)} /></div><label>Status<select aria-label="Status" value={status} onChange={event => setStatus(event.target.value)}><option value="all">All statuses</option><option value="active">Active accounts / branches</option><option value="inactive">Inactive accounts / branches</option></select></label><label>Location data<select aria-label="Location data" value={locationFilter} onChange={event => setLocationFilter(event.target.value)}><option value="all">All records</option><option value="mapped">Mapped only</option><option value="missing">Missing location / remote</option></select></label></div>
     <div className={styles.layerbar}><span><Layers size={16} />Layers</span>{Object.entries(TYPES).map(([kind, type]) => <button key={kind} aria-pressed={kinds.includes(kind)} onClick={() => {setKinds(current => current.includes(kind) ? current.filter(value => value !== kind) : [...current, kind]);setGroupIds(null)}}><i style={{backgroundColor:type.color}} />{type.label}<b>{locations.filter(point => point.kind === kind).length}</b></button>)}<label><input type="checkbox" checked={verifiedOnly} onChange={event => setVerifiedOnly(event.target.checked)} />Verified records only</label></div>
-    <div className={styles.tools}><div className={styles.actions}><Button variant="outline" onClick={() => fit(pins)} disabled={!mapReady || !pins.length}><LocateFixed size={16} />Fit results</Button><Button variant="outline" onClick={() => {setViewportOnly(false);setGroupIds(null);mapRef.current?.setCenter(KENYA);mapRef.current?.setZoom(6)}} disabled={!mapReady}>Kenya view</Button><label>Base map<select aria-label="Map base layer" value={mapType} onChange={event => setMapType(event.target.value)}><option value="roadmap">Road map</option><option value="satellite">Satellite</option><option value="hybrid">Satellite + labels</option><option value="terrain">Terrain</option></select></label></div><div className={styles.checks}><label><input type="checkbox" checked={traffic} disabled={!mapReady} onChange={event => setTraffic(event.target.checked)} />Traffic</label><label><input type="checkbox" checked={density} onChange={event => setDensity(event.target.checked)} />Density circles</label><label><input type="checkbox" checked={viewportOnly} disabled={!mapReady} onChange={event => setViewportOnly(event.target.checked)} />In map view only</label><label><input type="checkbox" checked={refreshing} onChange={event => setRefreshing(event.target.checked)} />Auto-refresh</label></div></div>
+    <div className={styles.tools}><div className={styles.actions}><Button variant="outline" onClick={() => fit(pins)} disabled={!mapReady || !pins.length}><LocateFixed size={16} />Fit results</Button><Button variant="outline" onClick={() => {setViewportOnly(false);setGroupIds(null);mapRef.current?.setCenter(KENYA);mapRef.current?.setZoom(6);osmRef.current?.focus({latitude:KENYA.lat,longitude:KENYA.lng},6)}} disabled={!mapReady}>Kenya view</Button><label>Base map<select aria-label="Map base layer" disabled={osm} value={osm ? "roadmap" : mapType} onChange={event => setMapType(event.target.value)}><option value="roadmap">Road map</option><option value="satellite">Satellite</option><option value="hybrid">Satellite + labels</option><option value="terrain">Terrain</option></select></label></div><div className={styles.checks}><label><input type="checkbox" checked={!osm && traffic} disabled={!mapReady || osm} onChange={event => setTraffic(event.target.checked)} />Traffic</label><label><input type="checkbox" checked={density} onChange={event => setDensity(event.target.checked)} />Density circles</label><label><input type="checkbox" checked={viewportOnly} disabled={!mapReady} onChange={event => setViewportOnly(event.target.checked)} />In map view only</label><label><input type="checkbox" checked={refreshing} onChange={event => setRefreshing(event.target.checked)} />Auto-refresh</label></div></div>
+    {osm && <p className={styles.message}>OpenStreetMap is selected. Business filters, clusters and radius tools are available. Satellite and traffic layers require Google Maps.</p>}
     {error && <div role="alert" className={styles.error}>The map records could not be refreshed. Check your connection and administrator access. Existing results may be out of date.<Button variant="outline" onClick={() => void mutate()}>Retry records</Button></div>}
     {isLoading && <p role="status" className={styles.message}><Loader2 size={18} className="animate-spin" />Loading registered business locations...</p>}
     <div className={styles.workspace}>
       <div className={styles.map} aria-label="Interactive business location map">
-        {mapReady ? <GoogleMap mapContainerStyle={{width:"100%",height:"100%"}} center={KENYA} zoom={6} onLoad={initialiseMap} onUnmount={() => {mapRef.current=null}} onIdle={readViewport} options={mapOptions}>
+        {osm ? <OsmMap className="h-full w-full" handleRef={osmRef} center={{latitude:KENYA.lat,longitude:KENYA.lng}} zoom={6}
+          pins={clusters.map(cluster => ({id:cluster.members.length===1?cluster.members[0].id:`cluster:${cluster.key}`,latitude:cluster.latitude,longitude:cluster.longitude,label:cluster.members.length===1?cluster.members[0].name:`${cluster.members.length} business locations`,color:cluster.members.length===1?TYPES[cluster.members[0].kind].color:"#0647b5",count:cluster.members.length>1?cluster.members.length:undefined}))}
+          circles={[...(density ? clusters.map(cluster=>({latitude:cluster.latitude,longitude:cluster.longitude,radius:Math.max(200,Math.min(20_000,350_000/2**(zoom/2))),color:"#ff7900"})):[]),...(selected&&hasCoordinates(selected)&&radius>0?[{latitude:selected.latitude!,longitude:selected.longitude!,radius:radius*1000,color:"#0647b5"}]:[])]}
+          onSelect={id=>{const point=locations.find(p=>p.id===id);if(point){selectPoint(point);return}const cluster=clusters.find(c=>`cluster:${c.key}`===id);if(cluster){setGroupIds(cluster.members.map(p=>p.id));setNotice(`${cluster.members.length} records in this area. Choose one from the results list.`);fit(cluster.members)}}}
+          onViewport={value=>{setZoom(value.zoom);setBounds(current=>current&&current.north===value.north&&current.south===value.south&&current.east===value.east&&current.west===value.west?current:{north:value.north,south:value.south,east:value.east,west:value.west})}}
+        /> : mapReady ? <GoogleMap mapContainerStyle={{width:"100%",height:"100%"}} center={KENYA} zoom={6} onLoad={initialiseMap} onUnmount={() => {mapRef.current=null}} onIdle={readViewport} options={mapOptions}>
           {traffic && <TrafficLayerF />}
           {clusters.map(cluster => cluster.members.length === 1 ? <OverlayViewF key={cluster.members[0].id} position={{lat:cluster.latitude,lng:cluster.longitude}} mapPaneName="overlayMouseTarget" getPixelPositionOffset={() => ({x:-20,y:-20})}><button className={`${styles.pin} ${selectedId === cluster.members[0].id ? styles.selectedPin : ""}`} style={{backgroundColor:TYPES[cluster.members[0].kind].color}} aria-label={`Locate ${cluster.members[0].name}`} onClick={() => selectPoint(cluster.members[0])}>{cluster.members[0].kind === "provider" ? <Wrench size={17} /> : cluster.members[0].kind === "distributor" ? <Warehouse size={17} /> : <Store size={17} />}</button></OverlayViewF> : <OverlayViewF key={cluster.key} position={{lat:cluster.latitude,lng:cluster.longitude}} mapPaneName="overlayMouseTarget" getPixelPositionOffset={() => ({x:-24,y:-24})}><button className={styles.cluster} aria-label={`Explore cluster of ${cluster.members.length} business locations`} onClick={() => {setGroupIds(cluster.members.map(point => point.id));setNotice(`${cluster.members.length} records in this area. Choose one from the results list.`);fit(cluster.members)}}>{cluster.members.length}</button></OverlayViewF>)}
           {density && clusters.map(cluster => <CircleF key={`density-${cluster.key}`} center={{lat:cluster.latitude,lng:cluster.longitude}} radius={Math.max(200,Math.min(20_000,350_000 / 2 ** (zoom / 2)))} options={{fillColor:"#ff7900",fillOpacity:Math.min(.1 + cluster.members.length * .035,.5),strokeOpacity:0,clickable:false}} />)}

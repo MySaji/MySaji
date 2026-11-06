@@ -685,7 +685,7 @@ export function CustomerJobsPage() {
   // ---- Jobs List View ----
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-3xl mx-auto px-4 py-6 lg:py-8">
+      <div className="max-w-6xl mx-auto px-4 py-6 lg:py-8">
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-1">
             <Briefcase className="w-5 h-5 text-primary" />

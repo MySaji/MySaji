@@ -1,8 +1,10 @@
 "use client"
 
-import { useJsApiLoader, GoogleMap, MarkerF } from "@react-google-maps/api"
+import { usePlatformGoogleMaps } from "@/frontend/lib/maps-provider"
+import { OsmMap } from "@/frontend/components/maps/osm-map"
+
+import { GoogleMap, MarkerF } from "@react-google-maps/api"
 import { MapPin } from "lucide-react"
-import { GOOGLE_MAPS_LIBRARIES, GOOGLE_MAPS_LOADER_ID, isGoogleMapsConfigured } from "@/backend/services/google-maps"
 
 /** A single-marker map preview — used for shop locations and job
  * destinations. Falls back to a clearly-labeled placeholder when Maps isn't
@@ -11,12 +13,8 @@ import { GOOGLE_MAPS_LIBRARIES, GOOGLE_MAPS_LOADER_ID, isGoogleMapsConfigured } 
 export function StaticLocationMap({
   latitude, longitude, label, className,
 }: { latitude: number | null; longitude: number | null; label?: string; className?: string }) {
-  const configured = isGoogleMapsConfigured()
-  const { isLoaded } = useJsApiLoader({
-    id: GOOGLE_MAPS_LOADER_ID,
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
-    libraries: GOOGLE_MAPS_LIBRARIES,
-  })
+  const { isLoaded, mapConfig, osm } = usePlatformGoogleMaps()
+  const configured = osm || Boolean(mapConfig?.googleConfigured)
 
   const containerClass = className ?? "h-40 w-full rounded-xl"
 
@@ -27,6 +25,8 @@ export function StaticLocationMap({
       </div>
     )
   }
+
+  if (osm) return <OsmMap className={containerClass} staticPreview center={{ latitude, longitude }} zoom={15} pins={[{ id: "location", latitude, longitude, label: label ?? "Location" }]} />
 
   if (!configured || !isLoaded) {
     return (

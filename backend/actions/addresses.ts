@@ -43,9 +43,9 @@ const addressSchema = z.object({
   address: z.string().trim().min(1, "Address is required"),
   // Real coordinates from Google Places Autocomplete, when a Maps key is
   // configured — optional so the plain-text-input fallback still works.
-  city: z.string().trim().optional(),
-  latitude: z.number().min(-90).max(90).optional(),
-  longitude: z.number().min(-180).max(180).optional(),
+  city: z.string().trim().nullable().optional(),
+  latitude: z.number().min(-90).max(90).nullable().optional(),
+  longitude: z.number().min(-180).max(180).nullable().optional(),
 })
 
 export async function createAddress(input: unknown): Promise<AddressActionResult> {

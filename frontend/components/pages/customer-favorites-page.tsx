@@ -1,180 +1,298 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Button } from "@/frontend/components/ui/button"
-import { Card } from "@/frontend/components/ui/card"
-import { Heart, Star, CheckCircle, Briefcase, X, Loader2, Store } from "lucide-react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { getWishlistedProviders, getWishlistedShops, toggleWishlist, type WishlistedProvider, type WishlistedShop } from "@/backend/actions/wishlist"
+import { Heart, Search, Star, ShieldCheck, Store, Users, X, ArrowUpRight, Loader2 } from "lucide-react"
+import { Button } from "@/frontend/components/ui/button"
+import { Input } from "@/frontend/components/ui/input"
+import {
+  getWishlistedProviders,
+  getWishlistedShops,
+  setWishlistSaved,
+  type WishlistedProvider,
+  type WishlistedShop,
+} from "@/backend/actions/wishlist"
 import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 export function CustomerFavoritesPage() {
-  const { t, tn, formatMoney } = useLocalization()
-  const [favorites, setFavorites] = useState<WishlistedProvider[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [lastRemoved, setLastRemoved] = useState<WishlistedProvider | null>(null)
-  // Shops are a separate wishlist target from providers, so they load and
-  // unsave independently of the list above.
-  const [savedShops, setSavedShops] = useState<WishlistedShop[]>([])
-
-  useEffect(() => {
-    Promise.all([getWishlistedProviders(), getWishlistedShops()])
-      .then(([providers, shops]) => {
-        setFavorites(providers)
-        setSavedShops(shops)
-      })
-      .finally(() => setIsLoading(false))
-  }, [])
-
-  const removeShop = async (id: string) => {
-    const previous = savedShops
-    setSavedShops((prev) => prev.filter((s) => s.id !== id))
-    const result = await toggleWishlist({ targetType: "SHOP", targetId: id })
-    if (!result.success) setSavedShops(previous)
-  }
-
-  const removeFavorite = async (id: string) => {
-    const fav = favorites.find((f) => f.id === id)
-    if (!fav) return
-    setLastRemoved(fav)
-    setFavorites((prev) => prev.filter((f) => f.id !== id))
-    await toggleWishlist({ targetType: "PROVIDER", targetId: id })
-  }
-
-  const restoreFavorite = async () => {
-    if (!lastRemoved) return
-    setFavorites((prev) => [...prev, lastRemoved])
-    setLastRemoved(null)
-    await toggleWishlist({ targetType: "PROVIDER", targetId: lastRemoved.id })
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+  const { formatMoney } = useLocalization()
+  const [providers, setProviders] = useState<WishlistedProvider[]>([]),
+    [shops, setShops] = useState<WishlistedShop[]>([])
+  const [loading, setLoading] = useState(true),
+    [error, setError] = useState("")
+  const [query, setQuery] = useState(""),
+    [view, setView] = useState("all"),
+    [sort, setSort] = useState("saved")
+  const [lastRemoved, setLastRemoved] = useState<{
+    id: string
+    name: string
+    kind: "PROVIDER" | "SHOP"
+  } | null>(null)
+  const [busy, setBusy] = useState(false),
+    lock = useRef(false)
+  const load = useCallback(async () => {
+    setLoading(true)
+    const results = await Promise.allSettled([getWishlistedProviders(), getWishlistedShops()])
+    if (results[0].status === "fulfilled") setProviders(results[0].value)
+    if (results[1].status === "fulfilled") setShops(results[1].value)
+    setError(
+      results.some((result) => result.status === "rejected")
+        ? "Some saved items could not load. Retry before assuming your list is empty."
+        : ""
     )
+    setLoading(false)
+  }, [])
+  useEffect(() => {
+    void load()
+  }, [load])
+  const update = async (item: { id: string; name: string; kind: "PROVIDER" | "SHOP" }, saved: boolean) => {
+    if (lock.current) return
+    lock.current = true
+    setBusy(true)
+    setError("")
+    try {
+      const result = await setWishlistSaved({ targetType: item.kind, targetId: item.id, saved })
+      if (!result.success) {
+        setError(result.error)
+        return
+      }
+      if (saved) {
+        setLastRemoved(null)
+        await load()
+      } else {
+        setLastRemoved(item)
+        if (item.kind === "PROVIDER") setProviders((current) => current.filter((p) => p.id !== item.id))
+        else setShops((current) => current.filter((p) => p.id !== item.id))
+      }
+    } catch {
+      setError("Your saved list could not be updated. Refresh and retry.")
+    } finally {
+      lock.current = false
+      setBusy(false)
+    }
   }
-
+  const matches = (name: string, detail: string | null) =>
+    `${name} ${detail ?? ""}`.toLowerCase().includes(query.trim().toLowerCase())
+  const ordered = <T extends { name: string; rating: number }>(items: T[]) =>
+    [...items].sort((a, b) =>
+      sort === "name" ? a.name.localeCompare(b.name) : sort === "rating" ? b.rating - a.rating : 0
+    )
+  const visibleProviders = view === "shops" ? [] : ordered(providers.filter((p) => matches(p.name, p.bio))),
+    visibleShops = view === "providers" ? [] : ordered(shops.filter((p) => matches(p.name, p.category)))
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-3xl mx-auto px-4 py-6 lg:py-8">
-        <div className="mb-6">
-          <h1 className="text-xl lg:text-2xl font-bold text-foreground flex items-center gap-2">
-            <Heart className="w-6 h-6 text-red-500" /> {t("customer.favorites.title")}
-          </h1>
-          <p className="text-xs text-muted-foreground mt-1">{tn("customer.favorites.savedCount", favorites.length)}</p>
+    <div className="mx-auto max-w-[1400px] space-y-6 p-4 sm:p-6">
+      <header className="customer-surface flex flex-wrap items-start justify-between gap-5 border-t-4 border-t-primary">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-primary">
+            Your personal shortlist
+          </p>
+          <h1 className="mt-2 text-3xl font-semibold">Keep the good finds close</h1>
+          <p className="mt-3 max-w-xl text-sm leading-7 text-muted-foreground">
+            Return to specialists you trust and shops you want to explore. Saving an item does not make a
+            booking or place an order.
+          </p>
         </div>
-
-        {/* Undo bar */}
-        {lastRemoved && (
-          <div className="flex items-center justify-between bg-muted/50 p-3 rounded-xl mb-4">
-            <p className="text-xs text-muted-foreground">{t("customer.favorites.removed", { name: lastRemoved.name })}</p>
-            <Button size="sm" variant="ghost" onClick={restoreFavorite} className="gap-1.5 text-[11px]">
-              {t("customer.favorites.undo")}
-            </Button>
-          </div>
-        )}
-
-        <div className="space-y-3">
-          {favorites.length > 0 ? favorites.map(provider => (
-            <Card key={provider.id} className="p-4 border-0 shadow-sm hover:shadow-md transition-all group">
-              <div className="flex gap-4">
-                <div className="relative flex-shrink-0">
-                  <div className="w-16 h-16 rounded-2xl overflow-hidden ring-2 ring-border group-hover:ring-primary/30 transition-all">
-                    <Image src={provider.avatar || "/placeholder.svg"} alt={provider.name} width={64} height={64} className="object-cover" />
-                  </div>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2 mb-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-foreground">{provider.name}</h3>
-                      {provider.verified && (
-                        <span className="bg-blue-100 dark:bg-blue-900/30 px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
-                          <CheckCircle className="w-3 h-3 text-blue-600 fill-blue-600" />
-                          <span className="text-[10px] font-medium text-blue-700 dark:text-blue-300">{t("customer.favorites.verified")}</span>
-                        </span>
-                      )}
-                    </div>
-                    <button onClick={() => removeFavorite(provider.id)} aria-label={t("customer.products.removeFromWishlist")} className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
-                      <X className="w-4 h-4 text-muted-foreground hover:text-red-500" />
-                    </button>
-                  </div>
-                  <p className="text-xs text-muted-foreground mb-2">{provider.bio || t("customer.favorites.defaultBio")}</p>
-                  <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground mb-3">
-                    <span className="flex items-center gap-1"><Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" /><strong className="text-foreground">{provider.rating.toFixed(1)}</strong> ({provider.reviewCount})</span>
-                    <span className="flex items-center gap-1"><Briefcase className="w-3 h-3" />{tn("customer.favorites.jobsCount", provider.completedJobs)}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <p className="font-bold text-foreground">{formatMoney(provider.hourlyRate ?? 0)}<span className="text-[11px] font-normal text-muted-foreground">{t("customer.favorites.perHour")}</span></p>
-                    <div className="flex gap-2">
-                      <Link href={`/customer/find-specialists`}>
-                        <Button size="sm" variant="outline" className="rounded-xl bg-transparent text-[11px] h-8">{t("common.viewDetails")}</Button>
-                      </Link>
-                      <Link href="/customer/services">
-                        <Button size="sm" className="rounded-xl text-[11px] h-8">{t("customer.favorites.rebook")}</Button>
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          )) : (
-            <Card className="p-12 text-center border-0 shadow-sm">
-              <div className="w-14 h-14 bg-muted rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Heart className="w-6 h-6 text-muted-foreground" />
-              </div>
-              <p className="text-sm font-semibold text-foreground mb-1">{t("customer.favorites.emptyTitle")}</p>
-              <p className="text-xs text-muted-foreground mb-4">{t("customer.favorites.emptySubtitle")}</p>
-              <Link href="/customer/find-specialists"><Button className="rounded-xl">{t("customer.favorites.findProviders")}</Button></Link>
-            </Card>
-          )}
+        <Heart className="text-orange-500" size={30} />
+      </header>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="customer-surface">
+          <Users size={19} className="text-primary" />
+          <strong className="mt-3 block text-2xl">{loading ? "..." : providers.length}</strong>
+          <p className="mt-1 text-sm text-muted-foreground">Saved specialists</p>
         </div>
-
-        {/* Saved shops */}
-        {savedShops.length > 0 && (
-          <div className="mt-8">
-            <h2 className="mb-3 flex items-center gap-2 text-sm font-bold text-foreground">
-              <Store className="h-4 w-4 text-primary" /> {t("customer.favorites.savedShopsTitle")}
-            </h2>
-            <div className="space-y-3">
-              {savedShops.map((shop) => (
-                <Card key={shop.id} className="group border-0 p-4 shadow-sm transition-all hover:shadow-md">
-                  <div className="flex items-center gap-4">
-                    <div className="h-14 w-14 flex-shrink-0 overflow-hidden rounded-2xl bg-muted ring-2 ring-border">
-                      <Image src={shop.image || "/placeholder.svg"} alt={shop.name} width={56} height={56} className="h-full w-full object-cover" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="truncate font-bold text-foreground">{shop.name}</h3>
-                        {shop.isVerified && <CheckCircle className="h-3.5 w-3.5 flex-shrink-0 fill-blue-600 text-white" />}
-                      </div>
-                      {shop.category && <p className="truncate text-xs text-muted-foreground">{shop.category}</p>}
-                      <span className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
-                        <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                        <strong className="text-foreground">{shop.rating.toFixed(1)}</strong> ({shop.reviewCount})
-                      </span>
-                    </div>
-                    <div className="flex flex-shrink-0 items-center gap-2">
-                      <Link href={`/customer/shops/${shop.id}`}>
-                        <Button size="sm" className="h-8 rounded-xl text-[11px]">{t("common.viewDetails")}</Button>
-                      </Link>
-                      <button
-                        onClick={() => removeShop(shop.id)}
-                        aria-label={t("customer.products.removeFromWishlist")}
-                        className="rounded-lg p-1.5 opacity-0 transition-colors hover:bg-red-50 group-hover:opacity-100 dark:hover:bg-red-900/10"
-                      >
-                        <X className="h-4 w-4 text-muted-foreground hover:text-red-500" />
-                      </button>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </div>
-        )}
+        <div className="customer-surface">
+          <Store size={19} className="text-primary" />
+          <strong className="mt-3 block text-2xl">{loading ? "..." : shops.length}</strong>
+          <p className="mt-1 text-sm text-muted-foreground">Saved shops</p>
+        </div>
       </div>
+      <section aria-label="Filter saved items" className="customer-surface space-y-4">
+        <div className="flex flex-wrap gap-2">
+          {[
+            { id: "all", label: "Everything" },
+            { id: "providers", label: "Specialists" },
+            { id: "shops", label: "Shops" },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              aria-pressed={view === tab.id}
+              onClick={() => setView(tab.id)}
+              className={`min-h-11 rounded-xl border px-4 text-sm font-medium ${view === tab.id ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+          <label className="relative">
+            <Search size={16} className="absolute left-3 top-3.5 text-muted-foreground" />
+            <Input
+              aria-label="Search saved items"
+              placeholder="Search names, shops or specialities"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              className="pl-9"
+            />
+          </label>
+          <select
+            aria-label="Sort saved items"
+            value={sort}
+            onChange={(event) => setSort(event.target.value)}
+            className="min-h-11 rounded-xl border bg-background px-3 text-sm"
+          >
+            <option value="saved">Recently saved</option>
+            <option value="name">Name A-Z</option>
+            <option value="rating">Highest rated</option>
+          </select>
+        </div>
+      </section>
+      {error && (
+        <div role="alert" className="customer-surface border-red-200 text-sm text-red-800">
+          <p>{error}</p>
+          <Button variant="outline" className="mt-3" disabled={loading} onClick={() => void load()}>
+            Retry saved items
+          </Button>
+        </div>
+      )}
+      {lastRemoved && (
+        <div
+          role="status"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4 text-sm"
+        >
+          <span>{lastRemoved.name} removed from saved items.</span>
+          <Button variant="outline" disabled={busy} onClick={() => void update(lastRemoved, true)}>
+            Undo removal
+          </Button>
+        </div>
+      )}
+      {loading && (
+        <p role="status" className="inline-flex items-center gap-2 py-3 text-sm">
+          <Loader2 className="animate-spin" size={17} />
+          Loading your saved items...
+        </p>
+      )}
+      <div className="customer-page-grid">
+        {visibleProviders.map((provider) => (
+          <article key={provider.id} className="customer-surface flex flex-col gap-4">
+            <div className="flex items-start gap-3">
+              <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-muted">
+                {provider.avatar ? (
+                  <Image src={provider.avatar} alt="" fill className="object-cover" />
+                ) : (
+                  <Users className="m-4 text-primary" size={22} />
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <h2 className="break-words text-base font-semibold">{provider.name}</h2>
+                {provider.verified && (
+                  <span className="mt-1 inline-flex items-center gap-1 text-xs text-primary">
+                    <ShieldCheck size={14} />
+                    Verified
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                aria-label={`Remove ${provider.name} from saved`}
+                disabled={busy}
+                onClick={() => void update({ ...provider, kind: "PROVIDER" }, false)}
+                className="flex min-h-11 min-w-11 items-center justify-center rounded-xl border hover:text-red-600"
+              >
+                <X size={17} />
+              </button>
+            </div>
+            <p className="line-clamp-3 text-sm leading-7 text-muted-foreground">
+              {provider.bio || "View this specialist's profile, experience and services."}
+            </p>
+            <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1">
+                <Star size={14} />
+                {provider.reviewCount
+                  ? `${provider.rating.toFixed(1)} (${provider.reviewCount} reviews)`
+                  : "No reviews yet"}
+              </span>
+              <span>{provider.completedJobs} completed jobs</span>
+            </div>
+            <p className="mt-auto text-sm font-semibold">
+              {provider.hourlyRate === null
+                ? "Ask for a quote"
+                : `${formatMoney(provider.hourlyRate)} / hour`}
+            </p>
+            <Link
+              href={`/customer/find-specialists?provider=${encodeURIComponent(provider.id)}`}
+              className="inline-flex min-h-11 items-center justify-between rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground"
+            >
+              View specialist
+              <ArrowUpRight size={16} />
+            </Link>
+          </article>
+        ))}
+        {visibleShops.map((shop) => (
+          <article key={shop.id} className="customer-surface flex flex-col gap-4">
+            <div className="flex items-start gap-3">
+              <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-muted">
+                {shop.image ? (
+                  <Image src={shop.image} alt="" fill className="object-cover" />
+                ) : (
+                  <Store size={22} className="m-4 text-primary" />
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <h2 className="break-words text-base font-semibold">{shop.name}</h2>
+                <p className="mt-1 text-xs text-muted-foreground">{shop.category || "Marketplace shop"}</p>
+              </div>
+              <button
+                type="button"
+                aria-label={`Remove ${shop.name} from saved`}
+                disabled={busy}
+                onClick={() => void update({ ...shop, kind: "SHOP" }, false)}
+                className="flex min-h-11 min-w-11 items-center justify-center rounded-xl border hover:text-red-600"
+              >
+                <X size={17} />
+              </button>
+            </div>
+            {shop.isVerified && (
+              <span className="inline-flex items-center gap-1 text-xs text-primary">
+                <ShieldCheck size={14} />
+                Verified shop
+              </span>
+            )}
+            <p className="text-sm text-muted-foreground">
+              {shop.reviewCount
+                ? `${shop.rating.toFixed(1)} / ${shop.reviewCount} reviews`
+                : "No reviews yet"}
+            </p>
+            <Link
+              href={`/customer/shops/${encodeURIComponent(shop.id)}`}
+              className="mt-auto inline-flex min-h-11 items-center justify-between rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground"
+            >
+              Visit shop
+              <ArrowUpRight size={16} />
+            </Link>
+          </article>
+        ))}
+      </div>
+      {!loading && !error && !visibleProviders.length && !visibleShops.length && (
+        <div className="customer-surface space-y-3 py-10 text-center">
+          <Heart size={28} className="mx-auto text-primary" />
+          <h2 className="text-xl font-semibold">
+            {query ? "No matches in your shortlist" : "Your next good find starts here"}
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {query
+              ? "Try another name or clear your search."
+              : "Use the save button on a specialist or shop to keep it here."}
+          </p>
+          <Link
+            href="/customer/services"
+            className="inline-flex min-h-11 items-center rounded-xl border px-4 text-sm font-medium text-primary"
+          >
+            Explore MySaji
+          </Link>
+        </div>
+      )}
     </div>
   )
 }

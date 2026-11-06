@@ -67,3 +67,14 @@ The verified MySaji server on port 3000 was stopped, `prisma generate` completed
 Post-restart checks: local login/salon routes return HTTP 200; the real read-only Salon action loads the test business successfully. Full unit suite: 121 passed, one optional database test skipped. No user passwords, sessions, appointment records or financial records were changed by this fix. Browser refresh is needed to pick up the restarted server; an authenticated browser session was not available to the agent for direct UI confirmation.
 
 See [Business-specific Till setup](pos-business-types.md) for the catalogue Service selector, Business setup duration/commission form and business capability checks.
+
+
+## Cash payment after a completed service
+
+On a completed, unmatched appointment, a receptionist with both `salon.book` and `till.sell` access can select **Client paid cash**, enter the actual cash received, and select **Confirm cash & create receipt**. The checkout creates a normal cash sale and links its service line to the appointment in the same transaction. The normal receipt preview provides printing. Manual **Match paid receipt** remains available for a sale already recorded in Register.
+
+An open shift and an active selling subscription are required. Current catalogue pricing, promotions, VAT and cash rounding apply; the appointment quote does not override those settings. The receipt shows cash received and change. The commission estimate uses the linked net service amount, excluding VAT. Stock is not deducted for a service. Visits with booking deposits must use Register and receipt matching to avoid collecting the deposit twice. Other payment methods and mixed baskets continue through Register.
+
+The server checks salon capabilities, permissions, branch, completed state, version, service/customer identity and existing receipt association. A fixed appointment checkout key prevents a retry from creating a second cash sale. Cash receipt, appointment association and audit events commit or roll back together. A receipt already created separately in Register must be matched rather than charged again.
+
+Validation: five focused server tests exercise real checkout code with explicit database/action fixtures, including VAT, change, commission base, retries, access/shift/billing checks, short payments, deposits, stale forms and rollback. Four responsive browser cases at 390px and 1280px verify cash entry, receipt display, retained matching, permissions, deposits and checkout failure. The repository suite passed 187 tests with one optional PostgreSQL test skipped. These cash checks do not claim a live payment, physical printer or production database test.

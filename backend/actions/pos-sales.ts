@@ -867,7 +867,7 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
   const products = await db.product.findMany({
     where: { shopkeeperId: till.shopkeeperId, id: { in: body.lines.map((l) => l.productId) } },
     select: {
-      id: true, name: true, sku: true, barcode: true, unit: true,
+      id: true, name: true, sku: true, barcode: true, unit: true, isActive: true,
       price: true, discountPrice: true, costPrice: true, hasVariants: true, tracksBatches: true,
       ageRestricted: true, tracksSerials: true, controlled: true, madeToOrder: true, isService: true,
       categoryId: true,
@@ -1568,7 +1568,7 @@ export async function recordPosSale(input: unknown): Promise<TillActionResult<Re
           if (!a || a.status !== "COMPLETED" || a.version !== body.salonCashAppointment.version || a.saleItemId) throw new PosSaleError("This appointment changed or already has a receipt. Refresh before taking payment again.")
           if (a.depositCheckoutId || D(a.depositAmount ?? 0).greaterThan(0)) throw new PosSaleError("This visit has a booking deposit. Settle it in Register and match its receipt to avoid collecting twice.")
           const service = byId.get(body.lines[0].productId)
-          if (!a.serviceId || a.serviceId !== service?.id || !service.isService || service.hasVariants || body.customerName !== a.customerName || (body.customerPhone ?? "") !== (a.customerPhone ?? "")) throw new PosSaleError("The service or customer does not match this appointment. Refresh and use Register if it needs changing.")
+          if (!a.serviceId || a.serviceId !== service?.id || !service.isService || !service.isActive || service.hasVariants || body.customerName !== a.customerName || (body.customerPhone ?? "") !== (a.customerPhone ?? "")) throw new PosSaleError("The service or customer does not match this appointment. Refresh and use Register if it needs changing.")
         }
         const last = await tx.posSale.findFirst({
           where: { shopkeeperId: till.shopkeeperId },

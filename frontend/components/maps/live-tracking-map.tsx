@@ -1,9 +1,11 @@
 "use client"
 
+import { usePlatformGoogleMaps } from "@/frontend/lib/maps-provider"
+import { OsmMap } from "@/frontend/components/maps/osm-map"
+
 import { useCallback } from "react"
-import { useJsApiLoader, GoogleMap, MarkerF, PolylineF } from "@react-google-maps/api"
+import { GoogleMap, MarkerF, PolylineF } from "@react-google-maps/api"
 import { MapPin } from "lucide-react"
-import { GOOGLE_MAPS_LIBRARIES, GOOGLE_MAPS_LOADER_ID, isGoogleMapsConfigured } from "@/backend/services/google-maps"
 
 /** Two-marker live map — the provider's last-known real position and the
  * job's real destination, with a line between them. Falls back to a
@@ -18,12 +20,8 @@ export function LiveTrackingMap({
   destinationLng: number | null
   className?: string
 }) {
-  const configured = isGoogleMapsConfigured()
-  const { isLoaded } = useJsApiLoader({
-    id: GOOGLE_MAPS_LOADER_ID,
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
-    libraries: GOOGLE_MAPS_LIBRARIES,
-  })
+  const { isLoaded, mapConfig, osm } = usePlatformGoogleMaps()
+  const configured = osm || Boolean(mapConfig?.googleConfigured)
 
   const hasProvider = providerLat != null && providerLng != null
   const hasDestination = destinationLat != null && destinationLng != null
@@ -36,8 +34,12 @@ export function LiveTrackingMap({
       bounds.extend({ lat: destinationLat!, lng: destinationLng! })
       map.fitBounds(bounds, 64)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasProvider, hasDestination, providerLat, providerLng, destinationLat, destinationLng])
+
+  if (osm && (hasProvider || hasDestination)) {
+    const pins = [...(hasProvider ? [{ id:"provider",latitude:providerLat!,longitude:providerLng!,label:"Provider",color:"#10b981" }] : []), ...(hasDestination ? [{ id:"destination",latitude:destinationLat!,longitude:destinationLng!,label:"Destination",color:"#ff7900" }] : [])]
+    return <OsmMap className={containerClass} pins={pins} line={pins} zoom={13} />
+  }
 
   if (!configured || !isLoaded || (!hasProvider && !hasDestination)) {
     return (

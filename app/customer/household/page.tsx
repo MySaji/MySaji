@@ -79,7 +79,7 @@ export default function HouseholdPage() {
 
   return (
     <div className="min-h-screen bg-background pb-10">
-      <div className="mx-auto max-w-2xl px-4 py-6">
+      <div className="mx-auto max-w-5xl px-4 py-6">
         <div className="mb-4 flex items-center gap-3">
           <Button variant="ghost" size="icon" asChild className="rounded-full"><Link href="/customer/home"><ArrowLeft className="h-4 w-4" /></Link></Button>
           <div><h1 className="flex items-center gap-2 text-lg font-bold text-foreground"><Home className="h-5 w-5" /> Household</h1><p className="text-xs text-muted-foreground">Share bookings, properties, and history with family</p></div>

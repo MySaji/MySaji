@@ -1,8 +1,8 @@
 "use client"
 
+import { useMapSettings, reverseMapLocation } from "@/frontend/lib/maps-provider"
+
 import { useEffect, useRef, useState } from "react"
-import { useJsApiLoader } from "@react-google-maps/api"
-import { GOOGLE_MAPS_LIBRARIES, GOOGLE_MAPS_LOADER_ID } from "@/backend/services/google-maps"
 import { Button } from "@/frontend/components/ui/button"
 import { Card } from "@/frontend/components/ui/card"
 import { Input } from "@/frontend/components/ui/input"
@@ -11,7 +11,6 @@ import { MapPin, Home, Building, Plus, MoreHorizontal, Pencil, Trash2, Star, Nav
 import { getAddresses, createAddress, updateAddress, deleteAddress, setDefaultAddress, type AddressItem } from "@/backend/actions/addresses"
 import { AddressAutocompleteInput, type PlaceResult } from "@/frontend/components/maps/address-autocomplete-input"
 import { StaticLocationMap } from "@/frontend/components/maps/static-location-map"
-import { isGoogleMapsConfigured } from "@/backend/services/google-maps"
 import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
 type UiType = "home" | "office" | "other"
@@ -28,6 +27,12 @@ export function CustomerSavedAddressesPage() {
     other: t("customer.savedAddresses.typeOther"),
   }
   const [addresses, setAddresses] = useState<AddressItem[]>([])
+  const [query,setQuery]=useState("")
+  const [typeFilter,setTypeFilter]=useState("ALL")
+  const [pageError,setPageError]=useState("")
+  const [busyAddress,setBusyAddress]=useState(false)
+  const [deleteTarget,setDeleteTarget]=useState<AddressItem|null>(null)
+
   const [isLoading, setIsLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -48,17 +53,12 @@ export function CustomerSavedAddressesPage() {
 
   useEffect(() => () => { locationRequest.current++ }, [])
 
-  const mapsConfigured = isGoogleMapsConfigured()
-  const { isLoaded: mapsLoaded } = useJsApiLoader({
-    id: GOOGLE_MAPS_LOADER_ID,
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
-    libraries: GOOGLE_MAPS_LIBRARIES,
-  })
+  const { data: mapConfig } = useMapSettings()
 
   const refresh = () => getAddresses().then(setAddresses)
 
   useEffect(() => {
-    refresh().finally(() => setIsLoading(false))
+    refresh().catch(()=>setPageError("Saved addresses could not load. Please retry.")).finally(() => setIsLoading(false))
   }, [])
 
   const openAdd = () => {
@@ -98,18 +98,11 @@ export function CustomerSavedAddressesPage() {
         setFormCity(null)
         setFormAddress(`${latitude.toFixed(5)}, ${longitude.toFixed(5)}`)
         setIsLocating(false)
-        if (mapsConfigured && mapsLoaded && typeof google !== "undefined") {
-          try {
-            new google.maps.Geocoder().geocode({ location: { lat: latitude, lng: longitude } }, (results, status) => {
-              if (request !== locationRequest.current) return
-              if (status === "OK" && results?.[0]?.formatted_address) {
-                setFormAddress(results[0].formatted_address)
-                const cityComponent = results[0].address_components.find((c) => c.types.includes("locality"))
-                setFormCity(cityComponent?.long_name ?? null)
-              }
-            })
-          } catch { /* Keep the usable GPS address if the Maps lookup fails. */ }
-        }
+        void reverseMapLocation(mapConfig?.provider, latitude, longitude).then(place => {
+          if (request !== locationRequest.current || !place) return
+          setFormAddress(place.address)
+          setFormCity(place.city)
+        }).catch(() => { /* Keep the usable GPS address when lookup fails. */ })
       },
       () => {
         if (request !== locationRequest.current) return
@@ -126,26 +119,27 @@ export function CustomerSavedAddressesPage() {
     setFormError("")
     const payload = {
       label: formLabel, address: formAddress, type: TYPE_TO_DB[formType],
-      city: formCity ?? undefined, latitude: formLat ?? undefined, longitude: formLng ?? undefined,
+      city: formCity, latitude: formLat, longitude: formLng,
     }
-    const result = editingId ? await updateAddress({ id: editingId, ...payload }) : await createAddress(payload)
-    setIsSaving(false)
-    if (!result.success) { setFormError(result.error); return }
-    await refresh()
-    setShowForm(false)
+    try{
+      const result = editingId ? await updateAddress({ id: editingId, ...payload }) : await createAddress(payload)
+      if (!result.success) { setFormError(result.error); return }
+      await refresh();setShowForm(false)
+    }catch{setFormError("The address could not be confirmed. Refresh before retrying.")}
+    finally{setIsSaving(false)}
   }
 
-  const handleDelete = async (id: string) => {
-    setMenuOpen(null)
-    setAddresses((prev) => prev.filter((a) => a.id !== id))
-    await deleteAddress({ id })
+  const handleDelete = async () => {
+    if(!deleteTarget||busyAddress)return
+    setBusyAddress(true);setPageError("")
+    try{const result=await deleteAddress({id:deleteTarget.id});if(!result.success){setPageError(result.error);return}await refresh();setDeleteTarget(null)}catch{setPageError("The address could not be removed. Please retry.")}finally{setBusyAddress(false)}
   }
-
   const setDefault = async (id: string) => {
-    setMenuOpen(null)
-    setAddresses((prev) => prev.map((a) => ({ ...a, isDefault: a.id === id })))
-    await setDefaultAddress({ id })
+    if(busyAddress)return
+    setMenuOpen(null);setBusyAddress(true);setPageError("")
+    try{const result=await setDefaultAddress({id});if(!result.success){setPageError(result.error);return}await refresh()}catch{setPageError("The default address could not be updated.")}finally{setBusyAddress(false)}
   }
+  const visibleAddresses=addresses.filter(address=>(typeFilter==="ALL"||address.type===typeFilter)&&`${address.label} ${address.address} ${address.city??""}`.toLowerCase().includes(query.toLowerCase()))
 
   if (isLoading) {
     return (
@@ -157,8 +151,8 @@ export function CustomerSavedAddressesPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-2xl mx-auto px-4 py-6 lg:py-8">
-        <div className="flex items-center justify-between mb-6">
+      <div className="max-w-6xl mx-auto px-4 py-6 lg:py-8">
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
           <div>
             <h1 className="text-xl lg:text-2xl font-bold text-foreground">{t("customer.savedAddresses.title")}</h1>
             <p className="text-xs text-muted-foreground mt-1">{t("customer.savedAddresses.subtitle")}</p>
@@ -166,13 +160,15 @@ export function CustomerSavedAddressesPage() {
           <Button onClick={openAdd} className="rounded-xl gap-1.5"><Plus className="w-4 h-4" />{t("customer.savedAddresses.addNew")}</Button>
         </div>
 
-        <div className="space-y-3">
+        <section aria-label="Find a saved address" className="customer-surface mb-5 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]"><Input aria-label="Search saved addresses" placeholder="Search a name, area or landmark" value={query} onChange={event=>setQuery(event.target.value)}/><select aria-label="Address type filter" className="min-h-11 rounded-xl border bg-background px-3 text-sm" value={typeFilter} onChange={event=>setTypeFilter(event.target.value)}><option value="ALL">All address types</option><option value="HOME">Home</option><option value="OFFICE">Office</option><option value="OTHER">Other</option></select><p className="text-xs text-muted-foreground sm:col-span-2">{visibleAddresses.length} of {addresses.length} saved places. Your default address helps prefill supported booking and delivery flows.</p></section>
+        {pageError&&<div role="alert" className="mb-4 rounded-xl border border-red-200 p-4 text-sm text-red-800">{pageError}<button type="button" className="ml-3 min-h-11 underline" onClick={()=>void refresh().then(()=>setPageError("")).catch(()=>setPageError("Addresses still could not load."))}>Retry</button></div>}
+        <div className="grid items-start gap-4 md:grid-cols-2">
           {addresses.length === 0 && (
             <Card className="p-10 text-center border-0 shadow-sm">
               <p className="text-xs text-muted-foreground">{t("customer.savedAddresses.empty")}</p>
             </Card>
           )}
-          {addresses.map(addr => {
+          {visibleAddresses.map(addr => {
             const uiType = TYPE_FROM_DB[addr.type] ?? "other"
             const Icon = typeIcons[uiType]
             return (
@@ -198,9 +194,9 @@ export function CustomerSavedAddressesPage() {
                       <>
                         <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(null)} />
                         <div className="absolute right-0 top-8 w-40 bg-card rounded-xl shadow-xl border border-border z-50 overflow-hidden py-1">
-                          <button onClick={() => openEdit(addr)} className="w-full px-3 py-2 text-xs text-left hover:bg-muted flex items-center gap-2"><Pencil className="w-3.5 h-3.5" />{t("common.edit")}</button>
-                          {!addr.isDefault && <button onClick={() => setDefault(addr.id)} className="w-full px-3 py-2 text-xs text-left hover:bg-muted flex items-center gap-2"><Star className="w-3.5 h-3.5" />{t("customer.savedAddresses.setDefault")}</button>}
-                          <button onClick={() => handleDelete(addr.id)} className="w-full px-3 py-2 text-xs text-left hover:bg-destructive/10 text-destructive flex items-center gap-2"><Trash2 className="w-3.5 h-3.5" />{t("common.delete")}</button>
+                          <button onClick={() => openEdit(addr)} className="min-h-11 w-full px-3 py-2 text-sm text-left hover:bg-muted flex items-center gap-2"><Pencil className="w-3.5 h-3.5" />{t("common.edit")}</button>
+                          {!addr.isDefault && <button onClick={() => setDefault(addr.id)} className="min-h-11 w-full px-3 py-2 text-sm text-left hover:bg-muted flex items-center gap-2"><Star className="w-3.5 h-3.5" />{t("customer.savedAddresses.setDefault")}</button>}
+                          <button onClick={() => {setMenuOpen(null);setDeleteTarget(addr)}} className="min-h-11 w-full px-3 py-2 text-sm text-left hover:bg-destructive/10 text-destructive flex items-center gap-2"><Trash2 className="w-3.5 h-3.5" />{t("common.delete")}</button>
                         </div>
                       </>
                     )}
@@ -211,9 +207,11 @@ export function CustomerSavedAddressesPage() {
           })}
         </div>
 
+        {!visibleAddresses.length&&addresses.length>0&&<p className="customer-surface mt-4 text-sm text-muted-foreground">No addresses match these filters.</p>}
+        <Dialog open={!!deleteTarget} onOpenChange={open=>{if(!open&&!busyAddress)setDeleteTarget(null)}}><DialogContent aria-describedby={undefined}><DialogHeader><DialogTitle>Remove this saved address?</DialogTitle></DialogHeader><p className="text-sm leading-6 text-muted-foreground">{deleteTarget?.label}: {deleteTarget?.address}. Previous orders keep their original delivery information.</p>{pageError&&<p role="alert" className="text-sm text-destructive">{pageError}</p>}<div className="flex gap-3"><Button variant="outline" disabled={busyAddress} onClick={()=>setDeleteTarget(null)}>Keep address</Button><Button variant="destructive" disabled={busyAddress} onClick={()=>void handleDelete()}>Remove address</Button></div></DialogContent></Dialog>
         {/* Add/Edit Dialog */}
         <Dialog open={showForm} onOpenChange={changeFormOpen}>
-          <DialogContent className="max-w-md rounded-2xl" aria-describedby={undefined}>
+          <DialogContent className="max-h-[88dvh] overflow-y-auto sm:max-w-xl rounded-2xl" aria-describedby={undefined}>
             <DialogHeader><DialogTitle>{editingId ? t("customer.savedAddresses.editAddress") : t("customer.savedAddresses.addAddress")}</DialogTitle></DialogHeader>
             <div className="space-y-4 py-2">
               <div><label className="text-xs font-medium mb-2 block">{t("customer.savedAddresses.label")}</label><Input value={formLabel} onChange={e => setFormLabel(e.target.value)} placeholder={t("customer.savedAddresses.labelPlaceholder")} className="rounded-xl" /></div>
@@ -230,7 +228,7 @@ export function CustomerSavedAddressesPage() {
                 <AddressAutocompleteInput
                   value={formAddress}
                   ariaLabel={t("customer.savedAddresses.fullAddress")}
-                  onChange={(value) => { cancelLocationLookup(); setFormAddress(value) }}
+                  onChange={(value) => { cancelLocationLookup(); setFormAddress(value);setFormLat(null);setFormLng(null);setFormCity(null) }}
                   onPlaceSelected={handlePlaceSelected}
                   placeholder={t("customer.savedAddresses.fullAddressPlaceholder")}
                   className="rounded-xl"

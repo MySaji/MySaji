@@ -126,3 +126,22 @@ export async function getWishlistedShops(): Promise<WishlistedShop[]> {
       isVerified: item.shop!.isVerified,
     }))
 }
+
+
+/** Explicit save state makes retries and undo safe across browser tabs. */
+export async function setWishlistSaved(input: unknown): Promise<ToggleWishlistResult> {
+  const session=await auth()
+  if(!session?.user?.id)return {success:false,error:"Sign in to manage saved items."}
+  const parsed=toggleSchema.extend({saved:z.boolean()}).safeParse(input)
+  if(!parsed.success)return {success:false,error:"Choose a valid saved item."}
+  const {targetType,targetId,saved}=parsed.data,userId=session.user.id,idField=ID_FIELD[targetType]
+  try{
+    await db.$transaction(async tx=>{
+      await tx.$queryRaw`SELECT true AS locked FROM pg_advisory_xact_lock(hashtext('saji-wishlist'),hashtext(${`${userId}:${targetType}:${targetId}`}))`
+      const where={customerId:userId,targetType,[idField]:targetId} as Prisma.WishlistItemWhereInput
+      if(!saved){await tx.wishlistItem.deleteMany({where});return}
+      if(!await tx.wishlistItem.findFirst({where}))await tx.wishlistItem.create({data:{customerId:userId,targetType,[idField]:targetId} as Prisma.WishlistItemUncheckedCreateInput})
+    })
+    return {success:true,isWishlisted:saved}
+  }catch{return {success:false,error:"The saved item could not be updated. Refresh and retry."}}
+}

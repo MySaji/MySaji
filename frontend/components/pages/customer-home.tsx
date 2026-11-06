@@ -1,5 +1,7 @@
 "use client"
 
+import { CustomerHomePlanner } from "@/frontend/components/customer/home-planner"
+
 import { useEffect, useRef, useState, type ComponentType } from "react"
 import useSWR from "swr"
 import Image from "next/image"
@@ -715,7 +717,7 @@ export function CustomerHome() {
   const { data: recentJobs, isLoading: jobsLoading, error: jobsError, mutate: refreshJobs } = useSWR(
     user?.id ? ["customer-jobs", user.id] : null, () => withTimeout(getCustomerJobs(), DASHBOARD_FETCH_TIMEOUT_MS),
   )
-  const { data: recentOrders, isLoading: ordersLoading } = useSWR(
+  const { data: recentOrders, isLoading: ordersLoading, error: ordersError } = useSWR(
     user?.id ? ["recent-orders", user.id] : null, () => withTimeout(getRecentOrders(), DASHBOARD_FETCH_TIMEOUT_MS),
   )
   const { data: featuredShops, error: shopsError, mutate: refreshShops } = useSWR(
@@ -796,6 +798,8 @@ export function CustomerHome() {
         </div>
 
         <HomeSearch />
+
+        <CustomerHomePlanner jobs={recentJobs??[]} orders={recentOrders??[]} loading={jobsLoading||ordersLoading} failed={!!jobsError||!!ordersError} />
 
         <MarketplaceCampaigns />
 

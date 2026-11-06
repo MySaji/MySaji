@@ -1,4 +1,5 @@
 "use client"
+import { MapProviderSettings } from "@/frontend/components/maps/map-provider-settings"
 import { useEffect, useRef, useState } from "react"
 import { Save, CheckCircle2, Loader2, Upload, X, ImageIcon, AlertTriangle } from "lucide-react"
 import { Card } from "@/frontend/components/ui/card"
@@ -613,11 +614,12 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="platform" className="w-full">
-        <TabsList className="grid w-full max-w-2xl grid-cols-5">
+        <TabsList className="grid h-auto w-full max-w-3xl grid-cols-3 sm:grid-cols-6">
           <TabsTrigger value="platform">{t("admin.settings.tabPlatform")}</TabsTrigger>
           <TabsTrigger value="branding">{t("admin.settings.tabBranding")}</TabsTrigger>
           <TabsTrigger value="contact">{t("admin.settings.tabContact")}</TabsTrigger>
           <TabsTrigger value="legal">{t("admin.settings.tabLegal")}</TabsTrigger>
+          <TabsTrigger value="maps">Maps</TabsTrigger>
           <TabsTrigger value="currency">{t("admin.settings.tabCurrency")}</TabsTrigger>
         </TabsList>
 
@@ -633,6 +635,7 @@ export default function SettingsPage() {
         <TabsContent value="legal" className="mt-6">
           <LegalTab />
         </TabsContent>
+        <TabsContent value="maps" className="mt-6"><MapProviderSettings /></TabsContent>
         <TabsContent value="currency" className="mt-6">
           <CurrencyTab />
         </TabsContent>

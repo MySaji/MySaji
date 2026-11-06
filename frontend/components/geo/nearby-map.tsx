@@ -1,14 +1,16 @@
 "use client"
 
+import { usePlatformGoogleMaps } from "@/frontend/lib/maps-provider"
+import { OsmMap } from "@/frontend/components/maps/osm-map"
+
 import { useCallback, useMemo, useRef, useState } from "react"
 import Link from "next/link"
-import { useJsApiLoader, GoogleMap, MarkerF, InfoWindowF, CircleF } from "@react-google-maps/api"
+import { GoogleMap, MarkerF, InfoWindowF, CircleF } from "@react-google-maps/api"
 import { useTheme } from "next-themes"
 import { MapPin, Star, ShieldCheck, Navigation, Crosshair, Store, Wrench } from "lucide-react"
 import {
   MAP_STYLE_LIGHT, MAP_STYLE_DARK, PIN_PATH, PIN_ANCHOR, PIN_LABEL_ORIGIN,
 } from "@/frontend/components/geo/map-style"
-import { GOOGLE_MAPS_LIBRARIES, GOOGLE_MAPS_LOADER_ID, isGoogleMapsConfigured } from "@/backend/services/google-maps"
 import type { FencedProvider, FencedShop, Geofence } from "@/backend/actions/geofence"
 import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 
@@ -63,12 +65,8 @@ export function NearbyMap({
   className?: string
 }) {
   const { t } = useLocalization()
-  const configured = isGoogleMapsConfigured()
-  const { isLoaded } = useJsApiLoader({
-    id: GOOGLE_MAPS_LOADER_ID,
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
-    libraries: GOOGLE_MAPS_LIBRARIES,
-  })
+  const { isLoaded, mapConfig, osm } = usePlatformGoogleMaps()
+  const configured = osm || Boolean(mapConfig?.googleConfigured)
   const [openKey, setOpenKey] = useState<string | null>(null)
 
   const pins = useMemo<Pin[]>(() => [
@@ -143,6 +141,8 @@ export function NearbyMap({
   }, [fence])
 
   const containerClass = className ?? "h-[420px] w-full rounded-xl"
+
+  if (osm && fence) return <OsmMap className={containerClass} pins={[...pins.map(pin => ({ id:pin.key,latitude:pin.latitude,longitude:pin.longitude,label:`${pin.name}${pin.subtitle ? ` - ${pin.subtitle}` : ""}${pin.distanceKm !== null ? ` (${pin.distanceKm.toFixed(1)} km)` : ""}`,href:pin.href,color:pin.kind === "shop" ? SHOP_COLOUR : PROVIDER_COLOUR })), { id:"viewer",latitude:fence.latitude,longitude:fence.longitude,label:"Your location",color:VIEWER_COLOUR }]} circles={[{ latitude:fence.latitude,longitude:fence.longitude,radius:NEIGHBOURHOOD_METRES }]} />
 
   if (!configured || !isLoaded || !fence) {
     return (

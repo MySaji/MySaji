@@ -14,6 +14,7 @@ async function mountForm(page: Page, configured = true) {
     "react-dom": packageFile("react-dom", "react-dom.development.js"),
     "react-dom/client": packageFile("react-dom", "react-dom-client.development.js"),
     scheduler: packageFile("scheduler", "scheduler.development.js"),
+    "@/frontend/lib/maps-provider": `exports.useMapSettings=()=>({data:{provider:'GOOGLE'}});exports.reverseMapLocation=async(provider,latitude,longitude)=>{if(!${configured})return null;return new Promise((resolve,reject)=>{try{new google.maps.Geocoder().geocode({location:{lat:latitude,lng:longitude}},(results,status)=>{const r=results?.[0];resolve(status==='OK'&&r?{address:r.formatted_address,city:r.address_components.find(c=>c.types.includes('locality'))?.long_name??null,latitude,longitude}:null)})}catch(error){reject(error)}})}`,
     "@react-google-maps/api": 'exports.useJsApiLoader=()=>({isLoaded:true})',
     "@/backend/services/google-maps": `exports.isGoogleMapsConfigured=()=>${configured};exports.GOOGLE_MAPS_LIBRARIES=[]`,
     "@/frontend/components/ui/button": 'exports.Button=props=>require("react").createElement("button",props)',

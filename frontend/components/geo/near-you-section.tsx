@@ -9,7 +9,7 @@ import { AUTO_DISCOVERY_RADIUS_KM } from "@/backend/domain/geo"
 import { useLocalization } from "@/frontend/lib/hooks/useLocalization"
 import { NearbyMap } from "@/frontend/components/geo/nearby-map"
 import { PresenceBadge } from "@/frontend/components/geo/online-dot"
-import { isGoogleMapsConfigured } from "@/backend/services/google-maps"
+import { useMapSettings } from "@/frontend/lib/maps-provider"
 import type { FencedProvider, FencedShop } from "@/backend/actions/geofence"
 import {
   getProvidersServingMyArea, type AreaProvidersResult,
@@ -35,6 +35,7 @@ import {
 const NEIGHBOURHOOD_KM = 2
 
 export function NearYouSection() {
+  const { data: mapConfig } = useMapSettings()
   const { t } = useLocalization()
   const [asMap, setAsMap] = useState(false)
 
@@ -114,7 +115,7 @@ export function NearYouSection() {
           {hasPreciseCentre ? t("nearby.precise") : t("nearby.approximate")}
         </span>
 
-        {isGoogleMapsConfigured() && (
+        {(mapConfig?.provider === "OPENSTREETMAP" || mapConfig?.googleConfigured) && (
           <div className="ml-auto flex flex-shrink-0 items-center gap-1 rounded-full border border-border p-0.5">
             <ToggleButton active={!asMap} onClick={() => setAsMap(false)} icon={<List className="h-3 w-3" />} label={t("nearby.showList")} />
             <ToggleButton active={asMap} onClick={() => setAsMap(true)} icon={<MapIcon className="h-3 w-3" />} label={t("nearby.showMap")} />

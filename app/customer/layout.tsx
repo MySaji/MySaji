@@ -1,5 +1,8 @@
 "use client"
 
+import "./customer-portal.css"
+import { CustomerPortalFrame } from "@/frontend/components/customer/portal-frame"
+
 import { WorkspaceTools } from "@/frontend/components/workspace-tools"
 
 import React from "react"
@@ -435,7 +438,7 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
               <DisputeBanner disputes={openDisputes} messagesBasePath="/customer/messages" />
             </div>
           )}
-          {children}
+          <CustomerPortalFrame>{children}</CustomerPortalFrame>
         </main>
 
         {/* Mobile Bottom Navigation */}

@@ -1,9 +1,11 @@
 "use client"
 
+import { usePlatformGoogleMaps } from "@/frontend/lib/maps-provider"
+import { OsmMap } from "@/frontend/components/maps/osm-map"
+
 import { useCallback } from "react"
-import { useJsApiLoader, GoogleMap, MarkerF } from "@react-google-maps/api"
+import { GoogleMap, MarkerF } from "@react-google-maps/api"
 import { MapPin } from "lucide-react"
-import { GOOGLE_MAPS_LIBRARIES, GOOGLE_MAPS_LOADER_ID, isGoogleMapsConfigured } from "@/backend/services/google-maps"
 
 export type TechnicianPin = {
   providerId: string
@@ -19,12 +21,8 @@ export type TechnicianPin = {
  * configured or no technician has a location yet, same convention as
  * LiveTrackingMap. */
 export function TechnicianRosterMap({ technicians, className }: { technicians: TechnicianPin[]; className?: string }) {
-  const configured = isGoogleMapsConfigured()
-  const { isLoaded } = useJsApiLoader({
-    id: GOOGLE_MAPS_LOADER_ID,
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
-    libraries: GOOGLE_MAPS_LIBRARIES,
-  })
+  const { isLoaded, mapConfig, osm } = usePlatformGoogleMaps()
+  const configured = osm || Boolean(mapConfig?.googleConfigured)
 
   const containerClass = className ?? "h-72 w-full"
 
@@ -33,8 +31,9 @@ export function TechnicianRosterMap({ technicians, className }: { technicians: T
     const bounds = new google.maps.LatLngBounds()
     for (const tech of technicians) bounds.extend({ lat: tech.latitude, lng: tech.longitude })
     map.fitBounds(bounds, 64)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [technicians])
+
+  if (osm && technicians.length) return <OsmMap className={containerClass} pins={technicians.map(tech => ({ id:tech.providerId,latitude:tech.latitude,longitude:tech.longitude,label:`${tech.name}${tech.atCapacity ? " (at capacity)" : ""}`,color:tech.atCapacity ? "#f59e0b" : "#10b981" }))} />
 
   if (!configured || !isLoaded || technicians.length === 0) {
     return (
