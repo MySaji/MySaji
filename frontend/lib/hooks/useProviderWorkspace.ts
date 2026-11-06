@@ -1,6 +1,7 @@
 "use client"
 
 import useSWR from "swr"
+import { useAuthContext } from "@/frontend/lib/auth-context"
 import { getMyProviderBusinessInfo } from "@/backend/actions/provider-business"
 import { getMySubscriptionStatus } from "@/backend/actions/provider-subscription"
 
@@ -25,8 +26,10 @@ const PRO_STATUS_KEY = "provider-workspace-pro-status"
  * of Pro status, so `isPro` only actually changes anything for `solo`.
  */
 export function useProviderWorkspace(): { type: ProviderWorkspaceType; isLoading: boolean; isPro: boolean } {
-  const { data, isLoading } = useSWR(WORKSPACE_KEY, getMyProviderBusinessInfo)
-  const { data: subscription } = useSWR(PRO_STATUS_KEY, getMySubscriptionStatus)
+  const { user } = useAuthContext()
+  const active=!!user?.id && ["provider","shopkeeper"].includes(user.role)
+  const { data, isLoading } = useSWR(active ? [WORKSPACE_KEY,user!.id,user!.role] : null, getMyProviderBusinessInfo)
+  const { data: subscription } = useSWR(active ? [PRO_STATUS_KEY,user!.id,user!.role] : null, getMySubscriptionStatus)
   const type: ProviderWorkspaceType = data?.isBusinessOwner
     ? "business_owner"
     : data?.parentBusinessId

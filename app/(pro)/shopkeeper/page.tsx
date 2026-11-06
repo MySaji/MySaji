@@ -1,5 +1,9 @@
 "use client"
 
+import { useProCapabilities } from "@/frontend/lib/hooks/useProCapabilities"
+import { PriorityDesk } from "@/frontend/components/workspaces/priority-desk"
+import { useAuthContext } from "@/frontend/lib/auth-context"
+import { WorkspaceRecovery } from "@/frontend/components/workspace-panels"
 import useSWR from "swr"
 import {
   Package, ShoppingCart, DollarSign, Users,
@@ -51,11 +55,15 @@ function formatRelative(iso: string, tn: ReturnType<typeof useLocalization>["tn"
 }
 
 export default function ShopkeeperDashboard() {
+  const {user} = useAuthContext()
+  const {moduleKeys} = useProCapabilities()
   const { t, tn, formatMoney } = useLocalization()
 
-  const { data, isLoading } = useSWR(
-    "shopkeeper-dashboard", () => withTimeout(getShopkeeperDashboard(), DASHBOARD_FETCH_TIMEOUT_MS),
+  const { data, isLoading, error, mutate, isValidating } = useSWR(
+    user?.id ? ["shopkeeper-dashboard",user.id,user.role] : null, () => withTimeout(getShopkeeperDashboard(), DASHBOARD_FETCH_TIMEOUT_MS),
   )
+
+  if (error || (!isLoading && !data)) return <WorkspaceRecovery title="Shop overview unavailable" retry={() => void mutate()} busy={isValidating} />
 
   if (isLoading || !data) {
     return (
@@ -75,6 +83,7 @@ export default function ShopkeeperDashboard() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-3 sm:p-4 md:p-8 overflow-x-hidden">
       <div className="max-w-7xl mx-auto">
+        <PriorityDesk items={[{id:"orders",allowed:moduleKeys.has("shopOrders"),title:"Orders in processing",count:data.processingOrders,href:"/shopkeeper/orders",description:"Review customer orders and fulfilment progress."},{id:"stock",allowed:moduleKeys.has("shopProducts"),title:"Low-stock products",count:data.lowStockCount,href:"/shopkeeper/products",description:"Review quantities before accepting new orders."}]} />
         {/* Header */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 sm:mb-8 gap-3">
           <div className="min-w-0">

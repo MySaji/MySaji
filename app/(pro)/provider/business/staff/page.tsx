@@ -18,6 +18,9 @@ export default function ManageStaffPage() {
   const { t } = useLocalization()
   const [isBusinessOwner, setIsBusinessOwner] = useState<boolean | null>(null)
   const [data, setData] = useState<MyStaffResult>({ staff: [], invites: [] })
+  const [query, setQuery] = useState("")
+  const [inviteFilter, setInviteFilter] = useState("all")
+  const [busyInvite, setBusyInvite] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [email, setEmail] = useState("")
   const [phone, setPhone] = useState("")
@@ -33,7 +36,7 @@ export default function ManageStaffPage() {
   }
 
   useEffect(() => {
-    refresh().finally(() => setIsLoading(false))
+    refresh().catch(() => setError("The staff directory could not load. Please retry.")).finally(() => setIsLoading(false))
   }, [])
 
   async function handleInvite() {
@@ -41,28 +44,36 @@ export default function ManageStaffPage() {
     setIsInviting(true)
     setError("")
     setInviteResultMessage("")
-    const result = await inviteStaffMember({ email, phone })
-    setIsInviting(false)
-    if (!result.success) {
-      setError(result.error)
-      return
-    }
-    setInviteResultMessage(result.emailed ? t("provider.business.staff.inviteSentEmail") : result.inviteUrl)
-    setEmail("")
-    setPhone("")
-    await refresh()
+    try {
+      const result = await inviteStaffMember({ email, phone })
+      if (!result.success) { setError(result.error); return }
+      setInviteResultMessage(result.emailed ? t("provider.business.staff.inviteSentEmail") : result.inviteUrl)
+      setEmail("")
+      setPhone("")
+      await refresh()
+    } catch { setError("The invitation could not be confirmed. Refresh the directory before trying again.") }
+    finally { setIsInviting(false) }
   }
 
   async function handleRevoke(id: string) {
-    await revokeStaffInvite({ id })
-    await refresh()
+    if (!window.confirm("Revoke this invitation? The invite link will no longer grant access.")) return
+    setBusyInvite(id)
+    try {
+      const result = await revokeStaffInvite({ id })
+      if (!result.success) { setError(result.error); return }
+      await refresh()
+    } catch { setError("The invitation could not be revoked. Please retry.") }
+    finally { setBusyInvite(null) }
   }
 
   async function copyLink(id: string, url: string) {
-    await navigator.clipboard.writeText(url)
+    try { await navigator.clipboard.writeText(url) } catch { setError("Copy was unavailable. Please allow clipboard access and retry."); return }
     setCopiedId(id)
     setTimeout(() => setCopiedId(null), 1500)
   }
+
+  const staff = data.staff.filter(member => [member.name, member.email, member.phone, ...member.skills].join(" ").toLowerCase().includes(query.trim().toLowerCase()))
+  const invites = data.invites.filter(invite => (inviteFilter === "all" || invite.status === inviteFilter) && [invite.email,invite.phone].join(" ").toLowerCase().includes(query.trim().toLowerCase()))
 
   if (isLoading) {
     return (
@@ -75,7 +86,7 @@ export default function ManageStaffPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-20 lg:pb-0">
       <div className="bg-blue-600 dark:bg-blue-700 text-white p-4 rounded-b-2xl lg:rounded-none">
-        <div className="flex items-center gap-4 max-w-4xl mx-auto">
+        <div className="flex items-center gap-4 max-w-6xl mx-auto">
           <Link href="/provider" className="lg:hidden">
             <ArrowLeft className="w-6 h-6" />
           </Link>
@@ -86,26 +97,32 @@ export default function ManageStaffPage() {
         </div>
       </div>
 
-      <div className="p-4 max-w-2xl mx-auto lg:max-w-4xl space-y-6">
+      <div className="p-4 max-w-6xl mx-auto space-y-6">
+        {error && <div role="alert" className="rounded-xl border border-red-200 bg-card p-4 text-sm">{error} <button className="ml-3 font-semibold text-primary" onClick={() => void refresh().then(() => setError("")).catch(() => setError("The staff directory could not load. Please retry."))}>Retry directory</button></div>}
         {!isBusinessOwner ? (
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border dark:border-gray-700 text-center text-gray-500 dark:text-gray-400">
             {t("provider.business.staff.notBusinessAccount")}
           </div>
         ) : (
           <>
+            <section className="professional-surface grid gap-4 p-5 sm:grid-cols-3">
+              <div><p className="text-sm text-muted-foreground">Business team</p><strong className="text-3xl">{data.staff.length}</strong><p className="mt-2 text-xs text-muted-foreground">{data.staff.filter(member => member.isActive).length} active staff accounts</p></div>
+              <label className="text-sm">Find people or skills<input type="search" className="mt-2 w-full rounded-lg border bg-background p-3" value={query} onChange={e => setQuery(e.target.value)} placeholder="Name, contact or skill" /></label>
+              <label className="text-sm">Invitations<select className="mt-2 w-full rounded-lg border bg-background p-3" value={inviteFilter} onChange={e => setInviteFilter(e.target.value)}><option value="all">All invitations</option>{Object.keys(INVITE_STATUS_KEY).map(status => <option key={status} value={status}>{status.toLowerCase()}</option>)}</select></label>
+            </section>
             <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border dark:border-gray-700">
               <h2 className="text-base font-bold text-gray-900 dark:text-white mb-4">{t("provider.business.staff.inviteFormTitle")}</h2>
               {error && <p className="text-xs text-red-600 dark:text-red-400 mb-3">{error}</p>}
               {inviteResultMessage && <p className="text-xs text-emerald-600 dark:text-emerald-400 mb-3 break-all">{inviteResultMessage}</p>}
               <div className="grid sm:grid-cols-2 gap-3 mb-4">
                 <input
-                  value={email}
+                  type="email" aria-label="Invitation email" value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder={t("provider.business.staff.emailLabel")}
                   className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 />
                 <input
-                  value={phone}
+                  type="tel" aria-label="Invitation phone" value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder={t("provider.business.staff.phoneLabel")}
                   className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
@@ -123,9 +140,9 @@ export default function ManageStaffPage() {
 
             <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border dark:border-gray-700">
               <h2 className="text-base font-bold text-gray-900 dark:text-white mb-4">{t("provider.business.staff.pendingInvitesTitle")}</h2>
-              {data.invites.length === 0 && <p className="text-xs text-gray-500 dark:text-gray-400">{t("provider.business.staff.noPendingInvites")}</p>}
+              {invites.length === 0 && <p className="text-xs text-gray-500 dark:text-gray-400">{t("provider.business.staff.noPendingInvites")}</p>}
               <div className="space-y-2">
-                {data.invites.map((invite) => (
+                {invites.map((invite) => (
                   <div key={invite.id} className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
                     <div className="min-w-0">
                       <p className="text-gray-900 dark:text-white font-medium truncate">{invite.email || invite.phone}</p>
@@ -137,7 +154,7 @@ export default function ManageStaffPage() {
                           <button onClick={() => copyLink(invite.id, invite.inviteUrl)} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-1.5" title={t("provider.business.staff.copyLink")}>
                             {copiedId === invite.id ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
                           </button>
-                          <button onClick={() => handleRevoke(invite.id)} className="text-red-600 hover:text-red-700 dark:text-red-400 p-1.5" title={t("provider.business.staff.revoke")}>
+                          <button disabled={busyInvite === invite.id} onClick={() => handleRevoke(invite.id)} className="text-red-600 hover:text-red-700 dark:text-red-400 p-1.5" title={t("provider.business.staff.revoke")}>
                             <X className="w-4 h-4" />
                           </button>
                         </>
@@ -150,12 +167,12 @@ export default function ManageStaffPage() {
 
             <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border dark:border-gray-700">
               <h2 className="text-base font-bold text-gray-900 dark:text-white mb-4">{t("provider.business.staff.teamTitle")}</h2>
-              {data.staff.length === 0 && <p className="text-xs text-gray-500 dark:text-gray-400">{t("provider.business.staff.noStaffYet")}</p>}
-              <div className="space-y-2">
-                {data.staff.map((member) => (
+              {staff.length === 0 && <p className="text-xs text-gray-500 dark:text-gray-400">{t("provider.business.staff.noStaffYet")}</p>}
+              <div className="grid gap-3 md:grid-cols-2">
+                {staff.map((member) => (
                   <div key={member.id} className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
                     <div>
-                      <p className="text-gray-900 dark:text-white font-medium">{member.name}</p>
+                      <p className="text-gray-900 dark:text-white font-medium">{member.name} <span className="ml-2 text-xs font-normal text-muted-foreground">{member.isActive ? "Active" : "Inactive"}</span></p>
                       <p className="text-[11px] text-gray-500 dark:text-gray-400">{member.email}{member.phone ? ` · ${member.phone}` : ""}</p>
                     </div>
                     {member.skills.length > 0 && (

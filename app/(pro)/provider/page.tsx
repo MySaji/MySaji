@@ -2,6 +2,8 @@
 
 import { useEffect, useState, type ComponentType } from "react"
 import { useRouter } from "next/navigation"
+import { useAuthContext } from "@/frontend/lib/auth-context"
+import { PriorityDesk } from "@/frontend/components/workspaces/priority-desk"
 import useSWR from "swr"
 import Link from "next/link"
 import NextImage from "next/image"
@@ -149,6 +151,8 @@ function StatTile({
 // --- Page ----------------------------------------------------------------
 
 export default function ProviderHomePage() {
+  const { user } = useAuthContext()
+  const accountKey = (key:string) => user?.id ? [key,user.id,user.role] : null
   const { t, formatMoney } = useLocalization()
   const router = useRouter()
   const { type: workspaceType, isLoading: isWorkspaceLoading } = useProviderWorkspace()
@@ -165,16 +169,16 @@ export default function ProviderHomePage() {
     else if (workspaceType === "field_technician") router.replace("/provider/field")
   }, [workspaceType, isWorkspaceLoading, router])
 
-  const { data: pro } = useSWR("pro-overview", () => withTimeout(getProDashboardOverview(), DASHBOARD_FETCH_TIMEOUT_MS))
-  const { data: dashboard } = useSWR("provider-dashboard", () => withTimeout(getProviderDashboardData(), DASHBOARD_FETCH_TIMEOUT_MS))
-  const { data: opportunities } = useSWR("open-opportunities", () => withTimeout(getOpenOpportunities(), DASHBOARD_FETCH_TIMEOUT_MS))
-  const { data: products } = useSWR("my-products", () => withTimeout(getMyProducts(), DASHBOARD_FETCH_TIMEOUT_MS))
-  const { data: productOrders } = useSWR("my-product-orders", () => withTimeout(getMyProductOrders(), DASHBOARD_FETCH_TIMEOUT_MS))
-  const { data: availability } = useSWR("provider-availability", () => withTimeout(getProviderAvailability(), DASHBOARD_FETCH_TIMEOUT_MS))
-  const { data: subscription } = useSWR("my-subscription", () => withTimeout(getMySubscriptionStatus(), DASHBOARD_FETCH_TIMEOUT_MS))
-  const { data: clients } = useSWR("provider-clients", () => withTimeout(getProviderClients(), DASHBOARD_FETCH_TIMEOUT_MS))
+  const { data: pro } = useSWR(accountKey("pro-overview"), () => withTimeout(getProDashboardOverview(), DASHBOARD_FETCH_TIMEOUT_MS))
+  const { data: dashboard } = useSWR(accountKey("provider-dashboard"), () => withTimeout(getProviderDashboardData(), DASHBOARD_FETCH_TIMEOUT_MS))
+  const { data: opportunities } = useSWR(accountKey("open-opportunities"), () => withTimeout(getOpenOpportunities(), DASHBOARD_FETCH_TIMEOUT_MS))
+  const { data: products } = useSWR(accountKey("my-products"), () => withTimeout(getMyProducts(), DASHBOARD_FETCH_TIMEOUT_MS))
+  const { data: productOrders } = useSWR(accountKey("my-product-orders"), () => withTimeout(getMyProductOrders(), DASHBOARD_FETCH_TIMEOUT_MS))
+  const { data: availability } = useSWR(accountKey("provider-availability"), () => withTimeout(getProviderAvailability(), DASHBOARD_FETCH_TIMEOUT_MS))
+  const { data: subscription } = useSWR(accountKey("my-subscription"), () => withTimeout(getMySubscriptionStatus(), DASHBOARD_FETCH_TIMEOUT_MS))
+  const { data: clients } = useSWR(accountKey("provider-clients"), () => withTimeout(getProviderClients(), DASHBOARD_FETCH_TIMEOUT_MS))
   const { data: onlineStatus, mutate: mutateOnline } = useSWR(
-    "my-online-status", () => withTimeout(getMyOnlineStatus(), DASHBOARD_FETCH_TIMEOUT_MS),
+    accountKey("my-online-status"), () => withTimeout(getMyOnlineStatus(), DASHBOARD_FETCH_TIMEOUT_MS),
   )
 
   const [isTogglingOnline, setIsTogglingOnline] = useState(false)
@@ -277,7 +281,8 @@ export default function ProviderHomePage() {
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-[1500px] space-y-7 px-4 pb-8 pt-5 sm:px-6">
         <ProWorkspaceHub />
-        {/* Status + this week's numbers */}
+        <PriorityDesk items={[{id:"jobs",title:"Active jobs",count:dashboard?.activeJobs,href:"/provider/jobs",allowed:moduleKeys.has("jobs"),description:"Review assigned jobs and keep progress up to date."}]} />
+      {/* Status + this week's numbers */}
         <section className="rounded-2xl bg-[#073b98] p-4 text-white sm:p-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             {/* Availability */}

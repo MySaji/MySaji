@@ -241,7 +241,7 @@ export default function ProviderSidebar({ isOpen, onClose, isCollapsed, onToggle
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside
+      <aside data-workspace-navigation
         data-pro-chrome="sidebar"
         className={`${
           isOpen ? "translate-x-0" : "-translate-x-full"

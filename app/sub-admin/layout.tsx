@@ -1,5 +1,8 @@
 "use client"
 
+import "@/frontend/components/workspaces/professional-workspace.css"
+import { ProfessionalFrame } from "@/frontend/components/workspaces/professional-frame"
+
 import { WorkspaceTools } from "@/frontend/components/workspace-tools"
 
 import type React from "react"
@@ -136,7 +139,7 @@ export default function SubAdminLayout({ children }: { children: React.ReactNode
   return (
     <div data-workspace="sub-admin" className="flex h-screen bg-gray-50 dark:bg-gray-900">
       {/* Sidebar -- desktop */}
-      <aside
+      <aside data-workspace-navigation
         className={`fixed top-0 left-0 h-dvh ${isCollapsed ? "lg:w-20" : "lg:w-64"} w-64 bg-gradient-to-b from-blue-700 to-blue-800 text-white transform transition-[transform,width] z-40 ${
           menuOpen ? "translate-x-0" : "-translate-x-full"
         } lg:translate-x-0 lg:relative flex flex-col`}
@@ -324,7 +327,7 @@ export default function SubAdminLayout({ children }: { children: React.ReactNode
 
         <main className="flex-1 overflow-auto pb-20 lg:pb-0">
           <WorkspaceTools name="Operations team" />
-          <div className="container mx-auto p-4 lg:p-6">{children}</div>
+          <div className="container mx-auto p-4 lg:p-6"><ProfessionalFrame>{children}</ProfessionalFrame></div>
         </main>
 
         {/* Mobile bottom nav */}

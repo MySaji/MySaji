@@ -1,5 +1,8 @@
 "use client"
 
+import "@/frontend/components/workspaces/professional-workspace.css"
+import { ProfessionalFrame } from "@/frontend/components/workspaces/professional-frame"
+
 import { WorkspaceTools } from "@/frontend/components/workspace-tools"
 
 import type React from "react"
@@ -149,7 +152,7 @@ export default function SajiProLayout({ children }: { children: React.ReactNode 
               <DisputeBanner disputes={openDisputes} messagesBasePath={messagesBasePath} />
             </div>
           )}
-          {children}
+          <ProfessionalFrame>{children}</ProfessionalFrame>
         </main>
       </div>
     </div>

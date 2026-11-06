@@ -1,5 +1,8 @@
 "use client"
 
+import "@/frontend/components/workspaces/professional-workspace.css"
+import { ProfessionalFrame } from "@/frontend/components/workspaces/professional-frame"
+
 import { WorkspaceTools } from "@/frontend/components/workspace-tools"
 
 import type React from "react"
@@ -125,7 +128,7 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
 
   return (
     <div data-workspace="agent" className="flex h-screen bg-gray-50 dark:bg-gray-900">
-      <aside
+      <aside data-workspace-navigation
         className={`fixed top-0 left-0 h-dvh ${isCollapsed ? "lg:w-20" : "lg:w-64"} w-64 bg-gradient-to-b from-indigo-700 to-indigo-800 text-white transform transition-[transform,width] z-40 ${
           menuOpen ? "translate-x-0" : "-translate-x-full"
         } lg:translate-x-0 lg:relative flex flex-col`}
@@ -299,7 +302,7 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
 
         <main className="flex-1 overflow-auto pb-20 lg:pb-0">
           <WorkspaceTools name="Agent workspace" />
-          <div className="container mx-auto p-4 lg:p-6">{children}</div>
+          <div className="container mx-auto p-4 lg:p-6"><ProfessionalFrame>{children}</ProfessionalFrame></div>
         </main>
 
         <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex items-center justify-around px-1 py-2 z-30">

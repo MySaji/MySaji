@@ -21,6 +21,7 @@ const ACTIVE_STATUSES = ["PENDING", "ACCEPTED", "IN_PROGRESS"]
  */
 export default function FieldTechnicianHomePage() {
   const { t, formatMoney } = useLocalization()
+  const [error, setError] = useState("")
   const [jobs, setJobs] = useState<ProviderJobItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [actionInFlight, setActionInFlight] = useState<string | null>(null)
@@ -30,7 +31,7 @@ export default function FieldTechnicianHomePage() {
   }
 
   useEffect(() => {
-    refresh().finally(() => setIsLoading(false))
+    refresh().catch(() => setError("Assigned jobs could not load. Please retry.")).finally(() => setIsLoading(false))
   }, [])
 
   const activeJobs = jobs
@@ -54,9 +55,13 @@ export default function FieldTechnicianHomePage() {
 
   const runAction = async (jobId: string, action: (input: { jobId: string }) => Promise<{ success: boolean }>) => {
     setActionInFlight(jobId)
-    await action({ jobId })
-    setActionInFlight(null)
-    await refresh()
+    setError("")
+    try {
+      const result = await action({ jobId })
+      if (!result.success) { setError("The job was not updated. Check its current status and your access, then retry."); return }
+      await refresh()
+    } catch { setError("The job could not be updated. Check your connection and retry.") }
+    finally { setActionInFlight(null) }
   }
 
   const formatDate = (iso: string) => {
@@ -75,7 +80,7 @@ export default function FieldTechnicianHomePage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-6">
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-800 dark:to-blue-900 text-white p-6 lg:rounded-b-3xl">
-        <div className="max-w-2xl mx-auto flex items-start justify-between gap-3">
+        <div className="max-w-5xl mx-auto flex items-start justify-between gap-3">
           <div>
             <h1 className="text-xl font-bold">{t("provider.field.title")}</h1>
             <p className="text-blue-100 text-xs">{t("provider.field.subtitle")}</p>
@@ -84,7 +89,9 @@ export default function FieldTechnicianHomePage() {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 -mt-4 space-y-3">
+      <div className="max-w-5xl mx-auto px-4 mt-4 space-y-3">
+        {error && <div role="alert" className="rounded-xl border border-red-200 bg-card p-4 text-sm">{error}<button className="ml-3 font-semibold text-primary" onClick={() => void refresh().then(() => setError("")).catch(() => setError("Assigned jobs could not load. Please retry."))}>Retry jobs</button></div>}
+        <section className="professional-surface flex flex-wrap items-center justify-between gap-4"><div><h2 className="text-lg font-semibold">Your active work</h2><p className="mt-1 text-sm text-muted-foreground">{activeJobs.length} assigned jobs awaiting completion. Review each job before changing its status.</p></div><button className="min-h-11 rounded-lg border px-4 text-sm" onClick={() => void refresh().catch(() => setError("Assigned jobs could not load. Please retry."))}>Refresh jobs</button></section>
         {activeJobs.length === 0 ? (
           <Card className="p-8 text-center mt-4">
             <p className="text-xs text-muted-foreground">{t("provider.field.noJobs")}</p>

@@ -1,5 +1,8 @@
 "use client"
 
+import "@/frontend/components/workspaces/professional-workspace.css"
+import { ProfessionalFrame } from "@/frontend/components/workspaces/professional-frame"
+
 import { WorkspaceTools } from "@/frontend/components/workspace-tools"
 
 import type React from "react"
@@ -97,7 +100,7 @@ export default function SecretaryLayout({ children }: { children: React.ReactNod
   return (
     <div data-workspace="secretary" className="flex h-screen bg-gray-50 dark:bg-gray-900">
       {/* Desktop Sidebar */}
-      <aside className={`fixed top-0 left-0 h-dvh ${isCollapsed ? "lg:w-20" : "lg:w-64"} w-64 bg-gradient-to-b from-blue-600 to-blue-700 text-white transform transition-[transform,width] z-40 ${menuOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 lg:relative flex flex-col`}>
+      <aside data-workspace-navigation className={`fixed top-0 left-0 h-dvh ${isCollapsed ? "lg:w-20" : "lg:w-64"} w-64 bg-gradient-to-b from-blue-600 to-blue-700 text-white transform transition-[transform,width] z-40 ${menuOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 lg:relative flex flex-col`}>
         <button
           onClick={toggleCollapsed}
           aria-label={isCollapsed ? t("common.sidebar.expand") : t("common.sidebar.collapse")}
@@ -253,7 +256,7 @@ export default function SecretaryLayout({ children }: { children: React.ReactNod
         {/* Page Content */}
         <main className="flex-1 overflow-auto pb-20 lg:pb-0">
           <WorkspaceTools name="Finance workspace" />
-          <div className="container mx-auto p-4 lg:p-6">{children}</div>
+          <div className="container mx-auto p-4 lg:p-6"><ProfessionalFrame>{children}</ProfessionalFrame></div>
         </main>
       </div>
 

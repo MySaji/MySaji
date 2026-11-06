@@ -1,5 +1,6 @@
 "use client"
 
+import { PriorityDesk } from "@/frontend/components/workspaces/priority-desk"
 import useSWR from "swr"
 import { useState } from "react"
 import { useAuthContext } from "@/frontend/lib/auth-context"
@@ -90,6 +91,7 @@ export default function SecretaryDashboard() {
       </div>
 
       <WorkspaceRefresh refreshing={isValidating} updatedAt={updatedAt} refresh={() => void mutate()} />
+      <PriorityDesk items={[{id:"payments",title:"Pending withdrawal requests",count:data.pendingCount,href:"/secretary/payments",description:"Review payment requests and supporting records."},{id:"balances",title:"Balance discrepancies",count:data.walletBuckets.reduce((sum,bucket)=>sum+bucket.discrepancyCount,0),href:"/secretary/reconciliation",description:"Review differences before recording a reconciliation."}]} />
       <WorkflowGuide title="Payments workspace" steps={[{ title: "Review pending work", description: "Check requests and transaction details before taking action." },{ title: "Reconcile records", description: "Compare recorded transactions and wallet balances." },{ title: "Report the outcome", description: "Export the current view for your authorised reporting workflow." }]} />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat, idx) => {

@@ -1,5 +1,6 @@
 "use client"
 
+import { PriorityDesk } from "@/frontend/components/workspaces/priority-desk"
 import useSWR from "swr"
 import { useState } from "react"
 import { useAuthContext } from "@/frontend/lib/auth-context"
@@ -62,6 +63,7 @@ export default function SubAdminDashboard() {
       </div>
 
       <WorkspaceRefresh refreshing={isValidating} updatedAt={updatedAt} refresh={() => void mutate()} />
+      <PriorityDesk items={[{id:"approval",title:"Pending approvals",count:data.pendingApprovals,href:"/sub-admin/verifications",description:"Review verification records and their supporting information."}]} />
       <WorkflowGuide title="Operations workspace" steps={[{ title: "Check activity", description: "Review the current user and job figures." },{ title: "Review assigned work", description: "Open the management pages available to your role." },{ title: "Follow up", description: "Use the relevant record and messages to keep work moving." }]} />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
         {stats.map((s, i) => (

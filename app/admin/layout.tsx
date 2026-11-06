@@ -1,5 +1,8 @@
 "use client"
 
+import "@/frontend/components/workspaces/professional-workspace.css"
+import { ProfessionalFrame } from "@/frontend/components/workspaces/professional-frame"
+
 import { WorkspaceTools } from "@/frontend/components/workspace-tools"
 
 import type React from "react"
@@ -42,7 +45,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <AdminHeader />
         <main className="flex-1 overflow-auto pb-20 lg:pb-0">
           <WorkspaceTools name="Administration" />
-          <div className="container mx-auto p-4 lg:p-8">{children}</div>
+          <div className="container mx-auto p-4 lg:p-8"><ProfessionalFrame>{children}</ProfessionalFrame></div>
         </main>
         <AdminMobileNav />
       </div>

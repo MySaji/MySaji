@@ -1,5 +1,6 @@
 "use client"
 
+import { PriorityDesk } from "@/frontend/components/workspaces/priority-desk"
 import useSWR from "swr"
 import { useState } from "react"
 import { useAuthContext } from "@/frontend/lib/auth-context"
@@ -76,6 +77,7 @@ export default function AgentDashboard() {
       </div>
 
       <WorkspaceRefresh refreshing={isValidating} updatedAt={updatedAt} refresh={() => void mutate()} />
+      <PriorityDesk items={[{id:"assigned",title:"Assigned open cases",count:data.openCount,href:"/agent/disputes",description:"Review and follow up your assigned disputes."},{id:"available",title:"Available to claim",count:data.unassignedOpenCount,href:"/agent/disputes",description:"Review available cases before claiming work."}]} />
       <WorkflowGuide title="Case management" steps={[{ title: "Review the queue", description: "Check open and available cases in your assigned workspace." },{ title: "Gather the facts", description: "Review the case record and communicate with the people involved." },{ title: "Record the outcome", description: "Use the case actions to keep the resolution history complete." }]} />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat, idx) => {

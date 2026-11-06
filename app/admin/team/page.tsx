@@ -1,5 +1,6 @@
 "use client"
 
+import { TeamActivityDialog } from "@/frontend/components/workspaces/team-activity-dialog"
 import { useEffect, useState } from "react"
 import { Plus, Trash2, Shield, Briefcase, UserCheck, Copy, Mail, Loader2, Pencil } from "lucide-react"
 import { registerTeamMember } from "@/backend/actions/auth"
@@ -13,6 +14,11 @@ type NewlyCreatedMember = AdminTeamMember & { password: string; credentialsSent:
 
 export default function TeamPage() {
   const { t } = useLocalization()
+  const [query, setQuery] = useState("")
+  const [roleFilter, setRoleFilter] = useState("all")
+  const [statusFilter, setStatusFilter] = useState("all")
+  const [activityMember, setActivityMember] = useState<AdminTeamMember | null>(null)
+  const [loadError, setLoadError] = useState("")
   const [isLoading, setIsLoading] = useState(true)
   const [teamMembers, setTeamMembers] = useState<AdminTeamMember[]>([])
   const [newlyCreated, setNewlyCreated] = useState<NewlyCreatedMember | null>(null)
@@ -60,7 +66,7 @@ export default function TeamPage() {
   }
 
   useEffect(() => {
-    refresh().finally(() => setIsLoading(false))
+    refresh().catch(() => setLoadError("Team could not load. Refresh to retry.")).finally(() => setIsLoading(false))
   }, [])
 
   const handleAddMember = async () => {
@@ -123,6 +129,12 @@ export default function TeamPage() {
     await refresh()
   }
 
+  const visibleMembers = teamMembers.filter(member =>
+    (roleFilter === "all" || member.role === roleFilter) &&
+    (statusFilter === "all" || member.status === statusFilter) &&
+    [member.name, member.email, member.department, member.jobTitle, member.managerName].filter(Boolean).join(" ").toLowerCase().includes(query.trim().toLowerCase())
+  ).sort((a,b) => a.name.localeCompare(b.name))
+
   if (isLoading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -133,6 +145,8 @@ export default function TeamPage() {
 
   return (
     <div className="space-y-6">
+      <TeamActivityDialog member={activityMember} onClose={() => setActivityMember(null)} />
+      {loadError && <p role="alert" className="rounded-xl border border-red-200 p-4 text-sm">{loadError} <button onClick={() => void refresh().then(() => setLoadError("")).catch(() => setLoadError("Team could not load. Refresh to retry."))}>Retry</button></p>}
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t("admin.team.title")}</h1>
         <button
@@ -157,6 +171,12 @@ export default function TeamPage() {
         ))}
       </div>
 
+      <section className="professional-surface grid gap-4 p-5 sm:grid-cols-3" aria-label="Team directory filters">
+        <label className="text-sm">Search team<input className="mt-2 w-full rounded-lg border bg-background p-3" type="search" value={query} onChange={e => setQuery(e.target.value)} placeholder="Name, email, department or manager" /></label>
+        <label className="text-sm">Role<select className="mt-2 w-full rounded-lg border bg-background p-3" value={roleFilter} onChange={e => setRoleFilter(e.target.value)}><option value="all">All roles</option>{(["sub-admin","secretary","agent"] as AdminTeamRole[]).map(role => <option key={role} value={role}>{roleLabels[role]}</option>)}</select></label>
+        <label className="text-sm">Access<select className="mt-2 w-full rounded-lg border bg-background p-3" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}><option value="all">All access states</option><option value="active">Active</option><option value="inactive">Inactive</option></select></label>
+        <p className="text-sm text-muted-foreground sm:col-span-3">Showing {visibleMembers.length} of {teamMembers.length} team members. Open recorded work to review audit actions by date.</p>
+      </section>
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -172,11 +192,11 @@ export default function TeamPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {teamMembers.length === 0 ? (
+              {visibleMembers.length === 0 ? (
                 <tr><td colSpan={7} className="px-6 py-12 text-center text-gray-600 dark:text-gray-400">{t("admin.team.noTeamMembers")}</td></tr>
-              ) : teamMembers.map((member) => (
+              ) : visibleMembers.map((member) => (
                 <tr key={member.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                  <td className="px-6 py-4 text-xs text-gray-900 dark:text-white">{member.name}</td>
+                  <td className="px-6 py-4 text-xs text-gray-900 dark:text-white"><button className="text-left font-semibold text-primary hover:underline" onClick={() => setActivityMember(member)}>{member.name}<span className="mt-1 block text-xs font-normal">View recorded work</span></button></td>
                   <td className="px-6 py-4 text-xs text-gray-600 dark:text-gray-400">{member.email}</td>
                   <td className="px-6 py-4 text-xs">
                     <span className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-full text-[11px] font-medium">

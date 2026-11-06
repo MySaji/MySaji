@@ -2,6 +2,7 @@
 import Link from "next/link"
 import dynamic from "next/dynamic"
 import { useState, useMemo } from "react"
+import { PriorityDesk } from "@/frontend/components/workspaces/priority-desk"
 import useSWR from "swr"
 import {
   Users, Briefcase, CheckCircle, AlertTriangle, TrendingUp, TrendingDown,
@@ -85,7 +86,8 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-8">
-      <section className="rounded-2xl border border-border bg-card p-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-semibold">Operations desk</h2><p className="mt-1 text-xs text-muted-foreground">Review pending work, follow active jobs and manage what customers see.</p></div><Button variant="outline" onClick={() => { void refreshQueue(); void refreshDashboard() }}>Refresh overview</Button></div><div className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">{[{href:"/admin/verifications",label:"Verification queue",value:queue?.verifications},{href:"/admin/disputes",label:"Open disputes",value:queue?.disputes},{href:"/admin/moderation",label:"Content reports",value:queue?.moderation},{href:"/admin/jobs",label:"Active jobs",value:queue?.jobs}].map(item=><Link key={item.href} href={item.href} className="rounded-xl border border-border p-4 hover:border-primary/40"><p className="text-xs text-muted-foreground">{item.label}</p><p className="mt-2 text-2xl font-semibold">{item.value ?? "—"}</p><span className="mt-2 block text-xs font-semibold text-primary">Review queue →</span></Link>)}</div><div className="mt-4 flex flex-wrap gap-3 text-xs font-semibold text-primary"><Link href="/admin/banners">Manage customer campaigns →</Link><Link href="/admin/team">Manage team access →</Link><Link href="/admin/users">Find a user →</Link></div></section>
+      <PriorityDesk items={[{id:"verify",title:"Verification queue",count:queue?.verifications,href:"/admin/verifications",description:"Review identity and business verification requests."},{id:"cases",title:"Open disputes",count:queue?.disputes,href:"/admin/disputes",description:"Review cases requiring an authorised resolution."},{id:"reports",title:"Content reports",count:queue?.moderation,href:"/admin/moderation",description:"Review reported content and record moderation decisions."}]} />
+      <div className="flex flex-wrap gap-3 text-sm"><Button variant="outline" onClick={() => { void refreshQueue(); void refreshDashboard() }}>Refresh priorities</Button><Link href="/admin/team" className="inline-flex min-h-11 items-center rounded-lg border px-4 font-medium text-primary">Manage team access</Link><Link href="/admin/banners" className="inline-flex min-h-11 items-center rounded-lg border px-4 font-medium text-primary">Customer campaigns</Link><Link href="/admin/users" className="inline-flex min-h-11 items-center rounded-lg border px-4 font-medium text-primary">Find a user</Link></div>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t("admin.dashboard.title")}</h1>

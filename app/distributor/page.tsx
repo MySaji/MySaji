@@ -1,5 +1,6 @@
 "use client"
 
+import { PriorityDesk } from "@/frontend/components/workspaces/priority-desk"
 import useSWR from "swr"
 import { useState } from "react"
 import { useAuthContext } from "@/frontend/lib/auth-context"
@@ -81,6 +82,7 @@ export default function DistributorDashboard() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
+        <PriorityDesk items={[{id:"orders",title:"Orders in processing",count:data.processingOrders,href:"/distributor/orders",description:"Review order details and fulfilment progress."},{id:"stock",title:"Low-stock products",count:data.lowStockCount,href:"/distributor/products",description:"Review your catalogue and replenish stock."}]} />
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{t("distributor.dashboard.title")}</h1>

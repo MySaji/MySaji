@@ -1,5 +1,6 @@
 "use client"
 
+import { PriorityDesk } from "@/frontend/components/workspaces/priority-desk"
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import NextImage from "next/image"
@@ -83,6 +84,7 @@ function SectionCard({ title, subtitle, tiles, cols }: { title: string; subtitle
 
 export default function BusinessDashboardHubPage() {
   const { t, tn, formatMoney } = useLocalization()
+  const [loadError, setLoadError] = useState("")
   const [isLoading, setIsLoading] = useState(true)
   const [overview, setOverview] = useState<BusinessOverview>({ isBusinessOwner: false })
   const [wallet, setWallet] = useState<ProviderWalletSummary>(null)
@@ -97,6 +99,7 @@ export default function BusinessDashboardHubPage() {
   useEffect(() => {
     Promise.all([getBusinessOverview(), getProviderWalletSummary(), getBusinessShopStatus()])
       .then(([o, w, s]) => { setOverview(o); setWallet(w); setShopStatus(s) })
+      .catch(() => setLoadError("Business overview could not load. Refresh the page to retry."))
       .finally(() => setIsLoading(false))
   }, [])
 
@@ -122,6 +125,8 @@ export default function BusinessDashboardHubPage() {
       </div>
     )
   }
+
+  if (loadError) return <div role="alert" className="professional-surface p-6"><h1 className="text-xl font-semibold">Business overview unavailable</h1><p className="mt-3 text-sm">{loadError}</p><button className="mt-4 min-h-11 rounded-lg border px-4" onClick={() => window.location.reload()}>Retry overview</button></div>
 
   if (!overview.isBusinessOwner) {
     return (
@@ -180,6 +185,7 @@ export default function BusinessDashboardHubPage() {
 
   return (
     <div className="pb-8 space-y-6">
+      <PriorityDesk items={[{id:"invoices",title:"Unpaid invoices",count:overview.unpaidInvoices,href:"/provider/invoices",description:"Review invoice balances before following up with clients."},{id:"orders",title:"Pending shop orders",count:shop?.pendingOrderCount,href:"/shopkeeper/orders",allowed:hasShop,description:"Review orders in the connected business shop."},{id:"stock",title:"Low-stock products",count:shop?.lowStockCount,href:"/shopkeeper/products",allowed:hasShop,description:"Check stock availability in the connected business shop."}]} />
       {/* Greeting + business identity */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>

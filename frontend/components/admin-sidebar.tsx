@@ -30,7 +30,7 @@ export function AdminSidebar() {
       </button>
 
       {/* Sidebar */}
-      <aside
+      <aside data-workspace-navigation
         className={`
         fixed top-0 left-0 h-dvh ${isCollapsed ? "lg:w-20" : "lg:w-64"} w-64 bg-gradient-to-b from-blue-600 to-blue-800 text-white
         transform transition-[transform,width] duration-300 z-40 flex flex-col

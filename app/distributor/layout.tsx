@@ -1,5 +1,8 @@
 "use client"
 
+import "@/frontend/components/workspaces/professional-workspace.css"
+import { ProfessionalFrame } from "@/frontend/components/workspaces/professional-frame"
+
 import { WorkspaceTools } from "@/frontend/components/workspace-tools"
 
 import React from "react"
@@ -218,7 +221,7 @@ export default function DistributorLayout({ children }: { children: React.ReactN
         {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
       </button>
 
-      <aside
+      <aside data-workspace-navigation
         className={`${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         } lg:translate-x-0 fixed lg:sticky left-0 top-0 ${isCollapsed ? "lg:w-20" : "lg:w-64"} w-64 h-dvh bg-gradient-to-b from-teal-700 to-cyan-900 dark:from-teal-900 dark:to-cyan-950 text-white transition-[transform,width] duration-300 z-40 flex flex-col overflow-hidden`}
@@ -505,7 +508,7 @@ export default function DistributorLayout({ children }: { children: React.ReactN
               )}
             </div>
           )}
-          {children}
+          <ProfessionalFrame>{children}</ProfessionalFrame>
         </main>
       </div>
 

@@ -1,6 +1,7 @@
 "use client"
 
 import useSWR from "swr"
+import { useAuthContext } from "@/frontend/lib/auth-context"
 import { getMyProCapabilities, type MyProCapabilities } from "@/backend/actions/pro-capabilities"
 import { PRO_MODULE_BY_KEY, type ProModule } from "@/backend/domain/pro-modules"
 
@@ -26,7 +27,8 @@ export function useProCapabilities(): {
   workSlot: { label: string; href: string }
   refresh: () => void
 } {
-  const { data, isLoading, mutate } = useSWR(KEY, getMyProCapabilities)
+  const { user } = useAuthContext()
+  const { data, isLoading, mutate } = useSWR(user?.id && ["provider","shopkeeper"].includes(user.role) ? [KEY,user.id,user.role] : null, getMyProCapabilities)
 
   const keys = data?.moduleKeys ?? []
   return {
